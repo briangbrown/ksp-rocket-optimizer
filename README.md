@@ -61,6 +61,8 @@ simulator cannot fly to orbit at all, so their ascent goes unverified.
 ## Layout
 
     src/ksp-mission-planner.jsx    the whole application, self-contained
+    src/main.jsx                   mounts the component
+    index.html                     page shell
     docs/optimiser-flow.mermaid    how the search works, and where simulation enters
 
 Part data is inline in the source. It was extracted from a Squad 1.12.5 +
@@ -68,9 +70,14 @@ Breaking Ground + ReStock+ install and is not re-derived at runtime.
 
 ## Running it
 
-The file is a single React component with no build step of its own. Drop it into
-any React 18 project, or paste it into a Claude artifact, which is where it was
-written.
+    npm install
+    npm run dev        # dev server with hot reload
+    npm run build      # production build into dist/
+    npm run preview    # serve the production build
 
-Dependencies are React alone. Tank and part tables, atmosphere splines, and the
-tech tree are all constants in the file.
+Requires Node 24 or newer. Dependencies are React and Vite alone — tank and part
+tables, atmosphere splines, and the tech tree are all constants in the source.
+
+The planner remains a single self-contained component, so it can still be
+dropped into any React 19 project or pasted into a Claude artifact, which is
+where it was written.
