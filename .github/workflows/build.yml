@@ -24,9 +24,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Runs before the build: a moved design or a blank render is the failure
-      # worth seeing first, and the build passing says nothing about either.
-      - name: Design snapshot and render sweep
+      # Runs before the build: a moved design, a blank render or a part drawn
+      # outside its panel is the failure worth seeing first, and the build
+      # passing says nothing about any of them.
+      - name: Design snapshot, render sweep and panel containment
         run: npm test
 
       - name: Build
