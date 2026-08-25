@@ -145,13 +145,13 @@ combination reachable, this check is what will catch it.
 Everything known to be outstanding is filed. In rough order of what unblocks
 what:
 
-| | | |
-|---|---|---|
-| [#7](../../../issues/7) | Extract the mission orchestration out of the component effect | Makes the destination-to-design pipeline testable. Do this before #11. |
-| [#8](../../../issues/8) | Restore the eslint `no-undef` check | Small, independent, closes a gap nothing else covers. |
-| [#9](../../../issues/9) | `wMax` picks one term per part | Latent, not live. Needs a reachable case before it is worth touching. |
-| [#10](../../../issues/10) | Richer pitch program for the gravity turn | The largest open problem — see below. |
-| [#11](../../../issues/11) | Convert the source to TypeScript | Now affordable; the snapshot is the guardrail. |
+|                           |                                                               |                                                                        |
+| ------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| [#7](../../../issues/7)   | Extract the mission orchestration out of the component effect | Makes the destination-to-design pipeline testable. Do this before #11. |
+| [#8](../../../issues/8)   | Restore the eslint `no-undef` check                           | Small, independent, closes a gap nothing else covers.                  |
+| [#9](../../../issues/9)   | `wMax` picks one term per part                                | Latent, not live. Needs a reachable case before it is worth touching.  |
+| [#10](../../../issues/10) | Richer pitch program for the gravity turn                     | The largest open problem — see below.                                  |
+| [#11](../../../issues/11) | Convert the source to TypeScript                              | Now affordable; the snapshot is the guardrail.                         |
 
 Converting to TypeScript before the snapshot existed would have meant a
 mechanical diff across roughly 2,560 lines of physics and part tables with
@@ -167,6 +167,6 @@ sometimes cannot reach orbit at all. Fixing it means a richer pitch program: a
 third parameter, or a pitch schedule against altitude, rather than more
 accounting patches. [#10](../../../issues/10).
 
-It is worth being clear that this is the one item on the list that is *supposed*
+It is worth being clear that this is the one item on the list that is _supposed_
 to move the design snapshot. Every other change should leave it byte-identical;
 this one should not, and the before and after belong in the commit message.

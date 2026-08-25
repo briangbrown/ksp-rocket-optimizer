@@ -18,9 +18,16 @@
   },
   "customizations": {
     "vscode": {
-      "extensions": [
-        "anthropic.claude-code"
-      ]
+      "settings": {
+        // Prettier would rewrite src/ksp-mission-planner.jsx entirely — 10,466
+        // changed lines against a 4,556-line file, because its dense style is
+        // deliberate. That file is in .prettierignore so a save does not do it
+        // by accident; format-on-save still applies to everything else.
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      },
+      "extensions": ["esbenp.prettier-vscode", "anthropic.claude-code"]
     }
   },
   "postCreateCommand": {

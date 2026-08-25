@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
-import { solveGroup, resetTally } from '../src/ksp-mission-planner.jsx'
-import { cases } from './grid.js'
-import { signature } from './signature.js'
+import { describe, it, expect } from "vitest";
+import { solveGroup, resetTally } from "../src/ksp-mission-planner.jsx";
+import { cases } from "./grid.js";
+import { signature } from "./signature.js";
 
 /* The design snapshot.
 
@@ -18,18 +18,24 @@ import { signature } from './signature.js'
    not cover buildRoute, missionHardware, or the simulator-guided candidate walk
    — those live inside the component's effect and are not callable yet. */
 
-describe('design snapshot', () => {
-  it('produces unchanged designs across the configuration grid', async () => {
-    resetTally()
+describe("design snapshot", () => {
+  it("produces unchanged designs across the configuration grid", async () => {
+    resetTally();
 
-    const solved = cases().map(({ name, input }) => ({ name, res: solveGroup(input) }))
-    const text = solved.map(({ name, res }) => signature(name, res)).join('\n')
+    const solved = cases().map(({ name, input }) => ({
+      name,
+      res: solveGroup(input),
+    }));
+    const text = solved.map(({ name, res }) => signature(name, res)).join("\n");
 
     /* A grid that solves nothing would sail past any baseline, so assert the
        solver is actually being exercised before trusting the comparison. */
-    const found = solved.filter(({ res }) => res).length
-    expect(found, 'no configuration in the grid produced a design').toBeGreaterThan(0)
+    const found = solved.filter(({ res }) => res).length;
+    expect(
+      found,
+      "no configuration in the grid produced a design",
+    ).toBeGreaterThan(0);
 
-    await expect(text).toMatchFileSnapshot('./__snapshots__/designs.txt')
-  }, 600_000)
-})
+    await expect(text).toMatchFileSnapshot("./__snapshots__/designs.txt");
+  }, 600_000);
+});
