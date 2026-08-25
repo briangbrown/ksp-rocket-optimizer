@@ -1,0 +1,41 @@
+{
+  "name": "KSP Mission Planner Environment",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  // Disable IPv6 so Claude Code's OAuth callback binds to IPv4,
+  // which VS Code's port forwarding can actually reach.
+  // See: https://github.com/anthropics/claude-code/issues/9376
+  "runArgs": ["--sysctl", "net.ipv6.conf.all.disable_ipv6=1"],
+  "containerEnv": {
+    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
+    "VSCODE_THEME_KIND": "${localEnv:VSCODE_THEME_KIND}",
+    // git-identity below calls `gh api /user`, which needs gh authenticated at
+    // create time. Without this it silently does nothing on a fresh container
+    // and commits fall back to the image defaults.
+    "GH_TOKEN": "${localEnv:GH_TOKEN}"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code"
+      ]
+    }
+  },
+  "postCreateCommand": {
+    // Pre-seed the host key so git does not stop on an interactive prompt.
+    "ssh-setup": "mkdir -p ~/.ssh && chmod 700 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts",
+    // Codespaces already handles its own auth; rewriting there breaks it.
+    "git-https": "if [ -z \"$CODESPACES\" ]; then git config --global url.'https://github.com/'.insteadOf 'git@github.com:'; fi",
+    "claude-code": "npm install -g @anthropic-ai/claude-code",
+    // Without this a fresh container has no node_modules, so `npm test` fails
+    // before it runs. Harmless before this repo had dependencies; not now.
+    "npm-install": "npm install",
+    "git-fetch": "git fetch",
+    // Attribute commits to the signed-in account rather than container defaults.
+    "git-identity": "GH_USER=$(gh api /user --jq '.login' 2>/dev/null) && gh_name=$(gh api /user --jq '.name // empty' 2>/dev/null) && git config --global user.name \"${gh_name:-$GH_USER}\" && git config --global user.email \"${GH_USER}@users.noreply.github.com\""
+  },
+  // The default image runs as "node" (non-root)
+  "remoteUser": "node"
+}
