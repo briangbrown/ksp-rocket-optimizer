@@ -94,18 +94,24 @@ destination, objective and profile, checking that nothing bad reaches the text,
 that the module loads, and that the same destinations still produce a design
 (`solvability.txt` — liftoff mass and stage count per destination).
 
-Know what neither reaches:
+The **panel-containment check** reads the SVG shapes in the build view and
+asserts every part lies inside its panel at every staging step. SVG geometry
+lives in attributes rather than CSS, so it survives jsdom intact — which is why
+it catches drawing bugs the render sweep cannot.
+
+Know what none of them reach:
 
 - The snapshot drives `solveGroup`, not `buildRoute`, `missionHardware`, or the
   simulator-guided candidate walk — those are still inside the component's
   effect and are not callable.
-- Neither can see a bad number in a CSS value. The CSSOM discards what it cannot
-  parse, so `width: NaN%` leaves no trace to scan for. The panel-containment
-  geometry check that would catch it is **not implemented**.
+- No check can see a bad number in a CSS value. The CSSOM discards what it
+  cannot parse, so `width: NaN%` leaves no trace to scan for.
+- Containment is checked at the default tech tier and payload. Other rosters
+  produce different shapes and are not swept.
 
 A green build on its own says nothing about solver output. When you change
-something these checks cannot see — anything about the drawing especially — say
-plainly that it is unverified rather than implying CI covered it.
+something these checks cannot see, say plainly that it is unverified rather than
+implying CI covered it.
 
 ---
 

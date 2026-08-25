@@ -45,10 +45,11 @@ bundler will not tell you about any of them.
 
 ## Running the checks
 
-Both checks are implemented and gate CI. Together they take about 35 seconds.
+All three checks are implemented and gate CI. Together they take about 37
+seconds.
 
 ```bash
-npm test           # design snapshot + render sweep
+npm test           # design snapshot + render sweep + panel containment
 npm run test:bless # accept current output as the new baseline
 ```
 
@@ -56,6 +57,7 @@ npm run test:bless # accept current output as the new baseline
     test/signature.js                     reducing a design to stable text
     test/design-snapshot.test.js          the design snapshot
     test/render-sweep.test.jsx            the render sweep
+    test/panel-containment.test.jsx       every part inside its panel
     test/__snapshots__/designs.txt        solver baseline
     test/__snapshots__/solvability.txt    which destinations build, and how big
 
@@ -97,22 +99,43 @@ back returns null rather than the bad value. This is true of real browsers as
 much as jsdom, so no DOM scan will find them. Only string-valued properties
 survive to be seen, `font-family: NaN` being the type case.
 
-Catching a bad number in the drawing therefore needs assertions on the geometry
-itself. `stageGeom` and `stageSize` are pure functions, so the check this
-document describes elsewhere — every part lying inside its panel at every
-staging step — is straightforward to write against them directly and does not
-need a DOM at all. **That check is not implemented.** It is the most valuable
-remaining piece, given the elevation and the geometry have drifted apart three
-separate times.
+Catching a bad number in the drawing is what the panel-containment check does
+instead, and it works because it reads a different thing entirely.
+
+## Panel containment
+
+Every part drawn in the build view must lie inside its panel, at every staging
+step. This reads the SVG shapes directly — the elevation's rectangles and the
+plan view's circles — and compares each bounding box against the panel it sits
+in. **SVG geometry lives in attributes, not CSS**, so jsdom preserves `x`, `y`,
+`width`, `height`, `cx`, `cy` and `r` exactly, which is why this succeeds where
+the style scan cannot.
+
+It covers ten destinations across every staging step, plus all three objectives
+on Dres, checking between 4 and 37 shapes per step. The elevation is drawn with
+overflow visible, so an escaping part is never clipped — it just overlaps the
+rest of the page, which is why nothing throws when this goes wrong.
+
+Verified by removing the booster reach from the `wMax` estimate in `BuildView`,
+which is the historical failure: the check reported the escape per destination
+and staging step, in pixels.
+
+One latent inconsistency turned up while writing it, left alone rather than
+"fixed" on speculation. `wMax` picks one term per part — pack, else parallel
+stacks, else plain width — but a packed tank part carries both `pack` and `S`,
+and the renderer runs both loops. A part both packed and on parallel stacks
+would draw out to 1.52 × td while the estimate counted only `pack.w / 2`. It
+does not arise: of the 153 stages the snapshot grid produces, 23 are packed and
+4 run parallel stacks, and none are both. If a change ever makes that
+combination reachable, this check is what will catch it.
 
 ## Planned follow-up
 
-1. **The panel-containment geometry check**, per above.
-2. **Extract the orchestration** out of the component's effect — `buildRoute`,
+1. **Extract the orchestration** out of the component's effect — `buildRoute`,
    `missionHardware` and the simulator-guided candidate walk are not reachable
    from a test, so the design snapshot covers the solver rather than the full
    destination-to-design pipeline.
-3. **Then convert the source to TypeScript**, with these checks as the guardrail.
+2. **Then convert the source to TypeScript**, with these checks as the guardrail.
 
 Converting before the snapshot existed would have meant a mechanical diff across
 roughly 2,560 lines of physics and part tables with nothing able to detect a
