@@ -26,10 +26,15 @@ Do not attempt to push to `main`, including for one-line documentation fixes.
 npm run dev        # Vite dev server, hot reload
 npm run build      # production build into dist/
 npm run preview    # serve the production build
+npm test           # design snapshot — solve the grid, compare to the baseline
+npm run test:bless # accept current solver output as the new baseline
 ```
 
-Node 24 or newer. Run `npm run build` before every commit — it is what CI runs,
-and it is currently the only gate.
+Node 24 or newer. **Run `npm test && npm run build` before every commit** — both
+are what CI runs.
+
+`npm test` takes about 35 seconds; it is solving 81 rocket designs, not doing
+nothing.
 
 ---
 
@@ -73,17 +78,25 @@ than habit:
 
 ## Verification, and how to talk about it
 
-There are no tests. CI builds, which catches broken imports and syntax and no
-regression of substance.
+The **design snapshot** (`npm test`) solves a fixed grid of 81 configurations and
+compares every resulting design against a committed baseline. It is the check
+that matters here, because the characteristic failure in this codebase is
+silent — a refactor believed to be behaviour-preserving once altered 31 of 72
+designs without erroring.
 
-The design snapshot and render sweep described in `docs/DEVELOPMENT.md` are
-**planned, not implemented**. Do not cite them as though they run, and do not
-treat a green build as evidence that solver output is unchanged.
+A snapshot diff means the physics moved. If that is what you intended, re-bless
+with `npm run test:bless` and put the before and after in the commit message.
+**Never re-bless to turn a red build green.** A diff you cannot explain is the
+bug the test exists to catch, and blessing it destroys the only evidence.
 
-This matters because the characteristic failure in this codebase is silent: a
-refactor believed to be behaviour-preserving once altered 31 of 72 designs
-without erroring. When you make a change of that kind, say plainly that it is
-unverified rather than implying the build passing covers it.
+Know what it does not reach: it drives `solveGroup`, not `buildRoute`,
+`missionHardware`, or the simulator-guided candidate walk, which are still inside
+the component's effect. The **render sweep** described in `docs/DEVELOPMENT.md`
+is still **planned, not implemented** — do not cite it as though it runs.
+
+A green build on its own says nothing about solver output; only the snapshot
+does. When you change something the snapshot cannot see, say plainly that it is
+unverified rather than implying CI covered it.
 
 ---
 
@@ -91,8 +104,9 @@ unverified rather than implying the build passing covers it.
 
 - Do not push directly to `main` — it will be rejected.
 - Do not split the single file into modules.
-- Do not convert to TypeScript before the snapshot test exists; see the
-  sequencing note in `docs/DEVELOPMENT.md`.
+- Do not re-bless the design snapshot to make a red build green.
+- Do not convert to TypeScript without running the snapshot over the result; see
+  the sequencing note in `docs/DEVELOPMENT.md`.
 - Do not replace inline styles with Tailwind or another CSS framework.
 - Do not recompute stage geometry locally, or fix `solveStage` without checking
   `boostedAscent` — see `docs/DEVELOPMENT.md`.
