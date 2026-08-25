@@ -77,7 +77,8 @@ than habit:
 - **Physics constants and part tables are UPPER_SNAKE.**
 - **Prettier formats the repository, but not the planner.**
   `src/ksp-mission-planner.jsx` is in `.prettierignore` — its dense style is
-  deliberate, and reformatting it changes 10,466 lines. Everything else is
+  deliberate, and reformatting it changes 10,466 lines and leaves the file 2.5×
+  longer ([#16](../../issues/16) has the numbers). Everything else is
   prettier-clean; `npm run format:check` verifies that and `npm run format`
   fixes it. Do not remove that ignore entry as a drive-by.
 - **Comment the non-obvious physics** — where a constant came from, why a curve
