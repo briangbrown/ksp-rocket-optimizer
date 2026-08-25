@@ -89,14 +89,23 @@ with `npm run test:bless` and put the before and after in the commit message.
 **Never re-bless to turn a red build green.** A diff you cannot explain is the
 bug the test exists to catch, and blessing it destroys the only evidence.
 
-Know what it does not reach: it drives `solveGroup`, not `buildRoute`,
-`missionHardware`, or the simulator-guided candidate walk, which are still inside
-the component's effect. The **render sweep** described in `docs/DEVELOPMENT.md`
-is still **planned, not implemented** — do not cite it as though it runs.
+The **render sweep** mounts the app in jsdom and drives it across every
+destination, objective and profile, checking that nothing bad reaches the text,
+that the module loads, and that the same destinations still produce a design
+(`solvability.txt` — liftoff mass and stage count per destination).
 
-A green build on its own says nothing about solver output; only the snapshot
-does. When you change something the snapshot cannot see, say plainly that it is
-unverified rather than implying CI covered it.
+Know what neither reaches:
+
+- The snapshot drives `solveGroup`, not `buildRoute`, `missionHardware`, or the
+  simulator-guided candidate walk — those are still inside the component's
+  effect and are not callable.
+- Neither can see a bad number in a CSS value. The CSSOM discards what it cannot
+  parse, so `width: NaN%` leaves no trace to scan for. The panel-containment
+  geometry check that would catch it is **not implemented**.
+
+A green build on its own says nothing about solver output. When you change
+something these checks cannot see — anything about the drawing especially — say
+plainly that it is unverified rather than implying CI covered it.
 
 ---
 

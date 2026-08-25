@@ -43,19 +43,21 @@ bundler will not tell you about any of them.
 - **Slenderness is a constraint, not a tie-break.** The simulation walk once fell
   through every compliant design and returned a 30.6:1 stack under a 14:1 limit.
 
-## Running the design snapshot
+## Running the checks
 
-The design snapshot is implemented and gates CI. The render sweep is not.
+Both checks are implemented and gate CI. Together they take about 35 seconds.
 
 ```bash
-npm test           # solve the grid, compare against the baseline
-npm run test:bless # accept the current output as the new baseline
+npm test           # design snapshot + render sweep
+npm run test:bless # accept current output as the new baseline
 ```
 
-    test/grid.js                      the configuration grid and its axes
-    test/signature.js                 reducing a design to stable text
-    test/design-snapshot.test.js      the test itself
-    test/__snapshots__/designs.txt    the committed baseline
+    test/grid.js                          the configuration grid and its axes
+    test/signature.js                     reducing a design to stable text
+    test/design-snapshot.test.js          the design snapshot
+    test/render-sweep.test.jsx            the render sweep
+    test/__snapshots__/designs.txt        solver baseline
+    test/__snapshots__/solvability.txt    which destinations build, and how big
 
 The grid is 81 configurations — three tech tiers, three payloads, three delta-v
 budgets, three objectives — of which 66 produce a design and 15 are legitimately
@@ -73,10 +75,44 @@ effect and are not callable from a test yet. Extracting that orchestration into
 a plain function is the next thing worth doing, and the snapshot now covers
 enough to make it safe.
 
-## Planned follow-up: the render sweep, then TypeScript
+## What the render sweep catches, and what it cannot
 
-1. **Implement the render sweep**, and gate CI on it too.
-2. **Then convert the source to TypeScript**, with both checks as the guardrail.
+It mounts the real application in jsdom and drives it across every destination,
+objective and profile. Three things are asserted: no `NaN`, `Infinity`,
+`undefined` or `null` in the rendered text; the module loads at all; and the
+same destinations still produce a design, recorded in `solvability.txt` as
+liftoff mass and stage count.
+
+That third assertion is not part of the original description of this sweep, and
+it turned out to be the one that earns its keep. `fmt` converts every non-finite
+number to an em-dash before display, so a `NaN` travelling through any `Stat` is
+invisible to a text scan — forcing liftoff mass to `NaN` produced no textual
+trace at all. What a reader would actually notice is the design collapsing into
+a row of dashes, so that is what is checked.
+
+**A bad number in a CSS value cannot be caught this way.** The CSSOM validates
+on assignment and silently discards what it cannot parse, so `width: NaN%`,
+`width: undefinedpx` and `opacity: NaN` leave no trace — reading the attribute
+back returns null rather than the bad value. This is true of real browsers as
+much as jsdom, so no DOM scan will find them. Only string-valued properties
+survive to be seen, `font-family: NaN` being the type case.
+
+Catching a bad number in the drawing therefore needs assertions on the geometry
+itself. `stageGeom` and `stageSize` are pure functions, so the check this
+document describes elsewhere — every part lying inside its panel at every
+staging step — is straightforward to write against them directly and does not
+need a DOM at all. **That check is not implemented.** It is the most valuable
+remaining piece, given the elevation and the geometry have drifted apart three
+separate times.
+
+## Planned follow-up
+
+1. **The panel-containment geometry check**, per above.
+2. **Extract the orchestration** out of the component's effect — `buildRoute`,
+   `missionHardware` and the simulator-guided candidate walk are not reachable
+   from a test, so the design snapshot covers the solver rather than the full
+   destination-to-design pipeline.
+3. **Then convert the source to TypeScript**, with these checks as the guardrail.
 
 Converting before the snapshot existed would have meant a mechanical diff across
 roughly 2,560 lines of physics and part tables with nothing able to detect a

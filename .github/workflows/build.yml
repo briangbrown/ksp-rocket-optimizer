@@ -24,9 +24,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Runs before the build: a moved design is the failure worth seeing first,
-      # and the build passing says nothing about solver output.
-      - name: Design snapshot
+      # Runs before the build: a moved design or a blank render is the failure
+      # worth seeing first, and the build passing says nothing about either.
+      - name: Design snapshot and render sweep
         run: npm test
 
       - name: Build
