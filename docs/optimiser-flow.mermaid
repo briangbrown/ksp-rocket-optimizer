@@ -1,0 +1,97 @@
+flowchart TB
+
+%% ─────────────────────────────────────────────────────────────
+%%  KSP MISSION PLANNER — what the optimiser actually explores
+%%  Closed-form search first, simulation only at the very end.
+%% ─────────────────────────────────────────────────────────────
+
+START([mission settings change]) --> ROUTE
+
+subgraph L0["ROUTE — arithmetic only, no search"]
+  ROUTE["buildRoute<br/>origin, destination, profile, return"]
+  --> LEGS["legs and their Δv<br/>from real orbital elements<br/>plane change: timed at a node, or burned from low orbit"]
+  --> BUDGET["budget = Σ legs × (1 + margin) + extra Δv"]
+  --> GROUPS["split at route cuts<br/>one solveGroup per segment"]
+end
+
+GROUPS --> K
+
+subgraph L1["solveGroup — combinatorial, per segment"]
+  direction TB
+  K["stage count k<br/>1 … ceil(Δv ÷ 2200) + 1, never past 6"] --> SPLIT
+  SPLIT["Δv split across stages<br/>splitShares(k) — every share pattern"] --> VAR
+  VAR["build variant — each drops one option that flatters a<br/>single stage and hurts the stack<br/>all · no liquid columns · no plates · clusters capped at 4<br/>cost tries all four, mass and parts two"] --> PICK
+  PICK["stage heuristic<br/>cost: cost then parts · else the objective itself"] --> TOPDOWN
+  TOPDOWN["walk stages top-down, i = k−1 … 0<br/>each stage's mass becomes the next one's payload"]
+end
+
+TOPDOWN --> ISBOTTOM{"bottom stage<br/>and boosters allowed?"}
+ISBOTTOM -- no --> STAGE
+ISBOTTOM -- yes --> BOOST
+
+subgraph L2["solveStage — closed form, no integration"]
+  direction TB
+  STAGE["for each engine"] --> GIM{"gimbal rules<br/>needs a gimbal in air?<br/>one-plane gimbal needs ≥ 4"}
+  GIM -- fails --> SKIP1((skip))
+  GIM -- passes --> NLOOP["cluster count n<br/>1,2,3,4,5,6,7,8,9,12<br/>capped at maxCluster per column"]
+  NLOOP --> FLOOR{"can n engines even<br/>meet the thrust floor?<br/>skip below twrMin × payload × g ÷ thrust"}
+  FLOOR -- no --> SKIP3((skip))
+  FLOOR -- yes --> SLOOP["parallel columns<br/>1, 3, 4, 5, 7, 9<br/>core plus a radial ring"]
+  SLOOP --> GRP["tank group<br/>one per diameter × structural coefficient"]
+  GRP --> FIT["fitStructure — shared with the booster path<br/>coupler or engine plate · shroud by engine height<br/>adapter only if the engine is wider · decoupler<br/>rejoin for clusters · radial joins"]
+  FIT --> MP["propellantFor — rocket equation<br/>solves for the propellant that closes this stage's Δv"]
+  MP --> TANKS["pickTanks — 4 candidates<br/>greedy · fewest · cheapest · early-finish<br/>then a consolidation pass<br/>memoised: two thirds of calls are repeats"]
+  TANKS --> CHECKS{"TWR ≥ floor?<br/>burn ≤ 200 s on the pad, 420 s above?<br/>Δv ≥ 99.5% of target?"}
+  CHECKS -- fails --> SKIP2((skip))
+  CHECKS -- passes --> SCORE["score = objective + mass × coupling term"]
+end
+
+subgraph L3["boostedAscent — closed form, two-phase"]
+  direction TB
+  BOOST["viable cores<br/>pre-filtered by liftoff TWR ≥ 0.85 g"] --> MOUNTS["mounts<br/>solid boosters · liquid radial columns at 30/45/60/90/130 s"]
+  MOUNTS --> NB["booster count 2,3,4,6,8"]
+  NB --> FIT2["fitStructure — the same function"]
+  FIT2 --> BISECT["bisect the core size<br/>phase A both burning, phase B core alone"]
+  BISECT --> SCORE
+end
+
+SCORE --> KEEP["keep the best stage for this heuristic"]
+KEEP --> CHAIN["chain complete → score the whole stack<br/>slenderness: inside the limit always beats outside it"]
+CHAIN --> BYK["best per stage count, and best overall"]
+
+BYK --> ISLAUNCH{"is this the launch<br/>segment of an<br/>atmospheric body?"}
+
+ISLAUNCH -- no --> DONE
+ISLAUNCH -- yes --> SIM
+
+subgraph L4["SIMULATION — the only place anything is flown"]
+  direction TB
+  SIM["walk stage-count candidates, cheapest first<br/>slenderness preference preserved"] --> BUILD["buildVehicleFor<br/>real Isp curves · measured areas · payload width"]
+  BUILD --> TURN["optimiseTurn"]
+  TURN --> COARSE["coarse scan<br/>kick speed 30–140 m/s × kick angle 3–25°"]
+  COARSE --> REFINE["refine around the best<br/>±15 m/s × ±3°"]
+  REFINE --> CORE["if solids aboard: core throttle 100% → 35%<br/>lands booster burnout near target apoapsis"]
+  CORE --> FLY["flyAscent — RK4, dt = 0.1 s<br/>real drag chain · pitch floored at the horizon<br/>cutoff only while climbing · solids burn through it<br/>coast by Kepler · circularisation integrated"]
+  FLY --> QCHK{"max q ≤ 40 kPa?<br/>reached orbit?"}
+  QCHK -- no --> NEXTC["try the next candidate<br/>or a thrust limiter"]
+  NEXTC --> TURN
+  QCHK -- yes --> FLOWN["flown Δv cost"]
+end
+
+FLOWN --> SHORT{"does the vehicle<br/>carry the flown cost?"}
+SHORT -- "no, it is short" --> RESIZE["re-solve at the flown cost × margin<br/>up to 3 passes"]
+RESIZE --> K
+SHORT -- yes --> DONE
+
+DONE([design, parts list, flight card])
+
+%% ── styling ──────────────────────────────────────────────────
+classDef search fill:#1a2332,stroke:#5F7488,stroke-width:1px,color:#9FB0C4
+classDef sim    fill:#123028,stroke:#4FD1A5,stroke-width:1.5px,color:#7fe3c0
+classDef gate   fill:#2a2118,stroke:#D8A657,stroke-width:1px,color:#e8c88a
+classDef quiet  fill:#181c24,stroke:#3a4450,stroke-width:1px,color:#7b8794
+
+class ROUTE,LEGS,BUDGET,GROUPS,K,SPLIT,VAR,PICK,TOPDOWN,STAGE,NLOOP,SLOOP,GRP,FIT,MP,TANKS,SCORE,KEEP,CHAIN,BYK,BOOST,MOUNTS,NB,FIT2,BISECT search
+class SIM,BUILD,TURN,COARSE,REFINE,CORE,FLY,FLOWN,NEXTC sim
+class GIM,CHECKS,ISBOTTOM,ISLAUNCH,QCHK,SHORT,FLOOR gate
+class SKIP1,SKIP2,SKIP3 quiet
