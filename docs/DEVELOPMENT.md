@@ -43,6 +43,25 @@ bundler will not tell you about any of them.
 - **Slenderness is a constraint, not a tie-break.** The simulation walk once fell
   through every compliant design and returned a 30.6:1 stack under a 14:1 limit.
 
+## Planned follow-up: tests, then TypeScript
+
+Neither of the two checks above is implemented yet — they are described here
+because they earned their keep during development, not because CI runs them. CI
+currently builds and nothing more, which catches broken imports and syntax and
+no regression of substance.
+
+The order to fix that in is deliberate:
+
+1. **Implement the design snapshot and the render sweep**, gate CI on both.
+2. **Then convert the source to TypeScript**, with those checks as the guardrail.
+
+Converting first would mean a mechanical diff across roughly 2,560 lines of
+physics and part tables with nothing able to detect a silently changed result —
+the exact failure this document already records, where a refactor believed to be
+behaviour-preserving altered 31 of 72 designs. TypeScript is worth having here,
+since a mistyped property on a part record is the most likely bug in data-heavy
+code, but it should be bought once the snapshot can prove the purchase was free.
+
 ## The largest open problem
 
 The gravity turn takes two parameters — kick speed and kick angle — and follows
