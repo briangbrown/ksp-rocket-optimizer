@@ -2,8 +2,9 @@
 
 ## Verification that matters
 
-Two checks caught nearly every regression during development, and both are worth
-keeping if the file is refactored.
+Three checks caught nearly every regression during development. All three now
+run as `npm test` and gate CI; the sections below record what each is for and,
+just as importantly, what it cannot see.
 
 **A design snapshot.** Solve a fixed grid of configurations — tech tiers,
 payloads, delta-v budgets, objectives, slenderness limits — and record a
@@ -18,16 +19,22 @@ diameters, and memoising the tank picker were each verified this way, and one
 crash-on-load from a `const` used before its declaration that neither the linter
 nor the bundler flagged.
 
-For drawing changes, additionally check that every part lies inside its panel at
-every staging step — the elevation and the geometry have drifted apart three
-separate times.
+**Panel containment.** Every part lies inside its panel at every staging step —
+the elevation and the geometry have drifted apart three separate times.
 
 ## Lint before bundling
 
-`eslint --no-eslintrc -c .eslintrc.json` with `no-undef` caught several bugs that
-esbuild compiled happily: a constant referenced before definition, a variable
-used outside its scope, a helper renamed in one place but not another. The
-bundler will not tell you about any of them.
+`eslint` with `no-undef` caught several bugs that esbuild compiled happily: a
+constant referenced before definition, a variable used outside its scope, a
+helper renamed in one place but not another. The bundler will not tell you about
+any of them.
+
+> **This check is currently missing.** There is no `.eslintrc.json` in the
+> repository and eslint is not a dependency, so the command this section used to
+> quote cannot be run. The render sweep catches the first of those three cases,
+> because a module-scope TDZ error throws on import — but a helper renamed in one
+> place and not another, on a branch the grid does not reach, would pass
+> everything today. See [#8](../../../issues/8).
 
 ## Where the bodies are buried
 
@@ -63,7 +70,9 @@ npm run test:bless # accept current output as the new baseline
 
 The grid is 81 configurations — three tech tiers, three payloads, three delta-v
 budgets, three objectives — of which 66 produce a design and 15 are legitimately
-unbuildable at that tech level. It takes about 35 seconds.
+unbuildable at that tech level. It takes about 35 seconds on its own, and is
+what makes the suite as a whole cost what it does — the other two checks run
+alongside it rather than after it.
 
 **Re-bless deliberately.** A diff means the physics changed. When that is what
 you intended, run `npm run test:bless` and record the before and after in the
@@ -73,9 +82,10 @@ explain is precisely the bug this test exists to catch.
 Its reach has limits worth knowing. It drives `solveGroup`, which is the design
 solver. It does not cover `buildRoute`, `missionHardware`, or the
 simulator-guided candidate walk, because those live inside the component's
-effect and are not callable from a test yet. Extracting that orchestration into
-a plain function is the next thing worth doing, and the snapshot now covers
-enough to make it safe.
+effect and are not callable from a test. Everything between a destination and a
+design is therefore unverified except through the render sweep's coarse view of
+it. Extracting that orchestration is [#7](../../../issues/7), and the snapshot
+now covers enough to make it safe.
 
 ## What the render sweep catches, and what it cannot
 
@@ -128,20 +138,25 @@ would draw out to 1.52 × td while the estimate counted only `pack.w / 2`. It
 does not arise: of the 153 stages the snapshot grid produces, 23 are packed and
 4 run parallel stacks, and none are both. If a change ever makes that
 combination reachable, this check is what will catch it.
+[#9](../../../issues/9).
 
-## Planned follow-up
+## Open work
 
-1. **Extract the orchestration** out of the component's effect — `buildRoute`,
-   `missionHardware` and the simulator-guided candidate walk are not reachable
-   from a test, so the design snapshot covers the solver rather than the full
-   destination-to-design pipeline.
-2. **Then convert the source to TypeScript**, with these checks as the guardrail.
+Everything known to be outstanding is filed. In rough order of what unblocks
+what:
 
-Converting before the snapshot existed would have meant a mechanical diff across
-roughly 2,560 lines of physics and part tables with nothing able to detect a
-silently changed result — the exact failure this document records, where a
-refactor believed to be behaviour-preserving altered 31 of 72 designs. That
-guardrail is now in place, so the conversion is affordable whenever you want it.
+| | | |
+|---|---|---|
+| [#7](../../../issues/7) | Extract the mission orchestration out of the component effect | Makes the destination-to-design pipeline testable. Do this before #11. |
+| [#8](../../../issues/8) | Restore the eslint `no-undef` check | Small, independent, closes a gap nothing else covers. |
+| [#9](../../../issues/9) | `wMax` picks one term per part | Latent, not live. Needs a reachable case before it is worth touching. |
+| [#10](../../../issues/10) | Richer pitch program for the gravity turn | The largest open problem — see below. |
+| [#11](../../../issues/11) | Convert the source to TypeScript | Now affordable; the snapshot is the guardrail. |
+
+Converting to TypeScript before the snapshot existed would have meant a
+mechanical diff across roughly 2,560 lines of physics and part tables with
+nothing able to detect a silently changed result — the exact failure this
+document records. That guardrail is now in place.
 
 ## The largest open problem
 
@@ -150,4 +165,8 @@ prograde thereafter. That is enough for most rockets and badly wrong for low
 thrust-to-weight stacks, where it overstates the ascent cost by up to 44% and
 sometimes cannot reach orbit at all. Fixing it means a richer pitch program: a
 third parameter, or a pitch schedule against altitude, rather than more
-accounting patches.
+accounting patches. [#10](../../../issues/10).
+
+It is worth being clear that this is the one item on the list that is *supposed*
+to move the design snapshot. Every other change should leave it byte-identical;
+this one should not, and the before and after belong in the commit message.
