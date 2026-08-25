@@ -28,15 +28,15 @@ circularisation is integrated rather than treated as an impulse.
 
 Seven builds have been flown in game and compared against the prediction:
 
-| Build | Predicted | Flown | Error |
-|---|---|---|---|
-| 2x Thud + Terrier | 3678 | 3688 | -0.3% |
-| Cheapest + boosters | 3594 | 3569 | +0.7% |
-| Cheapest updated | 3751 | 3720 | +0.8% |
-| Mun 3-stage | 4115 | 4134 | -0.5% |
-| Small probe | 4183 | 4151 | +0.8% |
-| Minmus, 4 Kickbacks | 3539 | 3293 | +7.5% |
-| Minmus, low TWR | 3964 | 2750 | **+44%** |
+| Build               | Predicted | Flown | Error    |
+| ------------------- | --------- | ----- | -------- |
+| 2x Thud + Terrier   | 3678      | 3688  | -0.3%    |
+| Cheapest + boosters | 3594      | 3569  | +0.7%    |
+| Cheapest updated    | 3751      | 3720  | +0.8%    |
+| Mun 3-stage         | 4115      | 4134  | -0.5%    |
+| Small probe         | 4183      | 4151  | +0.8%    |
+| Minmus, 4 Kickbacks | 3539      | 3293  | +7.5%    |
+| Minmus, low TWR     | 3964      | 2750  | **+44%** |
 
 Six within 1%. The two misses share a cause: **the two-parameter turn cannot
 express the ascent a person actually flies when thrust-to-weight is low.** A

@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest'
-import { render, cleanup } from '@testing-library/react'
-import { act } from 'react'
-import KSPMissionPlanner from '../src/ksp-mission-planner.jsx'
+import { describe, it, expect } from "vitest";
+import { render, cleanup } from "@testing-library/react";
+import { act } from "react";
+import KSPMissionPlanner from "../src/ksp-mission-planner.jsx";
 
 /* The render sweep.
 
@@ -26,7 +26,7 @@ import KSPMissionPlanner from '../src/ksp-mission-planner.jsx'
    crash-on-load this sweep originally caught was a const used before its
    declaration, which neither the linter nor the bundler flagged. */
 
-const BAD_TEXT = /\b(NaN|Infinity|undefined|null)\b/
+const BAD_TEXT = /\b(NaN|Infinity|undefined|null)\b/;
 
 /* Style attributes are scanned too, but expect little from it.
 
@@ -41,138 +41,165 @@ const BAD_TEXT = /\b(NaN|Infinity|undefined|null)\b/
    geometry functions themselves — `stageGeom` and `stageSize` are pure and
    testable — which is the separate check DEVELOPMENT.md describes as "every
    part lies inside its panel at every staging step". Not implemented. */
-const BAD_STYLE = /\b(NaN|Infinity|undefined)\b/
+const BAD_STYLE = /\b(NaN|Infinity|undefined)\b/;
 
 /* The veil is always mounted; `busy` only changes opacity and toggles the pulse
    animation on the dot. The animation is the honest "still solving" signal,
    because opacity is transitioned and lags behind the state. */
-const solving = () => !!document.querySelector('[style*="pulse"]')
+const solving = () => !!document.querySelector('[style*="pulse"]');
 
 const byText = (label) =>
-  [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === label)
+  [...document.querySelectorAll("button")].find(
+    (b) => b.textContent.trim() === label,
+  );
 
 async function click(label) {
-  const el = byText(label)
-  if (!el) throw new Error(`no button labelled "${label}"`)
+  const el = byText(label);
+  if (!el) throw new Error(`no button labelled "${label}"`);
   await act(async () => {
-    el.click()
-  })
+    el.click();
+  });
 }
 
 /* The solve effect debounces by 120 ms before it starts, so checking immediately
    would read the previous design as though it were the new one. Wait past the
    debounce first, then for the veil to clear. */
 async function settle(timeoutMs = 120_000) {
-  const started = Date.now()
+  const started = Date.now();
   await act(async () => {
-    await new Promise((r) => setTimeout(r, 250))
-  })
+    await new Promise((r) => setTimeout(r, 250));
+  });
   while (solving()) {
-    if (Date.now() - started > timeoutMs) throw new Error('solve did not settle')
+    if (Date.now() - started > timeoutMs)
+      throw new Error("solve did not settle");
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 100))
-    })
+      await new Promise((r) => setTimeout(r, 100));
+    });
   }
   await act(async () => {
-    await new Promise((r) => setTimeout(r, 50))
-  })
+    await new Promise((r) => setTimeout(r, 50));
+  });
 }
 
 /* Stat renders <div class="eyebrow">label</div> followed by the value div, whose
    trailing span holds the unit. */
 function stat(label) {
-  for (const el of document.querySelectorAll('.eyebrow')) {
-    if (el.textContent.trim() !== label) continue
-    const value = el.nextElementSibling
-    if (!value) return null
-    const unit = value.querySelector('span')
-    const text = value.textContent
-    return unit ? text.slice(0, text.length - unit.textContent.length).trim() : text.trim()
+  for (const el of document.querySelectorAll(".eyebrow")) {
+    if (el.textContent.trim() !== label) continue;
+    const value = el.nextElementSibling;
+    if (!value) return null;
+    const unit = value.querySelector("span");
+    const text = value.textContent;
+    return unit
+      ? text.slice(0, text.length - unit.textContent.length).trim()
+      : text.trim();
   }
-  return null
+  return null;
 }
 
 /* Offenders are reported with context — "NaN appears somewhere in 10 kB of text"
    is not an actionable failure. */
 function scan(where) {
-  const problems = []
+  const problems = [];
 
-  const text = document.body.textContent
-  const m = text.match(BAD_TEXT)
+  const text = document.body.textContent;
+  const m = text.match(BAD_TEXT);
   if (m) {
-    const at = text.indexOf(m[0])
-    problems.push(`${where}: "${m[0]}" in text near …${text.slice(Math.max(0, at - 60), at + 60)}…`)
+    const at = text.indexOf(m[0]);
+    problems.push(
+      `${where}: "${m[0]}" in text near …${text.slice(Math.max(0, at - 60), at + 60)}…`,
+    );
   }
 
-  for (const el of document.querySelectorAll('[style]')) {
-    const style = el.getAttribute('style')
-    const sm = style.match(BAD_STYLE)
+  for (const el of document.querySelectorAll("[style]")) {
+    const style = el.getAttribute("style");
+    const sm = style.match(BAD_STYLE);
     if (sm) {
-      problems.push(`${where}: "${sm[0]}" in style="${style.slice(0, 120)}" on <${el.tagName.toLowerCase()}>`)
-      break
+      problems.push(
+        `${where}: "${sm[0]}" in style="${style.slice(0, 120)}" on <${el.tagName.toLowerCase()}>`,
+      );
+      break;
     }
   }
 
-  return problems
+  return problems;
 }
 
 const DESTINATIONS = [
-  'Low orbit', 'Stationary orbit', 'Moho', 'Eve', 'Gilly', 'Mun', 'Minmus',
-  'Duna', 'Ike', 'Dres', 'Jool', 'Laythe', 'Vall', 'Tylo', 'Pol', 'Eeloo',
-]
-const OBJECTIVES = ['Lightest', 'Cheapest', 'Fewest parts']
-const PROFILES = ['Flyby', 'Orbit', 'Land']
+  "Low orbit",
+  "Stationary orbit",
+  "Moho",
+  "Eve",
+  "Gilly",
+  "Mun",
+  "Minmus",
+  "Duna",
+  "Ike",
+  "Dres",
+  "Jool",
+  "Laythe",
+  "Vall",
+  "Tylo",
+  "Pol",
+  "Eeloo",
+];
+const OBJECTIVES = ["Lightest", "Cheapest", "Fewest parts"];
+const PROFILES = ["Flyby", "Orbit", "Land"];
 
-describe('render sweep', () => {
-  it('mounts without a bad value in the initial render', async () => {
-    render(<KSPMissionPlanner />)
-    await settle()
-    expect(scan('initial mount')).toEqual([])
-    cleanup()
-  }, 180_000)
+describe("render sweep", () => {
+  it("mounts without a bad value in the initial render", async () => {
+    render(<KSPMissionPlanner />);
+    await settle();
+    expect(scan("initial mount")).toEqual([]);
+    cleanup();
+  }, 180_000);
 
-  it('renders every destination, and the same ones still produce a design', async () => {
-    render(<KSPMissionPlanner />)
-    await settle()
+  it("renders every destination, and the same ones still produce a design", async () => {
+    render(<KSPMissionPlanner />);
+    await settle();
 
-    const problems = []
-    const table = []
+    const problems = [];
+    const table = [];
     for (const dest of DESTINATIONS) {
-      await click(dest)
-      await settle()
-      problems.push(...scan(`destination ${dest}`))
-      table.push(`${dest.padEnd(18)} liftoff=${String(stat('Liftoff mass')).padEnd(9)} stages=${stat('Stages')}`)
+      await click(dest);
+      await settle();
+      problems.push(...scan(`destination ${dest}`));
+      table.push(
+        `${dest.padEnd(18)} liftoff=${String(stat("Liftoff mass")).padEnd(9)} stages=${stat("Stages")}`,
+      );
     }
-    cleanup()
+    cleanup();
 
-    expect(problems).toEqual([])
+    expect(problems).toEqual([]);
 
     /* Which destinations are buildable at the default tech tier and payload,
        and how big the rocket comes out. Six of the sixteen are dashes — Moho,
        Eve, Laythe, Vall, Tylo and Eeloo — which is the brutal landings and the
        far ones, not a fault. Re-bless with `npm run test:bless` when a change
        to the routes or the solver is meant to move these. */
-    await expect(table.join('\n') + '\n').toMatchFileSnapshot('./__snapshots__/solvability.txt')
-  }, 900_000)
+    await expect(table.join("\n") + "\n").toMatchFileSnapshot(
+      "./__snapshots__/solvability.txt",
+    );
+  }, 900_000);
 
-  it('renders every objective and profile without a bad value', async () => {
-    render(<KSPMissionPlanner />)
-    await settle()
+  it("renders every objective and profile without a bad value", async () => {
+    render(<KSPMissionPlanner />);
+    await settle();
 
-    const problems = []
+    const problems = [];
     for (const objective of OBJECTIVES) {
-      await click(objective)
-      await settle()
-      problems.push(...scan(`objective ${objective}`))
+      await click(objective);
+      await settle();
+      problems.push(...scan(`objective ${objective}`));
     }
     for (const profile of PROFILES) {
       /* Land is withdrawn where there is no surface to land on. */
-      if (!byText(profile)) continue
-      await click(profile)
-      await settle()
-      problems.push(...scan(`profile ${profile}`))
+      if (!byText(profile)) continue;
+      await click(profile);
+      await settle();
+      problems.push(...scan(`profile ${profile}`));
     }
-    cleanup()
-    expect(problems).toEqual([])
-  }, 900_000)
-})
+    cleanup();
+    expect(problems).toEqual([]);
+  }, 900_000);
+});
