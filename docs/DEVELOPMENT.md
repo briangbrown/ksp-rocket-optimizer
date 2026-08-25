@@ -43,24 +43,46 @@ bundler will not tell you about any of them.
 - **Slenderness is a constraint, not a tie-break.** The simulation walk once fell
   through every compliant design and returned a 30.6:1 stack under a 14:1 limit.
 
-## Planned follow-up: tests, then TypeScript
+## Running the design snapshot
 
-Neither of the two checks above is implemented yet — they are described here
-because they earned their keep during development, not because CI runs them. CI
-currently builds and nothing more, which catches broken imports and syntax and
-no regression of substance.
+The design snapshot is implemented and gates CI. The render sweep is not.
 
-The order to fix that in is deliberate:
+```bash
+npm test           # solve the grid, compare against the baseline
+npm run test:bless # accept the current output as the new baseline
+```
 
-1. **Implement the design snapshot and the render sweep**, gate CI on both.
-2. **Then convert the source to TypeScript**, with those checks as the guardrail.
+    test/grid.js                      the configuration grid and its axes
+    test/signature.js                 reducing a design to stable text
+    test/design-snapshot.test.js      the test itself
+    test/__snapshots__/designs.txt    the committed baseline
 
-Converting first would mean a mechanical diff across roughly 2,560 lines of
-physics and part tables with nothing able to detect a silently changed result —
-the exact failure this document already records, where a refactor believed to be
-behaviour-preserving altered 31 of 72 designs. TypeScript is worth having here,
-since a mistyped property on a part record is the most likely bug in data-heavy
-code, but it should be bought once the snapshot can prove the purchase was free.
+The grid is 81 configurations — three tech tiers, three payloads, three delta-v
+budgets, three objectives — of which 66 produce a design and 15 are legitimately
+unbuildable at that tech level. It takes about 35 seconds.
+
+**Re-bless deliberately.** A diff means the physics changed. When that is what
+you intended, run `npm run test:bless` and record the before and after in the
+commit message. Never re-bless to turn a red build green: a diff you cannot
+explain is precisely the bug this test exists to catch.
+
+Its reach has limits worth knowing. It drives `solveGroup`, which is the design
+solver. It does not cover `buildRoute`, `missionHardware`, or the
+simulator-guided candidate walk, because those live inside the component's
+effect and are not callable from a test yet. Extracting that orchestration into
+a plain function is the next thing worth doing, and the snapshot now covers
+enough to make it safe.
+
+## Planned follow-up: the render sweep, then TypeScript
+
+1. **Implement the render sweep**, and gate CI on it too.
+2. **Then convert the source to TypeScript**, with both checks as the guardrail.
+
+Converting before the snapshot existed would have meant a mechanical diff across
+roughly 2,560 lines of physics and part tables with nothing able to detect a
+silently changed result — the exact failure this document records, where a
+refactor believed to be behaviour-preserving altered 31 of 72 designs. That
+guardrail is now in place, so the conversion is affordable whenever you want it.
 
 ## The largest open problem
 

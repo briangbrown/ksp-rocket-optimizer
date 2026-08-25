@@ -4554,3 +4554,20 @@ function AscentPanel({ a, color }) {
     </div>
   );
 }
+
+/* ---------------------------- exports for testing ----------------------------
+   The application imports nothing from here — the component above is the only
+   runtime entry point, and the file is still droppable into a React project as
+   a default export. These names exist so the design snapshot in
+   test/design-snapshot.test.js can drive the solver without a DOM.
+
+   Adding a name here is not an invitation to split the file. See CLAUDE.md. */
+export {
+  DATA,
+  BODY,
+  withDeps,
+  solveStage,
+  solveGroup,
+  boostedAscent,
+  resetTally,
+};
