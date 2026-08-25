@@ -60,6 +60,11 @@ modules.
 The conventions here differ from a typical React project. Match the file rather
 than habit:
 
+> **TypeScript.** `.claude/typescript-style-guide.md` is staged for the
+> conversion in [#11](../../issues/11) and does not apply to the current `.jsx`
+> source. Its opening section lists four rules this project deliberately breaks
+> — read that before applying anything from the rest of it.
+
 - **Inline `style={{}}` is correct here.** There is no Tailwind, no CSS file,
   and no class-based design system. Static styling lives in a `<style>` block
   inside the component, alongside a small set of custom classes (`card`, `chip`,
