@@ -148,8 +148,13 @@ function loadMap(path) {
    to a line of original code, then scan upwards for the declaration enclosing
    it. That also resolves nested closures correctly: `dvOf` is a const inside
    boostedAscent, and the scan finds it before it finds its parent. */
-const DECL =
-  /^\s*(?:export\s+)?(?:async\s+)?(?:function\s+([A-Za-z_$][\w$]*)|(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=)/;
+const DECL = new RegExp(
+  "^\\s*(?:export\\s+)?(?:async\\s+)?(?:" +
+    "function\\s+([A-Za-z_$][\\w$]*)" + // function foo(
+    "|(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*" +
+    "(?:async\\s*)?(?:function\\b|\\([^)]*\\)\\s*=>|[A-Za-z_$][\\w$]*\\s*=>)" + // const foo = (…) =>
+    ")",
+);
 
 function originalName(map, line, col) {
   for (const l of [line, line - 1, line + 1]) {
@@ -171,9 +176,9 @@ function originalName(map, line, col) {
     const file = (map.sources[best.srcIdx] || "?").split("/").pop();
     for (let i = Math.min(best.srcLine, src.length - 1); i >= 0; i--) {
       const m = DECL.exec(src[i]);
-      if (m) return `${m[1] || m[2]}  <${file}>`;
+      if (m) return { name: m[1] || m[2], file };
     }
-    return `<${file}:${best.srcLine + 1}>`;
+    return { name: `${file}:${best.srcLine + 1}`, file };
   }
   return null;
 }
@@ -192,6 +197,10 @@ const warned = new Set();
 function selfTime(p, map) {
   const byId = new Map(p.nodes.map((n) => [n.id, n]));
   const self = new Map();
+  /* Keyed on the bare function name. The source file is carried alongside for
+     display only — putting it in the key made every device frame a different
+     key from its container twin, and the whole comparison read 0.0%. */
+  const where = new Map();
   const n = Math.min(p.samples.length, p.timeDeltas.length || p.samples.length);
   let total = 0;
   for (let i = 0; i < n; i++) {
@@ -215,14 +224,17 @@ function selfTime(p, map) {
         }
       } else {
         const orig = originalName(map, cf.lineNumber, cf.columnNumber ?? 0);
-        if (orig) name = orig;
+        if (orig) {
+          name = orig.name;
+          if (orig.file) where.set(name, orig.file);
+        }
       }
     }
     if (name === "(idle)") continue; // not work
     self.set(name, (self.get(name) || 0) + dt);
     total += dt;
   }
-  return { self, total };
+  return { self, total, where };
 }
 
 const args = process.argv.slice(2);
@@ -283,7 +295,8 @@ if (runs.length === 1) {
   console.log(`${r.file}\n${(r.total / 1000).toFixed(0)} ms sampled\n`);
   for (const [k, v] of [...r.self].sort((a, b) => b[1] - a[1]).slice(0, 25))
     console.log(
-      `  ${share(r, k).toFixed(1).padStart(5)}%  ${((v / 1000).toFixed(0) + " ms").padStart(9)}  ${k}`,
+      `  ${share(r, k).toFixed(1).padStart(5)}%  ${((v / 1000).toFixed(0) + " ms").padStart(9)}  ${k}` +
+        (r.where.get(k) ? `  <${r.where.get(k)}>` : ""),
     );
   const gc = share(r, "(garbage collector)");
   console.log(`\n  garbage collector: ${gc.toFixed(1)}%`);
@@ -307,10 +320,11 @@ for (const k of keys) {
   const sb = share(b, k);
   const d = sb - sa;
   const mark = Math.abs(d) < 1 ? "" : d > 0 ? "  <-- heavier in B" : "";
+  const file = b.where.get(k) || a.where.get(k);
   console.log(
     `  ${sa.toFixed(1).padStart(5)}% ${sb.toFixed(1).padStart(6)}%  ${(d >= 0 ? "+" : "") + d.toFixed(1)}pp`.padEnd(
       34,
-    ) + `${k}${mark}`,
+    ) + `${k}${file ? "  <" + file + ">" : ""}${mark}`,
   );
 }
 console.log(
