@@ -155,3 +155,8 @@ build/
 perf/.out
 perf/.prof
 perf/baselines/local.json
+
+# Device profiles exported from Chrome DevTools. Large, machine-specific,
+# and prettier runs out of memory trying to format one.
+Trace-*.json
+*.cpuprofile
