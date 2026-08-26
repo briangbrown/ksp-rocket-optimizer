@@ -158,7 +158,35 @@ const columnCoupler = (d, n, unlocked, excluded) => {
   return fit.length ? fit.sort((a, b) => a.m - b.m)[0] : null;
 };
 
+/* PROTOTYPE: per-roster result cache. Nested WeakMaps so a tech-tree change or
+   a new exclusion set invalidates for free, the way poolsFor does it. */
+const _coupCache = new WeakMap();
 const couplerFor = (e, n, unlocked, excluded, noPlate, expansions) => {
+  let byExcl = _coupCache.get(unlocked);
+  if (!byExcl) {
+    byExcl = new WeakMap();
+    _coupCache.set(unlocked, byExcl);
+  }
+  let byEngine = byExcl.get(excluded);
+  if (!byEngine) {
+    byEngine = new WeakMap();
+    byExcl.set(excluded, byEngine);
+  }
+  let byKey = byEngine.get(e);
+  if (!byKey) {
+    byKey = new Map();
+    byEngine.set(e, byKey);
+  }
+  /* Numeric key, no string. Building `e.n + "|" + n + ...` allocated on every
+     one of 54 million calls and cost more than the lookup saved. */
+  const ck = n * 2 + (noPlate ? 1 : 0);
+  const hit = byKey.get(ck);
+  if (hit !== undefined) return hit;
+  const val = _couplerFor(e, n, unlocked, excluded, noPlate, expansions);
+  byKey.set(ck, val);
+  return val;
+};
+const _couplerFor = (e, n, unlocked, excluded, noPlate, expansions) => {
   if (n <= 1 || isRadial(e)) return null;
   const fit = couplersFor(e, unlocked, excluded, expansions).filter(
     (c) => c.out === n && !(noPlate && c.plate),

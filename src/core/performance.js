@@ -33,15 +33,26 @@ const STAGE_PRESSURE = [0.62, 0.05, 0, 0];
 const REAL_CURVE = curvesData.REAL_CURVE;
 const ispCut = (e) => Math.min(12, Math.max(3, 3 + 9 * (e.ia / e.iv)));
 const _ispFns = new Map();
+/* PROTOTYPE: result cache, not just curve cache. */
+const _ispVals = new Map();
 function ispAt(e, p) {
   if (!p) return e.iv;
+  let byP = _ispVals.get(e.n);
+  if (byP === undefined) {
+    byP = new Map();
+    _ispVals.set(e.n, byP);
+  }
+  const hit = byP.get(p);
+  if (hit !== undefined) return hit;
   let f = _ispFns.get(e.n);
   if (!f) {
     const real = REAL_CURVE[e.n];
     f = real ? (x) => evalCurve(real, x) : ispCurve(e.iv, e.ia, ispCut(e));
     _ispFns.set(e.n, f);
   }
-  return Math.max(0, f(p));
+  const v = Math.max(0, f(p));
+  byP.set(p, v);
+  return v;
 }
 
 /* --------------------------- what counts as "best" ---------------------------

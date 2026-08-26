@@ -57,7 +57,36 @@ function usableAdapterProp(chain, engine) {
    answer it separately. Five bugs in this session came from fixing one copy and
    not the other: couplers, the thrust limiter, the gimbal check, the cluster cap
    and a missing decoupler quantity. */
+/* PROTOTYPE: keyed on the tanks array, which the app rebuilds whenever the
+   roster, exclusions or expansions change, so it stands in for all of them. */
+const _fitCache = new WeakMap();
 function fitStructure(opt) {
+  let byEngine = _fitCache.get(opt.tanks);
+  if (!byEngine) {
+    byEngine = new WeakMap();
+    _fitCache.set(opt.tanks, byEngine);
+  }
+  let byD = byEngine.get(opt.engine);
+  if (!byD) {
+    byD = new Map();
+    byEngine.set(opt.engine, byD);
+  }
+  let byKey = byD.get(opt.stackD);
+  if (!byKey) {
+    byKey = new Map();
+    byD.set(opt.stackD, byKey);
+  }
+  const fk =
+    (((opt.n * 8 + (opt.stacks || 1)) * 2 + (opt.noPlate ? 1 : 0)) * 2 +
+      (opt.plateAbove ? 1 : 0)) *
+      2 +
+    (opt.hasStageBelow ? 1 : 0);
+  if (byKey.has(fk)) return byKey.get(fk);
+  const out = _fitStructure(opt);
+  byKey.set(fk, out);
+  return out;
+}
+function _fitStructure(opt) {
   const {
     engine,
     n,

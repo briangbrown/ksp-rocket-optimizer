@@ -150,3 +150,7 @@ build/
 
 # Claude local settings
 .claude/settings.local.json
+
+# perf harness build output
+perf/out
+perf/prof*
