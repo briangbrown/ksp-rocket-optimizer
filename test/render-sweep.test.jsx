@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { act } from "react";
-import KSPMissionPlanner from "../src/ksp-mission-planner.jsx";
+import KSPMissionPlanner from "../src/ui/app.jsx";
 
 /* The render sweep.
 

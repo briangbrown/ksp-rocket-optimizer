@@ -1,15 +1,3 @@
-# The application is written in a deliberately dense style — packed one-line
-# helpers, aligned constant tables, comment blocks that carry the reasoning.
-# Prettier disagrees with nearly all of it: running it over this file changes
-# 10,466 lines against a source of 4,573, leaving it 11,545 lines long.
-#
-# That reformat may well be worth doing one day, and the design snapshot is
-# exactly what would prove it behaviour-preserving. It should be a deliberate
-# pull request with that evidence in it, not something that happens because
-# someone pressed save with format-on-save enabled. See issue #16, which
-# carries the measurements and the options.
-src/ksp-mission-planner.jsx
-
 # Held byte-identical to the copy in briangbrown/drumline-scores, and to its
 # upstream source, so it can be re-pulled without a formatting diff in the way.
 # The exceptions section prepended to it is the only intended difference.

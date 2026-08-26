@@ -1,0 +1,516 @@
+{
+  "COUPLERS": [
+    {
+      "n": "TVR-200 Stack Bi-Coupler",
+      "out": 2,
+      "dia": 1.25,
+      "top": 1.25,
+      "m": 0.1,
+      "cost": 400,
+      "t": "Specialized Construction"
+    },
+    {
+      "n": "TVR-1180C Mk1 Stack Tri-Coupler",
+      "out": 3,
+      "dia": 1.25,
+      "top": 1.25,
+      "m": 0.15,
+      "cost": 680,
+      "t": "Advanced Construction"
+    },
+    {
+      "n": "TVR-2160C Mk2 Stack Quad-Coupler",
+      "out": 4,
+      "dia": 1.25,
+      "top": 1.25,
+      "m": 0.175,
+      "cost": 2000,
+      "t": "Advanced Metalworks"
+    },
+    {
+      "n": "TVR-200L Stack Bi-Adapter",
+      "out": 2,
+      "dia": 1.25,
+      "top": 2.5,
+      "m": 0.1,
+      "cost": 400,
+      "t": "Meta-Materials"
+    },
+    {
+      "n": "TVR-400L Stack Quad-Adapter",
+      "out": 4,
+      "dia": 1.25,
+      "top": 2.5,
+      "m": 0.2,
+      "cost": 800,
+      "t": "Meta-Materials"
+    },
+    {
+      "n": "EP-12 Engine Plate",
+      "out": 2,
+      "dia": 0.625,
+      "top": 1.25,
+      "m": 0.062,
+      "cost": 200,
+      "t": "Advanced Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-12 Engine Plate",
+      "out": 3,
+      "dia": 0.625,
+      "top": 1.25,
+      "m": 0.062,
+      "cost": 200,
+      "t": "Advanced Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-12 Engine Plate",
+      "out": 4,
+      "dia": 0.625,
+      "top": 1.25,
+      "m": 0.062,
+      "cost": 200,
+      "t": "Advanced Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-18 Engine Plate",
+      "out": 2,
+      "dia": 1.25,
+      "top": 1.875,
+      "m": 0.14,
+      "cost": 250,
+      "t": "Advanced Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-18 Engine Plate",
+      "out": 3,
+      "dia": 1.25,
+      "top": 1.875,
+      "m": 0.14,
+      "cost": 250,
+      "t": "Advanced Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-18 Engine Plate",
+      "out": 4,
+      "dia": 1.25,
+      "top": 1.875,
+      "m": 0.14,
+      "cost": 250,
+      "t": "Advanced Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-25 Engine Plate",
+      "out": 2,
+      "dia": 1.25,
+      "top": 2.5,
+      "m": 0.25,
+      "cost": 300,
+      "t": "Specialized Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-25 Engine Plate",
+      "out": 3,
+      "dia": 1.25,
+      "top": 2.5,
+      "m": 0.25,
+      "cost": 300,
+      "t": "Specialized Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-25 Engine Plate",
+      "out": 4,
+      "dia": 1.25,
+      "top": 2.5,
+      "m": 0.25,
+      "cost": 300,
+      "t": "Specialized Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-37 Engine Plate",
+      "out": 2,
+      "dia": 2.5,
+      "top": 3.75,
+      "m": 0.58,
+      "cost": 500,
+      "t": "Composites",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-37 Engine Plate",
+      "out": 3,
+      "dia": 2.5,
+      "top": 3.75,
+      "m": 0.58,
+      "cost": 500,
+      "t": "Composites",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-37 Engine Plate",
+      "out": 4,
+      "dia": 2.5,
+      "top": 3.75,
+      "m": 0.58,
+      "cost": 500,
+      "t": "Composites",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-50 Engine Plate",
+      "out": 2,
+      "dia": 3.75,
+      "top": 5,
+      "m": 1,
+      "cost": 700,
+      "t": "Meta-Materials",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-50 Engine Plate",
+      "out": 3,
+      "dia": 3.75,
+      "top": 5,
+      "m": 1,
+      "cost": 700,
+      "t": "Meta-Materials",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-50 Engine Plate",
+      "out": 4,
+      "dia": 3.75,
+      "top": 5,
+      "m": 1,
+      "cost": 700,
+      "t": "Meta-Materials",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-12 Engine Plate",
+      "out": 5,
+      "dia": 0.625,
+      "top": 1.25,
+      "m": 0.062,
+      "cost": 200,
+      "t": "Advanced Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-12 Engine Plate",
+      "out": 7,
+      "dia": 0.625,
+      "top": 1.25,
+      "m": 0.062,
+      "cost": 200,
+      "t": "Advanced Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-12 Engine Plate",
+      "out": 9,
+      "dia": 0.625,
+      "top": 1.25,
+      "m": 0.062,
+      "cost": 200,
+      "t": "Advanced Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-18 Engine Plate",
+      "out": 5,
+      "dia": 1.25,
+      "top": 1.875,
+      "m": 0.14,
+      "cost": 250,
+      "t": "Advanced Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-18 Engine Plate",
+      "out": 7,
+      "dia": 1.25,
+      "top": 1.875,
+      "m": 0.14,
+      "cost": 250,
+      "t": "Advanced Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-18 Engine Plate",
+      "out": 9,
+      "dia": 1.25,
+      "top": 1.875,
+      "m": 0.14,
+      "cost": 250,
+      "t": "Advanced Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-25 Engine Plate",
+      "out": 5,
+      "dia": 1.25,
+      "top": 2.5,
+      "m": 0.25,
+      "cost": 300,
+      "t": "Specialized Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-25 Engine Plate",
+      "out": 7,
+      "dia": 1.25,
+      "top": 2.5,
+      "m": 0.25,
+      "cost": 300,
+      "t": "Specialized Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-25 Engine Plate",
+      "out": 9,
+      "dia": 1.25,
+      "top": 2.5,
+      "m": 0.25,
+      "cost": 300,
+      "t": "Specialized Construction",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-37 Engine Plate",
+      "out": 5,
+      "dia": 2.5,
+      "top": 3.75,
+      "m": 0.58,
+      "cost": 500,
+      "t": "Composites",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-37 Engine Plate",
+      "out": 7,
+      "dia": 2.5,
+      "top": 3.75,
+      "m": 0.58,
+      "cost": 500,
+      "t": "Composites",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-37 Engine Plate",
+      "out": 9,
+      "dia": 2.5,
+      "top": 3.75,
+      "m": 0.58,
+      "cost": 500,
+      "t": "Composites",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-50 Engine Plate",
+      "out": 5,
+      "dia": 3.75,
+      "top": 5,
+      "m": 1,
+      "cost": 700,
+      "t": "Meta-Materials",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-50 Engine Plate",
+      "out": 7,
+      "dia": 3.75,
+      "top": 5,
+      "m": 1,
+      "cost": 700,
+      "t": "Meta-Materials",
+      "plate": 1,
+      "rs": 1
+    },
+    {
+      "n": "EP-50 Engine Plate",
+      "out": 9,
+      "dia": 3.75,
+      "top": 5,
+      "m": 1,
+      "cost": 700,
+      "t": "Meta-Materials",
+      "plate": 1,
+      "rs": 1
+    }
+  ],
+  "PLATE_SHROUD": {
+    "EP-12 Engine Plate": [
+      {
+        "v": "Short",
+        "len": 0.625,
+        "m": 0.052
+      },
+      {
+        "v": "Medium-Short",
+        "len": 1.25,
+        "m": 0.0545
+      },
+      {
+        "v": "Medium",
+        "len": 1.875,
+        "m": 0.057
+      },
+      {
+        "v": "Medium-Long",
+        "len": 2.5,
+        "m": 0.0595
+      },
+      {
+        "v": "Long",
+        "len": 3.75,
+        "m": 0.062
+      }
+    ],
+    "EP-18 Engine Plate": [
+      {
+        "v": "Short",
+        "len": 0.675,
+        "m": 0.12
+      },
+      {
+        "v": "Medium-Short",
+        "len": 1.3,
+        "m": 0.125
+      },
+      {
+        "v": "Medium",
+        "len": 1.925,
+        "m": 0.13
+      },
+      {
+        "v": "Medium-Long",
+        "len": 2.55,
+        "m": 0.135
+      },
+      {
+        "v": "Long",
+        "len": 3.8,
+        "m": 0.14
+      }
+    ],
+    "EP-25 Engine Plate": [
+      {
+        "v": "Short",
+        "len": 0.675,
+        "m": 0.21
+      },
+      {
+        "v": "Medium-Short",
+        "len": 1.3,
+        "m": 0.22
+      },
+      {
+        "v": "Medium",
+        "len": 1.925,
+        "m": 0.23
+      },
+      {
+        "v": "Medium-Long",
+        "len": 2.55,
+        "m": 0.24
+      },
+      {
+        "v": "Long",
+        "len": 3.8,
+        "m": 0.25
+      }
+    ],
+    "EP-37 Engine Plate": [
+      {
+        "v": "Short",
+        "len": 1.3,
+        "m": 0.48
+      },
+      {
+        "v": "Medium-Short",
+        "len": 1.925,
+        "m": 0.505
+      },
+      {
+        "v": "Medium",
+        "len": 2.55,
+        "m": 0.53
+      },
+      {
+        "v": "Medium-Long",
+        "len": 3.8,
+        "m": 0.555
+      },
+      {
+        "v": "Long",
+        "len": 5.05,
+        "m": 0.58
+      }
+    ],
+    "EP-50 Engine Plate": [
+      {
+        "v": "Short",
+        "len": 1.3,
+        "m": 0.85
+      },
+      {
+        "v": "Medium-Short",
+        "len": 1.925,
+        "m": 0.8875
+      },
+      {
+        "v": "Medium",
+        "len": 2.55,
+        "m": 0.925
+      },
+      {
+        "v": "Medium-Long",
+        "len": 3.8,
+        "m": 0.9625
+      },
+      {
+        "v": "Long",
+        "len": 5.05,
+        "m": 1
+      }
+    ]
+  }
+}

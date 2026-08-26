@@ -3,7 +3,7 @@
 Agent instructions for Claude Code working in this repository.
 
 **Read [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) before changing
-`src/ksp-mission-planner.jsx`.** Its "Where the bodies are buried" section
+`src/core/`.** Its "Where the bodies are buried" section
 records the traps that have caused repeat regressions — shared stage solutions,
 the `stageGeom` / `stageSize` / elevation triangle, `fitStructure` being reached
 from two callers. That knowledge is not duplicated here.
@@ -40,18 +40,25 @@ nothing.
 
 ## The shape of this project
 
-`src/ksp-mission-planner.jsx` is the entire application: part tables, physics,
-the design solver, the ascent simulation, and the UI. Roughly 2,500 lines of
-data and physics precede the React component. `index.html` and `src/main.jsx`
-exist only to mount it and are not where logic belongs.
+Three layers, and the boundary between the first two is the point:
 
-Part data is inline and extracted from a specific KSP install (Squad 1.12.5 +
-Breaking Ground + ReStock+). It is not re-derived at runtime, so changing a
-number there is changing a measurement, not a config value.
+    src/data/   part tables, bodies, curves — JSON, no logic
+    src/core/   solver and physics. No React, no DOM, no imports from ui.
+    src/ui/     the application
 
-The single-file layout is deliberate — the component was written as a Claude
-artifact and is still meant to be droppable into one. Do not split it into
-modules.
+**`src/core/plan.js` is the seam.** `planMission(input, { signal, onYield })`
+takes a destination and a payload and returns solved stages. Everything crossing
+it is plain data — no `Set`, no `Map`, no object identity, no functions — so the
+solver behind it can become a Web Worker or a Rust/WASM module without the UI
+changing. `test/seam-contract.test.js` enforces that and will fail if it slips.
+
+Part data is extracted from a specific KSP install (Squad 1.12.5 + Breaking
+Ground + ReStock+). It is not re-derived at runtime, so changing a number in
+`src/data/` is changing a measurement, not a config value. It is JSON so a
+native port can embed the same files rather than keeping a second copy.
+
+This was one file until it had a test suite worth the name. The "droppable into
+any React project" property is gone, deliberately.
 
 ---
 
@@ -75,12 +82,8 @@ than habit:
 - **Naming is terse and domain-flavoured** (`cdOf`, `ispAt`, `fitStructure`,
   `solveStage`, `boostedAscent`). Follow it. Do not expand these into prose.
 - **Physics constants and part tables are UPPER_SNAKE.**
-- **Prettier formats the repository, but not the planner.**
-  `src/ksp-mission-planner.jsx` is in `.prettierignore` — its dense style is
-  deliberate, and reformatting it changes 10,466 lines and leaves the file 2.5×
-  longer ([#16](../../issues/16) has the numbers). Everything else is
-  prettier-clean; `npm run format:check` verifies that and `npm run format`
-  fixes it. Do not remove that ignore entry as a drive-by.
+- **Prettier formats everything.** `npm run format:check` verifies it, `npm run
+format` fixes it, and CI runs the former. Nothing in `src/` is excluded.
 - **Comment the non-obvious physics** — where a constant came from, why a curve
   has the shape it does, which KSP behaviour is being reproduced. Not what the
   code does.
@@ -129,7 +132,9 @@ implying CI covered it.
 ## What not to do
 
 - Do not push directly to `main` — it will be rejected.
-- Do not split the single file into modules.
+- Do not make `core/` import from `ui/`, and do not put a `Set`, a `Map` or a
+  live object reference across the `planMission` boundary — both are the whole
+  reason the split exists.
 - Do not re-bless the design snapshot to make a red build green.
 - Do not convert to TypeScript without running the snapshot over the result; see
   the sequencing note in `docs/DEVELOPMENT.md`.
