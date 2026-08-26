@@ -38,6 +38,12 @@ Seven builds have been flown in game and compared against the prediction:
 | Minmus, 4 Kickbacks | 3539      | 3293  | +7.5%    |
 | Minmus, low TWR     | 3964      | 2750  | **+44%** |
 
+These pairs still stand as evidence about the **ascent simulator**, which has
+not changed. They no longer necessarily describe what the tool would propose
+today: a fix to the adapter fitting means the optimiser now rejects some stacks
+it used to build, and picks heavier ones instead. Re-flying would be needed to
+say whether the affected builds still land this close.
+
 Six within 1%. The two misses share a cause: **the two-parameter turn cannot
 express the ascent a person actually flies when thrust-to-weight is low.** A
 pilot adjusts pitch continuously; this model has a kick angle, a kick speed, and
