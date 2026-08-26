@@ -1,0 +1,29 @@
+# Commits that moved code without changing it. `git blame` on this project is
+# worth keeping usable — much of the value in the physics is in comments
+# explaining where a constant came from, and a move would otherwise attribute
+# every one of them to the refactor.
+#
+# Enable with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# That on its own is not enough here, and it is worth knowing why. This code did
+# not just get reformatted, it moved between files, and blame does not track
+# content across files unless asked. Use:
+#
+#   git blame -C -C -C src/core/atmosphere.js
+#
+# With that, a physics comment resolves back to the commit that wrote it rather
+# than to the move. Lines prettier also reflowed will still land on the format
+# commit, because their text genuinely changed — only whole-line moves survive.
+#
+# Each of these left the design snapshot byte-identical, which is the evidence
+# that they moved code rather than changed it.
+
+# Step 1: data tables to src/data/*.json
+553e9b64c9ad9f46e5eb4828e4618fe25dce4039
+
+# Step 2: extract the core modules
+914adaa1d90b6017720ec07f88aa3a5b0df9bbd9
+
+# Steps 4 and 5: split the UI, and turn prettier on
+e4e0b07009c99834f014acbd8d7a80f178fa96bc
