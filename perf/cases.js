@@ -59,3 +59,38 @@ export function missionInput(dest, lvl) {
 }
 
 export const MISSIONS = ["Mun", "Minmus", "Duna", "Dres", "Jool"];
+
+/* The same mission expressed as a string the app's "Load configuration" accepts.
+
+   Clicking a tech tier and trusting the defaults is close, but close is not what
+   a comparison against container numbers needs — one different setting and the
+   two are measuring different searches. test/perf-config.test.js checks this
+   still round-trips through parseConfig, because a silently rejected field would
+   send someone off to measure the wrong thing. */
+export function missionConfig(lvl = 9, dest = "Mun") {
+  return (
+    "KSP-PLANNER " +
+    JSON.stringify({
+      origin: "Kerbin",
+      dest,
+      profile: "land",
+      returning: true,
+      payload: 2.5,
+      payloadDia: 1.25,
+      margin: 10,
+      extraDv: 0,
+      objective: "cost",
+      boosters: true,
+      chutes: true,
+      needGimbal: true,
+      planeNow: false,
+      asparagus: false,
+      maxAspect: 14,
+      expansions: { mh: false, rs: false },
+      tech: [...tierUnlocks(lvl)].sort(),
+      excluded: [],
+      cuts: null,
+      splits: [],
+    })
+  );
+}

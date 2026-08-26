@@ -76,12 +76,139 @@ memo is keyed matters as much as whether it exists.
 ## Profiling
 
 ```bash
-npm run perf:profile
+npm run perf:profile                     # writes a .cpuprofile to perf/.prof
+node perf/profile.mjs <profile>          # self time per function
+node perf/profile.mjs <a> <b>            # two profiles side by side
 ```
 
-Writes a `.cpuprofile` to `perf/.prof`. Load it in Chrome DevTools (Performance →
-Load profile), or read self time straight out of the JSON — `nodes` plus `samples`
-is enough to aggregate by function.
+`profile.mjs` reads both shapes Chrome produces — a raw `.cpuprofile` from
+`--cpu-prof`, and a DevTools Performance trace `.json`, which is what a phone
+gives you. It weights by `timeDeltas` rather than counting samples, because
+sampling is not evenly spaced and is much less evenly spaced on a loaded phone.
 
-For the device profile in #30, this harness is the wrong tool: use
-`chrome://inspect` against the phone and record the deployed app.
+**Noise floor:** two runs of identical code in this container agree within 0.6
+percentage points on real functions, but GC moved 1.2pp between runs. Treat a
+GC difference under about 2pp as noise.
+
+## Profiling on a device (#30)
+
+Every priority in #22 comes from a container profile, and there is evidence the
+phone ranks these differently — the memoisation gained 1.43× on a Pixel 8 against
+1.53× here. This is how to check.
+
+**1. Make the device run the same mission.** On the deployed site, a hard reload
+followed by clicking tier 9 already is the benchmark configuration. Nothing
+persists there — the roster is saved through `window.storage`, the Claude
+artifact API, which does not exist in a browser and has no `localStorage`
+fallback (#35). So there is no stale state to guard against, and the app's
+defaults match `missionInput()` exactly.
+
+If that is ever fixed, or you are measuring somewhere state does survive:
+
+```bash
+npm run perf:config          # prints a KSP-PLANNER string, tier 9, Mun
+```
+
+Paste it into **Load configuration**. `test/perf-config.test.js` keeps that
+string honest — `parseConfig` counts unrecognised fields rather than failing, so
+a rename would leave you measuring the defaults and not knowing.
+
+Getting a 1.5 kB string onto a phone is awkward, and there is a trick: the
+DevTools window for a remote target runs on your **desktop**, so paste into that
+Console and it executes on the phone. React ignores a plain `.value` assignment
+on a controlled textarea, so it needs the native setter and an input event:
+
+```js
+const ta = document.querySelector("textarea");
+const set = Object.getOwnPropertyDescriptor(
+  HTMLTextAreaElement.prototype,
+  "value",
+).set;
+set.call(ta, "KSP-PLANNER {…}");
+ta.dispatchEvent(new Event("input", { bubbles: true }));
+```
+
+**2. Connect the phone.**
+
+- Settings → About phone → tap **Build number** seven times.
+- Settings → System → Developer options → **USB debugging** on.
+- Plug into the desktop with a **data** cable; charge-only cables enumerate but
+  carry no ADB.
+- Unlock, accept **Allow USB debugging?**, tick _Always allow_. No prompt means
+  a stale authorisation — _Revoke USB debugging authorisations_, replug.
+- Desktop Chrome → `chrome://inspect#devices`, **Discover USB devices** ticked.
+- Open the app on the phone. Its tab appears under the device; click **inspect**.
+  A DevTools window opens on the desktop, driving the phone's tab.
+
+If the device never appears it is almost always the cable or an unaccepted
+prompt. `adb devices` distinguishes the two: `unauthorized` versus absent.
+
+**3. Set up the capture.**
+
+- Performance panel → gear → **Disable JavaScript samples must be UNCHECKED**.
+  With it on you get a trace containing no profile at all, which is the one
+  setting that silently wastes the whole run. `profile.mjs` will tell you, but
+  only after you have already recorded.
+- CPU throttling **No throttling** — the phone is the slow device under test.
+- Network panel → **Disable cache**, then Ctrl/Cmd-R with the DevTools window
+  focused to reload the phone bypassing cache. Both builds serve from the same
+  Cloudflare project, so without this you can get the other build's bundle.
+
+**4. Record.** Click ● (Ctrl/Cmd-E). On the **phone**, tap the
+`Tech tree · … edit` bar, then under _Unlock through tier:_ tap **9**. Wait for
+the rocket — about 20 s on production. Stop.
+
+A solve that long heats the phone. Leave a minute between runs, or alternate
+builds rather than running either twice in a row; thermal throttling will
+otherwise look like a result.
+
+**5. Export and read it.** The download arrow in the Performance toolbar saves a
+`.json` trace. Then:
+
+```bash
+npm run perf:profile     # fresh container profile
+npm run perf:map         # sourcemap for the deployed bundle (see below)
+node perf/profile.mjs perf/.prof ~/Downloads/<device>.json --map dist/assets
+```
+
+**A device profile carries minified names** — `r`, `Mt`, `m` — because it ran the
+production bundle. `--map` resolves them.
+
+Nothing is deployed to make this work and no source is exposed. The build is
+reproducible, and `--sourcemap hidden` appends no `sourceMappingURL` comment, so
+the JavaScript is byte-identical to what shipped — same content hash. A map built
+locally therefore describes exactly the bundle the phone ran.
+
+That only holds for the commit that was deployed **when the profile was taken**.
+Check out that commit before `npm run perf:map`. `profile.mjs` compares the map's
+filename against the bundle in the profile and warns rather than resolving every
+frame to a plausible-looking wrong name.
+
+The map's `names` array is empty — this minifier does not record original
+identifiers — so names come from `sourcesContent` instead: map the frame to a
+line of original code, then scan upwards for the enclosing declaration. Nested
+closures resolve correctly, `dvOf` before its parent `boostedAscent`.
+
+Pass the **directory** and it takes the newest profile in it, printing which.
+Do not glob: `perf/.prof/CPU.*.cpuprofile` expands to every profile you have ever
+taken, which puts a container profile in both slots and the device trace nowhere.
+The output then looks entirely reasonable — every share inside the noise floor —
+because comparing a machine against itself is what it is showing. `profile.mjs`
+refuses more than two files now, and strips ANSI codes, since `$(ls -t …)` picks
+those up wherever `ls` is aliased to a colourising one.
+
+The second file is the device. The output ranks by the device and shows how each
+share shifted, because the question is not which machine is faster — it is
+whether they agree on what the bottleneck is.
+
+**What to look for**
+
+- **GC share** against the container's ~3.8%. If it is materially higher, #28
+  (allocations) moves ahead of #27 (root-find).
+- Whether `boostedAscent` + `dvOf` still total around 57%.
+- Whether the `Map`/`WeakMap` lookups added by #26 are visible.
+- Any main-thread time that is not solver work — layout, or the SVG build view
+  redrawing.
+
+Worth capturing against both builds for comparison: production, and the memoised
+prototype at `perf/solver-baseline`.
