@@ -167,8 +167,27 @@ otherwise look like a result.
 
 ```bash
 npm run perf:profile     # fresh container profile
-node perf/profile.mjs perf/.prof ~/Downloads/<device>.json
+npm run perf:map         # sourcemap for the deployed bundle (see below)
+node perf/profile.mjs perf/.prof ~/Downloads/<device>.json --map dist/assets
 ```
+
+**A device profile carries minified names** — `r`, `Mt`, `m` — because it ran the
+production bundle. `--map` resolves them.
+
+Nothing is deployed to make this work and no source is exposed. The build is
+reproducible, and `--sourcemap hidden` appends no `sourceMappingURL` comment, so
+the JavaScript is byte-identical to what shipped — same content hash. A map built
+locally therefore describes exactly the bundle the phone ran.
+
+That only holds for the commit that was deployed **when the profile was taken**.
+Check out that commit before `npm run perf:map`. `profile.mjs` compares the map's
+filename against the bundle in the profile and warns rather than resolving every
+frame to a plausible-looking wrong name.
+
+The map's `names` array is empty — this minifier does not record original
+identifiers — so names come from `sourcesContent` instead: map the frame to a
+line of original code, then scan upwards for the enclosing declaration. Nested
+closures resolve correctly, `dvOf` before its parent `boostedAscent`.
 
 Pass the **directory** and it takes the newest profile in it, printing which.
 Do not glob: `perf/.prof/CPU.*.cpuprofile` expands to every profile you have ever

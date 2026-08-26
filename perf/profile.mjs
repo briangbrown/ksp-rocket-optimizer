@@ -78,6 +78,106 @@ function parse(path) {
   return { nodes, samples, timeDeltas };
 }
 
+/* ---- source maps -------------------------------------------------------
+   A profile from the deployed app carries minified names — r, Mt, m — which
+   line up with nothing. The production bundle is reproducible, and building
+   with `sourcemap: hidden` leaves the JS byte-identical (same content hash),
+   so a map built locally describes exactly the bundle the phone ran. Nothing
+   has to be deployed, and no source is exposed. */
+
+const B64 = new Map(
+  [..."ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"].map(
+    (c, i) => [c, i],
+  ),
+);
+
+function decodeVlq(str) {
+  const out = [];
+  let shift = 0,
+    value = 0;
+  for (const c of str) {
+    const d = B64.get(c);
+    if (d === undefined) return out;
+    value += (d & 31) << shift;
+    if (d & 32) {
+      shift += 5;
+    } else {
+      const neg = value & 1;
+      value >>= 1;
+      out.push(neg ? -value : value);
+      shift = 0;
+      value = 0;
+    }
+  }
+  return out;
+}
+
+function loadMap(path) {
+  const m = JSON.parse(readFileSync(path, "utf8"));
+  const lines = [];
+  let srcIdx = 0,
+    srcLine = 0,
+    srcCol = 0;
+  m.mappings.split(";").forEach((line) => {
+    let genCol = 0;
+    const segs = [];
+    for (const part of line.split(",")) {
+      if (!part) continue;
+      const f = decodeVlq(part);
+      genCol += f[0];
+      if (f.length >= 4) {
+        srcIdx += f[1];
+        srcLine += f[2];
+        srcCol += f[3];
+        segs.push({ genCol, srcIdx, srcLine });
+      }
+    }
+    lines.push(segs);
+  });
+  return {
+    lines,
+    file: m.file,
+    sources: m.sources,
+    content: m.sourcesContent || [],
+    split: [],
+  };
+}
+
+/* The map's `names` array is empty — this minifier does not record original
+   identifiers — so the name is recovered from the source instead. Map the frame
+   to a line of original code, then scan upwards for the declaration enclosing
+   it. That also resolves nested closures correctly: `dvOf` is a const inside
+   boostedAscent, and the scan finds it before it finds its parent. */
+const DECL =
+  /^\s*(?:export\s+)?(?:async\s+)?(?:function\s+([A-Za-z_$][\w$]*)|(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=)/;
+
+function originalName(map, line, col) {
+  for (const l of [line, line - 1, line + 1]) {
+    const segs = map.lines[l];
+    if (!segs || !segs.length) continue;
+    let best = null;
+    for (const seg of segs) {
+      if (seg.genCol > col) break;
+      best = seg;
+    }
+    best = best || segs[0];
+
+    if (!map.split[best.srcIdx]) {
+      const text = map.content[best.srcIdx];
+      if (!text) return null;
+      map.split[best.srcIdx] = text.split("\n");
+    }
+    const src = map.split[best.srcIdx];
+    const file = (map.sources[best.srcIdx] || "?").split("/").pop();
+    for (let i = Math.min(best.srcLine, src.length - 1); i >= 0; i--) {
+      const m = DECL.exec(src[i]);
+      if (m) return `${m[1] || m[2]}  <${file}>`;
+    }
+    return `<${file}:${best.srcLine + 1}>`;
+  }
+  return null;
+}
+
 /* Chrome reports these as functions; they are not, and lumping them in with
    real frames hides the thing we are looking for. */
 const SYNTHETIC = new Set([
@@ -88,7 +188,8 @@ const SYNTHETIC = new Set([
   "(no name)",
 ]);
 
-function selfTime(p) {
+const warned = new Set();
+function selfTime(p, map) {
   const byId = new Map(p.nodes.map((n) => [n.id, n]));
   const self = new Map();
   const n = Math.min(p.samples.length, p.timeDeltas.length || p.samples.length);
@@ -98,7 +199,25 @@ function selfTime(p) {
     const node = byId.get(p.samples[i]);
     if (!node) continue;
     const cf = node.callFrame || {};
-    const name = cf.functionName || "(anonymous)";
+    let name = cf.functionName || "(anonymous)";
+    if (map && cf.url && cf.lineNumber >= 0) {
+      /* A map for a different build resolves every frame to a plausible-looking
+         wrong name, which is worse than not resolving at all. The bundle is
+         content-hashed, so the filenames agreeing is a real check. */
+      if (map.file && cf.url.includes(".js") && !cf.url.includes(map.file)) {
+        if (!warned.has(cf.url)) {
+          warned.add(cf.url);
+          console.error(
+            `warning: the profile ran ${cf.url.split("/").pop()} but the map ` +
+              `describes ${map.file}. Names below are not trustworthy — rebuild ` +
+              `the commit that was deployed when the profile was taken.`,
+          );
+        }
+      } else {
+        const orig = originalName(map, cf.lineNumber, cf.columnNumber ?? 0);
+        if (orig) name = orig;
+      }
+    }
     if (name === "(idle)") continue; // not work
     self.set(name, (self.get(name) || 0) + dt);
     total += dt;
@@ -106,9 +225,34 @@ function selfTime(p) {
   return { self, total };
 }
 
-const files = process.argv.slice(2);
+const args = process.argv.slice(2);
+const mapAt = args.indexOf("--map");
+const mapPath = mapAt === -1 ? null : args[mapAt + 1];
+function findMap(p) {
+  const c = p.replace(ANSI, "");
+  let st;
+  try {
+    st = statSync(c);
+  } catch {
+    return c;
+  }
+  if (!st.isDirectory()) return c;
+  const maps = readdirSync(c).filter((f) => f.endsWith(".js.map"));
+  if (maps.length !== 1) {
+    console.error(
+      `${c}: expected exactly one .js.map, found ${maps.length}. Name the file.`,
+    );
+    process.exit(2);
+  }
+  return join(c, maps[0]);
+}
+const map = mapPath ? loadMap(findMap(mapPath)) : null;
+const files =
+  mapAt === -1 ? args : args.filter((_, i) => i !== mapAt && i !== mapAt + 1);
 if (!files.length) {
-  console.error("usage: node perf/profile.mjs <profile> [profile2]");
+  console.error(
+    "usage: node perf/profile.mjs <profile> [profile2] [--map <bundle.js.map>]",
+  );
   process.exit(2);
 }
 /* Refuse extra arguments rather than quietly using the first two. A glob like
@@ -126,9 +270,12 @@ if (files.length > 2) {
   process.exit(2);
 }
 
-const runs = files
-  .map(resolve)
-  .map((f) => ({ file: f, ...selfTime(parse(f)) }));
+/* The map describes the deployed bundle, so it applies to the device profile —
+   the last file given — and never to a container profile, which is not minified. */
+const runs = files.map(resolve).map((f, i) => ({
+  file: f,
+  ...selfTime(parse(f), map && i === files.length - 1 ? map : null),
+}));
 const share = (r, k) => (100 * (r.self.get(k) || 0)) / r.total;
 
 if (runs.length === 1) {
