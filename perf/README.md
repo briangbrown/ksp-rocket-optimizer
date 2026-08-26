@@ -96,15 +96,37 @@ Every priority in #22 comes from a container profile, and there is evidence the
 phone ranks these differently — the memoisation gained 1.43× on a Pixel 8 against
 1.53× here. This is how to check.
 
-**1. Make the device run the same mission.** Do not click a tech tier and trust
-the defaults; one different setting and you are timing a different search.
+**1. Make the device run the same mission.** On the deployed site, a hard reload
+followed by clicking tier 9 already is the benchmark configuration. Nothing
+persists there — the roster is saved through `window.storage`, the Claude
+artifact API, which does not exist in a browser and has no `localStorage`
+fallback (#35). So there is no stale state to guard against, and the app's
+defaults match `missionInput()` exactly.
+
+If that is ever fixed, or you are measuring somewhere state does survive:
 
 ```bash
 npm run perf:config          # prints a KSP-PLANNER string, tier 9, Mun
 ```
 
-Paste it into **Load configuration** in the app. `test/perf-config.test.js`
-keeps that string honest.
+Paste it into **Load configuration**. `test/perf-config.test.js` keeps that
+string honest — `parseConfig` counts unrecognised fields rather than failing, so
+a rename would leave you measuring the defaults and not knowing.
+
+Getting a 1.5 kB string onto a phone is awkward, and there is a trick: the
+DevTools window for a remote target runs on your **desktop**, so paste into that
+Console and it executes on the phone. React ignores a plain `.value` assignment
+on a controlled textarea, so it needs the native setter and an input event:
+
+```js
+const ta = document.querySelector("textarea");
+const set = Object.getOwnPropertyDescriptor(
+  HTMLTextAreaElement.prototype,
+  "value",
+).set;
+set.call(ta, "KSP-PLANNER {…}");
+ta.dispatchEvent(new Event("input", { bubbles: true }));
+```
 
 **2. Connect the phone.** Developer options → USB debugging, plug in, accept the
 prompt. On the desktop open `chrome://inspect#devices`; the phone's tab appears
