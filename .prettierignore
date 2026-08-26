@@ -7,3 +7,7 @@ dist
 node_modules
 test/__snapshots__
 package-lock.json
+
+# Device profiles: tens of megabytes of trace events
+Trace-*.json
+*.cpuprofile
