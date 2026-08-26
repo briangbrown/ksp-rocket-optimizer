@@ -82,6 +82,20 @@ if (!files.length) {
   console.error("usage: node perf/profile.mjs <profile> [profile2]");
   process.exit(2);
 }
+/* Refuse extra arguments rather than quietly using the first two. A glob like
+   perf/.prof/CPU.*.cpuprofile expands to every profile you have ever taken, and
+   silently comparing two of those against each other looks exactly like a real
+   result — every share within the noise floor, which is precisely the answer a
+   container-versus-container comparison gives. */
+if (files.length > 2) {
+  console.error(
+    `expected one or two profiles, got ${files.length}:\n` +
+      files.map((f) => `  ${f}`).join("\n") +
+      "\n\nA glob probably matched more than you meant. To pick the newest:\n" +
+      '  node perf/profile.mjs "$(ls -t perf/.prof/*.cpuprofile | head -1)" <device.json>',
+  );
+  process.exit(2);
+}
 
 const runs = files.map((f) => ({ file: f, ...selfTime(parse(f)) }));
 const share = (r, k) => (100 * (r.self.get(k) || 0)) / r.total;

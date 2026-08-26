@@ -166,9 +166,15 @@ otherwise look like a result.
 `.json` trace. Then:
 
 ```bash
-npm run perf:profile                                  # fresh container profile
-node perf/profile.mjs perf/.prof/CPU.*.cpuprofile ~/Downloads/<device>.json
+npm run perf:profile     # fresh container profile
+node perf/profile.mjs "$(ls -t perf/.prof/*.cpuprofile | head -1)" ~/Downloads/<device>.json
 ```
+
+Quote the `ls`. A bare `perf/.prof/CPU.*.cpuprofile` expands to every profile you
+have ever taken, which puts a container profile in both slots and the device
+trace nowhere. The output looks entirely reasonable — every share inside the
+noise floor — because comparing a machine against itself is what it is showing.
+`profile.mjs` now refuses more than two files rather than using the first two.
 
 The second file is the device. The output ranks by the device and shows how each
 share shifted, because the question is not which machine is faster — it is
