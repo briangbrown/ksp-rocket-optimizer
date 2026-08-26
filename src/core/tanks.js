@@ -14,9 +14,15 @@ import {
 } from "./parts.js";
 import { TANK_FUNDS_DRY, TANK_FUNDS_PROP } from "./performance.js";
 
-let _adapterGraph = null;
+/* Keyed on the parts array, the way poolsFor is, so researching a node or
+   toggling an expansion builds a new array and invalidates this for free. It
+   used to be a bare `let`, computed once from whichever roster asked first and
+   never rebuilt — and an empty Map is truthy, so a first roster with no
+   adapters pinned it empty for the life of the module. */
+const _adapterGraphs = new WeakMap();
 function adapterGraph(tanks) {
-  if (_adapterGraph) return _adapterGraph;
+  const cached = _adapterGraphs.get(tanks);
+  if (cached) return cached;
   const edges = new Map(); // "from>to" -> lightest spanning part
   tanks.forEach((t) => {
     const ds = stackDias(t);
@@ -24,13 +30,12 @@ function adapterGraph(tanks) {
     const key = ds[0] + ">" + ds[ds.length - 1];
     if (!edges.has(key) || t.dry < edges.get(key).dry) edges.set(key, t);
   });
-  _adapterGraph = edges;
+  _adapterGraphs.set(tanks, edges);
   return edges;
 }
 
 /* Lightest chain of adapters taking an engine of diameter `from` up to a stack of
    diameter `to`. Returns null when no route exists. */
-const _chainMemo = new Map();
 /* Strip an adapter chain's propellant down to what the engine can actually use.
    The parts stay — they are structurally needed — but fuel with no matching
    oxidiser aboard is mass, not range. */
@@ -84,11 +89,19 @@ function fitStructure(opt) {
   const coupM = shroud ? shroud.m : coup ? coup.m : 0;
 
   /* Node sizes are advisory in KSP, so a narrower engine bolts straight onto a
-     wider tank. An adapter is only needed the other way round. */
+     wider tank. An adapter is only needed the other way round.
+
+     The chain is walked narrow to wide — that is how adapterGraph keys its
+     edges (small>large) and the only direction `walk` moves. So spanning a
+     1.25 m tank down to a 1.875 m coupler means asking for stackD -> under,
+     not under -> stackD. Asked the wrong way round it hit the `from >= to`
+     guard and returned an empty chain every single time, which is why no
+     design in the snapshot carried an adapter and why the whole subsystem
+     looked like dead code. */
   const under = coup ? coup.top : diaOf(engine);
   const adapt =
     under > stackD
-      ? usableAdapterProp(adapterChain(tanks, under, stackD), engine)
+      ? usableAdapterProp(adapterChain(tanks, stackD, under), engine)
       : { parts: [], prop: 0, dry: 0, cost: 0 };
   if (!adapt) return null;
 
@@ -126,10 +139,19 @@ function fitStructure(opt) {
   };
 }
 
+/* Also per-roster. Keyed on from>to alone, a span with no route under one
+   roster stayed unroutable under every later one — so researching the adapter
+   that would have spanned it changed nothing. */
+const _chainMemos = new WeakMap();
 function adapterChain(tanks, from, to) {
   if (from >= to) return { parts: [], dry: 0, prop: 0 };
+  let memos = _chainMemos.get(tanks);
+  if (!memos) {
+    memos = new Map();
+    _chainMemos.set(tanks, memos);
+  }
   const memo = from + ">" + to;
-  if (_chainMemo.has(memo)) return _chainMemo.get(memo);
+  if (memos.has(memo)) return memos.get(memo);
   const edges = adapterGraph(tanks);
   const dias = [
     ...new Set([...edges.keys()].flatMap((k) => k.split(">").map(Number))),
@@ -149,7 +171,7 @@ function adapterChain(tanks, from, to) {
     }
   };
   walk(from, [], 0, 0);
-  _chainMemo.set(memo, best);
+  memos.set(memo, best);
   return best;
 }
 

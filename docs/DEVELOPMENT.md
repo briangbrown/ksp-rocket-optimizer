@@ -47,6 +47,16 @@ any of them.
 - **Stage solutions are shared between candidate chains.** Writing to one leaks
   into another. The tank-packing pass copies before it writes, for exactly this
   reason.
+- **`adapterChain` only walks narrow to wide.** `adapterGraph` keys its edges
+  small>large and `walk` never moves down, so spanning a narrow tank up to a
+  wider coupler is `adapterChain(tanks, stackD, under)`. Asked the other way it
+  hits the `from >= to` guard and returns an empty chain — silently, every time.
+  That is how the entire adapter subsystem sat dead: not one design in the
+  snapshot carried an adapter, so nothing ever looked wrong.
+- **The adapter caches are keyed on the tank array, like `poolsFor`.** They were
+  a bare `let` and a bare `Map`, built once from whichever roster asked first.
+  An empty `Map` is truthy, so a first roster with no adapters pinned the graph
+  empty for the life of the module.
 - **Slenderness is a constraint, not a tie-break.** The simulation walk once fell
   through every compliant design and returned a 30.6:1 stack under a 14:1 limit.
 
