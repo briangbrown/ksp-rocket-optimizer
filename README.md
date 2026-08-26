@@ -60,13 +60,21 @@ simulator cannot fly to orbit at all, so their ascent goes unverified.
 
 ## Layout
 
-    src/ksp-mission-planner.jsx    the whole application, self-contained
-    src/main.jsx                   mounts the component
-    index.html                     page shell
+    src/data/       part tables, bodies, curves — JSON, no logic
+    src/core/       the solver and the physics. No React, no DOM.
+    src/ui/         the application
+    src/main.jsx    mounts it
+    test/           design snapshot, render sweep, panel containment, seam contract
     docs/optimiser-flow.mermaid    how the search works, and where simulation enters
 
-Part data is inline in the source. It was extracted from a Squad 1.12.5 +
-Breaking Ground + ReStock+ install and is not re-derived at runtime.
+`src/core/plan.js` is the seam: `planMission()` takes a destination and a payload
+and returns solved stages. Everything crossing it is plain data, so the solver
+behind it can be replaced — a Web Worker, or the Rust/WASM port that is the
+reason the boundary looks like this.
+
+Part data was extracted from a Squad 1.12.5 + Breaking Ground + ReStock+ install
+and is not re-derived at runtime. It lives in `src/data/*.json` so that a native
+port can embed the same files rather than keeping a second copy.
 
 ## Running it
 
@@ -75,9 +83,12 @@ Breaking Ground + ReStock+ install and is not re-derived at runtime.
     npm run build      # production build into dist/
     npm run preview    # serve the production build
 
-Requires Node 24 or newer. Dependencies are React and Vite alone — tank and part
-tables, atmosphere splines, and the tech tree are all constants in the source.
+    npm test           # design snapshot, render sweep, panel containment, seam contract
+    npm run format     # prettier
 
-The planner remains a single self-contained component, so it can still be
-dropped into any React 19 project or pasted into a Claude artifact, which is
-where it was written.
+Requires Node 24 or newer. Dependencies are React and Vite alone.
+
+This began as a single self-contained component written in a Claude artifact.
+It is not one any more — it is a Vite application with a tested solver — and the
+"drop it into any React project" property has been given up deliberately, in
+exchange for a boundary the solver can be lifted out through.

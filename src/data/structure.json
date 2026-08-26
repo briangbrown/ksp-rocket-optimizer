@@ -1,0 +1,176 @@
+{
+  "decoupler": [
+    {
+      "n": "TD-06 Decoupler",
+      "m": 0.01,
+      "cost": 150,
+      "d": 0.625,
+      "t": "Precision Engineering"
+    },
+    {
+      "n": "TD-12 Decoupler",
+      "m": 0.04,
+      "cost": 200,
+      "d": 1.25,
+      "t": "Engineering 101"
+    },
+    {
+      "n": "TD-25 Decoupler",
+      "m": 0.16,
+      "cost": 300,
+      "d": 2.5,
+      "t": "General Construction"
+    },
+    {
+      "n": "TD-37 Decoupler",
+      "m": 0.36,
+      "cost": 375,
+      "d": 3.75,
+      "t": "Large Volume Containment"
+    },
+    {
+      "n": "TS-06 Stack Separator",
+      "m": 0.01,
+      "cost": 215,
+      "d": 0.625,
+      "t": "Miniaturization"
+    },
+    {
+      "n": "TS-12 Stack Separator",
+      "m": 0.05,
+      "cost": 275,
+      "d": 1.25,
+      "t": "Advanced Construction"
+    },
+    {
+      "n": "TS-25 Stack Separator",
+      "m": 0.21,
+      "cost": 400,
+      "d": 2.5,
+      "t": "Specialized Construction"
+    },
+    {
+      "n": "TS-37 Stack Separator",
+      "m": 0.48,
+      "cost": 500,
+      "d": 3.75,
+      "t": "Composites"
+    },
+    {
+      "n": "Hydraulic Detachment Manifold",
+      "m": 0.4,
+      "cost": 770,
+      "d": null,
+      "t": "Advanced Construction"
+    },
+    {
+      "n": "TT-38K Radial Decoupler",
+      "m": 0.025,
+      "cost": 600,
+      "d": null,
+      "t": "Stability"
+    },
+    {
+      "n": "TT-70 Radial Decoupler",
+      "m": 0.05,
+      "cost": 700,
+      "d": null,
+      "t": "Advanced Construction"
+    }
+  ],
+  "parachute": [
+    {
+      "n": "Mk16 Parachute",
+      "m": 0.1,
+      "cost": 422,
+      "d": 0.625,
+      "t": "Start",
+      "drogue": false
+    },
+    {
+      "n": "Mk12-R Radial-Mount Drogue Chute",
+      "m": 0.075,
+      "cost": 150,
+      "d": null,
+      "t": "Survivability",
+      "drogue": true
+    },
+    {
+      "n": "Mk16-XL Parachute",
+      "m": 0.3,
+      "cost": 850,
+      "d": 1.25,
+      "t": "Landing",
+      "drogue": false
+    },
+    {
+      "n": "Mk2-R Radial-Mount Parachute",
+      "m": 0.1,
+      "cost": 400,
+      "d": null,
+      "t": "Survivability",
+      "drogue": false
+    },
+    {
+      "n": "Mk25 Parachute",
+      "m": 0.2,
+      "cost": 400,
+      "d": 1.25,
+      "t": "Advanced Landing",
+      "drogue": false
+    }
+  ],
+  "heatshield": [
+    {
+      "n": "Heat Shield (0.625m)",
+      "m": 0.075,
+      "cost": 150,
+      "d": 0.625,
+      "t": "Survivability"
+    },
+    {
+      "n": "Heat Shield (1.25m)",
+      "m": 0.3,
+      "cost": 300,
+      "d": 1.25,
+      "t": "Survivability"
+    },
+    {
+      "n": "Heat Shield (2.5m)",
+      "m": 1.3,
+      "cost": 600,
+      "d": 2.5,
+      "t": "Landing"
+    },
+    {
+      "n": "Heat Shield (3.75m)",
+      "m": 2.8,
+      "cost": 1100,
+      "d": 3.75,
+      "t": "Advanced Landing"
+    }
+  ],
+  "leg": [
+    {
+      "n": "LT-1 Landing Struts",
+      "m": 0.05,
+      "cost": 440,
+      "d": null,
+      "t": "Landing"
+    },
+    {
+      "n": "LT-2 Landing Strut",
+      "m": 0.1,
+      "cost": 340,
+      "d": null,
+      "t": "Advanced Landing"
+    },
+    {
+      "n": "LT-05 Micro Landing Strut",
+      "m": 0.015,
+      "cost": 200,
+      "d": null,
+      "t": "Survivability"
+    }
+  ]
+}

@@ -1,4 +1,5 @@
-import { DATA, withDeps } from "../src/ksp-mission-planner.jsx";
+import { DATA } from "../src/core/catalogue.js";
+import { withDeps } from "../src/core/tech.js";
 
 /* The grid the design snapshot solves.
 
