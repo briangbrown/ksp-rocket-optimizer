@@ -167,14 +167,16 @@ otherwise look like a result.
 
 ```bash
 npm run perf:profile     # fresh container profile
-node perf/profile.mjs "$(ls -t perf/.prof/*.cpuprofile | head -1)" ~/Downloads/<device>.json
+node perf/profile.mjs perf/.prof ~/Downloads/<device>.json
 ```
 
-Quote the `ls`. A bare `perf/.prof/CPU.*.cpuprofile` expands to every profile you
-have ever taken, which puts a container profile in both slots and the device
-trace nowhere. The output looks entirely reasonable — every share inside the
-noise floor — because comparing a machine against itself is what it is showing.
-`profile.mjs` now refuses more than two files rather than using the first two.
+Pass the **directory** and it takes the newest profile in it, printing which.
+Do not glob: `perf/.prof/CPU.*.cpuprofile` expands to every profile you have ever
+taken, which puts a container profile in both slots and the device trace nowhere.
+The output then looks entirely reasonable — every share inside the noise floor —
+because comparing a machine against itself is what it is showing. `profile.mjs`
+refuses more than two files now, and strips ANSI codes, since `$(ls -t …)` picks
+those up wherever `ls` is aliased to a colourising one.
 
 The second file is the device. The output ranks by the device and shows how each
 share shifted, because the question is not which machine is faster — it is

@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 
 /* Read a CPU profile and report self time per function.
    Plain node — no build step.
@@ -18,6 +19,34 @@ import { readFileSync } from "node:fs";
    Self time is weighted by timeDeltas rather than counted per sample. Sampling
    is not evenly spaced, and on a loaded phone it is much less evenly spaced
    than in a container, which is exactly the comparison this is for. */
+
+/* Colour codes, because `ls` is aliased to a colourising one on plenty of
+   setups and $(ls -t ...) then captures the escapes along with the name. */
+const ANSI = /\u001B\[[0-9;]*m/g;
+
+/* A directory means "the newest profile in here", so nobody has to shell out to
+   ls at all. */
+function resolve(path) {
+  const p = path.replace(ANSI, "");
+  let st;
+  try {
+    st = statSync(p);
+  } catch {
+    return p; // let the read produce the real error
+  }
+  if (!st.isDirectory()) return p;
+  const found = readdirSync(p)
+    .filter((f) => /\.(cpuprofile|json)$/.test(f))
+    .map((f) => join(p, f))
+    .map((f) => ({ f, t: statSync(f).mtimeMs }))
+    .sort((a, b) => b.t - a.t);
+  if (!found.length) {
+    console.error(`${p}: no .cpuprofile or .json in that directory`);
+    process.exit(2);
+  }
+  console.error(`${p} -> ${found[0].f}`);
+  return found[0].f;
+}
 
 function parse(path) {
   const raw = JSON.parse(readFileSync(path, "utf8"));
@@ -97,7 +126,9 @@ if (files.length > 2) {
   process.exit(2);
 }
 
-const runs = files.map((f) => ({ file: f, ...selfTime(parse(f)) }));
+const runs = files
+  .map(resolve)
+  .map((f) => ({ file: f, ...selfTime(parse(f)) }));
 const share = (r, k) => (100 * (r.self.get(k) || 0)) / r.total;
 
 if (runs.length === 1) {
