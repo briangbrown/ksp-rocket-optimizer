@@ -212,23 +212,9 @@ export default function KSPMissionPlanner() {
     [unlocked, hasMH, hasRS, excluded],
   );
 
-  /* Group legs into stages using the cut positions (cut i = separate after leg i). */
+  /* Cut positions (cut i = separate after leg i). The grouping itself now
+     happens inside planMission, from indices. */
   const effCuts = useMemo(() => cuts ?? defaultCuts(route), [cuts, route]);
-
-  const groups = useMemo(() => {
-    const g = [];
-    let cur = [];
-    route.forEach((leg, i) => {
-      if (leg.free) return;
-      cur.push(leg);
-      if (effCuts.has(i)) {
-        g.push(cur);
-        cur = [];
-      }
-    });
-    if (cur.length) g.push(cur);
-    return g;
-  }, [route, effCuts]);
 
   /* Solve bottom-up: the last group flies first, so build from the top down.
      Each segment can expand into several stages, so the result is flattened. */
@@ -268,7 +254,7 @@ export default function KSPMissionPlanner() {
 
       const result = await planMission(
         {
-          groups,
+          cuts: [...effCuts],
           route,
           payload,
           payloadDia,
@@ -302,7 +288,7 @@ export default function KSPMissionPlanner() {
     return () => {};
   }, [
     hydrated,
-    groups,
+    effCuts,
     route,
     payload,
     payloadDia,

@@ -22,7 +22,6 @@ export async function planMission(
   { signal, onYield = () => Promise.resolve() } = {},
 ) {
   const {
-    groups,
     route,
     payload,
     payloadDia,
@@ -30,17 +29,43 @@ export async function planMission(
     extraDv,
     engines,
     tanks,
-    unlocked,
-    excluded,
     needGimbal,
     maxAspect,
     expansions,
     asparagus,
     objective,
     origin,
-    splitBy,
     boosters,
   } = input;
+
+  /* The boundary takes plain arrays and rebuilds the Set and Map the solver
+     wants. Neither survives JSON, so accepting them here would make the seam
+     unserialisable and a worker or WASM backend impossible without changing
+     every caller. Rebuilding costs nothing next to the solve. */
+  const unlocked = new Set(input.unlocked);
+  const excluded = new Set(input.excluded);
+  const splitBy = new Map(input.splitBy);
+
+  /* Groups are built here from the route and the cut positions rather than
+     handed in ready-made. They used to arrive as arrays of the very same leg
+     objects held in `route`, and `route.indexOf(legs[0])` below depended on
+     that identity — which a JSON round trip destroys, taking the split-point
+     lookup with it. Rebuilding from indices means the seam carries only values.
+     (cut i = separate after leg i.) */
+  const cuts = new Set(input.cuts);
+  const groups = [];
+  {
+    let cur = [];
+    route.forEach((leg, i) => {
+      if (leg.free) return;
+      cur.push(i);
+      if (cuts.has(i)) {
+        groups.push(cur);
+        cur = [];
+      }
+    });
+    if (cur.length) groups.push(cur);
+  }
 
   resetTally();
   const out = [];
@@ -50,8 +75,8 @@ export async function planMission(
   for (let i = groups.length - 1; i >= 0; i--) {
     await onYield();
     if (signal && signal.aborted) return null;
-    const legs = groups[i];
-    const key = route.indexOf(legs[0]);
+    const legs = groups[i].map((ix) => route[ix]);
+    const key = groups[i][0];
     /* The margin scales the route; the extra is a flat reserve on top of it.
          It rides on the last segment, which is the top of the stack — spare dv
          is only useful if it is still there at the end, and putting it lower
