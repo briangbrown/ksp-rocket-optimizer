@@ -20,6 +20,14 @@ import {
 } from "./performance.js";
 import { fitStructure, pickTanksMemo, poolsFor } from "./tanks.js";
 
+/* --------------------------------- solver ---------------------------------
+   Rocket equation with tankage. For propellant mass mp and structural
+   coefficient k (tank dry mass per tonne of propellant):
+       mf = P + E + k*mp        m0 = mf + mp        R = exp(dv / (Isp*g0))
+   Solving for mp:
+       mp = (R-1)(P+E) / (1 + k - R*k)
+   Feasible only while R < (1+k)/k — for stock 9:1 tanks that caps a single
+   stage at Isp*g0*ln(9).                                                   */
 function solveStage({
   dv,
   payload,
@@ -302,6 +310,14 @@ const resetTally = () => {
   TALLY.chains = 0;
 };
 
+/* -------------------------- parallel solid boosters --------------------------
+   Radial SRBs fire alongside the liquid core and are jettisoned at burnout, so
+   the launch stage has two phases:
+     A  boosters + core together, lasting t_b = booster fuel / booster flow
+     B  core alone on whatever propellant phase A left it
+   A KSP engine's mass flow is constant (mdot = F_vac / (Isp_vac·g0)); atmospheric
+   thrust is just that flow times a lower Isp. So the combined Isp across phase A
+   is total vacuum thrust over total flow — no averaging fudge required.        */
 function boostedAscent({
   dv,
   payload,

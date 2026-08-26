@@ -906,6 +906,9 @@ function buildRoute(
   return legs;
 }
 
+/* No cuts to begin with: the whole mission is solved as one span and the stage
+   count is found automatically. Cuts are the user's tool for saying "this part
+   flies on its own hardware", not something to presume. */
 function defaultCuts() {
   return new Set();
 }

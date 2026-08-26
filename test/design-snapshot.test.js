@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { solveGroup, resetTally } from "../src/ksp-mission-planner.jsx";
+import { solveGroup, resetTally } from "../src/core/solver.js";
 import { cases } from "./grid.js";
 import { signature } from "./signature.js";
 
