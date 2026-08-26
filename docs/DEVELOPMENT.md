@@ -167,6 +167,25 @@ identity; JSON duplicates rather than shares, so a round trip returned -1 and
 the split-point lookup broke silently. Nothing else in the suite could see it,
 because in-process every caller passes the shared objects.
 
+## Benchmarks
+
+`perf/` holds the solver benchmarks. They are deliberately outside CI —
+`vitest.config.js` pins collection to `test/`, so nothing there can be collected
+as a test by accident.
+
+```bash
+npm run perf          # the 81-case grid, same cases as the design snapshot
+npm run perf:mission  # one whole mission, the way a user waits for it
+npm run perf:save     # baseline this machine
+npm run perf:compare  # run again and diff
+```
+
+The workflow is baseline on `main`, compare on the branch, **then run `npm test`
+and confirm the design snapshot has not moved.** Every optimisation on the #22
+list is supposed to be behaviour-preserving; a faster solver that picks different
+rockets is a different solver. `perf/README.md` has the rest, including why
+baselines are machine-local and how to add call counters.
+
 ## Open work
 
 Everything known to be outstanding is filed. In rough order of what unblocks

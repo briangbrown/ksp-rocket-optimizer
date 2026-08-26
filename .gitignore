@@ -150,3 +150,8 @@ build/
 
 # Claude local settings
 .claude/settings.local.json
+
+# perf harness: build output, profiles, machine-local baselines
+perf/.out
+perf/.prof
+perf/baselines/local.json

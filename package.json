@@ -13,7 +13,13 @@
     "test": "vitest run",
     "test:bless": "vitest run -u",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "perf:build": "vite build --ssr perf/run.js --outDir perf/.out --logLevel error",
+    "perf": "npm run perf:build && node perf/.out/run.js grid",
+    "perf:mission": "npm run perf:build && node perf/.out/run.js mission",
+    "perf:save": "npm run perf:build && node perf/.out/run.js grid --out perf/baselines/local.json",
+    "perf:compare": "npm run perf:build && node perf/.out/run.js grid --out perf/.out/current.json && node perf/compare.mjs perf/baselines/local.json perf/.out/current.json",
+    "perf:profile": "npm run perf:build && node --cpu-prof --cpu-prof-dir=perf/.prof perf/.out/run.js grid"
   },
   "dependencies": {
     "react": "^19.2.4",
