@@ -1,0 +1,11 @@
+Drop device profiles here.
+
+Everything else in this directory is ignored, so a 35 MB trace exported from
+Chrome DevTools can sit next to the source without any chance of being
+committed. It lives inside the repository because a dev container cannot read
+anything outside it.
+
+    node perf/profile.mjs perf/.prof perf/traces --map dist/assets
+
+Both directory arguments resolve to the newest file in them, so nothing has to
+be renamed or typed out. See ../README.md.
