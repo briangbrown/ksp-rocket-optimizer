@@ -9,5 +9,6 @@ test/__snapshots__
 package-lock.json
 
 # Device profiles: tens of megabytes of trace events
+perf/traces
 Trace-*.json
 *.cpuprofile
