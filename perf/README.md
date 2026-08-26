@@ -76,12 +76,64 @@ memo is keyed matters as much as whether it exists.
 ## Profiling
 
 ```bash
-npm run perf:profile
+npm run perf:profile                     # writes a .cpuprofile to perf/.prof
+node perf/profile.mjs <profile>          # self time per function
+node perf/profile.mjs <a> <b>            # two profiles side by side
 ```
 
-Writes a `.cpuprofile` to `perf/.prof`. Load it in Chrome DevTools (Performance →
-Load profile), or read self time straight out of the JSON — `nodes` plus `samples`
-is enough to aggregate by function.
+`profile.mjs` reads both shapes Chrome produces — a raw `.cpuprofile` from
+`--cpu-prof`, and a DevTools Performance trace `.json`, which is what a phone
+gives you. It weights by `timeDeltas` rather than counting samples, because
+sampling is not evenly spaced and is much less evenly spaced on a loaded phone.
 
-For the device profile in #30, this harness is the wrong tool: use
-`chrome://inspect` against the phone and record the deployed app.
+**Noise floor:** two runs of identical code in this container agree within 0.6
+percentage points on real functions, but GC moved 1.2pp between runs. Treat a
+GC difference under about 2pp as noise.
+
+## Profiling on a device (#30)
+
+Every priority in #22 comes from a container profile, and there is evidence the
+phone ranks these differently — the memoisation gained 1.43× on a Pixel 8 against
+1.53× here. This is how to check.
+
+**1. Make the device run the same mission.** Do not click a tech tier and trust
+the defaults; one different setting and you are timing a different search.
+
+```bash
+npm run perf:config          # prints a KSP-PLANNER string, tier 9, Mun
+```
+
+Paste it into **Load configuration** in the app. `test/perf-config.test.js`
+keeps that string honest.
+
+**2. Connect the phone.** Developer options → USB debugging, plug in, accept the
+prompt. On the desktop open `chrome://inspect#devices`; the phone's tab appears
+under Remote Target. Click **inspect**.
+
+**3. Record.** In the DevTools window that opens, Performance → record, trigger
+the solve on the phone, stop when the design appears. Leave the default capture
+settings — JS sampling has to be on, and "screenshots only" produces a trace with
+no profile in it.
+
+**4. Export and read it.** Save the recording (download icon) and:
+
+```bash
+npm run perf:profile                                  # fresh container profile
+node perf/profile.mjs perf/.prof/CPU.*.cpuprofile ~/Downloads/<device>.json
+```
+
+The second file is the device. The output ranks by the device and shows how each
+share shifted, because the question is not which machine is faster — it is
+whether they agree on what the bottleneck is.
+
+**What to look for**
+
+- **GC share** against the container's ~3.8%. If it is materially higher, #28
+  (allocations) moves ahead of #27 (root-find).
+- Whether `boostedAscent` + `dvOf` still total around 57%.
+- Whether the `Map`/`WeakMap` lookups added by #26 are visible.
+- Any main-thread time that is not solver work — layout, or the SVG build view
+  redrawing.
+
+Worth capturing against both builds for comparison: production, and the memoised
+prototype at `perf/solver-baseline`.

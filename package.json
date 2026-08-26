@@ -19,7 +19,8 @@
     "perf:mission": "npm run perf:build && node perf/.out/run.js mission",
     "perf:save": "npm run perf:build && node perf/.out/run.js grid --out perf/baselines/local.json",
     "perf:compare": "npm run perf:build && node perf/.out/run.js grid --out perf/.out/current.json && node perf/compare.mjs perf/baselines/local.json perf/.out/current.json",
-    "perf:profile": "npm run perf:build && node --cpu-prof --cpu-prof-dir=perf/.prof perf/.out/run.js grid"
+    "perf:profile": "npm run perf:build && node --cpu-prof --cpu-prof-dir=perf/.prof perf/.out/run.js grid",
+    "perf:config": "vite build --ssr perf/config.js --outDir perf/.out --logLevel error && node perf/.out/config.js"
   },
   "dependencies": {
     "react": "^19.2.4",
