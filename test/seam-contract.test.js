@@ -36,8 +36,8 @@ function sampleInput() {
   );
   const route = buildRoute("Mun", "land", true, "Kerbin", true, false);
   return {
-    groups: [route.filter((l) => !l.free)],
     route,
+    cuts: [],
     payload: 2.5,
     payloadDia: 1.25,
     margin: 10,
@@ -61,8 +61,8 @@ function sampleInput() {
    failing — "the input is not serialisable" is not an actionable message.
 
    `ancestors` deliberately tracks the path from the root, not every object
-   seen. The same leg object appears in both `route` and `groups`, and the same
-   part record appears in several stages; that is a shared reference, which JSON
+   seen. The same part record appears in several stages and the same leg in
+   several places; that is a shared reference, which JSON
    handles by duplicating it. Only an object containing itself is a cycle, and
    only that breaks serialisation. */
 function unserialisable(value, path = "input", ancestors = new Set()) {
@@ -80,7 +80,9 @@ function unserialisable(value, path = "input", ancestors = new Set()) {
   if (value instanceof Map) return [`${path}: Map`];
   if (value instanceof Date) return [`${path}: Date`];
   if (Array.isArray(value)) {
-    value.forEach((v, i) => bad.push(...unserialisable(v, `${path}[${i}]`, seen)));
+    value.forEach((v, i) =>
+      bad.push(...unserialisable(v, `${path}[${i}]`, seen)),
+    );
     return bad;
   }
   if (Object.getPrototypeOf(value) !== Object.prototype)

@@ -65,6 +65,7 @@ npm run test:bless # accept current output as the new baseline
     test/design-snapshot.test.js          the design snapshot
     test/render-sweep.test.jsx            the render sweep
     test/panel-containment.test.jsx       every part inside its panel
+    test/seam-contract.test.js            planMission stays serialisable
     test/__snapshots__/designs.txt        solver baseline
     test/__snapshots__/solvability.txt    which destinations build, and how big
 
@@ -79,13 +80,11 @@ you intended, run `npm run test:bless` and record the before and after in the
 commit message. Never re-bless to turn a red build green: a diff you cannot
 explain is precisely the bug this test exists to catch.
 
-Its reach has limits worth knowing. It drives `solveGroup`, which is the design
-solver. It does not cover `buildRoute`, `missionHardware`, or the
-simulator-guided candidate walk, because those live inside the component's
-effect and are not callable from a test. Everything between a destination and a
-design is therefore unverified except through the render sweep's coarse view of
-it. Extracting that orchestration is [#7](../../../issues/7), and the snapshot
-now covers enough to make it safe.
+Its reach has limits worth knowing. It drives `solveGroup`, so it covers the
+design solver but not `buildRoute`, `missionHardware`, or the simulator-guided
+candidate walk. Those are now reachable — they live in `src/core/plan.js` behind
+`planMission` — so extending the grid to solve by destination rather than by raw
+delta-v budget is the obvious next move, and nothing structural is in the way.
 
 ## What the render sweep catches, and what it cannot
 
@@ -140,18 +139,36 @@ does not arise: of the 153 stages the snapshot grid produces, 23 are packed and
 combination reachable, this check is what will catch it.
 [#9](../../../issues/9).
 
+## Layout
+
+    src/data/   part tables, bodies, curves — JSON, no logic
+    src/core/   solver and physics. No React, no DOM, no imports from ui.
+    src/ui/     the application
+
+`src/core/plan.js` is the seam. `planMission(input, { signal, onYield })` takes a
+destination and a payload and returns solved stages, and everything crossing it
+is plain data — no `Set`, no `Map`, no object identity. That is what lets the
+solver later become a Web Worker or a Rust/WASM module without the UI changing,
+and `test/seam-contract.test.js` fails the day it stops being true.
+
+It has already earned its place. `groups` used to arrive as arrays of the same
+leg objects held in `route`, and `route.indexOf(legs[0])` depended on that
+identity; JSON duplicates rather than shares, so a round trip returned -1 and
+the split-point lookup broke silently. Nothing else in the suite could see it,
+because in-process every caller passes the shared objects.
+
 ## Open work
 
 Everything known to be outstanding is filed. In rough order of what unblocks
 what:
 
-|                           |                                                               |                                                                        |
-| ------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| [#7](../../../issues/7)   | Extract the mission orchestration out of the component effect | Makes the destination-to-design pipeline testable. Do this before #11. |
-| [#8](../../../issues/8)   | Restore the eslint `no-undef` check                           | Small, independent, closes a gap nothing else covers.                  |
-| [#9](../../../issues/9)   | `wMax` picks one term per part                                | Latent, not live. Needs a reachable case before it is worth touching.  |
-| [#10](../../../issues/10) | Richer pitch program for the gravity turn                     | The largest open problem — see below.                                  |
-| [#11](../../../issues/11) | Convert the source to TypeScript                              | Now affordable; the snapshot is the guardrail.                         |
+|                           |                                           |                                                                       |
+| ------------------------- | ----------------------------------------- | --------------------------------------------------------------------- |
+| ~~[#7]~~                  | ~~Extract the mission orchestration~~     | Done — it lives in `src/core/plan.js`                                 |
+| [#8](../../../issues/8)   | Restore the eslint `no-undef` check       | Small, independent, closes a gap nothing else covers.                 |
+| [#9](../../../issues/9)   | `wMax` picks one term per part            | Latent, not live. Needs a reachable case before it is worth touching. |
+| [#10](../../../issues/10) | Richer pitch program for the gravity turn | The largest open problem — see below.                                 |
+| [#11](../../../issues/11) | Convert the source to TypeScript          | Now affordable; the snapshot is the guardrail.                        |
 
 Converting to TypeScript before the snapshot existed would have meant a
 mechanical diff across roughly 2,560 lines of physics and part tables with
