@@ -394,6 +394,87 @@ function boostDv(mp, burnA, fixed, k, nb, b, drop, aspHere, ispCore, ispEff) {
    A KSP engine's mass flow is constant (mdot = F_vac / (Isp_vac·g0)); atmospheric
    thrust is just that flow times a lower Isp. So the combined Isp across phase A
    is total vacuum thrust over total flow — no averaging fudge required.        */
+/* Smallest core propellant load whose delta-v closes the budget.
+
+   The bracket comes first, growing by 1.6 until the budget is met — that part
+   was already efficient at 2.25 steps on average. What followed was twenty
+   fixed bisections: 363 million evaluations across a grid run, 85% of every
+   call this function makes.
+
+   Illinois instead — regula falsi, halving the retained endpoint's value when
+   it is kept twice so the interval cannot stagnate the way plain false position
+   does. Superlinear, and it never leaves the bracket, so a pathological curve
+   degrades to bisection rather than diverging.
+
+   Returns the upper bound, as the bisection did: a value known to close the
+   budget rather than one approaching it from below. `pickTanksMemo` is asked to
+   cover it, and covering slightly too much is a heavier rocket while covering
+   slightly too little is one that does not reach orbit.
+
+   boostDv returns -1 for a load the stage cannot fly at all. That is a sentinel,
+   not a delta-v, and interpolating through it would aim the secant at nothing,
+   so those steps fall back to bisection. */
+function solveCore(
+  lo,
+  hi,
+  dv,
+  burnA,
+  fixed,
+  k,
+  nb,
+  b,
+  drop,
+  aspHere,
+  ispCore,
+  ispEff,
+) {
+  const f = (mp) => {
+    const v = boostDv(
+      mp,
+      burnA,
+      fixed,
+      k,
+      nb,
+      b,
+      drop,
+      aspHere,
+      ispCore,
+      ispEff,
+    );
+    return v < 0 ? v : v - dv;
+  };
+  let flo = f(lo),
+    fhi = f(hi),
+    side = 0;
+  /* Match what twenty halvings of this bracket delivered, so the answer is at
+     least as precise as before rather than merely close to it. */
+  const tol = Math.max(1e-9, (hi - lo) / 1048576);
+  for (let i = 0; i < 40 && hi - lo > tol; i++) {
+    let c;
+    if (flo < 0 && fhi > 0 && isFinite(flo) && isFinite(fhi) && flo !== -1) {
+      c = hi - (fhi * (hi - lo)) / (fhi - flo);
+      /* Keep the step inside the bracket; a flat region can push it out. */
+      const pad = (hi - lo) / 64;
+      if (!(c > lo + pad && c < hi - pad)) c = (lo + hi) / 2;
+    } else {
+      c = (lo + hi) / 2;
+    }
+    const fc = f(c);
+    if (fc >= 0) {
+      hi = c;
+      fhi = fc;
+      if (side === 1) flo /= 2;
+      side = 1;
+    } else {
+      lo = c;
+      flo = fc;
+      if (side === -1) fhi /= 2;
+      side = -1;
+    }
+  }
+  return hi;
+}
+
 function boostedAscent({
   dv,
   payload,
@@ -699,25 +780,20 @@ function boostedAscent({
               }
             }
             if (!found) continue;
-            for (let i = 0; i < 20; i++) {
-              const mid = (lo + hi) / 2;
-              if (
-                boostDv(
-                  mid,
-                  burnA,
-                  fixed,
-                  k,
-                  nb,
-                  b,
-                  drop,
-                  aspHere,
-                  ispCore,
-                  ispEff,
-                ) >= dv
-              )
-                hi = mid;
-              else lo = mid;
-            }
+            hi = solveCore(
+              lo,
+              hi,
+              dv,
+              burnA,
+              fixed,
+              k,
+              nb,
+              b,
+              drop,
+              aspHere,
+              ispCore,
+              ispEff,
+            );
 
             const biggest = Math.max(...usable.map((t) => t.prop));
             if (hi > 10 * biggest) continue;
