@@ -21,7 +21,8 @@
     "perf:compare": "npm run perf:build && node perf/.out/run.js grid --out perf/.out/current.json && node perf/compare.mjs perf/baselines/local.json perf/.out/current.json",
     "perf:profile": "npm run perf:build && node --cpu-prof --cpu-prof-dir=perf/.prof perf/.out/run.js grid",
     "perf:config": "vite build --ssr perf/config.js --outDir perf/.out --logLevel error && node perf/.out/config.js",
-    "perf:map": "vite build --sourcemap hidden --logLevel error && echo 'map written to dist/assets/'"
+    "perf:map": "vite build --sourcemap hidden --logLevel error && echo 'map written to dist/assets/'",
+    "perf:device": "npm run perf:profile && npm run perf:map && node perf/profile.mjs perf/.prof perf/traces --map dist/assets"
   },
   "dependencies": {
     "react": "^19.2.4",

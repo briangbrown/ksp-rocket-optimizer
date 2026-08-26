@@ -156,7 +156,11 @@ perf/.out
 perf/.prof
 perf/baselines/local.json
 
-# Device profiles exported from Chrome DevTools. Large, machine-specific,
-# and prettier runs out of memory trying to format one.
+# Device profiles exported from Chrome DevTools. Large, machine-specific, and
+# prettier runs out of memory trying to format one. perf/traces is the place to
+# put them — inside the repo, because a dev container cannot read outside it —
+# and the last two patterns catch one dropped anywhere else by accident.
+perf/traces/*
+!perf/traces/.gitkeep
 Trace-*.json
 *.cpuprofile

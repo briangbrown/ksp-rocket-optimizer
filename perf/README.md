@@ -165,10 +165,25 @@ otherwise look like a result.
 **5. Export and read it.** The download arrow in the Performance toolbar saves a
 `.json` trace. Then:
 
+Copy the exported trace into **`perf/traces/`** and run:
+
 ```bash
-npm run perf:profile     # fresh container profile
-npm run perf:map         # sourcemap for the deployed bundle (see below)
-node perf/profile.mjs perf/.prof ~/Downloads/<device>.json --map dist/assets
+npm run perf:device
+```
+
+That takes a fresh container profile, builds a sourcemap for the deployed
+bundle, and compares the two. Both directories resolve to the newest file in
+them, so nothing has to be renamed.
+
+`perf/traces/` is gitignored apart from its `.gitkeep`. It lives inside the
+repository because a dev container cannot read anything outside it, and a 35 MB
+trace has no business in source control — one reached `main` before this
+existed.
+
+The long form, if you want a specific pair:
+
+```bash
+node perf/profile.mjs perf/.prof/<a>.cpuprofile perf/traces/<b>.json --map dist/assets
 ```
 
 **A device profile carries minified names** — `r`, `Mt`, `m` — because it ran the
@@ -180,7 +195,14 @@ the JavaScript is byte-identical to what shipped — same content hash. A map bu
 locally therefore describes exactly the bundle the phone ran.
 
 That only holds for the commit that was deployed **when the profile was taken**.
-Check out that commit before `npm run perf:map`. `profile.mjs` compares the map's
+If the trace predates a change to `src/`, the bundle hash differs and the map
+does not describe it:
+
+````bash
+git stash && git checkout <deployed-commit>
+npm run perf:map
+git checkout - && git stash pop
+``` `profile.mjs` compares the map's
 filename against the bundle in the profile and warns rather than resolving every
 frame to a plausible-looking wrong name.
 
@@ -212,3 +234,4 @@ whether they agree on what the bottleneck is.
 
 Worth capturing against both builds for comparison: production, and the memoised
 prototype at `perf/solver-baseline`.
+````
