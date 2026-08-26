@@ -1,3 +1,4 @@
+import { NONE, expBits } from "./constants.js";
 import { heightOf } from "./geometry.js";
 import {
   compatible,
@@ -57,7 +58,76 @@ function usableAdapterProp(chain, engine) {
    answer it separately. Five bugs in this session came from fixing one copy and
    not the other: couplers, the thrust limiter, the gimbal check, the cluster cap
    and a missing decoupler quantity. */
+/* Result cache. 30.1 million calls across the design grid, 4,679 distinct
+   answers.
+
+   The key is every input that can change the answer: the three roster objects
+   by identity, then engine, tank diameter, and the scalars. No assumption about
+   how the caller derives one from another — `tanks` looks like a proxy for the
+   roster, and relying on that would be a claim about a caller made inside the
+   solver, which is the shape of mistake #18 was.
+
+   Six nested lookups thirty million times would cost more than they save, so
+   the three roster levels collapse to three reference comparisons whenever the
+   roster has not changed — which, inside a single solve, is always. */
+const _fitCache = new WeakMap();
+
+let _lastU, _lastX, _lastT, _lastBucket;
+function fitScope(u, x, t) {
+  if (u === _lastU && x === _lastX && t === _lastT && _lastBucket)
+    return _lastBucket;
+  let l1 = _fitCache.get(u || NONE);
+  if (!l1) {
+    l1 = new WeakMap();
+    _fitCache.set(u || NONE, l1);
+  }
+  let l2 = l1.get(x || NONE);
+  if (!l2) {
+    l2 = new WeakMap();
+    l1.set(x || NONE, l2);
+  }
+  let l3 = l2.get(t || NONE);
+  if (!l3) {
+    l3 = new Map();
+    l2.set(t || NONE, l3);
+  }
+  _lastU = u;
+  _lastX = x;
+  _lastT = t;
+  _lastBucket = l3;
+  return l3;
+}
+
 function fitStructure(opt) {
+  const bucket = fitScope(opt.unlocked, opt.excluded, opt.tanks);
+  let byEngine = bucket.get(opt.engine);
+  if (!byEngine) {
+    byEngine = new Map();
+    bucket.set(opt.engine, byEngine);
+  }
+  /* stackD stays its own level rather than being folded into the numeric key:
+     diameters come from measured drag cubes, so they are not reliably multiples
+     of anything. */
+  let byD = byEngine.get(opt.stackD);
+  if (!byD) {
+    byD = new Map();
+    byEngine.set(opt.stackD, byD);
+  }
+  const fk =
+    ((((opt.n * 8 + (opt.stacks || 1)) * 2 + (opt.noPlate ? 1 : 0)) * 2 +
+      (opt.plateAbove ? 1 : 0)) *
+      2 +
+      (opt.hasStageBelow ? 1 : 0)) *
+      8 +
+    expBits(opt.expansions);
+  const hit = byD.get(fk);
+  if (hit !== undefined) return hit;
+  const out = _fitStructure(opt);
+  byD.set(fk, out);
+  return out;
+}
+
+function _fitStructure(opt) {
   const {
     engine,
     n,

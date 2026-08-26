@@ -1,3 +1,4 @@
+import { NONE, expBits } from "./constants.js";
 import couplersData from "../data/couplers.json";
 import structureData from "../data/structure.json";
 
@@ -158,7 +159,52 @@ const columnCoupler = (d, n, unlocked, excluded) => {
   return fit.length ? fit.sort((a, b) => a.m - b.m)[0] : null;
 };
 
+/* Result cache. 54.6 million calls across the design grid, 539 distinct answers.
+
+   Keyed on the roster objects by identity rather than by value: hashing a Set
+   costs more than the lookup saves. `unlocked` and `excluded` are rebuilt per
+   solve by planMission, so a cache entry cannot outlive the roster that
+   produced it — which is the failure #18 was.
+
+   `expansions` is in the key by value, and has to be: couplersFor filters
+   ReStock+ couplers on expansions.rs, and toggling that in the UI replaces
+   `expansions` while leaving the `unlocked` and `excluded` objects untouched.
+   Keyed on identity alone this served stale couplers, in 108 of the
+   engine/count combinations the tests sweep. */
+
+function scope(root, a, b, c) {
+  let l1 = root.get(a || NONE);
+  if (!l1) {
+    l1 = new WeakMap();
+    root.set(a || NONE, l1);
+  }
+  let l2 = l1.get(b || NONE);
+  if (!l2) {
+    l2 = new WeakMap();
+    l1.set(b || NONE, l2);
+  }
+  let l3 = l2.get(c || NONE);
+  if (!l3) {
+    l3 = new Map();
+    l2.set(c || NONE, l3);
+  }
+  return l3;
+}
+
+const _coupCache = new WeakMap();
 const couplerFor = (e, n, unlocked, excluded, noPlate, expansions) => {
+  const bucket = scope(_coupCache, unlocked, excluded, e);
+  /* Numeric key, no string. Building `e.n + "|" + n + "|" + noPlate` allocated
+     on every one of 54 million calls and cost about what the lookup saved —
+     measured at 0.8% against 22% for this. */
+  const ck = n * 16 + (noPlate ? 8 : 0) + expBits(expansions);
+  const hit = bucket.get(ck);
+  if (hit !== undefined) return hit;
+  const val = _couplerFor(e, n, unlocked, excluded, noPlate, expansions);
+  bucket.set(ck, val);
+  return val;
+};
+const _couplerFor = (e, n, unlocked, excluded, noPlate, expansions) => {
   if (n <= 1 || isRadial(e)) return null;
   const fit = couplersFor(e, unlocked, excluded, expansions).filter(
     (c) => c.out === n && !(noPlate && c.plate),
