@@ -310,6 +310,82 @@ const resetTally = () => {
   TALLY.chains = 0;
 };
 
+/* Delta-v of a boosted stage for a given core propellant load.
+
+   Hoisted to module scope and given its arguments explicitly. It used to be a
+   closure defined at nesting depth thirteen inside the innermost loop, and the
+   bracket counter puts its construction at 19,298,990 times per grid run —
+   nineteen million closures, each capturing ten variables, all garbage a moment
+   later. GC is 12.5% of a solve on a Pixel 8 against 3.9% in a container, so
+   that allocation costs more on a phone than profiling here suggests.
+
+   Ten positional arguments rather than an options object: an object would
+   reintroduce the allocation this exists to remove. */
+function boostDv(mp, burnA, fixed, k, nb, b, drop, aspHere, ispCore, ispEff) {
+  if (mp <= burnA * 1.02) return -1; // core has to outlast the boosters
+  const m0 = fixed + k * mp + mp + nb * b.m;
+  /* Solids cannot do this. Asparagus works by draining one stack's
+   propellant through every engine on the rocket, and solid fuel does
+   not flow — a Kickback burns its own grain and nothing else's. Only
+   liquid columns qualify. */
+  if (drop) {
+    /* Only the core burns. It draws from the side tanks first, a pair at
+     a time, dropping each pair's dry mass as it empties, and finishes
+     on its own propellant. No extra thrust and no extra flow — the
+     whole benefit is not carrying empty tankage to burnout. */
+    const pairs = Math.floor(nb / 2);
+    const perPair = 2 * b.fuelM,
+      dryPair = 2 * b.dry;
+    let m = m0,
+      tot = 0;
+    for (let q = 0; q < pairs; q++) {
+      const mEnd = m - perPair;
+      if (mEnd <= 0) return -1;
+      tot += ispCore * G0 * Math.log(m / mEnd);
+      m = mEnd - dryPair;
+    }
+    if (nb % 2) {
+      const mEnd = m - b.fuelM;
+      if (mEnd <= 0) return -1;
+      tot += ispCore * G0 * Math.log(m / mEnd);
+      m = mEnd - b.dry;
+    }
+    const mB1 = fixed + k * mp;
+    if (m <= mB1) return -1;
+    return tot + ispCore * G0 * Math.log(m / mB1);
+  }
+  if (!aspHere) {
+    const mA = m0 - nb * b.fuelM - burnA;
+    const mB0 = mA - nb * b.dry; // boosters away
+    const mB1 = fixed + k * mp;
+    return ispEff * G0 * Math.log(m0 / mA) + ispCore * G0 * Math.log(mB0 / mB1);
+  }
+  /* Pairs drop one at a time. Each phase burns one pair's propellant
+   through every engine still attached, so the phase is short and the
+   rocket sheds a pair's dry mass at the end of it. */
+  const pairs = Math.floor(nb / 2);
+  const perPair = 2 * b.fuelM,
+    dryPair = 2 * b.dry;
+  let m = m0,
+    total = 0;
+  for (let q = 0; q < pairs; q++) {
+    const mEnd = m - perPair;
+    if (mEnd <= 0) return -1;
+    total += ispEff * G0 * Math.log(m / mEnd);
+    m = mEnd - dryPair; // that pair leaves
+  }
+  if (nb % 2) {
+    // an odd one out burns alone
+    const mEnd = m - b.fuelM;
+    if (mEnd <= 0) return -1;
+    total += ispEff * G0 * Math.log(m / mEnd);
+    m = mEnd - b.dry;
+  }
+  const mB1 = fixed + k * mp;
+  if (m <= mB1) return -1;
+  return total + ispCore * G0 * Math.log(m / mB1);
+}
+
 /* -------------------------- parallel solid boosters --------------------------
    Radial SRBs fire alongside the liquid core and are jettisoned at burnout, so
    the launch stage has two phases:
@@ -318,6 +394,87 @@ const resetTally = () => {
    A KSP engine's mass flow is constant (mdot = F_vac / (Isp_vac·g0)); atmospheric
    thrust is just that flow times a lower Isp. So the combined Isp across phase A
    is total vacuum thrust over total flow — no averaging fudge required.        */
+/* Smallest core propellant load whose delta-v closes the budget.
+
+   The bracket comes first, growing by 1.6 until the budget is met — that part
+   was already efficient at 2.25 steps on average. What followed was twenty
+   fixed bisections: 363 million evaluations across a grid run, 85% of every
+   call this function makes.
+
+   Illinois instead — regula falsi, halving the retained endpoint's value when
+   it is kept twice so the interval cannot stagnate the way plain false position
+   does. Superlinear, and it never leaves the bracket, so a pathological curve
+   degrades to bisection rather than diverging.
+
+   Returns the upper bound, as the bisection did: a value known to close the
+   budget rather than one approaching it from below. `pickTanksMemo` is asked to
+   cover it, and covering slightly too much is a heavier rocket while covering
+   slightly too little is one that does not reach orbit.
+
+   boostDv returns -1 for a load the stage cannot fly at all. That is a sentinel,
+   not a delta-v, and interpolating through it would aim the secant at nothing,
+   so those steps fall back to bisection. */
+function solveCore(
+  lo,
+  hi,
+  dv,
+  burnA,
+  fixed,
+  k,
+  nb,
+  b,
+  drop,
+  aspHere,
+  ispCore,
+  ispEff,
+) {
+  const f = (mp) => {
+    const v = boostDv(
+      mp,
+      burnA,
+      fixed,
+      k,
+      nb,
+      b,
+      drop,
+      aspHere,
+      ispCore,
+      ispEff,
+    );
+    return v < 0 ? v : v - dv;
+  };
+  let flo = f(lo),
+    fhi = f(hi),
+    side = 0;
+  /* Match what twenty halvings of this bracket delivered, so the answer is at
+     least as precise as before rather than merely close to it. */
+  const tol = Math.max(1e-9, (hi - lo) / 1048576);
+  for (let i = 0; i < 40 && hi - lo > tol; i++) {
+    let c;
+    if (flo < 0 && fhi > 0 && isFinite(flo) && isFinite(fhi) && flo !== -1) {
+      c = hi - (fhi * (hi - lo)) / (fhi - flo);
+      /* Keep the step inside the bracket; a flat region can push it out. */
+      const pad = (hi - lo) / 64;
+      if (!(c > lo + pad && c < hi - pad)) c = (lo + hi) / 2;
+    } else {
+      c = (lo + hi) / 2;
+    }
+    const fc = f(c);
+    if (fc >= 0) {
+      hi = c;
+      fhi = fc;
+      if (side === 1) flo /= 2;
+      side = 1;
+    } else {
+      lo = c;
+      flo = fc;
+      if (side === -1) fhi /= 2;
+      side = -1;
+    }
+  }
+  return hi;
+}
+
 function boostedAscent({
   dv,
   payload,
@@ -583,93 +740,60 @@ function boostedAscent({
               : [false];
           for (const aspHere of plumbings) {
             const burnA = aspHere ? 0 : coreBurnA;
-            const dvOf = (mp) => {
-              if (mp <= burnA * 1.02) return -1; // core has to outlast the boosters
-              const m0 = fixed + k * mp + mp + nb * b.m;
-              /* Solids cannot do this. Asparagus works by draining one stack's
-               propellant through every engine on the rocket, and solid fuel does
-               not flow — a Kickback burns its own grain and nothing else's. Only
-               liquid columns qualify. */
-              if (drop) {
-                /* Only the core burns. It draws from the side tanks first, a pair at
-                 a time, dropping each pair's dry mass as it empties, and finishes
-                 on its own propellant. No extra thrust and no extra flow — the
-                 whole benefit is not carrying empty tankage to burnout. */
-                const pairs = Math.floor(nb / 2);
-                const perPair = 2 * b.fuelM,
-                  dryPair = 2 * b.dry;
-                let m = m0,
-                  tot = 0;
-                for (let q = 0; q < pairs; q++) {
-                  const mEnd = m - perPair;
-                  if (mEnd <= 0) return -1;
-                  tot += ispCore * G0 * Math.log(m / mEnd);
-                  m = mEnd - dryPair;
-                }
-                if (nb % 2) {
-                  const mEnd = m - b.fuelM;
-                  if (mEnd <= 0) return -1;
-                  tot += ispCore * G0 * Math.log(m / mEnd);
-                  m = mEnd - b.dry;
-                }
-                const mB1 = fixed + k * mp;
-                if (m <= mB1) return -1;
-                return tot + ispCore * G0 * Math.log(m / mB1);
-              }
-              if (!aspHere) {
-                const mA = m0 - nb * b.fuelM - burnA;
-                const mB0 = mA - nb * b.dry; // boosters away
-                const mB1 = fixed + k * mp;
-                return (
-                  ispEff * G0 * Math.log(m0 / mA) +
-                  ispCore * G0 * Math.log(mB0 / mB1)
-                );
-              }
-              /* Pairs drop one at a time. Each phase burns one pair's propellant
-               through every engine still attached, so the phase is short and the
-               rocket sheds a pair's dry mass at the end of it. */
-              const pairs = Math.floor(nb / 2);
-              const perPair = 2 * b.fuelM,
-                dryPair = 2 * b.dry;
-              let m = m0,
-                total = 0;
-              for (let q = 0; q < pairs; q++) {
-                const mEnd = m - perPair;
-                if (mEnd <= 0) return -1;
-                total += ispEff * G0 * Math.log(m / mEnd);
-                m = mEnd - dryPair; // that pair leaves
-              }
-              if (nb % 2) {
-                // an odd one out burns alone
-                const mEnd = m - b.fuelM;
-                if (mEnd <= 0) return -1;
-                total += ispEff * G0 * Math.log(m / mEnd);
-                m = mEnd - b.dry;
-              }
-              const mB1 = fixed + k * mp;
-              if (m <= mB1) return -1;
-              return total + ispCore * G0 * Math.log(m / mB1);
-            };
 
             // smallest core that still closes the budget
             let lo = aspHere ? 0.05 : coreBurnA * 1.03,
               hi = lo,
-              found = dvOf(lo) >= dv;
+              found =
+                boostDv(
+                  lo,
+                  burnA,
+                  fixed,
+                  k,
+                  nb,
+                  b,
+                  drop,
+                  aspHere,
+                  ispCore,
+                  ispEff,
+                ) >= dv;
             if (!found) {
               for (let i = 0; i < 18 && hi < 8000; i++) {
                 hi *= 1.6;
-                if (dvOf(hi) >= dv) {
+                if (
+                  boostDv(
+                    hi,
+                    burnA,
+                    fixed,
+                    k,
+                    nb,
+                    b,
+                    drop,
+                    aspHere,
+                    ispCore,
+                    ispEff,
+                  ) >= dv
+                ) {
                   found = true;
                   break;
                 }
               }
             }
             if (!found) continue;
-            for (let i = 0; i < 20; i++) {
-              const mid = (lo + hi) / 2;
-              if (dvOf(mid) >= dv) hi = mid;
-              else lo = mid;
-            }
+            hi = solveCore(
+              lo,
+              hi,
+              dv,
+              burnA,
+              fixed,
+              k,
+              nb,
+              b,
+              drop,
+              aspHere,
+              ispCore,
+              ispEff,
+            );
 
             const biggest = Math.max(...usable.map((t) => t.prop));
             if (hi > 10 * biggest) continue;
