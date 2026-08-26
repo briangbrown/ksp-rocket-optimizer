@@ -128,16 +128,42 @@ set.call(ta, "KSP-PLANNER {…}");
 ta.dispatchEvent(new Event("input", { bubbles: true }));
 ```
 
-**2. Connect the phone.** Developer options → USB debugging, plug in, accept the
-prompt. On the desktop open `chrome://inspect#devices`; the phone's tab appears
-under Remote Target. Click **inspect**.
+**2. Connect the phone.**
 
-**3. Record.** In the DevTools window that opens, Performance → record, trigger
-the solve on the phone, stop when the design appears. Leave the default capture
-settings — JS sampling has to be on, and "screenshots only" produces a trace with
-no profile in it.
+- Settings → About phone → tap **Build number** seven times.
+- Settings → System → Developer options → **USB debugging** on.
+- Plug into the desktop with a **data** cable; charge-only cables enumerate but
+  carry no ADB.
+- Unlock, accept **Allow USB debugging?**, tick _Always allow_. No prompt means
+  a stale authorisation — _Revoke USB debugging authorisations_, replug.
+- Desktop Chrome → `chrome://inspect#devices`, **Discover USB devices** ticked.
+- Open the app on the phone. Its tab appears under the device; click **inspect**.
+  A DevTools window opens on the desktop, driving the phone's tab.
 
-**4. Export and read it.** Save the recording (download icon) and:
+If the device never appears it is almost always the cable or an unaccepted
+prompt. `adb devices` distinguishes the two: `unauthorized` versus absent.
+
+**3. Set up the capture.**
+
+- Performance panel → gear → **Disable JavaScript samples must be UNCHECKED**.
+  With it on you get a trace containing no profile at all, which is the one
+  setting that silently wastes the whole run. `profile.mjs` will tell you, but
+  only after you have already recorded.
+- CPU throttling **No throttling** — the phone is the slow device under test.
+- Network panel → **Disable cache**, then Ctrl/Cmd-R with the DevTools window
+  focused to reload the phone bypassing cache. Both builds serve from the same
+  Cloudflare project, so without this you can get the other build's bundle.
+
+**4. Record.** Click ● (Ctrl/Cmd-E). On the **phone**, tap the
+`Tech tree · … edit` bar, then under _Unlock through tier:_ tap **9**. Wait for
+the rocket — about 20 s on production. Stop.
+
+A solve that long heats the phone. Leave a minute between runs, or alternate
+builds rather than running either twice in a row; thermal throttling will
+otherwise look like a result.
+
+**5. Export and read it.** The download arrow in the Performance toolbar saves a
+`.json` trace. Then:
 
 ```bash
 npm run perf:profile                                  # fresh container profile
