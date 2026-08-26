@@ -26,8 +26,9 @@ Do not attempt to push to `main`, including for one-line documentation fixes.
 npm run dev        # Vite dev server, hot reload
 npm run build      # production build into dist/
 npm run preview    # serve the production build
-npm test           # design snapshot — solve the grid, compare to the baseline
+npm test           # all four checks — see below
 npm run test:bless # accept current solver output as the new baseline
+npm run perf       # solver benchmarks. Never in CI — see perf/README.md
 ```
 
 Node 24 or newer. **Run `npm test && npm run build` before every commit** — both
