@@ -6,6 +6,7 @@ import { PACK_BRACE, PACK_JOIN, PART_H, clusterSpan, engineLen, stackGeometry, s
 import { DEST, PROFILES, SYS, bodyKey, buildRoute, defaultCuts, hasSync } from './core/orbits.js';
 import { PLATE_SHROUD, diaOf, missionHardware } from './core/parts.js';
 import { stageCost, stageParts } from './core/performance.js';
+import { planMission } from './core/plan.js';
 import { TALLY, boostedAscent, resetTally, solveGroup, solveStage } from './core/solver.js';
 import { NODE_PARTS, TIERS, withDeps } from './core/tech.js';
 
@@ -306,17 +307,22 @@ export default function KSPMissionPlanner() {
   const [stages, setStages] = useState([]);
   const [busy, setBusy] = useState(false);
   const runId = useRef(0);
+  const abortRef = useRef(null);
 
   useEffect(() => {
     const token = ++runId.current;
     setBusy(true);          // instantly, in the same tick as the change
     const alive = () => runId.current === token;
     const breathe = () => new Promise((r) => setTimeout(r, 0));
+    /* A superseded run stops at its next yield. `alive` still guards the final
+       setState — the two agree, but the signal is what a worker will read. */
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
 
     (async () => {
       if (!hydrated) return;              // wait for the saved roster before spending a solve
-      resetTally();
       const startedAt = Date.now();
       /* The veil is already up — it goes on synchronously above so it appears on
          the same tick as the click. This pause only debounces the work, so a
@@ -327,114 +333,18 @@ export default function KSPMissionPlanner() {
       await breathe();
       if (!alive()) return;
 
-      const out = [];
-      let carried = payload + missionHardware(route, payload, origin, unlocked, excluded).mass;
-      const srbs = engines.filter((e) => e.f.includes("SF") && e.fuelM > 0);
-      for (let i = groups.length - 1; i >= 0; i--) {
-        await breathe();
-        if (!alive()) return;
-        const legs = groups[i];
-        const key = route.indexOf(legs[0]);
-        /* The margin scales the route; the extra is a flat reserve on top of it.
-           It rides on the last segment, which is the top of the stack — spare dv
-           is only useful if it is still there at the end, and putting it lower
-           would mean lifting fuel you then stage away. */
-        const dv = legs.reduce((a, l) => a + l.dv, 0) * (1 + margin / 100)
-          + (i === groups.length - 1 ? extraDv : 0);
-        const isLaunch = legs.some((l) => l.kind === "ascent");
-        const isLand = legs.some((l) => l.kind === "land" || l.kind === "ascentBack");
-        const g = isLaunch ? 9.81 : Math.max(...legs.map((l) => l.g));
-        const kind = isLaunch ? "launch" : isLand ? "land" : "space";
-        const forced = splitBy.get(key) || 0;
-        /* How many stages to allow. A stage asked for much more than about two
-           km/s pays compound interest: its propellant is lifted by everything
-           beneath it. Measured across budgets from 3 700 to 11 600 m/s the
-           cheapest design lands on 1 100–2 600 m/s per stage, median 1 870, so
-           the cap follows the budget rather than sitting at a fixed four — which
-           was set when this only planned Mun trips and cost an Eeloo mission
-           300 000 funds. One spare above the estimate, since the split is rarely
-           even, and never more than six: past that nothing improved. */
-        const autoK = Math.min(6, Math.max(2, Math.ceil(dv / 2200) + 1));
-        const bodyName = isLaunch ? origin : (legs.find((l) => l.body) || {}).body;
-        let res = solveGroup({ dv, payload: carried, engines, tanks, unlocked, excluded, needGimbal,
-          maxAspect, expansions, asparagus, g, kind,
-          boosters, srbs, bodyName, objective, minK: forced || 1, maxK: forced || autoK });
-
-        /* The closed-form solver can pick a stage count the vehicle cannot fly —
-           an upper stage that satisfies the rocket equation but has no pitch
-           programme reaching orbit. On auto, walk the candidates cheapest first
-           and take the first the simulator accepts. */
-        if (res && isLaunch && !forced && BODY[bodyName] && res.byK.length > 1) {
-          /* Keep the slenderness preference while looking for one that flies —
-             sorting purely on score here threw away the solver's choice and put
-             the pencil straight back. */
-          /* Slenderness is a constraint the user set, not a tie-break. Ordering
-             compliant designs first is not enough: when every one of them fails
-             the ascent simulation the walk kept going and settled on a design
-             that breaks the limit — a 0.144 t payload came back at 30.6:1 under
-             a 14:1 setting, because the thin compliant stacks could not be flown
-             and the fat one could.
-
-             Better to keep the best compliant design and report that the sim
-             could not fly it than to silently hand back something the user ruled
-             out. Only when nothing compliant exists at all does an over-limit
-             design get offered. */
-          const compliant = [...res.byK].filter((x) => x && x.slim);
-          const pool = compliant.length ? compliant : [...res.byK].filter(Boolean);
-          const order = pool.sort((x, y) => x.chainScore - y.chainScore);
-          let flew = false;
-          for (const cand of order) {
-            await breathe();
-            if (!alive()) return;
-            const veh = buildVehicleFor(cand.chain.map((c) => ({ isLaunch: true, legs,
-              sol: c.sol, payloadIn: c.payloadIn })), () => true, bodyName, payloadDia);
-            const flown = veh && simCached(veh, orbitAlt(bodyName));
-            if (flown && flown.ok) { res = cand; flew = true; break; }
-          }
-          /* Nothing in the compliant pool could be flown. Keep the best of them
-             anyway — the design is the one the user asked for, and the flight card
-             will show that the ascent could not be simulated. */
-          if (!flew && order.length) res = order[0];
-        }
-
-        /* The map's ascent figure is a rule of thumb; the simulator knows what
-           this particular vehicle will actually spend. Sizing to the map and then
-           reporting a higher flown cost — which is what happened, 3 740 built
-           against 4 062 needed — hands you a rocket that cannot reach orbit.
-           Re-solve against the flown cost until the vehicle carries it. */
-        if (res && isLaunch && BODY[bodyName]) {
-          for (let pass = 0; pass < 3; pass++) {
-            await breathe();
-            if (!alive()) return;
-            const veh = buildVehicleFor(res.chain.map((c) => ({ isLaunch: true, legs,
-              sol: c.sol, payloadIn: c.payloadIn })), () => true, bodyName, payloadDia);
-            const flown = veh && simCached(veh, orbitAlt(bodyName));
-            if (!flown || !flown.ok) break;
-            const built = res.chain.reduce((a2, c) => a2 + c.sol.dv, 0);
-            flown.carried = built;      // surfaced next to the ascent cost
-            if (flown.total <= built) break;                  // it carries the flight
-            const grown = solveGroup({ dv: flown.total * (1 + margin / 100),
-              payload: carried, engines, tanks, unlocked, excluded, needGimbal, maxAspect, expansions, asparagus, g, kind,
-              boosters, srbs, bodyName, objective, minK: forced || 1, maxK: forced || autoK });
-            if (!grown) break;
-            res = grown;
-          }
-        }
-
-        if (!res) {
-          out.unshift({ legs, key, want: dv, sol: null, payloadIn: carried,
-            twrMin: 1, g, isLaunch, isLand, sub: 1, subCount: 1 });
-          carried = NaN;
-          break;
-        }
-        out.unshift(...res.chain.map((c, j) => ({ legs, key, want: c.want, sol: c.sol,
-          payloadIn: c.payloadIn, twrMin: c.twrMin, g, isLaunch, isLand,
-          sub: j + 1, subCount: res.k })));
-        carried = res.total;
-      }
+      const result = await planMission(
+        {
+          groups, route, payload, payloadDia, margin, extraDv,
+          engines, tanks, unlocked, excluded, needGimbal, maxAspect,
+          expansions, asparagus, objective, origin, splitBy, boosters,
+        },
+        { signal: controller.signal, onYield: breathe },
+      );
+      if (!result) return;
       if (!alive()) return;
-      setStages(out);
-      setSearch({ ...TALLY, ms: Date.now() - startedAt });
+      setStages(result.stages);
+      setSearch({ ...result.tally, ms: Date.now() - startedAt });
       /* Unconditional: an abandoned run may have switched the veil on, and if this
          one finishes inside the 120 ms delay its own `shown` is false — so keying
          the reset off `shown` could leave the veil stuck on forever. */
