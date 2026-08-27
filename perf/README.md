@@ -122,13 +122,21 @@ phone ranks these differently — the memoisation gained 1.43× on a Pixel 8 aga
 1.53× here. This is how to check.
 
 **1. Make the device run the same mission.** On the deployed site, a hard reload
-followed by clicking tier 9 already is the benchmark configuration. Nothing
-persists there — the roster is saved through `window.storage`, the Claude
-artifact API, which does not exist in a browser and has no `localStorage`
-fallback (#35). So there is no stale state to guard against, and the app's
-defaults match `missionInput()` exactly.
+followed by clicking tier 9 is the benchmark configuration. The mission settings
+are not persisted, so those come up at the app's defaults, which match
+`missionInput()` exactly.
 
-If that is ever fixed, or you are measuring somewhere state does survive:
+The roster is persisted (#35), so it does not: a phone that has been measured on
+before comes back at whatever tier it was left on, and clicking 9 when it is
+already 9 changes no state and starts no solve. Read the tech-tree header rather
+than assuming the reload reset it, or clear it from the remote DevTools Console
+before you start:
+
+```js
+localStorage.removeItem("ksp-planner:roster"); // then reload
+```
+
+To measure a roster the tier chips do not describe:
 
 ```bash
 npm run perf:config          # prints a KSP-PLANNER string, tier 9, Mun

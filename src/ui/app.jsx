@@ -26,6 +26,7 @@ import { PickerHead, Slider, Solving, Stat } from "./components/controls.jsx";
 import { BodyPicker, RouteMap } from "./components/route.jsx";
 import { parseConfig } from "./config.js";
 import { craftName, fmt } from "./format.js";
+import { loadRoster, saveRoster } from "./storage.js";
 import { BODY_HUE, C, edgeOf } from "./tokens.js";
 
 export default function KSPMissionPlanner() {
@@ -74,9 +75,8 @@ export default function KSPMissionPlanner() {
   const [excluded, setExcluded] = useState(() => new Set()); // parts the user has ruled out
   /* The part roster is setup, not a per-session choice: it describes your install
      and what you have researched, and retyping it every time would be tedious.
-     Persisted through the artifact storage API — localStorage is unavailable
-     here. Mission settings are deliberately not saved; those you do want to
-     change run to run. */
+     Where it is kept depends on the host — see ui/storage.js. Mission settings
+     are deliberately not saved; those you do want to change run to run. */
   const [hydrated, setHydrated] = useState(false);
   /* Asparagus needs fuel to cross from a dropped stack into the core. A radial
      decoupler will do it — crossfeed is a right-click toggle on the TT-38K, which
@@ -93,19 +93,13 @@ export default function KSPMissionPlanner() {
   useEffect(() => {
     let live = true;
     (async () => {
-      try {
-        const got =
-          window.storage && (await window.storage.get("ksp-planner:roster"));
-        const v = got && JSON.parse(got.value);
-        if (live && v) {
-          if (Array.isArray(v.unlocked))
-            setUnlocked(withDeps(DATA.nodes, new Set(v.unlocked)));
-          if (Array.isArray(v.excluded)) setExcluded(new Set(v.excluded));
-          if (v.expansions) setExpansions(v.expansions);
-          if (typeof v.needGimbal === "boolean") setNeedGimbal(v.needGimbal);
-        }
-      } catch {
-        /* nothing saved yet, or storage unavailable — defaults stand */
+      const v = await loadRoster();
+      if (live && v) {
+        if (Array.isArray(v.unlocked))
+          setUnlocked(withDeps(DATA.nodes, new Set(v.unlocked)));
+        if (Array.isArray(v.excluded)) setExcluded(new Set(v.excluded));
+        if (v.expansions) setExpansions(v.expansions);
+        if (typeof v.needGimbal === "boolean") setNeedGimbal(v.needGimbal);
       }
       if (live) setHydrated(true);
     })();
@@ -157,22 +151,12 @@ export default function KSPMissionPlanner() {
      Mite) stay: they moved into the base game in 1.11. */
   useEffect(() => {
     if (!hydrated) return; // do not write the defaults back over a saved roster
-    try {
-      const w =
-        window.storage &&
-        window.storage.set(
-          "ksp-planner:roster",
-          JSON.stringify({
-            unlocked: [...unlocked],
-            excluded: [...excluded],
-            expansions,
-            needGimbal,
-          }),
-        );
-      if (w && w.catch) w.catch(() => {});
-    } catch {
-      /* storage unavailable — the session still works, it just will not persist */
-    }
+    saveRoster({
+      unlocked: [...unlocked],
+      excluded: [...excluded],
+      expansions,
+      needGimbal,
+    });
   }, [hydrated, unlocked, excluded, expansions, needGimbal]);
 
   const engines = useMemo(
