@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { solveGroup, resetTally } from "../src/core/solver.js";
+import { solveGroup } from "../src/core/solver.js";
+import { resetTally } from "../src/core/tally.js";
 import { cases } from "./grid.js";
 import { signature } from "./signature.js";
 

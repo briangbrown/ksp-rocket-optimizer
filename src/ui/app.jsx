@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { solve, cancelSolve } from "./solver-client.js";
 import { buildVehicleFor, simCached } from "../core/ascent.js";
 import { orbitAlt } from "../core/atmosphere.js";
 import { DATA } from "../core/catalogue.js";
@@ -14,7 +15,6 @@ import {
 } from "../core/orbits.js";
 import { missionHardware } from "../core/parts.js";
 import { stageCost, stageParts } from "../core/performance.js";
-import { planMission } from "../core/plan.js";
 import { NODE_PARTS, TIERS, withDeps } from "../core/tech.js";
 import {
   AscentPanel,
@@ -237,6 +237,7 @@ export default function KSPMissionPlanner() {
     /* A superseded run stops at its next yield. `alive` still guards the final
        setState — the two agree, but the signal is what a worker will read. */
     abortRef.current?.abort();
+    cancelSolve();
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -252,7 +253,7 @@ export default function KSPMissionPlanner() {
       await breathe();
       if (!alive()) return;
 
-      const result = await planMission(
+      const result = await solve(
         {
           cuts: [...effCuts],
           route,
@@ -262,26 +263,34 @@ export default function KSPMissionPlanner() {
           extraDv,
           engines,
           tanks,
-          unlocked,
-          excluded,
           needGimbal,
           maxAspect,
           expansions,
           asparagus,
           objective,
           origin,
-          splitBy,
           boosters,
+          /* Arrays, not the Sets and Map held in state. planMission rebuilds
+             them, and nothing crossing the seam may be a type JSON cannot
+             carry — see test/seam-contract.test.js. It is also what lets this
+             input be posted to a worker. */
+          unlocked: [...unlocked],
+          excluded: [...excluded],
+          splitBy: [...splitBy],
         },
         { signal: controller.signal, onYield: breathe },
       );
-      if (!result) return;
+      /* Superseded: a newer run is already in flight and owns the veil, so
+         leave it up and let that run clear it. */
       if (!alive()) return;
-      setStages(result.stages);
-      setSearch({ ...result.tally, ms: Date.now() - startedAt });
-      /* Unconditional: an abandoned run may have switched the veil on, and if this
-         one finishes inside the 120 ms delay its own `shown` is false — so keying
-         the reset off `shown` could leave the veil stuck on forever. */
+      /* Still the live run. A null result here is not a supersede — it is the
+         worker failing to start or reporting an error — and there is no later
+         run coming to tidy up. Clearing the veil has to happen either way, or a
+         failed worker leaves the app showing "Solving" for good. */
+      if (result) {
+        setStages(result.stages);
+        setSearch({ ...result.tally, ms: Date.now() - startedAt });
+      }
       setBusy(false);
     })();
 
