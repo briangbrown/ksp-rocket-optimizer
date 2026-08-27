@@ -2,11 +2,10 @@
 
 Agent instructions for Claude Code working in this repository.
 
-**Read [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) before changing
-`src/core/`.** Its "Where the bodies are buried" section
-records the traps that have caused repeat regressions — shared stage solutions,
-the `stageGeom` / `stageSize` / elevation triangle, `fitStructure` being reached
-from two callers. That knowledge is not duplicated here.
+**Read ["Where the bodies are buried"](#where-the-bodies-are-buried) before
+changing `src/core/`.** It records the traps that have caused repeat
+regressions — shared stage solutions, the `stageGeom` / `stageSize` / elevation
+triangle, `fitStructure` being reached from two callers.
 
 ---
 
@@ -26,16 +25,35 @@ Do not attempt to push to `main`, including for one-line documentation fixes.
 npm run dev        # Vite dev server, hot reload
 npm run build      # production build into dist/
 npm run preview    # serve the production build
-npm test           # all four checks — see below
+npm test           # the whole suite — see Verification below
 npm run test:bless # accept current solver output as the new baseline
-npm run perf       # solver benchmarks. Never in CI — see perf/README.md
 ```
 
 Node 24 or newer. **Run `npm test && npm run build` before every commit** — both
 are what CI runs.
 
-`npm test` takes about 35 seconds; it is solving 81 rocket designs, not doing
+`npm test` takes about a minute and a half locally and several minutes on CI. It
+is solving 81 rocket designs and mounting the app a few dozen times, not doing
 nothing.
+
+### Benchmarks
+
+```bash
+npm run perf          # the 81-case grid, same cases as the design snapshot
+npm run perf:mission  # one whole mission, the way a user waits for it
+npm run perf:save     # baseline this machine
+npm run perf:compare  # run again and diff
+```
+
+The workflow is baseline on `main`, compare on the branch, **then run `npm test`
+and confirm the design snapshot has not moved.** Optimisations are supposed to
+be behaviour-preserving; a faster solver that picks different rockets is a
+different solver.
+
+These are deliberately outside CI — `vitest.config.js` pins collection to
+`test/`, so nothing in `perf/` can be collected as a test by accident.
+`perf/README.md` has the rest, including why baselines are machine-local, how to
+add call counters, and how to profile on a device.
 
 ---
 
@@ -79,7 +97,7 @@ than habit:
   `disp`, `eyebrow`, `mono`). Do not introduce a styling framework.
 - **The component is a default export.** Solver functions are module-private.
   Export something by name when a caller genuinely needs it — that is how the
-  planned snapshot test will reach `solveGroup` — not as a blanket convention.
+  snapshot test reaches `solveGroup` — not as a blanket convention.
 - **Naming is terse and domain-flavoured** (`cdOf`, `ispAt`, `fitStructure`,
   `solveStage`, `boostedAscent`). Follow it. Do not expand these into prose.
 - **Physics constants and part tables are UPPER_SNAKE.**
@@ -93,40 +111,135 @@ format` fixes it, and CI runs the former. Nothing in `src/` is excluded.
 
 ## Verification, and how to talk about it
 
-The **design snapshot** (`npm test`) solves a fixed grid of 81 configurations and
-compares every resulting design against a committed baseline. It is the check
-that matters here, because the characteristic failure in this codebase is
-silent — a refactor believed to be behaviour-preserving once altered 31 of 72
-designs without erroring.
+Three checks caught nearly every regression during development. What each is
+for, and just as importantly what it cannot see:
+
+**The design snapshot** solves a fixed grid of 81 configurations — three tech
+tiers, three payloads, three delta-v budgets, three objectives — and compares
+every resulting design against a committed baseline, part by part, mass to four
+decimals and delta-v to three. 66 produce a design; the other 15 are legitimately
+unbuildable at that tech level. It is the check that matters here, because the
+characteristic failure in this codebase is silent — a refactor believed to be
+behaviour-preserving once altered 31 of 72 designs without erroring. It is also
+what makes the suite cost what it does; the other checks run alongside it rather
+than after it.
 
 A snapshot diff means the physics moved. If that is what you intended, re-bless
 with `npm run test:bless` and put the before and after in the commit message.
 **Never re-bless to turn a red build green.** A diff you cannot explain is the
 bug the test exists to catch, and blessing it destroys the only evidence.
 
-The **render sweep** mounts the app in jsdom and drives it across every
-destination, objective and profile, checking that nothing bad reaches the text,
-that the module loads, and that the same destinations still produce a design
-(`solvability.txt` — liftoff mass and stage count per destination).
+**The render sweep** mounts the app in jsdom and drives it across every
+destination, objective and profile. It asserts three things: no `NaN`,
+`Infinity`, `undefined` or `null` in the rendered text; that the module loads at
+all; and that the same destinations still produce a design, recorded in
+`solvability.txt` as liftoff mass and stage count. That third assertion is the
+one that earns its keep — see the `fmt` entry below for why a text scan alone is
+not enough.
 
-The **panel-containment check** reads the SVG shapes in the build view and
-asserts every part lies inside its panel at every staging step. SVG geometry
-lives in attributes rather than CSS, so it survives jsdom intact — which is why
-it catches drawing bugs the render sweep cannot.
+**The panel-containment check** reads the SVG shapes in the build view and
+asserts every part lies inside its panel at every staging step, across ten
+destinations and all three objectives on Dres, checking between 4 and 37 shapes
+per step. SVG geometry lives in attributes rather than CSS, so it survives jsdom
+intact — which is why it catches drawing bugs the render sweep cannot. The
+elevation is drawn with overflow visible, so an escaping part is never clipped:
+it silently overlaps the rest of the page, and nothing throws.
+
+    test/grid.js                          the configuration grid and its axes
+    test/signature.js                     reducing a design to stable text
+    test/app-harness.js                   driving the app in jsdom
+    test/design-snapshot.test.js          the design snapshot
+    test/render-sweep.test.jsx            the render sweep
+    test/panel-containment.test.jsx       every part inside its panel
+    test/seam-contract.test.js            planMission stays serialisable
+    test/seam-input.test.jsx              what the app actually hands the seam
+    test/resolve-wiring.test.jsx          does a control change re-solve
+    test/solver-client.test.js            the worker message protocol
+    test/__snapshots__/designs.txt        solver baseline
+    test/__snapshots__/solvability.txt    which destinations build, and how big
 
 Know what none of them reach:
 
 - The snapshot drives `solveGroup`, not `buildRoute`, `missionHardware`, or the
-  simulator-guided candidate walk — those are still inside the component's
-  effect and are not callable.
-- No check can see a bad number in a CSS value. The CSSOM discards what it
-  cannot parse, so `width: NaN%` leaves no trace to scan for.
+  simulator-guided candidate walk. Those are callable now — they live behind
+  `planMission` — but nothing sweeps them above the default tier, which is
+  [#45](../../issues/45), and is how a measured conclusion about the solver
+  turned out to be wrong.
+- No check can see a bad number in a CSS value. The CSSOM validates on
+  assignment and silently discards what it cannot parse, so `width: NaN%`,
+  `width: undefinedpx` and `opacity: NaN` read back as null rather than as the
+  bad value. That is true of real browsers as much as jsdom. Only
+  string-valued properties survive to be seen, `font-family: NaN` being the type
+  case.
 - Containment is checked at the default tech tier and payload. Other rosters
   produce different shapes and are not swept.
+- Nothing here runs in a real browser. jsdom has no worker, no visual viewport,
+  no on-screen keyboard and no IME. The Cloudflare preview on each PR is where
+  those get checked, by a person.
 
 A green build on its own says nothing about solver output. When you change
 something these checks cannot see, say plainly that it is unverified rather than
 implying CI covered it.
+
+---
+
+## Where the bodies are buried
+
+- **`stageGeom` is the single source of stage geometry.** `stageSize` sums it
+  into a bounding box; the elevation lays it out as rectangles. They drifted
+  apart on width, then height, then packing — do not recompute either one
+  locally.
+- **`fitStructure` is shared between `solveStage` and `boostedAscent`.** Five
+  bugs came from fixing one and not the other: couplers, the thrust limiter, the
+  gimbal check, the cluster cap, and a missing decoupler quantity.
+- **Stage solutions are shared between candidate chains.** Writing to one leaks
+  into another. The tank-packing pass copies before it writes, for exactly this
+  reason.
+- **`adapterChain` only walks narrow to wide.** `adapterGraph` keys its edges
+  small>large and `walk` never moves down, so spanning a narrow tank up to a
+  wider coupler is `adapterChain(tanks, stackD, under)`. Asked the other way it
+  hits the `from >= to` guard and returns an empty chain — silently, every time.
+  That is how the entire adapter subsystem sat dead: not one design in the
+  snapshot carried an adapter, so nothing ever looked wrong.
+- **The adapter caches are keyed on the tank array, like `poolsFor`.** They were
+  a bare `let` and a bare `Map`, built once from whichever roster asked first.
+  An empty `Map` is truthy, so a first roster with no adapters pinned the graph
+  empty for the life of the module.
+- **Slenderness is a constraint, not a tie-break.** The simulation walk once fell
+  through every compliant design and returned a 30.6:1 stack under a 14:1 limit.
+- **`best` is not what the user gets.** For an auto-stage-count launch,
+  `planMission` walks `byK` cheapest-first through the ascent simulator and
+  delivers the first candidate that flies. A change that leaves `best`
+  byte-identical can still hand back a different rocket, and the design snapshot
+  drives `solveGroup` directly — it never enters the walk. Dropping the
+  cluster-cap variant looked free by that measure and moved 11 of 128 real
+  missions, nine of them dearer on the objective asked for. Sweep `planMission`
+  over destinations and payloads before believing a solver change is invisible.
+- **A variant that improves `best` can degrade what is delivered.** Same sweep:
+  the cluster-cap variant wins the walk on a 0.8 t Kerbin orbit launch with a
+  design 7.9% dearer than what the search returns without it. Building more
+  candidates is not monotonically better once the walk chooses among them.
+- **The seam duplicates rather than shares.** `groups` used to arrive as arrays
+  of the same leg objects held in `route`, and `route.indexOf(legs[0])` depended
+  on that identity. JSON duplicates, so a round trip returned -1 and the
+  split-point lookup broke silently. Nothing in the suite could see it, because
+  in-process every caller passes the shared objects.
+- **`fmt` turns every non-finite number into an em-dash before display.** A
+  `NaN` travelling through any `Stat` is therefore invisible to a text scan —
+  forcing liftoff mass to `NaN` produced no textual trace at all. What a reader
+  would actually notice is the design collapsing into a row of dashes, which is
+  why `solvability.txt` exists rather than the sweep relying on its own scan.
+- **`position: fixed` is not the top of the screen on a phone.** An on-screen
+  keyboard shrinks the visual viewport, not the layout one, and the browser
+  scrolls the focused field up into what is left — so a fixed overlay ends up
+  above the visible area at exactly the moment it is wanted. The solving bar
+  translates by `visualViewport.offsetTop` for this reason.
+- **A text field renders its draft, not its value.** `Slider` holds a draft
+  string while focused so half-typed values are not fought. A typed number
+  therefore looks accepted whether or not it ever reached state, so "the value
+  updated" is not evidence that anything did — the slider moving is, because the
+  range input renders the committed value. Two fixes were built on the wrong
+  reading of this before the real cause turned up.
 
 ---
 
@@ -137,11 +250,14 @@ implying CI covered it.
   live object reference across the `planMission` boundary — both are the whole
   reason the split exists.
 - Do not re-bless the design snapshot to make a red build green.
-- Do not convert to TypeScript without running the snapshot over the result; see
-  the sequencing note in `docs/DEVELOPMENT.md`.
+- Do not convert to TypeScript without running the snapshot over the result.
+  Doing it before the snapshot existed would have meant a mechanical diff across
+  thousands of lines of physics with nothing able to detect a silently changed
+  result — the exact failure this repository keeps recording. That guardrail is
+  now in place; use it.
 - Do not replace inline styles with Tailwind or another CSS framework.
 - Do not recompute stage geometry locally, or fix `solveStage` without checking
-  `boostedAscent` — see `docs/DEVELOPMENT.md`.
+  `boostedAscent` — see "Where the bodies are buried".
 - Do not commit `dist/`; it is gitignored and built by CI and Cloudflare.
 - Do not leave `console.log` in committed code.
 
@@ -150,6 +266,9 @@ implying CI covered it.
 ## Recording what you learn
 
 When you work out something non-obvious about the physics, the solver, or a trap
-in the code, append it to "Where the bodies are buried" in
-`docs/DEVELOPMENT.md`. That file is the established home for this knowledge —
-keep it there rather than starting a parallel set of notes.
+in the code, append it to "Where the bodies are buried" above. That section is
+the established home for this knowledge — keep it there rather than starting a
+parallel set of notes or a new document.
+
+Work that is outstanding rather than known belongs in a filed issue, not in
+prose here.

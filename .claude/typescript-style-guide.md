@@ -29,9 +29,9 @@ conflict, this section wins.
 - **"Discourage snapshot testing."**
   The design snapshot is the primary verification in this repository and the
   reason a TypeScript conversion is affordable at all. It is a characterisation
-  test over a search space too wide to assert on by hand — see
-  `docs/DEVELOPMENT.md`. Do not weaken or remove it on the strength of this
-  rule.
+  test over a search space too wide to assert on by hand — see the
+  verification section of `CLAUDE.md`. Do not weaken or remove it on the
+  strength of this rule.
 
 Everything else — type inference, immutability, discriminated unions,
 `satisfies`, no `any`, no assertions, naming, return types — applies as written

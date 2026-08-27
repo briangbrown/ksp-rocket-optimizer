@@ -1,7 +1,7 @@
 # KSP Mission Planner
 
-A single-file React app that designs Kerbal Space Program rockets for a given
-mission, then flies the ascent to check the design actually works.
+A React app that designs Kerbal Space Program rockets for a given mission, then
+flies the ascent to check the design actually works.
 
 Point it at a destination and a payload; it picks engines, tanks, boosters and
 structure from your researched parts, sizes the stages, and simulates the launch.
@@ -70,7 +70,8 @@ simulator cannot fly to orbit at all, so their ascent goes unverified.
     src/core/       the solver and the physics. No React, no DOM.
     src/ui/         the application
     src/main.jsx    mounts it
-    test/           design snapshot, render sweep, panel containment, seam contract
+    test/           the checks — see How it is verified
+    perf/           solver benchmarks, deliberately outside CI
     docs/optimiser-flow.mermaid    how the search works, and where simulation enters
 
 `src/core/plan.js` is the seam: `planMission()` takes a destination and a payload
@@ -82,6 +83,26 @@ Part data was extracted from a Squad 1.12.5 + Breaking Ground + ReStock+ install
 and is not re-derived at runtime. It lives in `src/data/*.json` so that a native
 port can embed the same files rather than keeping a second copy.
 
+## How it is verified
+
+The characteristic failure here is silent: a change that is meant to preserve
+behaviour quietly designs a different rocket. One refactor believed to be
+harmless altered 31 of 72 designs without erroring. So the primary check is a
+**design snapshot** — 81 configurations of tech tier, payload, delta-v budget
+and objective, solved and compared against a committed baseline part by part,
+mass to four decimals and delta-v to three. 66 build; the other 15 are
+legitimately unbuildable at that tech level.
+
+Around it, a **render sweep** drives the app across every destination, objective
+and profile and fails on a bad number reaching the text or a destination
+quietly ceasing to produce a design; and a **panel-containment check** reads the
+SVG in the build view and asserts every part lies inside its panel at every
+staging step, which is where the drawing and the geometry have drifted apart
+three separate times.
+
+A green build still says nothing about a solver change that these cannot see.
+`CLAUDE.md` records what each check reaches and what it does not.
+
 ## Running it
 
     npm install
@@ -89,7 +110,7 @@ port can embed the same files rather than keeping a second copy.
     npm run build      # production build into dist/
     npm run preview    # serve the production build
 
-    npm test           # design snapshot, render sweep, panel containment, seam contract
+    npm test           # the whole suite, about a minute and a half
     npm run format     # prettier
 
 Requires Node 24 or newer. Dependencies are React and Vite alone.
