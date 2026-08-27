@@ -3,7 +3,7 @@ const G0 = 9.81;
 /* Cache-key helpers, shared so the two solver caches cannot drift apart. They
    both key on the roster, and a rule about what counts as the same roster that
    exists in two copies is a rule that will eventually exist in two versions —
-   see "Where the bodies are buried" in docs/DEVELOPMENT.md. */
+   see "Where the bodies are buried" in CLAUDE.md. */
 
 /* A stand-in key for a missing object. WeakMap needs an object, and `unlocked`
    or `excluded` can legitimately arrive null. */

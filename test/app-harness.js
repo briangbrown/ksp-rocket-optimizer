@@ -4,7 +4,7 @@ import { act } from "react";
 
    Shared because three suites need it and a fourth copy of `settle` is how the
    two `fitStructure` callers drifted apart — see "Where the bodies are buried"
-   in docs/DEVELOPMENT.md. */
+   in CLAUDE.md. */
 
 /* The veil is always mounted; `busy` only changes opacity and toggles the pulse
    animation on the dot. The animation is the honest "still solving" signal,
