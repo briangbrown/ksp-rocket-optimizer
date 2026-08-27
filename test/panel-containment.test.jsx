@@ -2,6 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { act } from "react";
+import { byText, settle, solving } from "./app-harness.js";
 import KSPMissionPlanner from "../src/ui/app.jsx";
 
 /* Panel containment.
@@ -23,8 +24,6 @@ import KSPMissionPlanner from "../src/ui/app.jsx";
    of pixels. */
 const TOLERANCE = 1;
 
-const solving = () => !!document.querySelector('[style*="pulse"]');
-
 const buttons = () => [...document.querySelectorAll("button")];
 const byText = (label) => buttons().find((b) => b.textContent.trim() === label);
 
@@ -32,23 +31,6 @@ async function click(el) {
   if (!el) throw new Error("missing button");
   await act(async () => {
     el.click();
-  });
-}
-
-async function settle(timeoutMs = 120_000) {
-  const started = Date.now();
-  await act(async () => {
-    await new Promise((r) => setTimeout(r, 250));
-  });
-  while (solving()) {
-    if (Date.now() - started > timeoutMs)
-      throw new Error("solve did not settle");
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 100));
-    });
-  }
-  await act(async () => {
-    await new Promise((r) => setTimeout(r, 50));
   });
 }
 
