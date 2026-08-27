@@ -1,3 +1,4 @@
+import { TALLY, resetTally } from "./tally.js";
 import { BODY, atmoFor } from "./atmosphere.js";
 import { G0 } from "./constants.js";
 import { heightOf, packFor, stackGeometry, stageSize } from "./geometry.js";
@@ -301,14 +302,6 @@ function solveStage({
   }
   return best;
 }
-
-const TALLY = { stages: 0, boosted: 0, flights: 0, chains: 0 };
-const resetTally = () => {
-  TALLY.stages = 0;
-  TALLY.boosted = 0;
-  TALLY.flights = 0;
-  TALLY.chains = 0;
-};
 
 /* Delta-v of a boosted stage for a given core propellant load.
 
@@ -1186,11 +1179,4 @@ function solveGroup({
    that can appear in a rocket — science, comms, robotics — so they are shown
    greyed rather than offered as though they mattered. */
 
-export {
-  TALLY,
-  boostedAscent,
-  resetTally,
-  solveGroup,
-  solveStage,
-  splitShares,
-};
+export { boostedAscent, solveGroup, solveStage, splitShares };

@@ -1,9 +1,9 @@
+import { TALLY, resetTally } from "./tally.js";
 import { BODY, atmoFor, cdOf, frontalArea, ispCurve } from "./atmosphere.js";
 import { stageSize } from "./geometry.js";
 import { mu, vCirc } from "./orbits.js";
 import { diaOf } from "./parts.js";
 import { ispCut } from "./performance.js";
-import { TALLY } from "./solver.js";
 
 /* ---------- ascent integration ---------- */
 function flyAscent(veh, opt) {

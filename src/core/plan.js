@@ -1,7 +1,8 @@
+import { TALLY, resetTally } from "./tally.js";
 import { BODY, orbitAlt } from "./atmosphere.js";
 import { buildVehicleFor, simCached } from "./ascent.js";
 import { missionHardware } from "./parts.js";
-import { TALLY, resetTally, solveGroup } from "./solver.js";
+import { solveGroup } from "./solver.js";
 
 /* The mission plan: destination and payload in, a list of solved stages out.
 
