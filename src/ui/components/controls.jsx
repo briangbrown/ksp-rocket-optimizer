@@ -70,9 +70,19 @@ function Slider({
               setDraft(String(value));
               e.target.select();
             }}
+            /* Form history has nothing useful to offer about a payload mass. */
+            autoComplete="off"
             onBlur={(e) => commit(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") e.currentTarget.blur();
+              /* Commit here rather than leaving it to the blur below, so the
+                 value reaching state does not depend on a focusout raised from
+                 inside an in-flight keydown. Not preventDefault: where the
+                 platform treats this key as "move to the next field" that is a
+                 reasonable thing for it to do, and there is no form to submit. */
+              if (e.key === "Enter") {
+                commit(e.currentTarget.value);
+                e.currentTarget.blur();
+              }
               if (e.key === "Escape") {
                 setDraft(null);
                 e.currentTarget.blur();

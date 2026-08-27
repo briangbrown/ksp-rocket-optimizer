@@ -316,6 +316,32 @@ export default function KSPMissionPlanner() {
     }
   };
 
+  /* Where the top of the screen actually is.
+
+     The solving bar is position: fixed, which pins it to the layout viewport.
+     An on-screen keyboard does not shrink that — it shrinks the visual viewport
+     and the browser scrolls the focused field up into what is left — so a bar
+     fixed to the top of the layout viewport ends up above the visible area.
+     That is exactly when it matters: you have typed a value into a field and
+     want to know the solve started. visualViewport.offsetTop is the gap between
+     the two viewports, and translating by it puts the bar back on screen.
+
+     Absent in jsdom and in older browsers, where this stays 0 and the bar
+     behaves as it always did. */
+  const [viewTop, setViewTop] = useState(0);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const track = () => setViewTop(vv.offsetTop);
+    track();
+    vv.addEventListener("resize", track);
+    vv.addEventListener("scroll", track);
+    return () => {
+      vv.removeEventListener("resize", track);
+      vv.removeEventListener("scroll", track);
+    };
+  }, []);
+
   const ascent = useMemo(
     () => runSim((s) => s.isLaunch, origin),
     [stages, origin],
@@ -571,6 +597,7 @@ export default function KSPMissionPlanner() {
           left: 0,
           right: 0,
           zIndex: 50,
+          transform: `translateY(${viewTop}px)`,
           background: C.panel2,
           borderBottom: `1px solid ${C.amber}`,
           boxShadow: "0 2px 12px rgba(0,0,0,.45)",
