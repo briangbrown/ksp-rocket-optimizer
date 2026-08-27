@@ -83,7 +83,9 @@ describe("solver client, with a worker", () => {
       /* A late message from the dead run must not resolve the live one. */
       const w = FakeWorker.last;
       w.onmessage({ data: { id: staleId, result: { stages: ["stale"] } } });
-      w.onmessage({ data: { id: w.posted[0].id, result: { stages: ["live"] } } });
+      w.onmessage({
+        data: { id: w.posted[0].id, result: { stages: ["live"] } },
+      });
       expect(await second).toEqual({ stages: ["live"] });
     });
   });
