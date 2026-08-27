@@ -137,12 +137,21 @@ localStorage.removeItem("ksp-planner:roster"); // then reload
 ```
 
 **Thread count.** The sharded search (#50) sizes its pool from
-`hardwareConcurrency`, capped at eight. That cap was chosen on a container,
-where the curve flattens at eight, and a phone is not that: a Pixel 8 is one
-big core, four mid and four little, so the eighth thread may be adding a
-straggler rather than a worker. Append `?threads=N` to try another number —
-the search line under the design reports what it actually used, so a fallback
-to one thread cannot be mistaken for a poor result.
+`hardwareConcurrency` — one per core bar the orchestrator on a desktop, half
+the cores on a phone. The two differ because a phone's cores do:
+
+    Pixel 8, full-tech Mun, best of three
+
+      serial      10.5 s
+      4 threads    5.1 s    2.06x
+      8 threads    5.6 s    1.88x
+
+More threads is slower there. Four of a Tensor G3's nine cores are A510s, a
+unit takes about three times as long on one, and the pool waits on it. Append
+`?threads=N` to re-check that on another device — the search line under the
+design reports what it actually used, so a fallback to one thread cannot be
+mistaken for a poor result. **Take the best of three**: single readings on a
+phone vary by 0.7 s, which is wider than the difference being measured.
 
     https://ksp-rocket-optimizer.pages.dev/?threads=4
 

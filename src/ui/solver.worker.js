@@ -13,16 +13,41 @@ import { planMission } from "../core/plan.js";
    segments; on a worker thread there is nothing to paint and nothing to block,
    so it returns immediately and the solve runs flat out. */
 
-/* One thread per core bar this one, capped. Past eight the measurement stops
-   improving — 4.63x at eight against 4.66x at twelve on an eighteen-core
-   container — because the group runs out of units to hand out. */
-const WANT = Math.min(
-  8,
-  Math.max(
-    2,
-    ((self.navigator && self.navigator.hardwareConcurrency) || 4) - 1,
-  ),
+/* How many threads to ask for, which is not "as many as there are cores".
+
+   On a container, one per core bar this one, capped at eight: past that the
+   measurement stops improving — 4.63x at eight against 4.66x at twelve on
+   eighteen cores — because the group runs out of units to hand out.
+
+   A phone is a different machine. A Pixel 8 is one big core, four mid and four
+   little, and hardwareConcurrency reports nine without saying which is which.
+   Measured there, best of three, on a full-tech Mun solve:
+
+     serial      10.5 s
+     4 threads    5.1 s     2.06x
+     8 threads    5.6 s     1.88x
+
+   More threads is slower. The extra four land on the little cores, take about
+   three times as long over a unit, and set the tail the rest of the pool waits
+   on. There is no affinity control on the platform — nothing exposes which core
+   is which, and nothing lets a worker ask for one — so the only way to keep the
+   work on the fast cores is to not create the threads that would land on the
+   slow ones.
+
+   userAgentData.mobile is the signal for that, and it is the property we
+   actually care about rather than a proxy for it. Where it is missing — Safari,
+   Firefox — a phone gets the desktop sizing, which is a worse guess than the
+   one Chrome allows and still correct, just slower. ?threads=N overrides all of
+   it; see perf/README.md. */
+const CORES = (self.navigator && self.navigator.hardwareConcurrency) || 4;
+const MOBILE = !!(
+  self.navigator &&
+  self.navigator.userAgentData &&
+  self.navigator.userAgentData.mobile
 );
+const WANT = MOBILE
+  ? Math.min(4, Math.max(2, Math.floor(CORES / 2)))
+  : Math.min(8, Math.max(2, CORES - 1));
 
 /* Nested workers, which every current browser allows and some older ones do
    not. If construction throws, `fanOut` stays null and planMission solves the
