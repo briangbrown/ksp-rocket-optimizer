@@ -273,7 +273,11 @@ export default function KSPMissionPlanner() {
          failed worker leaves the app showing "Solving" for good. */
       if (result) {
         setStages(result.stages);
-        setSearch({ ...result.tally, ms: Date.now() - startedAt });
+        setSearch({
+          ...result.tally,
+          threads: result.threads || 1,
+          ms: Date.now() - startedAt,
+        });
       }
       setBusy(false);
     })();
@@ -1567,6 +1571,12 @@ export default function KSPMissionPlanner() {
                     <>ascent reused from cache, </>
                   )}
                   {(search.ms / 1000).toFixed(1)} s
+                  {/* Which says whether the search was actually shared out. The
+                      pool falls back to solving in one thread wherever nested
+                      workers are refused, and without this the difference
+                      between "no threads here" and "threads bought nothing"
+                      is invisible from the outside. */}
+                  {search.threads > 1 && <> on {search.threads} threads</>}
                 </span>
               )}
               <button

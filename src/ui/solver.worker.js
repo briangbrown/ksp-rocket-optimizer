@@ -87,7 +87,7 @@ self.onmessage = async (e) => {
       onYield: () => Promise.resolve(),
       fanOut: pool && pool.fanOut,
     });
-    self.postMessage({ id, result });
+    self.postMessage({ id, result: { ...result, threads: pool ? WANT : 1 } });
   } catch (err) {
     /* An Error does not survive a structured clone with its stack intact, and
        the message is the part worth keeping. */
