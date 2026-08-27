@@ -40,8 +40,8 @@ const BAD_TEXT = /\b(NaN|Infinity|undefined|null)\b/;
 
    Catching a bad number in the drawing therefore needs assertions on the
    geometry functions themselves — `stageGeom` and `stageSize` are pure and
-   testable — which is the separate check DEVELOPMENT.md describes as "every
-   part lies inside its panel at every staging step". Not implemented. */
+   testable — which is what test/panel-containment.test.jsx does instead, by
+   reading the SVG attributes jsdom preserves. */
 const BAD_STYLE = /\b(NaN|Infinity|undefined)\b/;
 
 /* The veil is always mounted; `busy` only changes opacity and toggles the pulse

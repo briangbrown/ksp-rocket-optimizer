@@ -7,7 +7,7 @@
 
 /* Every number is rounded to four decimals.
 
-   docs/DEVELOPMENT.md specifies mass to four and delta-v to three; a single
+   CLAUDE.md specifies mass to four and delta-v to three; a single
    uniform rule is applied instead, because per-field precision needs a field
    map and a field map is exactly what goes stale. Four is the tighter of the
    two, so nothing is loosened.
