@@ -1002,7 +1002,20 @@ function solveGroup({
        of five) and badly wrong others (a 12 t lift is 19% dearer). Since it cuts
        both ways it cannot be settled with a fixed limit, only by building it both
        ways and keeping what wins. */
-      for (const variant of objective === "cost" ? [0, 1, 2, 3] : [0, 3]) {
+      /* Variant 3 runs under cost only. Across the 81-case grid it never produces
+         a winning chain under any objective, and removing it entirely leaves every
+         chosen design byte-identical — but it still contributes three `byK`
+         candidates, all of them cost designs, and byK is what the simulator-guided
+         walk in plan.js falls back on when the chosen stack cannot be flown.
+
+         Under mass and parts it contributes nothing at all, which is where the
+         saving comes from: those objectives built two chains per split and now
+         build one.
+
+         Measured, not reasoned, and worth re-measuring rather than extending: the
+         note above about it cutting both ways predates #18, which fixed the
+         adapter direction and moved 21 of 66 designs. */
+      for (const variant of objective === "cost" ? [0, 1, 2, 3] : [0]) {
         for (const pick of objective === "cost"
           ? ["cost", "parts"]
           : [objective]) {
