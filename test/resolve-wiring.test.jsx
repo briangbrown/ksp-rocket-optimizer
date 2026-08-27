@@ -132,6 +132,37 @@ describe("a control change re-solves", () => {
     cleanup();
   }, 300_000);
 
+  it("a typed value commits with no blur and no key event at all", async () => {
+    /* The case that was actually reported. On an Android keyboard the action
+       key is "Next": it moves focus to the following field, and on the device
+       this came from it delivered neither a keydown readable as Enter nor a
+       focusout React acted on. Nothing committed, nothing re-solved, and the box
+       kept showing the typed number because the draft is what is rendered (#46).
+
+       So this types and then does nothing — no focusout, no keydown, no blur —
+       and waits. Every other case in this file supplies one of those events,
+       which is why none of them could see this. */
+    await mount();
+    const before = design();
+    const field = numericFields()[0];
+    expect(field?.value, "first text field is no longer payload").toBe("2.5");
+
+    await act(async () => {
+      field.focus();
+    });
+    await act(async () => {
+      typeInto(field, 9);
+    });
+    /* Past the field's own idle interval, and then the usual settle. */
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 800));
+    });
+    await settle();
+
+    expect(design(), "a typed value never reached the solver").not.toBe(before);
+    cleanup();
+  }, 300_000);
+
   it("Enter commits without relying on the blur", async () => {
     /* Every other case here dispatches `focusout` directly, which is the path
        that already worked. Enter went untested, and it was the one that broke:

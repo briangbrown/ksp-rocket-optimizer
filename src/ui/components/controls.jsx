@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { C } from "../tokens.js";
 
 /* ------------------------------- small pieces ------------------------------- */
@@ -42,12 +42,37 @@ function Slider({
   hardMax,
 }) {
   const [draft, setDraft] = useState(null);
+  const idle = useRef(null);
   const cap = hardMax ?? max;
-  const commit = (raw) => {
+  const push = (raw) => {
     const v = parseFloat(raw);
     if (isFinite(v)) onChange(Math.min(cap, Math.max(min, v)));
+  };
+  const commit = (raw) => {
+    clearTimeout(idle.current);
+    push(raw);
     setDraft(null);
   };
+  /* Send a typed value up once typing stops, without waiting for the field to
+     report that it lost focus.
+
+     Everything else here is a commit triggered by an event — blur, or Enter.
+     On an Android keyboard the action key is "Next": it moves focus to the
+     following field and, on the device this was reported from, delivers neither
+     a keydown this can read as Enter nor a focusout React acts on. Nothing
+     committed, so no state changed and nothing re-solved — while the box went
+     on showing the typed number, because the draft is what is rendered, which
+     is what made it look accepted (#46).
+
+     An interval long enough not to fire between two digits, and the draft is
+     left alone: the field is still focused and still being typed into, and only
+     the value behind it moves. A later blur commits the same string again,
+     which React drops as an identical state update. */
+  const commitLater = (raw) => {
+    clearTimeout(idle.current);
+    idle.current = setTimeout(() => push(raw), 600);
+  };
+  useEffect(() => () => clearTimeout(idle.current), []);
   const over = value > max;
   return (
     <div>
@@ -65,7 +90,10 @@ function Slider({
             className="mono"
             value={draft ?? value}
             inputMode="decimal"
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              commitLater(e.target.value);
+            }}
             onFocus={(e) => {
               setDraft(String(value));
               e.target.select();
@@ -75,18 +103,12 @@ function Slider({
             autoComplete="off"
             onBlur={(e) => commit(e.target.value)}
             onKeyDown={(e) => {
-              /* Commit here rather than leaving it to the blur below. Enter used
-                 to only ask for a blur, which made the value reaching state
-                 depend on a focusout raised from inside an in-flight keydown
-                 reaching React's delegated listener. On the deployed site that
-                 round trip did not always complete: the box showed the typed
-                 number, because the draft is what is rendered, and no state
-                 changed, so nothing re-solved (#46). Committing directly depends
-                 on none of it. The blur still commits, for clicking away, and a
-                 second commit of the same string is a no-op — React drops a
-                 state update to an identical value. */
+              /* Commit here rather than leaving it to the blur below, which made
+                 the value reaching state depend on a focusout raised from inside
+                 an in-flight keydown. Not preventDefault: where the platform
+                 treats this key as "move to the next field", that is a
+                 reasonable thing for it to do and there is no form to submit. */
               if (e.key === "Enter") {
-                e.preventDefault();
                 commit(e.currentTarget.value);
                 e.currentTarget.blur();
               }
