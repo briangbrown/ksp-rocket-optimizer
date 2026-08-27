@@ -585,6 +585,12 @@ export default function KSPMissionPlanner() {
         .chip:hover { border-color:${C.dim}; color:${C.paper}; }
         .chip[data-on="1"] { background:${C.paper}; color:${C.ink}; border-color:${C.paper}; font-weight:600; }
         .card { background:${C.panel}; border:1px solid ${C.rule}; border-radius:3px; }
+        /* The only links in the application. Browser-default blue against this
+           palette reads as a mistake, so they take the muted ink and earn their
+           underline on hover rather than shouting by default. */
+        a { color:${C.muted}; text-decoration:underline; text-decoration-color:${C.edge};
+            text-underline-offset:2px; transition:.12s; }
+        a:hover { color:${C.paper}; text-decoration-color:${C.amber}; }
         @keyframes sweep { 0% { transform:translateX(-100%); } 100% { transform:translateX(386%); } }
         @keyframes fadein { from { opacity:0; } to { opacity:1; } }
         @keyframes pulse { 0%,100% { opacity:.35; } 50% { opacity:1; } }
@@ -1697,6 +1703,46 @@ export default function KSPMissionPlanner() {
             design flies is judged by this simulator, not by the game.
           </footer>
         </Solving>
+
+        {/* Outside <Solving> on purpose, and last on the page.
+
+            Everything inside that wrapper drops to 22% opacity, greys out and
+            stops taking clicks while a solve runs — which at full tech is
+            seconds at a time. Where the source is and what the terms are do not
+            depend on the design being computed, so they should not blink out
+            with it. #52.
+
+            The wording states the position rather than leaving it to the link:
+            a working tool with a bare "licence" link invites the assumption
+            that it is open source, and this one is not. */}
+        <div
+          style={{
+            borderTop: `1px solid ${C.rule}`,
+            marginTop: 18,
+            padding: "14px 2px 4px",
+            fontSize: 11,
+            color: C.dim,
+          }}
+        >
+          <a
+            href="https://github.com/briangbrown/ksp-rocket-optimizer"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Source on GitHub
+          </a>
+          {" · © 2026 Brian Brown, "}
+          <a
+            href="https://github.com/briangbrown/ksp-rocket-optimizer/blob/main/LICENSE"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            all rights reserved
+          </a>
+          {
+            " · Kerbal Space Program is a trademark of its owners; this is an unaffiliated fan tool."
+          }
+        </div>
       </div>
     </div>
   );
