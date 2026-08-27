@@ -59,6 +59,18 @@ any of them.
   empty for the life of the module.
 - **Slenderness is a constraint, not a tie-break.** The simulation walk once fell
   through every compliant design and returned a 30.6:1 stack under a 14:1 limit.
+- **`best` is not what the user gets.** For an auto-stage-count launch,
+  `planMission` walks `byK` cheapest-first through the ascent simulator and
+  delivers the first candidate that flies. A change that leaves `best`
+  byte-identical can still hand back a different rocket, and the design snapshot
+  drives `solveGroup` directly — it never enters the walk. Dropping the
+  cluster-cap variant looked free by that measure and moved 11 of 128 real
+  missions, nine of them dearer on the objective asked for. Sweep `planMission`
+  over destinations and payloads before believing a solver change is invisible.
+- **A variant that improves `best` can degrade what is delivered.** Same sweep:
+  the cluster-cap variant wins the walk on a 0.8 t Kerbin orbit launch with a
+  design 7.9% dearer than what the search returns without it. Building more
+  candidates is not monotonically better once the walk chooses among them.
 
 ## Running the checks
 

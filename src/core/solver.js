@@ -995,23 +995,40 @@ function solveGroup({
        of five) and badly wrong others (a 12 t lift is 19% dearer). Since it cuts
        both ways it cannot be settled with a fixed limit, only by building it both
        ways and keeping what wins. */
-      /* Variant 3 runs under cost only. Across the 81-case grid it never produces
-         a winning chain under any objective, and removing it entirely leaves every
-         chosen design byte-identical — but it still contributes three `byK`
-         candidates, all of them cost designs, and byK is what the simulator-guided
-         walk in plan.js falls back on when the chosen stack cannot be flown.
+      /* Variant 3 runs under cost only, and only where the cap can bind.
 
-         Under mass and parts it contributes nothing at all, which is where the
-         saving comes from: those objectives built two chains per split and now
-         build one.
+         Under mass and parts it never wins, so those objectives build one chain
+         per split rather than two. Under cost it looked equally droppable — it
+         wins no chain in the 81-case grid either — and it is not. The grid reads
+         `best`; plan.js delivers the first byK candidate the simulator can fly.
+         Swept over 128 real missions, 16 destinations by four payloads by two
+         slenderness limits at tier 9, dropping variant 3 moves 11 of them: nine
+         dearer on the objective asked for, one by 21%. #29 has the table.
 
-         Measured, not reasoned, and worth re-measuring rather than extending: the
-         note above about it cutting both ways predates #18, which fixed the
-         adapter direction and moved 21 of 66 designs. */
+         What is free is skipping it where it cannot change anything. capCluster
+         filters one thing — the engine-count loop in solveStage — so if every
+         stage variant 0 chose already came back with n <= 4, the capped pass
+         reproduces that chain exactly. The uncapped pick survives the filter and
+         is still the argmax over a subset; it cannot be a tie with a discarded
+         larger cluster, because the first of equals is kept and a tied larger one
+         reached earlier would have been the pick. boostedAscent is not handed the
+         cap at all, so where the boosted result won it still wins — capping only
+         makes the plain result worse. A chain that found nothing still finds
+         nothing, the subset being empty too. And the candidate would tie on score
+         and slimness, which better() compares with a strict <, so it would not
+         displace best or byK either. Exact, not a heuristic.
+
+         The note above about the cap cutting both ways predates #18, which fixed
+         the adapter direction and moved 21 of 66 designs. Re-measure it rather
+         than extend it. */
+      const clustered = {};
       for (const variant of objective === "cost" ? [0, 1, 2, 3] : [0]) {
         for (const pick of objective === "cost"
           ? ["cost", "parts"]
           : [objective]) {
+          /* Nothing variant 0 clustered past the cap, so variant 3 would rebuild
+             the same chain. See the note above for why that is exact. */
+          if (variant === 3 && !clustered[pick]) continue;
           const chain = new Array(k),
             sub = [];
           let carried = payload,
@@ -1105,6 +1122,10 @@ function solveGroup({
               break;
             }
             chain[i] = { sol: s, want: sdv, payloadIn: carried, twrMin, g };
+            /* Recorded per stage rather than per finished chain: a chain that
+               fails lower down still tells us what the cap would have bound on,
+               and the capped pass would fail at the same stage. */
+            if (variant === 0 && s.n > 4) clustered[pick] = true;
             sub.push(s);
             carried = s.total;
           }
