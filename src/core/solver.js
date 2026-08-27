@@ -931,7 +931,13 @@ function splitShares(k) {
   return out.filter((sh) => sh.length === k && sh.every((x) => x > 0.05));
 }
 
-function solveGroup({
+/* Everything a `(k, shares)` unit needs, hoisted out of solveGroup so the unit
+   depends on nothing but its arguments.
+
+   Sets are allowed across this boundary where they are forbidden across the
+   planMission seam. That rule is about JSON, which cannot carry a Set; this one
+   is a structured clone, which can. */
+function prepare({
   dv,
   payload,
   engines,
@@ -946,8 +952,6 @@ function solveGroup({
   kind,
   boosters,
   srbs,
-  minK,
-  maxK,
   bodyName,
   objective = "mass",
 }) {
@@ -963,11 +967,81 @@ function solveGroup({
   const twrBottom =
     kind === "launch" ? 1.25 : kind === "land" ? (pSurf > 1 ? 1.35 : 1.6) : 0.5;
   const twrUpper = kind === "launch" ? 0.8 : kind === "land" ? 1.1 : 0.5;
+  return {
+    dv,
+    payload,
+    engines,
+    tanks,
+    unlocked,
+    excluded,
+    needGimbal,
+    maxAspect,
+    expansions,
+    asparagus,
+    g,
+    kind,
+    boosters,
+    srbs,
+    objective,
+    pSurf,
+    twrBottom,
+    twrUpper,
+  };
+}
+
+/* Which `(k, shares)` pairs a group is searched over, in the order the serial
+   search visited them. The order is not decorative: `better` keeps the first of
+   equals, so reducing out of order picks a different rocket. */
+function unitsOf(minK, maxK) {
+  const out = [];
+  for (let k = minK; k <= maxK; k++)
+    for (const shares of splitShares(k)) out.push({ k, shares });
+  return out;
+}
+
+const better = (x, y) =>
+  !y || (x.slim !== y.slim ? x.slim : x.chainScore < y.chainScore);
+
+/* Fold the units' candidates back into one answer. Fed the results in unit
+   order, this is what the loop used to do inline. */
+function reduceUnits(results) {
   let best = null;
   const byK = [];
+  for (const cands of results)
+    for (const cand of cands ?? []) {
+      if (better(cand, best)) best = cand;
+      if (better(cand, byK[cand.k])) byK[cand.k] = cand;
+    }
+  return best && { ...best, byK: byK.filter(Boolean) };
+}
 
-  for (let k = minK; k <= maxK; k++) {
-    for (const shares of splitShares(k)) {
+/* One `(k, shares)` unit: build every chain for that split and hand back the
+   candidates. Touches nothing outside its arguments, which is what lets it run
+   somewhere else — see #50. */
+function solveUnit(p, k, shares) {
+  const {
+    dv,
+    payload,
+    engines,
+    tanks,
+    unlocked,
+    excluded,
+    needGimbal,
+    maxAspect,
+    expansions,
+    asparagus,
+    g,
+    kind,
+    boosters,
+    srbs,
+    objective,
+    pSurf,
+    twrBottom,
+    twrUpper,
+  } = p;
+  const out = [];
+  {
+    {
       /* The per-stage score is only a heuristic for picking within a stage; the
        chain is judged on the real measure. A greedy pass that takes the cheapest
        stage every time can miss the cheapest rocket, which is how a fewest-parts
@@ -1185,19 +1259,40 @@ function solveGroup({
             ar,
             slim: ar <= maxAspect,
           };
-          const better = (x, y) =>
-            !y || (x.slim !== y.slim ? x.slim : x.chainScore < y.chainScore);
-          if (better(cand, best)) best = cand;
-          if (better(cand, byK[k])) byK[k] = cand;
+          out.push(cand);
         }
       }
     }
   }
-  return best && { ...best, byK: byK.filter(Boolean) };
+  return out;
+}
+
+/* The whole search for one group, on this thread. */
+function solveGroup(input) {
+  const p = prepare(input);
+  return reduceUnits(
+    unitsOf(input.minK, input.maxK).map((u) => solveUnit(p, u.k, u.shares)),
+  );
+}
+
+/* The same search, with the units handed to someone who can run them at the
+   same time. `fanOut(p, units)` must resolve to their candidate lists **in unit
+   order** — see reduceUnits for why. */
+async function solveGroupWith(input, fanOut) {
+  const p = prepare(input);
+  const units = unitsOf(input.minK, input.maxK);
+  return reduceUnits(await fanOut(p, units));
 }
 
 /* Which parts each node actually unlocks. 27 of the 63 stock nodes carry nothing
    that can appear in a rocket — science, comms, robotics — so they are shown
    greyed rather than offered as though they mattered. */
 
-export { boostedAscent, solveGroup, solveStage, splitShares };
+export {
+  boostedAscent,
+  solveGroup,
+  solveGroupWith,
+  solveStage,
+  solveUnit,
+  splitShares,
+};

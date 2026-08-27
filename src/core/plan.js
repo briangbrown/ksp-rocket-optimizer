@@ -2,7 +2,7 @@ import { TALLY, resetTally } from "./tally.js";
 import { BODY, orbitAlt } from "./atmosphere.js";
 import { buildVehicleFor, simCached } from "./ascent.js";
 import { missionHardware } from "./parts.js";
-import { solveGroup } from "./solver.js";
+import { solveGroup, solveGroupWith } from "./solver.js";
 
 /* The mission plan: destination and payload in, a list of solved stages out.
 
@@ -15,13 +15,19 @@ import { solveGroup } from "./solver.js";
               instead of finishing work nobody wants
      onYield  how to give the thread back. In-process that is a setTimeout(0)
               so React can paint; in a worker it will be a no-op.
+     fanOut   how to run a group's (k, shares) units somewhere else. Absent,
+              they run here, in order, exactly as they always did. See #50 —
+              the units are independent, and the caller owns the threads
+              because core/ is not allowed to know what kind it has.
 
    The solve is genuinely slow — seconds — which is why it cannot simply be a
    synchronous call and never will be. */
 export async function planMission(
   input,
-  { signal, onYield = () => Promise.resolve() } = {},
+  { signal, onYield = () => Promise.resolve(), fanOut = null } = {},
 ) {
+  const solve = (groupInput) =>
+    fanOut ? solveGroupWith(groupInput, fanOut) : solveGroup(groupInput);
   const {
     route,
     payload,
@@ -102,7 +108,7 @@ export async function planMission(
          even, and never more than six: past that nothing improved. */
     const autoK = Math.min(6, Math.max(2, Math.ceil(dv / 2200) + 1));
     const bodyName = isLaunch ? origin : (legs.find((l) => l.body) || {}).body;
-    let res = solveGroup({
+    let res = await solve({
       dv,
       payload: carried,
       engines,
@@ -198,7 +204,7 @@ export async function planMission(
         const built = res.chain.reduce((a2, c) => a2 + c.sol.dv, 0);
         flown.carried = built; // surfaced next to the ascent cost
         if (flown.total <= built) break; // it carries the flight
-        const grown = solveGroup({
+        const grown = await solve({
           dv: flown.total * (1 + margin / 100),
           payload: carried,
           engines,
