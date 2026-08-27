@@ -6,5 +6,6 @@ export default defineConfig({
        They are measurements, not assertions, they take minutes, and their
        results depend on the machine — none of which belongs in CI. */
     include: ["test/**/*.test.{js,jsx}"],
+    setupFiles: ["test/setup.js"],
   },
 });
