@@ -76,10 +76,35 @@ memo is keyed matters as much as whether it exists.
 ## Profiling
 
 ```bash
-npm run perf:profile                     # writes a .cpuprofile to perf/.prof
+npm run perf:profile                     # CPU profile into perf/.prof
+npm run perf:heap                        # heap profile into perf/.prof
 node perf/profile.mjs <profile>          # self time per function
 node perf/profile.mjs <a> <b>            # two profiles side by side
 ```
+
+**A CPU profile will not find an allocation problem.** `simplify` in `tanks.js`
+is 84% of everything the solver allocates and 0.5% of its CPU time — cheap work
+and expensive garbage, invisible to sampling by time. `--heap-prof` attributes
+allocation by function instead. Read it with:
+
+```bash
+node --input-type=module -e "
+import { readFileSync, readdirSync } from 'node:fs';
+const f = 'perf/.prof/' + readdirSync('perf/.prof').find(x => x.endsWith('.heapprofile'));
+const p = JSON.parse(readFileSync(f, 'utf8'));
+const self = new Map(); let total = 0;
+(function w(n){ const k = (n.callFrame||{}).functionName || '(anon)';
+  if (n.selfSize) { self.set(k, (self.get(k)||0) + n.selfSize); total += n.selfSize; }
+  (n.children||[]).forEach(w); })(p.head);
+for (const [k,v] of [...self].sort((a,b)=>b[1]-a[1]).slice(0,10))
+  console.log((100*v/total).toFixed(1).padStart(5)+'%  '+(v/1e6).toFixed(1).padStart(7)+' MB  '+k);
+"
+```
+
+It attributes to a **frame**, not a line, and V8 credits an inlined callee's
+allocation to its caller — so a large number against one function is a place to
+start bisecting, not an answer. See #28, where three plausible fixes to
+`simplify` all left the figure unmoved.
 
 `profile.mjs` reads both shapes Chrome produces — a raw `.cpuprofile` from
 `--cpu-prof`, and a DevTools Performance trace `.json`, which is what a phone

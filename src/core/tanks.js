@@ -279,7 +279,10 @@ function poolsFor(engine, tanks) {
       k: usable[0].k,
       dia: diaOf(usable[0]),
       biggest: usable[0].prop,
-      adapt: adapterChain(tanks, diaOf(engine), diaOf(usable[0])),
+      /* No `adapt` here. It used to compute adapterChain(engine dia -> tank dia)
+         for every pool group of every engine, memoise it, and never read it —
+         `grep -rn '\.adapt\b' src/` finds nothing. Dead work on the solve
+         path, noticed while fixing #18. */
     };
   });
   byEngine.set(engine.n, got);
@@ -445,7 +448,13 @@ function pickTanksRaw(pool, mp, maxTanks = 12, objective = "mass") {
   const simplify = (set) => {
     if (!set) return set;
     /* Flatten with a loop; flatMap allocated an intermediate array per entry on
-       top of the result. */
+       top of the result.
+
+       A heap profile puts this function at 84% of everything the solver
+       allocates — 676 MB of 804 MB across a grid run — against 0.5% of CPU
+       time. Reusing this array, replacing the for-of with an index, and
+       compacting instead of splicing all left that number unchanged, so the
+       garbage is somewhere else in here. See #28. */
     const list = [];
     for (const x of set.list) for (let i = 0; i < x.c; i++) list.push(x.t);
     for (let pass = 0; pass < 6; pass++) {
