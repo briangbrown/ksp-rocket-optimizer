@@ -280,13 +280,17 @@ export default function KSPMissionPlanner() {
         },
         { signal: controller.signal, onYield: breathe },
       );
-      if (!result) return;
+      /* Superseded: a newer run is already in flight and owns the veil, so
+         leave it up and let that run clear it. */
       if (!alive()) return;
-      setStages(result.stages);
-      setSearch({ ...result.tally, ms: Date.now() - startedAt });
-      /* Unconditional: an abandoned run may have switched the veil on, and if this
-         one finishes inside the 120 ms delay its own `shown` is false — so keying
-         the reset off `shown` could leave the veil stuck on forever. */
+      /* Still the live run. A null result here is not a supersede — it is the
+         worker failing to start or reporting an error — and there is no later
+         run coming to tidy up. Clearing the veil has to happen either way, or a
+         failed worker leaves the app showing "Solving" for good. */
+      if (result) {
+        setStages(result.stages);
+        setSearch({ ...result.tally, ms: Date.now() - startedAt });
+      }
       setBusy(false);
     })();
 
