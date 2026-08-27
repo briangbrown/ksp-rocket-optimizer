@@ -70,9 +70,26 @@ function Slider({
               setDraft(String(value));
               e.target.select();
             }}
+            /* Never wanted on a payload mass, and a suggestion popup that eats
+               the Enter keydown is one of the ways #46 could happen. */
+            autoComplete="off"
             onBlur={(e) => commit(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") e.currentTarget.blur();
+              /* Commit here rather than leaving it to the blur below. Enter used
+                 to only ask for a blur, which made the value reaching state
+                 depend on a focusout raised from inside an in-flight keydown
+                 reaching React's delegated listener. On the deployed site that
+                 round trip did not always complete: the box showed the typed
+                 number, because the draft is what is rendered, and no state
+                 changed, so nothing re-solved (#46). Committing directly depends
+                 on none of it. The blur still commits, for clicking away, and a
+                 second commit of the same string is a no-op — React drops a
+                 state update to an identical value. */
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commit(e.currentTarget.value);
+                e.currentTarget.blur();
+              }
               if (e.key === "Escape") {
                 setDraft(null);
                 e.currentTarget.blur();
