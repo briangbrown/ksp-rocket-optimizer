@@ -22,7 +22,8 @@
     "perf:profile": "npm run perf:build && node --cpu-prof --cpu-prof-dir=perf/.prof perf/.out/run.js grid",
     "perf:config": "vite build --ssr perf/config.js --outDir perf/.out --logLevel error && node perf/.out/config.js",
     "perf:map": "vite build --sourcemap hidden --logLevel error && echo 'map written to dist/assets/'",
-    "perf:device": "npm run perf:profile && npm run perf:map && node perf/profile.mjs perf/.prof perf/traces --map dist/assets"
+    "perf:device": "npm run perf:profile && npm run perf:map && node perf/profile.mjs perf/.prof perf/traces --map dist/assets",
+    "perf:heap": "npm run perf:build && node --heap-prof --heap-prof-dir=perf/.prof perf/.out/run.js grid"
   },
   "dependencies": {
     "react": "^19.2.4",

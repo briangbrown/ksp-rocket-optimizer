@@ -394,6 +394,32 @@ function boostDv(mp, burnA, fixed, k, nb, b, drop, aspHere, ispCore, ispEff) {
    A KSP engine's mass flow is constant (mdot = F_vac / (Isp_vac·g0)); atmospheric
    thrust is just that flow times a lower Isp. So the combined Isp across phase A
    is total vacuum thrust over total flow — no averaging fudge required.        */
+/* boostDv against the budget, as a module-level function.
+
+   This was a closure inside solveCore, built once per bracket — around
+   eighteen million per grid run. Hoisting dvOf out of the innermost loop was
+   the point of the previous commit, and allocating a fresh closure one level
+   down would have quietly put a fraction of it back.
+
+   Eleven positional arguments is not pretty. An options object would be worse:
+   it is the allocation this exists to avoid. */
+function offsetDv(
+  mp,
+  dv,
+  burnA,
+  fixed,
+  k,
+  nb,
+  b,
+  drop,
+  aspHere,
+  ispCore,
+  ispEff,
+) {
+  const v = boostDv(mp, burnA, fixed, k, nb, b, drop, aspHere, ispCore, ispEff);
+  return v < 0 ? v : v - dv;
+}
+
 /* Smallest core propellant load whose delta-v closes the budget.
 
    The bracket comes first, growing by 1.6 until the budget is met — that part
@@ -428,9 +454,9 @@ function solveCore(
   ispCore,
   ispEff,
 ) {
-  const f = (mp) => {
-    const v = boostDv(
-      mp,
+  let flo = offsetDv(
+      lo,
+      dv,
       burnA,
       fixed,
       k,
@@ -440,11 +466,20 @@ function solveCore(
       aspHere,
       ispCore,
       ispEff,
-    );
-    return v < 0 ? v : v - dv;
-  };
-  let flo = f(lo),
-    fhi = f(hi),
+    ),
+    fhi = offsetDv(
+      hi,
+      dv,
+      burnA,
+      fixed,
+      k,
+      nb,
+      b,
+      drop,
+      aspHere,
+      ispCore,
+      ispEff,
+    ),
     side = 0;
   /* Match what twenty halvings of this bracket delivered, so the answer is at
      least as precise as before rather than merely close to it. */
@@ -459,7 +494,19 @@ function solveCore(
     } else {
       c = (lo + hi) / 2;
     }
-    const fc = f(c);
+    const fc = offsetDv(
+      c,
+      dv,
+      burnA,
+      fixed,
+      k,
+      nb,
+      b,
+      drop,
+      aspHere,
+      ispCore,
+      ispEff,
+    );
     if (fc >= 0) {
       hi = c;
       fhi = fc;
