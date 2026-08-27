@@ -56,14 +56,18 @@ const numericFields = () =>
     (i) => i.type !== "range" && i.type !== "checkbox",
   );
 
-async function setField(input, value) {
+function typeInto(input, value) {
   const setter = Object.getOwnPropertyDescriptor(
     HTMLInputElement.prototype,
     "value",
   ).set;
+  setter.call(input, String(value));
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+async function setField(input, value) {
   await act(async () => {
-    setter.call(input, String(value));
-    input.dispatchEvent(new Event("input", { bubbles: true }));
+    typeInto(input, value);
     input.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
   });
 }
@@ -125,6 +129,44 @@ describe("a control change re-solves", () => {
     expect(design(), "changing the payload did not change the design").not.toBe(
       before,
     );
+    cleanup();
+  }, 300_000);
+
+  it("Enter commits without relying on the blur", async () => {
+    /* Every other case here dispatches `focusout` directly, which is the path
+       that already worked. Enter went untested, and it was the one that broke:
+       it asked for a blur and left the commit to React's onBlur, so the value
+       reaching state depended on a focusout raised from inside an in-flight
+       keydown. In the browser that round trip did not always complete — the box
+       showed the typed number and nothing re-solved (#46).
+
+       jsdom's blur() does complete, so simulating Enter faithfully passes with
+       or without the fix. Neutering blur() is what makes this a regression
+       test: it stands in for the browser that did not deliver the focusout, and
+       before the fix the commit had nowhere else to happen. */
+    await mount();
+    const before = design();
+    const field = numericFields()[0];
+    expect(field?.value, "first text field is no longer payload").toBe("2.5");
+
+    const realBlur = HTMLInputElement.prototype.blur;
+    HTMLInputElement.prototype.blur = () => {};
+    try {
+      await act(async () => {
+        field.focus();
+      });
+      await act(async () => {
+        typeInto(field, 9);
+        field.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+        );
+      });
+    } finally {
+      HTMLInputElement.prototype.blur = realBlur;
+    }
+    await settle();
+
+    expect(design(), "Enter did not re-solve").not.toBe(before);
     cleanup();
   }, 300_000);
 
