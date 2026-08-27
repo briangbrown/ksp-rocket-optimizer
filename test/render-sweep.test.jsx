@@ -2,6 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { act } from "react";
+import { byText, settle, solving, stat } from "./app-harness.js";
 import KSPMissionPlanner from "../src/ui/app.jsx";
 
 /* The render sweep.
@@ -46,7 +47,6 @@ const BAD_STYLE = /\b(NaN|Infinity|undefined)\b/;
 /* The veil is always mounted; `busy` only changes opacity and toggles the pulse
    animation on the dot. The animation is the honest "still solving" signal,
    because opacity is transitioned and lags behind the state. */
-const solving = () => !!document.querySelector('[style*="pulse"]');
 
 const byText = (label) =>
   [...document.querySelectorAll("button")].find(
@@ -64,22 +64,6 @@ async function click(label) {
 /* The solve effect debounces by 120 ms before it starts, so checking immediately
    would read the previous design as though it were the new one. Wait past the
    debounce first, then for the veil to clear. */
-async function settle(timeoutMs = 120_000) {
-  const started = Date.now();
-  await act(async () => {
-    await new Promise((r) => setTimeout(r, 250));
-  });
-  while (solving()) {
-    if (Date.now() - started > timeoutMs)
-      throw new Error("solve did not settle");
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 100));
-    });
-  }
-  await act(async () => {
-    await new Promise((r) => setTimeout(r, 50));
-  });
-}
 
 /* Stat renders <div class="eyebrow">label</div> followed by the value div, whose
    trailing span holds the unit. */
