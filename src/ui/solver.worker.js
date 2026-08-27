@@ -27,11 +27,11 @@ const WANT = Math.min(
 /* Nested workers, which every current browser allows and some older ones do
    not. If construction throws, `fanOut` stays null and planMission solves the
    units here in order — slower, and identical. */
-function makePool() {
+function makePool(want) {
   let workers;
   try {
     workers = Array.from(
-      { length: WANT },
+      { length: want },
       () =>
         new Worker(new URL("./unit.worker.js", import.meta.url), {
           type: "module",
@@ -80,14 +80,15 @@ function makePool() {
 }
 
 self.onmessage = async (e) => {
-  const { id, input } = e.data;
-  const pool = makePool();
+  const { id, input, threads } = e.data;
+  const want = threads > 0 ? threads : WANT;
+  const pool = makePool(want);
   try {
     const result = await planMission(input, {
       onYield: () => Promise.resolve(),
       fanOut: pool && pool.fanOut,
     });
-    self.postMessage({ id, result: { ...result, threads: pool ? WANT : 1 } });
+    self.postMessage({ id, result: { ...result, threads: pool ? want : 1 } });
   } catch (err) {
     /* An Error does not survive a structured clone with its stack intact, and
        the message is the part worth keeping. */

@@ -24,6 +24,23 @@ let live = null;
 
 const supported = () => typeof Worker !== "undefined";
 
+/* ?threads=N, for measuring on a device.
+
+   The pool caps itself at eight, which is right on a container and a guess
+   everywhere else — a phone with four little cores may well do better with
+   fewer. The cap cannot be found by reasoning about it, and rebuilding to try
+   another number is a poor way to spend a device session, so the page can say.
+   A worker cannot read the page's query string itself: self.location there is
+   the worker script. */
+function wantedThreads() {
+  try {
+    const n = Number(new URLSearchParams(location.search).get("threads"));
+    return Number.isInteger(n) && n >= 1 && n <= 32 ? n : 0;
+  } catch {
+    return 0; // no location to read, which is fine — the worker picks
+  }
+}
+
 export const usingWorker = () => supported();
 
 /* Abandon whatever is running. The caller gets null, matching what planMission
@@ -76,6 +93,6 @@ export async function solve(input, { signal, onYield } = {}) {
       finish(null);
     };
     signal?.addEventListener("abort", () => finish(null), { once: true });
-    w.postMessage({ id, input });
+    w.postMessage({ id, input, threads: wantedThreads() });
   });
 }

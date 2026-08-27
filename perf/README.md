@@ -136,6 +136,16 @@ before you start:
 localStorage.removeItem("ksp-planner:roster"); // then reload
 ```
 
+**Thread count.** The sharded search (#50) sizes its pool from
+`hardwareConcurrency`, capped at eight. That cap was chosen on a container,
+where the curve flattens at eight, and a phone is not that: a Pixel 8 is one
+big core, four mid and four little, so the eighth thread may be adding a
+straggler rather than a worker. Append `?threads=N` to try another number —
+the search line under the design reports what it actually used, so a fallback
+to one thread cannot be mistaken for a poor result.
+
+    https://ksp-rocket-optimizer.pages.dev/?threads=4
+
 To measure a roster the tier chips do not describe:
 
 ```bash
