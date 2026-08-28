@@ -80,7 +80,7 @@ function stageCost(c) {
     (c.decoupler ? c.decoupler.cost : DECOUPLER_FUNDS) +
     (c.coupler ? c.coupler.cost : 0) +
     (c.rejoin ? c.rejoin.cost : 0) +
-    (c.packed ? c.packed.cost : 0) +
+    (c.packed ? c.packed.cost * (c.stacks || 1) : 0) +
     (c.joiner ? ((c.stacks || 1) - 1) * 2 * c.joiner.cost : 0);
   if (c.tanks) f += c.tanks.list.reduce((a, x) => a + x.c * est(x.t), 0);
   if (c.adapters) f += c.adapters.parts.reduce((a, t) => a + est(t), 0);

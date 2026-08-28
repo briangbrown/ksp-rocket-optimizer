@@ -751,13 +751,19 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
       (mx, q) =>
         Math.max(
           mx,
+          /* Every term that applies, not the first one that matches. A packed
+             tank part carries both `pack` and `S`, and the renderer runs both
+             loops — so taking only `pack.w / 2` for it left the parallel
+             columns out of the width the panel is sized from, and they drew
+             off the side. Latent until the designs moved under it; five stages
+             across the two baselines are now both. #9. */
           q.kind === "booster"
             ? q.core / 2 + q.w
-            : q.pack
-              ? q.pack.w / 2
-              : q.S > 1
-                ? q.w / 2 + q.w * 1.02
-                : q.w / 2,
+            : Math.max(
+                q.w / 2,
+                q.pack ? q.pack.w / 2 : 0,
+                q.S > 1 ? q.w / 2 + q.w * 1.02 : 0,
+              ),
         ),
       0,
     );
@@ -917,7 +923,10 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
     const reach = Math.max(
       (S > 1 ? td : 0) + clusterReach,
       bd0 ? (S > 1 ? td : td / 2) + bd0 : 0,
-      bottom.packed ? bottom.packed.width / 2 : 0,
+      /* A packed ring on parallel stacks sits at a column centre, td from the
+         middle, so its reach is the offset plus the ring — not the ring alone.
+         Same one-term-per-part mistake as `wMax` above, in the other view. #9 */
+      bottom.packed ? (S > 1 ? td : 0) + bottom.packed.width / 2 : 0,
       planPayD / 2,
     );
     const ps = (PS - 16) / (2 * reach);

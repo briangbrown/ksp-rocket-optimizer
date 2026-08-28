@@ -130,11 +130,25 @@ function packShapes(n) {
 }
 
 function packFor(sol, roomBelow, vacuumBase = false) {
-  if (!sol.tanks || !sol.tanks.list.length) return null;
+  /* Per column, not per stage.
+
+     A packed ring is one column's tanks rearranged around that column's centre
+     — the plan view draws one at every stack centre, and stageSize adds the
+     ring of stacks on top of it. Reading the stage total here counted every
+     column's tanks into a single ring: a four-stack stage with two FL-T800 per
+     column was packed as a ring of eight, which is a shape that cannot be
+     built, and stageGeom then subtracted eight tanks' height from a
+     per-column run and returned a tank length of -18 m. #56.
+
+     With three the minimum for a ring, this also means a stage whose columns
+     are short does not pack at all, which is the honest answer. */
+  const S = sol.stacks || 1;
+  const src = S > 1 ? sol.perStack : sol.tanks;
+  if (!src || !src.list.length) return null;
   /* Only one kind of tank can go in a ring, so pack the largest identical run
      and leave everything else stacked on the centre column. Counting the whole
      stage — three sizes mixed — described a shape that could not be built. */
-  const run = sol.tanks.list.reduce(
+  const run = src.list.reduce(
     (best, x) =>
       !best || x.c > best.c || (x.c === best.c && x.t.wet > best.t.wet)
         ? x

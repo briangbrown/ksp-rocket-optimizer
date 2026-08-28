@@ -49,9 +49,10 @@ const num = (el, attr) => {
 /* Every rect must sit inside the svg that contains it. A non-finite coordinate
    is reported as its own failure rather than silently passing a comparison —
    NaN < 0 is false, so a bad number would otherwise look contained. */
-function violations(where) {
+function violations(where, only = () => true) {
   const out = [];
   for (const svg of document.querySelectorAll("svg")) {
+    if (!only(svg)) continue;
     const W = num(svg, "width");
     const H = num(svg, "height");
     if (!Number.isFinite(W) || !Number.isFinite(H) || W <= 0 || H <= 0) {
@@ -104,18 +105,14 @@ function violations(where) {
   return out;
 }
 
-/* One latent inconsistency found while writing this, recorded because it is
-   exactly what this test exists to catch if it ever becomes reachable.
-
-   `wMax` in BuildView picks one term per part: pack, else parallel stacks, else
+/* `wMax` in BuildView picks one term per part: pack, else parallel stacks, else
    plain width. A packed tank part carries both `pack` and `S`, and the renderer
-   runs both loops — so a part that was packed *and* on parallel stacks would be
-   drawn out to 1.52 x td while the estimate only counted pack.w / 2.
+   runs both loops — so a part that is packed *and* on parallel stacks draws out
+   past what the estimate counted.
 
-   It does not arise. Across the 153 stages the design snapshot grid produces,
-   23 are packed and 4 run parallel stacks, and none are both. So this is an
-   inconsistency in the estimate rather than a bug in the drawing, and it is left
-   alone rather than "fixed" on speculation. */
+   That was recorded here as latent, on the grounds that no stage in the grid was
+   ever both. It is not latent any more: five stages across the two committed
+   baselines are both, and the tier 9 Tylo case below is one of them. #9. */
 
 /* Only destinations that actually build are worth stepping through; the six that
    come back as dashes draw nothing. That set is pinned by solvability.txt in the
@@ -168,6 +165,64 @@ describe("panel containment", () => {
     expect(stepsChecked, "no staging steps were checked").toBeGreaterThan(
       BUILDABLE.length,
     );
+    expect(problems).toEqual([]);
+  }, 900_000);
+
+  /* A packed tank ring on parallel stacks, which is the shape #9 is about and
+     which nothing else here reaches.
+
+     The two sweeps above run at the default roster and payload, where that
+     combination does not occur. It occurs at tier 9 — `test/__snapshots__` has
+     five stages that are both packed and on parallel stacks, and this is the
+     one that is a mission a user can actually ask for rather than a raw delta-v
+     budget. Tylo at 3.5 t, which the mission sweep solves as a four-stack
+     design with parallel columns. */
+  it("keeps a packed ring on parallel stacks inside its panel", async () => {
+    render(<KSPMissionPlanner />);
+    await settle();
+
+    /* Tier 9 first: Tylo does not build at the default roster at all. */
+    await click(
+      buttons().find((b) => b.textContent.trim().startsWith("Tech tree")),
+    );
+    await click(byText("9"));
+    await settle();
+
+    const field = [...document.querySelectorAll("input")].filter(
+      (i) => i.type !== "range" && i.type !== "checkbox",
+    )[0];
+    expect(field?.value, "first text field is no longer payload").toBe("2.5");
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      ).set.call(field, "3.5");
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+      field.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+    });
+    await settle();
+
+    await click(byText("Tylo"));
+    await settle();
+
+    const problems = [];
+    let checked = 0;
+    const count = stepButtons().length;
+    expect(count, "Tylo at tier 9 rendered no staging steps").toBeGreaterThan(
+      0,
+    );
+    for (let i = 0; i < count; i++) {
+      const step = stepButtons()[i];
+      const label = step.textContent.trim();
+      await click(step);
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 30));
+      });
+      problems.push(...violations(`Tylo tier 9 · 3.5 t · ${label}`));
+      checked++;
+    }
+    cleanup();
+    expect(checked, "no staging steps were checked").toBeGreaterThan(1);
     expect(problems).toEqual([]);
   }, 900_000);
 
