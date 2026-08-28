@@ -78,12 +78,13 @@ function stageCost(c) {
   let f =
     c.n * c.engine.cost +
     (c.decoupler ? c.decoupler.cost : DECOUPLER_FUNDS) +
-    (c.coupler ? c.coupler.cost : 0) +
+    (c.coupler ? c.coupler.cost * (c.stacks || 1) : 0) +
     (c.rejoin ? c.rejoin.cost : 0) +
     (c.packed ? c.packed.cost * (c.stacks || 1) : 0) +
     (c.joiner ? ((c.stacks || 1) - 1) * 2 * c.joiner.cost : 0);
   if (c.tanks) f += c.tanks.list.reduce((a, x) => a + x.c * est(x.t), 0);
-  if (c.adapters) f += c.adapters.parts.reduce((a, t) => a + est(t), 0);
+  if (c.adapters)
+    f += (c.stacks || 1) * c.adapters.parts.reduce((a, t) => a + est(t), 0);
   /* A liquid radial column costs its engine plus its tanks, not just the engine —
      reporting only the engine made columns look cheap, and the cost objective
      picked them over designs that were genuinely cheaper. */
@@ -98,10 +99,10 @@ function stageCost(c) {
 const stageParts = (c) =>
   c.n +
   (c.tanks ? c.tanks.count : 0) +
-  (c.adapters ? c.adapters.parts.length : 0) +
-  (c.coupler ? 1 : 0) +
+  (c.adapters ? c.adapters.parts.length * (c.stacks || 1) : 0) +
+  (c.coupler ? c.stacks || 1 : 0) +
   (c.rejoin ? 1 : 0) +
-  (c.packed ? c.packed.cols * 2 : 0) +
+  (c.packed ? c.packed.cols * 2 * (c.stacks || 1) : 0) +
   ((c.stacks || 1) - 1) * 2 +
   (c.decoupler && c.decoupler.qty ? c.decoupler.qty : 1) +
   (c.boosters

@@ -205,7 +205,12 @@ function _fitStructure(opt) {
     joiner,
     joins,
     perEng,
-    dry: adapt.dry + dec.m + coupM + (rejoin ? rejoin.m : 0) + joins,
+    /* The coupler gathers one column's engines onto that column's tank, and
+       the adapters bridge that column's diameters — so a stage with parallel
+       stacks needs one set per column, not one for the stage. Charging one made
+       a multi-stack stage lighter and cheaper on paper than the rocket you
+       would have to build. #60 */
+    dry: stacks * (adapt.dry + coupM) + dec.m + (rejoin ? rejoin.m : 0) + joins,
   };
 }
 
