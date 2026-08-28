@@ -689,12 +689,29 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
         ring,
       });
     y += el;
+    /* Carried on every column, like the engine and the tanks either side of
+       them. Without S these were drawn on the centre column alone, and the
+       radial columns of a multi-stack stage showed a gap where their engines
+       should meet their tanks — a stack that could not be built.
+
+       The solver prices one coupler for the whole stage and sizes it for every
+       engine on it, while the geometry treats the cluster as per column. Which
+       of those is right is a physics question, not a drawing one, and it is
+       filed separately. Drawing the column contiguous is correct under either
+       answer; the gap was correct under neither. */
     if (g.coupler > 0) {
-      parts.push({ kind: "adapter", y, h: g.coupler, w: sol.coupler.top });
+      parts.push({
+        kind: "adapter",
+        y,
+        h: g.coupler,
+        w: sol.coupler.top,
+        S,
+        ring,
+      });
       y += g.coupler;
     }
     g.adapters.forEach((a2) => {
-      parts.push({ kind: "adapter", y, h: a2.h, w: a2.w });
+      parts.push({ kind: "adapter", y, h: a2.h, w: a2.w, S, ring });
       y += a2.h;
     });
     /* A packed run is drawn band by band: any spare tanks sit on the centre
