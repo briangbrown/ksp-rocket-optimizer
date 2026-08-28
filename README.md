@@ -113,7 +113,8 @@ A green build still says nothing about a solver change that these cannot see.
     npm run build      # production build into dist/
     npm run preview    # serve the production build
 
-    npm test           # the whole suite, about a minute and a half
+    npm test           # the whole suite, about half a minute
+    npm run lint       # eslint, one rule: no-undef
     npm run format     # prettier
 
 Requires Node 24 or newer. Dependencies are React and Vite alone.

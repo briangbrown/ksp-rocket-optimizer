@@ -24,10 +24,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Before the tests: no-undef finds in a second what the suite can only
+      # find if its grid happens to reach the branch. esbuild resolves no
+      # cross-scope names, so the build is no help at all here.
+      - name: Lint
+        run: npm run lint
+
       # Runs before the build: a moved design, a blank render or a part drawn
       # outside its panel is the failure worth seeing first, and the build
       # passing says nothing about any of them.
-      - name: Design snapshot, render sweep and panel containment
+      - name: Design snapshot, render sweep, panel containment and mission sweep
         run: npm test
 
       - name: Build

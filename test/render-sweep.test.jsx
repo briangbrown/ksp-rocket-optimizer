@@ -44,41 +44,12 @@ const BAD_TEXT = /\b(NaN|Infinity|undefined|null)\b/;
    reading the SVG attributes jsdom preserves. */
 const BAD_STYLE = /\b(NaN|Infinity|undefined)\b/;
 
-/* The veil is always mounted; `busy` only changes opacity and toggles the pulse
-   animation on the dot. The animation is the honest "still solving" signal,
-   because opacity is transitioned and lags behind the state. */
-
-const byText = (label) =>
-  [...document.querySelectorAll("button")].find(
-    (b) => b.textContent.trim() === label,
-  );
-
 async function click(label) {
   const el = byText(label);
   if (!el) throw new Error(`no button labelled "${label}"`);
   await act(async () => {
     el.click();
   });
-}
-
-/* The solve effect debounces by 120 ms before it starts, so checking immediately
-   would read the previous design as though it were the new one. Wait past the
-   debounce first, then for the veil to clear. */
-
-/* Stat renders <div class="eyebrow">label</div> followed by the value div, whose
-   trailing span holds the unit. */
-function stat(label) {
-  for (const el of document.querySelectorAll(".eyebrow")) {
-    if (el.textContent.trim() !== label) continue;
-    const value = el.nextElementSibling;
-    if (!value) return null;
-    const unit = value.querySelector("span");
-    const text = value.textContent;
-    return unit
-      ? text.slice(0, text.length - unit.textContent.length).trim()
-      : text.trim();
-  }
-  return null;
 }
 
 /* Offenders are reported with context — "NaN appears somewhere in 10 kB of text"
