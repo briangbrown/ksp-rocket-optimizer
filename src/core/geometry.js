@@ -13,6 +13,27 @@ import { diaOf, isRadial } from "./parts.js";
 const SPAN = [0, 1, 2, 2.155, 2.414, 2.701, 3, 3, 3.304, 3.613, 3.813];
 const clusterSpan = (n, d) => d * (SPAN[n] || 1 + Math.sqrt(n));
 
+/* How far a ring of parallel stacks sits from the middle.
+
+   Radial symmetry in the VAB puts one column on the axis and S-1 around it, and
+   that is what the plan view draws — so the only question is the radius. It was
+   the tank diameter, which is right only while a column is no wider than its
+   tank. Where the engine cluster is broader, and it often is, the columns ran
+   through each other: four columns 1.25 m apart carrying 2.53 m clusters
+   intersect by 1.28 m, in the drawing and in the design alike. #58
+
+   Two clearances to keep, and the ring has to satisfy both. The centre column
+   needs a whole column width to the ring. Neighbours on the ring are
+   2 R sin(pi / (S-1)) apart, which only binds once there are enough of them —
+   from nine columns up. Below two on the ring there is no neighbour to clear. */
+const stackRing = (S, columnWidth) => {
+  if (S < 2) return 0;
+  const neighbours = S - 1;
+  const gap =
+    neighbours < 2 ? 0 : columnWidth / (2 * Math.sin(Math.PI / neighbours));
+  return Math.max(columnWidth, gap);
+};
+
 const ENGINE_LEN = { 0: 0.9, 1: 1.6, 1.5: 2.0, 2: 2.6, 3: 4.5, 4: 5.0, R: 0 };
 const engineLen = (e) =>
   PART_H[e.n] !== undefined
@@ -232,6 +253,10 @@ function stageGeom(sol) {
      width. */
   const engineSpan = Math.max(td, clusterSpan(perEng, ed));
   const span = Math.max(engineSpan, sol.packed ? sol.packed.width : 0);
+  /* Where the ring of parallel stacks sits. Exposed rather than worked out
+     again in the drawing — see the first entry in "Where the bodies are
+     buried". */
+  const ringR = stackRing(S, span);
   const engine = engineLen(sol.engine);
   const coupler = sol.coupler ? heightOf({ n: sol.coupler.n }, 0.3) : 0;
   const decoupler = sol.decoupler ? heightOf({ n: sol.decoupler.n }, 0.15) : 0;
@@ -251,6 +276,7 @@ function stageGeom(sol) {
     S,
     perEng,
     span,
+    ringR,
     engineSpan,
     tank,
     engine,
@@ -303,11 +329,12 @@ function stageSize(sol) {
     width:
       (sol.boosters
         ? span + 2 * widthOf(sol.boosters.part, diaOf(sol.boosters.part))
-        : span) + (S > 1 ? 2 * td : 0), // a ring of stacks around the middle one
+        : span) +
+      2 * stackRing(S, span), // a ring of stacks around the middle one
     /* Width without the boosters. They are gone by about 18 km, so a stack that
        looks stout on the pad can be a pencil for the rest of the ascent — which
        is when it flips. The slenderness limit judges what is left. */
-    coreWidth: Math.max(span, td) + (S > 1 ? 2 * td : 0), // side by side, or a triangle
+    coreWidth: Math.max(span, td) + 2 * stackRing(S, Math.max(span, td)), // side by side, or a triangle
     stacks: S,
     area,
   };
