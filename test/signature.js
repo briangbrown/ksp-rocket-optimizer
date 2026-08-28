@@ -53,6 +53,21 @@ const candidateSummary = (byK) =>
       `k=${c.k} score=${round(c.chainScore)} ar=${round(c.ar)} slim=${c.slim}`,
   );
 
+/* The same reduction, for what planMission delivers rather than what solveGroup
+   found. Its output is stages, not a chain, and the stage count is itself a
+   result — the walk chooses it — so it leads. */
+export function missionSignature(name, stages) {
+  if (!stages || !stages.length) return `## ${name}\n  NO DESIGN\n`;
+  const lines = [`## ${name}`, `  stages=${stages.length}`];
+  stages.forEach((s, i) => {
+    lines.push(
+      `  stage ${i}: launch=${!!s.isLaunch} payloadIn=${round(s.payloadIn)}`,
+    );
+    lines.push(`    ${JSON.stringify(canon(s.sol))}`);
+  });
+  return lines.join("\n") + "\n";
+}
+
 export function signature(name, res) {
   if (!res) return `## ${name}\n  NO SOLUTION\n`;
 

@@ -145,6 +145,15 @@ intact — which is why it catches drawing bugs the render sweep cannot. The
 elevation is drawn with overflow visible, so an escaping part is never clipped:
 it silently overlaps the rest of the page, and nothing throws.
 
+**The mission sweep** solves twelve whole missions through `planMission` — four
+destinations by three payloads at tier 9 — and pins the delivered stages against
+a baseline. It exists because the design snapshot reads `best` and the
+application does not: for an auto-stage-count launch, `planMission` walks `byK`
+cheapest-first through the ascent simulator, delivers the first candidate that
+flies, and then re-solves against the flown cost. Dropping the cluster-cap
+variant left every one of the 81 grid _designs_ untouched and moved three of
+these twelve. Re-bless it exactly as deliberately as the design snapshot.
+
     test/grid.js                          the configuration grid and its axes
     test/signature.js                     reducing a design to stable text
     test/app-harness.js                   driving the app in jsdom
@@ -155,16 +164,20 @@ it silently overlaps the rest of the page, and nothing throws.
     test/seam-input.test.jsx              what the app actually hands the seam
     test/resolve-wiring.test.jsx          does a control change re-solve
     test/solver-client.test.js            the worker message protocol
+    test/mission-sweep.test.js            what planMission actually delivers
+    test/shard.test.js                    the sharded search folds back in order
     test/__snapshots__/designs.txt        solver baseline
+    test/__snapshots__/missions.txt       delivered-design baseline
     test/__snapshots__/solvability.txt    which destinations build, and how big
 
 Know what none of them reach:
 
-- The snapshot drives `solveGroup`, not `buildRoute`, `missionHardware`, or the
-  simulator-guided candidate walk. Those are callable now — they live behind
-  `planMission` — but nothing sweeps them above the default tier, which is
-  [#45](../../issues/45), and is how a measured conclusion about the solver
-  turned out to be wrong.
+- The design snapshot drives `solveGroup`, not `buildRoute`, `missionHardware`,
+  or the candidate walk. The mission sweep covers those, but at twelve
+  configurations against the snapshot's 81 — it is a regression net, not a
+  survey, and a solver change with a narrow blast radius can still slip between
+  its cases. The 128-configuration sweep that found the cluster-cap problem
+  lives in the history of [#29](../../issues/29), not in the suite.
 - No check can see a bad number in a CSS value. The CSSOM validates on
   assignment and silently discards what it cannot parse, so `width: NaN%`,
   `width: undefinedpx` and `opacity: NaN` read back as null rather than as the
@@ -213,8 +226,10 @@ implying CI covered it.
   byte-identical can still hand back a different rocket, and the design snapshot
   drives `solveGroup` directly — it never enters the walk. Dropping the
   cluster-cap variant looked free by that measure and moved 11 of 128 real
-  missions, nine of them dearer on the objective asked for. Sweep `planMission`
-  over destinations and payloads before believing a solver change is invisible.
+  missions, nine of them dearer on the objective asked for. `npm test` now
+  covers twelve of those through the mission sweep — but twelve, not 128, so a
+  solver change you cannot explain still deserves a wider sweep before you
+  believe it is invisible.
 - **A variant that improves `best` can degrade what is delivered.** Same sweep:
   the cluster-cap variant wins the walk on a 0.8 t Kerbin orbit launch with a
   design 7.9% dearer than what the search returns without it. Building more

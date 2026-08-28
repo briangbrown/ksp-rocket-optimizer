@@ -1,5 +1,6 @@
 import { DATA } from "../src/core/catalogue.js";
 import { withDeps } from "../src/core/tech.js";
+import { buildRoute } from "../src/core/orbits.js";
 
 /* The grid the design snapshot solves.
 
@@ -78,5 +79,59 @@ export function cases() {
       }
     }
   }
+  return out;
+}
+
+/* The missions the walk sweep solves.
+
+   A different question from the grid above, one layer out. That one drives
+   `solveGroup` and reads `best`; the application does not. For an
+   auto-stage-count launch, `planMission` walks `byK` cheapest-first through the
+   ascent simulator and delivers the first candidate that flies, and nothing
+   pinned that above the default roster — which is how a solver change measured
+   as invisible turned out to move eleven real missions. #45.
+
+   Tier 9 because that is where the walk has candidates to choose between: a
+   thin roster produces one buildable stack and no decision to get wrong.
+   Destinations spread across the delta-v range, since the stage count the walk
+   is choosing among follows the budget, and payloads spread because the pool it
+   walks is per stage count and the payload is what moves between them.
+
+   Deliberately small. This is a regression net, not a survey — the 128-case
+   sweep that found the original problem took 90 seconds, and a check nobody
+   wants to run is not a check. */
+export const MISSIONS = ["Low orbit", "Mun", "Duna", "Tylo"];
+export const MISSION_PAYLOADS = [0.8, 3.5, 12];
+
+/* The application's own defaults, so a difference here is a difference a user
+   would see. ui/app.jsx is the authority for every one of these. */
+export function missionCases() {
+  const unlocked = tierUnlocks(9);
+  const out = [];
+  for (const dest of MISSIONS)
+    for (const payload of MISSION_PAYLOADS)
+      out.push({
+        name: `${dest}-pay${payload}`,
+        input: {
+          route: buildRoute(dest, "land", true, "Kerbin", true, false),
+          cuts: [],
+          payload,
+          payloadDia: 1.25,
+          margin: 10,
+          extraDv: 0,
+          engines: enginesFor(unlocked),
+          tanks: tanksFor(unlocked),
+          unlocked: [...unlocked],
+          excluded: [],
+          needGimbal: true,
+          maxAspect: 14,
+          expansions: { mh: false, rs: false },
+          asparagus: false,
+          objective: "cost",
+          origin: "Kerbin",
+          splitBy: [],
+          boosters: true,
+        },
+      });
   return out;
 }

@@ -93,12 +93,15 @@ and objective, solved and compared against a committed baseline part by part,
 mass to four decimals and delta-v to three. 66 build; the other 15 are
 legitimately unbuildable at that tech level.
 
-Around it, a **render sweep** drives the app across every destination, objective
-and profile and fails on a bad number reaching the text or a destination
-quietly ceasing to produce a design; and a **panel-containment check** reads the
-SVG in the build view and asserts every part lies inside its panel at every
-staging step, which is where the drawing and the geometry have drifted apart
-three separate times.
+Around it, a **mission sweep** solves twelve whole missions the way the
+application asks for them and pins the design each one delivers — which is not
+the same thing, because the app flies the candidates through the ascent
+simulator and takes the first that works; a **render sweep** drives the app
+across every destination, objective and profile and fails on a bad number
+reaching the text or a destination quietly ceasing to produce a design; and a
+**panel-containment check** reads the SVG in the build view and asserts every
+part lies inside its panel at every staging step, which is where the drawing and
+the geometry have drifted apart three separate times.
 
 A green build still says nothing about a solver change that these cannot see.
 `CLAUDE.md` records what each check reaches and what it does not.
