@@ -176,15 +176,7 @@ describe("panel containment", () => {
      five stages that are both packed and on parallel stacks, and this is the
      one that is a mission a user can actually ask for rather than a raw delta-v
      budget. Tylo at 3.5 t, which the mission sweep solves as a four-stack
-     design with a 3.02 m ring.
-
-     **The plan view only, for now.** The elevation for this design is wrong for
-     an unrelated and deeper reason: `stageGeom` subtracts a whole-stage tank
-     count from a per-column height, so a packed stage on parallel stacks comes
-     back with a *negative* tank length — -18.01 m here — and every part below it
-     is drawn at a negative y. That is a solver-affecting bug, since stageGeom
-     feeds stageSize, and it has its own issue. Checking the plan view now is
-     worth more than checking nothing until that lands. */
+     design with parallel columns. */
   it("keeps a packed ring on parallel stacks inside its panel", async () => {
     render(<KSPMissionPlanner />);
     await settle();
@@ -226,13 +218,7 @@ describe("panel containment", () => {
       await act(async () => {
         await new Promise((r) => setTimeout(r, 30));
       });
-      problems.push(
-        ...violations(
-          `Tylo tier 9 · 3.5 t · ${label}`,
-          /* The plan view is the square one. */
-          (svg) => svg.getAttribute("width") === svg.getAttribute("height"),
-        ),
-      );
+      problems.push(...violations(`Tylo tier 9 · 3.5 t · ${label}`));
       checked++;
     }
     cleanup();

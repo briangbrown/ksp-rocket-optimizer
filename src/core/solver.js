@@ -1241,11 +1241,13 @@ function solveUnit(p, k, shares) {
            chain's geometry into another — and the "already packed" guard then
            skipped re-checking it against different room below, which is how three
            stages ended up wider than the stage they sat on. */
+            /* One ring per column, so its brackets are paid once per column. */
+            const packMass = pk.mass * (sol.stacks || 1);
             const packedSol = {
               ...sol,
               packed: pk,
-              dry: sol.dry + pk.mass,
-              total: sol.total + pk.mass,
+              dry: sol.dry + packMass,
+              total: sol.total + packMass,
             };
             chain[q] = { ...chain[q], sol: packedSol };
           }
