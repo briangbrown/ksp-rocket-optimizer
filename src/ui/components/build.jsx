@@ -669,18 +669,49 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
        out again here is what let the drawing describe a different rocket. */
     const g = stageGeom(sol);
     const { td, ed, S, perEng } = g;
+    /* One radius for the whole stage, from stageGeom. The side columns used to
+       be offset by each part's own width, so an engine and the tank above it in
+       the same column did not line up. #58 */
+    const ring = g.ringR;
     const span = g.engineSpan; // the engine block, not the tank ring
     const el = g.engine,
       tl = g.tank;
     if (el > 0)
-      parts.push({ kind: "engine", y, h: el, w: span, n: perEng, ed, td, S });
+      parts.push({
+        kind: "engine",
+        y,
+        h: el,
+        w: span,
+        n: perEng,
+        ed,
+        td,
+        S,
+        ring,
+      });
     y += el;
+    /* Carried on every column, like the engine and the tanks either side of
+       them. Without S these were drawn on the centre column alone, and the
+       radial columns of a multi-stack stage showed a gap where their engines
+       should meet their tanks — a stack that could not be built.
+
+       The solver prices one coupler for the whole stage and sizes it for every
+       engine on it, while the geometry treats the cluster as per column. Which
+       of those is right is a physics question, not a drawing one, and it is
+       filed separately. Drawing the column contiguous is correct under either
+       answer; the gap was correct under neither. */
     if (g.coupler > 0) {
-      parts.push({ kind: "adapter", y, h: g.coupler, w: sol.coupler.top });
+      parts.push({
+        kind: "adapter",
+        y,
+        h: g.coupler,
+        w: sol.coupler.top,
+        S,
+        ring,
+      });
       y += g.coupler;
     }
     g.adapters.forEach((a2) => {
-      parts.push({ kind: "adapter", y, h: a2.h, w: a2.w });
+      parts.push({ kind: "adapter", y, h: a2.h, w: a2.w, S, ring });
       y += a2.h;
     });
     /* A packed run is drawn band by band: any spare tanks sit on the centre
@@ -694,7 +725,7 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
         const spareH = pk.spare * pk.levelH;
         const rest = tl - spareH - pk.levels * pk.levelH;
         if (rest > 0.01) {
-          parts.push({ kind: "tank", y, h: rest, w: td, S });
+          parts.push({ kind: "tank", y, h: rest, w: td, S, ring });
           y += rest;
         }
         for (let L = 0; L < pk.levels; L++) {
@@ -704,17 +735,18 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
             h: pk.levelH,
             w: td,
             S,
+            ring,
             pack: { r: pk.r, w: pk.w, td: pk.td },
           });
           y += pk.levelH;
         }
         if (spareH > 0.01) {
-          parts.push({ kind: "tank", y, h: spareH, w: td, S });
+          parts.push({ kind: "tank", y, h: spareH, w: td, S, ring });
           y += spareH;
         }
         y -= tl; // the common y += tl below adds it back
       } else {
-        parts.push({ kind: "tank", y, h: tl, w: td, S, pack: null });
+        parts.push({ kind: "tank", y, h: tl, w: td, S, ring, pack: null });
       }
     }
     y += tl;
@@ -762,7 +794,7 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
             : Math.max(
                 q.w / 2,
                 q.pack ? q.pack.w / 2 : 0,
-                q.S > 1 ? q.w / 2 + q.w * 1.02 : 0,
+                q.S > 1 ? q.ring + q.w / 2 : 0,
               ),
         ),
       0,
@@ -861,7 +893,7 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
       }
     if (q.S > 1)
       for (let c = 1; c <= Math.min(2, q.S - 1); c++) {
-        const off = (c % 2 ? 1 : -1) * q.w * 1.02;
+        const off = (c % 2 ? 1 : -1) * q.ring;
         sideParts.push(
           <rect
             key={`${i}p${c}`}
@@ -920,13 +952,14 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
        edge. */
     const perEng0 = bottom.n / S;
     const clusterReach = Math.max(td, clusterSpan(perEng0, ed)) / 2;
+    const ringOff = S > 1 ? stageGeom(bottom).ringR : 0;
     const reach = Math.max(
-      (S > 1 ? td : 0) + clusterReach,
-      bd0 ? (S > 1 ? td : td / 2) + bd0 : 0,
+      ringOff + clusterReach,
+      bd0 ? (S > 1 ? ringOff : td / 2) + bd0 : 0,
       /* A packed ring on parallel stacks sits at a column centre, td from the
          middle, so its reach is the offset plus the ring — not the ring alone.
          Same one-term-per-part mistake as `wMax` above, in the other view. #9 */
-      bottom.packed ? (S > 1 ? td : 0) + bottom.packed.width / 2 : 0,
+      bottom.packed ? ringOff + bottom.packed.width / 2 : 0,
       planPayD / 2,
     );
     const ps = (PS - 16) / (2 * reach);
@@ -938,11 +971,26 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
     /* Start the ring at the right and work round, so the first pair sits left and
        right — which is the pair the side elevation draws. Starting at the top put
        the plan out of step with the elevation for no reason. */
-    const centres = [[0, 0]];
+    /* The radius comes from stageGeom, which is the one authority on it. It
+       used to be `td` here, so a column wider than its tank overlapped its
+       neighbours — #58. */
+    const ringR = stageGeom(bottom).ringR;
+    /* Each column carries the angle it sits at, because what is bolted to it
+       turns with it. Radial symmetry in the VAB rotates every copy by the
+       symmetry angle, so a pair of engines on a column at 120 degrees points
+       along that column, not along whichever axis the centre one uses. Drawing
+       every cluster at the same orientation put two engines one above the other
+       on all three columns of a three-stack stage. */
+    const centres = [[0, 0, 0]];
     for (let i = 0; i < S - 1; i++) {
       const th = (i / (S - 1)) * 2 * Math.PI;
-      centres.push([Math.cos(th) * td, Math.sin(th) * td]);
+      centres.push([Math.cos(th) * ringR, Math.sin(th) * ringR, th]);
     }
+    /* Turn a position in a column's own frame into the plan's frame. */
+    const turn = (cx, cy, th) => [
+      cx * Math.cos(th) - cy * Math.sin(th),
+      cx * Math.sin(th) + cy * Math.cos(th),
+    ];
     const perEng = bottom.n / S;
     const rr = ((clusterSpan(perEng, ed) - ed) / 2) * ps;
     /* The plan is the view looking up from underneath, so it is drawn back to
@@ -950,7 +998,7 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
        viewer, go last. Any packed tank ring is above the engines, so it belongs
        in that first pass. */
     const pk = bottom.packed;
-    centres.forEach(([ox, oy], c) => {
+    centres.forEach(([ox, oy, oth], c) => {
       const X = PS / 2 + ox * ps,
         Y = PS / 2 + oy * ps;
       plan.push(
@@ -967,7 +1015,7 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
       if (pk) {
         const rk = ((pk.width - diaOf(pk.tank)) / 2) * ps;
         for (let i = 0; i < pk.r; i++) {
-          const th = (i / pk.r) * 2 * Math.PI; // right first, matching the elevation
+          const th = (i / pk.r) * 2 * Math.PI + oth; // right first, matching the elevation
           plan.push(
             <circle
               key={`k${c}_${i}`}
@@ -984,11 +1032,12 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
       }
     });
     /* Engines last: they are the closest thing to you looking up the stack. */
-    centres.forEach(([ox, oy], c) => {
+    centres.forEach(([ox, oy, oth], c) => {
       const X = PS / 2 + ox * ps,
         Y = PS / 2 + oy * ps;
-      ringPositions(perEng).forEach(([cx, cy], i) =>
-        plan.push(
+      ringPositions(perEng).forEach(([cx0, cy0], i) => {
+        const [cx, cy] = turn(cx0, cy0, oth);
+        return plan.push(
           <circle
             key={`e${c}_${i}`}
             cx={X + cx * rr}
@@ -998,15 +1047,15 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
             stroke={C.edge}
             strokeWidth="0.8"
           />,
-        ),
-      );
+        );
+      });
     });
     if (cur.boost && bottom.boosters) {
       const b = bottom.boosters;
       const bd = b.part.column
         ? diaOf(b.part.column.list[0].t)
         : widthOf(b.part, diaOf(b.part));
-      const br = ((S > 1 ? td : td / 2) + bd / 2) * ps;
+      const br = ((S > 1 ? ringR : td / 2) + bd / 2) * ps;
       for (let i = 0; i < b.n; i++) {
         const th = (i / b.n) * 2 * Math.PI; // right first, matching the elevation
         plan.push(
