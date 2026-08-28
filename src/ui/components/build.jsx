@@ -313,12 +313,16 @@ function PartsTable({ stages, payload, hardware, color }) {
           `${pk.spare ? `. The other ${pk.spare} stack${pk.spare > 1 ? "" : "s"} on the centre` : ""}` +
           `. Any smaller tanks stay stacked on the centre —`,
       });
+      /* One ring per stack since #56, so the totals carry the stack count the
+         way the tanks below them do — the quantity column stays per column,
+         under the header that already says how many there are. */
+      const rings = s.sol.stacks || 1;
       rows.push({
         stage: n,
         part: PACK_JOIN.n,
         qty: pk.cols,
         each: PACK_JOIN.m,
-        tot: pk.cols * PACK_JOIN.m,
+        tot: rings * pk.cols * PACK_JOIN.m,
         kind: "struct",
       });
       rows.push({
@@ -326,7 +330,7 @@ function PartsTable({ stages, payload, hardware, color }) {
         part: `${PACK_BRACE.n} (steadies each column)`,
         qty: pk.cols,
         each: PACK_BRACE.m,
-        tot: pk.cols * PACK_BRACE.m,
+        tot: rings * pk.cols * PACK_BRACE.m,
         kind: "struct",
       });
     }
@@ -371,7 +375,7 @@ function PartsTable({ stages, payload, hardware, color }) {
         part: t.n,
         qty: 1,
         each: t.wet,
-        tot: t.wet,
+        tot: S * t.wet, // one set per column, like the coupler above
         kind: "adapter",
       }),
     );
