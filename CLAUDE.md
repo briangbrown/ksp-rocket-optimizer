@@ -27,6 +27,7 @@ npm run build      # production build into dist/
 npm run preview    # serve the production build
 npm test           # the whole suite — see Verification below
 npm run test:bless # accept current solver output as the new baseline
+npm run lint       # eslint, one rule: no-undef
 ```
 
 Node 24 or newer. **Run `npm test && npm run build` before every commit** — both
@@ -103,6 +104,10 @@ than habit:
 - **Physics constants and part tables are UPPER_SNAKE.**
 - **Prettier formats everything.** `npm run format:check` verifies it, `npm run
 format` fixes it, and CI runs the former. Nothing in `src/` is excluded.
+- **eslint runs one rule, `no-undef`.** Not a style gate — prettier owns
+  formatting and the conventions above are this project's own, so a preset would
+  spend its time arguing with decisions already made. Do not add rules to it
+  without a bug they would have caught.
 - **Comment the non-obvious physics** — where a constant came from, why a curve
   has the shape it does, which KSP behaviour is being reproduced. Not what the
   code does.

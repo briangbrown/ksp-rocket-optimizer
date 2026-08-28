@@ -25,7 +25,6 @@ import KSPMissionPlanner from "../src/ui/app.jsx";
 const TOLERANCE = 1;
 
 const buttons = () => [...document.querySelectorAll("button")];
-const byText = (label) => buttons().find((b) => b.textContent.trim() === label);
 
 async function click(el) {
   if (!el) throw new Error("missing button");
