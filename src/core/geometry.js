@@ -26,6 +26,24 @@ const clusterSpan = (n, d) => d * (SPAN[n] || 1 + Math.sqrt(n));
    needs a whole column width to the ring. Neighbours on the ring are
    2 R sin(pi / (S-1)) apart, which only binds once there are enough of them —
    from nine columns up. Below two on the ring there is no neighbour to clear. */
+/* Where the engines of one cluster sit, in units of the ring's own radius.
+
+   Counts that fit a centre engine take one; the rest go evenly round. Starting
+   at -pi/2 puts the first at the top, which is what the plan view draws and
+   what the side elevation is drawn to agree with. Lives here rather than in the
+   drawing because the model and the picture have to lay a cluster out the same
+   way — that is the whole of #9, #58 and #60. */
+function ringPositions(n) {
+  const centre = n === 1 || n === 5 || n === 7 || n === 9 ? 1 : 0;
+  const ring = n - centre;
+  const pts = centre ? [[0, 0]] : [];
+  for (let i = 0; i < ring; i++) {
+    const th = (i / ring) * 2 * Math.PI - Math.PI / 2;
+    pts.push([Math.cos(th), Math.sin(th)]);
+  }
+  return pts;
+}
+
 const stackRing = (S, columnWidth) => {
   if (S < 2) return 0;
   const neighbours = S - 1;
@@ -198,7 +216,13 @@ function packFor(sol, roomBelow, vacuumBase = false) {
         r: sh.r,
         levels: sh.levels,
         cols,
-        width: clusterSpan(sh.r + 1, td),
+        /* A ring of tanks around one centre, all touching it — the same
+           arrangement as a ring of columns around a core, and the same radius.
+           clusterSpan is the enclosing circle of an *optimal* packing of r+1
+           circles, which is a tighter shape than radial symmetry can build: at
+           r=3 it put the ring 0.707 td from the middle where the tanks need a
+           whole td, and they intersected. #63 */
+        width: td + 2 * stackRing(sh.r + 1, td),
         tank: run.t,
         packedCount: n,
         spare: run.c - n,
@@ -358,6 +382,7 @@ export {
   heightOf,
   packFor,
   packShapes,
+  ringPositions,
   stackGeometry,
   stageGeom,
   stageSize,
