@@ -11,6 +11,7 @@ import {
   widthOf,
   ringPositions,
 } from "../../core/geometry.js";
+import { extentOf, modelOf } from "../../core/model.js";
 import { PLATE_SHROUD, diaOf } from "../../core/parts.js";
 import { fmt, hms } from "../format.js";
 import { C } from "../tokens.js";
@@ -770,29 +771,23 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
      from the parts let the two disagree: anything wider than the estimate ran off
      the side, and a booster taller than the stage it is strapped to ran off the
      top, since the height came from the stack alone. */
-  const H = parts.reduce((mx, q) => Math.max(mx, q.y + q.h), 0);
-  wMax =
-    2 *
-    parts.reduce(
-      (mx, q) =>
-        Math.max(
-          mx,
-          /* Every term that applies, not the first one that matches. A packed
-             tank part carries both `pack` and `S`, and the renderer runs both
-             loops — so taking only `pack.w / 2` for it left the parallel
-             columns out of the width the panel is sized from, and they drew
-             off the side. Latent until the designs moved under it; five stages
-             across the two baselines are now both. #9. */
-          q.kind === "booster"
-            ? q.core / 2 + q.w
-            : Math.max(
-                q.w / 2,
-                q.pack ? q.pack.w / 2 : 0,
-                q.S > 1 ? q.ring + q.w / 2 : 0,
-              ),
-        ),
-      0,
-    );
+  /* The extent comes from the model, not from a second pass over the shapes
+     this file happens to have pushed.
+
+     Both numbers used to be worked out here, from a parts array that carries
+     at most two of a stage's side columns — a side elevation cannot show a ring
+     — so the width had to be reasoned back rather than measured. That is where
+     #9 lived, and #58, and it is the shape of every geometry bug in this
+     repository: two descriptions of one rocket. modelOf is the description
+     now, and if it ever misses a part the panel shrinks and panel-containment
+     fails, which is the check working rather than a new risk. #63 */
+  /* Boosters leave at their own step, so the model is filtered the way the
+     shapes are rather than the panel being sized for parts no longer on the
+     rocket. */
+  const attached = (p) => cur.boost || p.role !== "booster";
+  const model = modelOf(live, payload, payD).filter(attached);
+  const H = extentOf(model).height;
+  wMax = Math.max(wMax, extentOf(model).width);
 
   // ---- side elevation ----
   const SH = 300,
@@ -922,8 +917,7 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
 
   // ---- plan view: widest live stage, plus any boosters ----
   const bottom = live[0] && live[0].sol;
-  const PS = 150,
-    planPayD = payD;
+  const PS = 150;
   const plan = [];
   if (bottom) {
     const td = bottom.tanks
@@ -931,31 +925,24 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
       : diaOf(bottom.engine);
     const ed = widthOf(bottom.engine, diaOf(bottom.engine));
     const S = bottom.stacks || 1;
-    /* The plan's own extent: the ring of stacks reaches td from the middle plus
-       its own radius, and boosters sit outside that again. Reusing the side
-       elevation's width clipped whichever view was the wider of the two. */
-    const bd0 =
-      cur.boost && bottom.boosters
-        ? bottom.boosters.part.column
-          ? diaOf(bottom.boosters.part.column.list[0].t)
-          : widthOf(bottom.boosters.part, diaOf(bottom.boosters.part))
-        : 0;
-    /* Reach has to cover whichever sticks out furthest. A cluster wider than the
-       tank it sits under does, and it was not counted — so dropping the boosters
-       shrank the estimate to the tank radius and the engine ring spilled over the
-       edge. */
-    const perEng0 = bottom.n / S;
-    const clusterReach = Math.max(td, clusterSpan(perEng0, ed)) / 2;
+    /* Same description, restricted to what the plan shows: the bottom live
+       stage, and the payload over it, with the boosters dropped at their own
+       step the way the shapes are.
+
+       Four expressions used to work this out — the ring of stacks, the
+       boosters outside it, the packed ring, the payload — each with its own
+       comment recording the time it was wrong. They are gone rather than
+       corrected again. */
+    const planReach = extentOf(
+      modelOf([live[0]], payload, payD).filter(attached),
+    ).reach;
     const ringOff = S > 1 ? stageGeom(bottom).ringR : 0;
-    const reach = Math.max(
-      ringOff + clusterReach,
-      bd0 ? (S > 1 ? ringOff : td / 2) + bd0 : 0,
-      /* A packed ring on parallel stacks sits at a column centre, td from the
-         middle, so its reach is the offset plus the ring — not the ring alone.
-         Same one-term-per-part mistake as `wMax` above, in the other view. #9 */
-      bottom.packed ? ringOff + bottom.packed.width / 2 : 0,
-      planPayD / 2,
-    );
+    /* One description again: whatever the model says this stage reaches, which
+       is what the elevation is sized from too. Four expressions used to work it
+       out here — the cluster, the boosters, the packed ring, the payload — and
+       each was a chance to disagree with the shapes actually drawn. That is
+       #9 and #58 and the plan view half of #63. */
+    const reach = planReach;
     const ps = (PS - 16) / (2 * reach);
     /* Where a stage runs parallel columns the plan is the arrangement seen from
        above: two side by side, three in a triangle. Each carries its own engines,

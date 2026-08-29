@@ -205,7 +205,9 @@ export function modelOf(stages, payload = 0, payloadDia = 0) {
     if (!st.sol) continue;
     y += stageParts(st.sol, y, push);
   }
-  const payD = payloadDia || Math.max(0.6, Math.cbrt(payload || 0.1) * 1.1);
+  /* The same figure the build view uses when no diameter is given, so the two
+     cannot draw a different payload. */
+  const payD = payloadDia || Math.max(0.9, Math.cbrt(payload || 0.1) * 1.1);
   if (payD > 0)
     parts.push({
       role: "payload",
