@@ -1,20 +1,28 @@
 import { useEffect, useRef } from "react";
 import {
   CylinderGeometry,
+  DepthTexture,
   EdgesGeometry,
   Group,
   LineBasicMaterial,
   LineSegments,
   Mesh,
-  MeshBasicMaterial,
+  NearestFilter,
   OrthographicCamera,
-  Fog,
+  PlaneGeometry,
   Scene,
+  WebGLRenderTarget,
   WebGLRenderer,
 } from "three";
 import { extentOf } from "../../core/model.js";
 import { fitOrtho, viewOf } from "../views.js";
 import { C } from "../tokens.js";
+import {
+  compositeMaterial,
+  goochMaterial,
+  idMaterial,
+  panelClear,
+} from "./shaders.js";
 
 /* The build model, drawn.
 
@@ -39,12 +47,16 @@ const FILL = {
   payload: C.payloadFill,
 };
 
-/* Enough segments to read as round at this size, few enough that the edge pass
-   stays cheap. The threshold keeps the vertical seams out of the outline —
-   below it every segment boundary counts as an edge and a tank comes back
-   looking like a paper lantern. */
-const SEGMENTS = 28;
-const EDGE_ANGLE = 30;
+/* Enough segments to read as round at this size. The count used to be pulled
+   two ways — fine enough to look round, coarse enough that its seams stayed
+   under the edge threshold — and only has to satisfy the first now that the
+   silhouette is found in screen space. At 40 the seams are 9 degrees apart,
+   comfortably under the threshold below, which is there for the 90 degree
+   crease where a cap meets the tube. That crease is the one line geometry
+   knows and the screen does not: it is inside a single part, so no change of
+   surface id marks it. */
+const SEGMENTS = 40;
+const CREASE_ANGLE = 30;
 
 export default function ThreeView({ parts, view, width, height, color }) {
   const host = useRef(null);
@@ -103,37 +115,48 @@ export default function ThreeView({ parts, view, width, height, color }) {
     /* three.js allocates GPU buffers a garbage collector cannot see, so every
        one is kept and handed back when the rocket changes. */
     const owned = [];
-    /* Slightly short of solid. An outline at full strength on a shape whose
-       fill is a near neighbour of it reads as a border rather than a drawn
-       edge, and a rocket of thirty parts becomes a mesh of them. */
-    const edgeMat = new LineBasicMaterial({
-      color: C.edge,
-      transparent: true,
-      opacity: 0.8,
-    });
-    owned.push(edgeMat);
 
-    for (const p of parts) {
+    /* Each part is its own mesh already, so each can carry its own id. That is
+       the whole cost of the surface-id outline: two materials per part instead
+       of one, and a second pass over geometry that is a few thousand triangles.
+       Depth and normals cannot find the seam between two tanks of the same
+       diameter — same plane, same normal — and that is the commonest join in
+       the rocket. #70 */
+    const idMats = [];
+    const fillMats = [];
+    /* Creases are their own group so the id pass can hide them in one call —
+       and so the meshes stay index-aligned with their materials, which they
+       would not be if lines were interleaved among them. */
+    const creases = new Group();
+    scene.add(creases);
+    const creaseMat = new LineBasicMaterial({ color: C.edge });
+    owned.push(creaseMat);
+
+    for (const [i, p] of parts.entries()) {
       const geo = new CylinderGeometry(p.r, p.r, p.h, SEGMENTS);
-      const mat = new MeshBasicMaterial({
-        color: p.role === "booster" ? color : FILL[p.role] || C.dim,
-        /* The outline sits exactly on the surface it outlines, so the two
-           compete for the same depth and the edge comes and goes around the
-           silhouette. Push the fill back a hair and it stops. */
-        polygonOffset: true,
-        polygonOffsetFactor: 1,
-        polygonOffsetUnits: 1,
-      });
-      const mesh = new Mesh(geo, mat);
+      const fill = goochMaterial(
+        p.role === "booster" ? color : FILL[p.role] || C.dim,
+      );
+      /* The crease sits exactly on the surface it marks, so the two compete
+         for the same depth and the line comes and goes along its length. Push
+         the fill back a hair and it stops. */
+      fill.polygonOffset = true;
+      fill.polygonOffsetFactor = 1;
+      fill.polygonOffsetUnits = 1;
+      const mesh = new Mesh(geo, fill);
       /* The model puts a part's base at y; three.js centres a cylinder. */
       mesh.position.set(p.x, p.y + p.h / 2, p.z);
-      const edges = new LineSegments(
-        new EdgesGeometry(geo, EDGE_ANGLE),
-        edgeMat,
+      group.add(mesh);
+      const line = new LineSegments(
+        new EdgesGeometry(geo, CREASE_ANGLE),
+        creaseMat,
       );
-      edges.position.copy(mesh.position);
-      group.add(mesh, edges);
-      owned.push(geo, mat, edges.geometry);
+      line.position.copy(mesh.position);
+      creases.add(line);
+      const id = idMaterial(i);
+      idMats.push(id);
+      fillMats.push(fill);
+      owned.push(geo, fill, id, line.geometry);
     }
 
     const extent = extentOf(parts);
@@ -141,22 +164,19 @@ export default function ThreeView({ parts, view, width, height, color }) {
     const { dir, up } = viewOf(view);
     const { halfW, halfH } = fitOrtho(view, extent, width / height);
 
-    /* Depth cueing. Nothing is lit, so the only thing telling a viewer which
-       column is nearer is that the far one sinks slightly towards the panel it
-       is drawn on — the same trick as a pale distance in a drawing. Fog is
-       linear in camera depth, so near and far are placed to leave the front of
-       the rocket untouched and take about a third out of the back of it; more
-       than that and the far columns stop reading as the same rocket. */
+    /* The camera stands well clear of the model so nothing is ever behind the
+       near plane; the orthographic frustum makes the distance free. */
     const R = Math.hypot(extent.reach, extent.height / 2) || 1;
     const reachOut = Math.max(extent.height, extent.reach * 2) * 3 + 10;
-    scene.fog = new Fog(C.panel, reachOut - R, reachOut + 5.7 * R);
+    const camNear = Math.max(0.01, reachOut - R * 1.5);
+    const camFar = reachOut + R * 1.5;
     const camera = new OrthographicCamera(
       -halfW,
       halfW,
       halfH,
       -halfH,
-      0.01,
-      reachOut * 4,
+      camNear,
+      camFar,
     );
     camera.position.set(
       dir[0] * reachOut,
@@ -166,9 +186,77 @@ export default function ThreeView({ parts, view, width, height, color }) {
     camera.up.set(up[0], up[1], up[2]);
     camera.lookAt(0, mid, 0);
 
-    renderer.render(scene, camera);
+    /* Buffers at device resolution, not CSS pixels, or the outline is found at
+       half the resolution it is drawn at and comes out soft on a phone. */
+    const dpr = renderer.getPixelRatio();
+    const bw = Math.max(1, Math.round(width * dpr));
+    const bh = Math.max(1, Math.round(height * dpr));
+
+    /* Ids and depth come off the same pass, unfiltered and unresolved: a
+       multisampled id buffer averages two parts into a third that does not
+       exist, and a linear filter does the same along every boundary. The fill
+       is multisampled, because that one wants a smooth silhouette. */
+    const idTarget = new WebGLRenderTarget(bw, bh, {
+      minFilter: NearestFilter,
+      magFilter: NearestFilter,
+      depthTexture: new DepthTexture(bw, bh),
+    });
+    const fillTarget = new WebGLRenderTarget(bw, bh, { samples: 4 });
+    owned.push(idTarget, fillTarget, idTarget.depthTexture);
+
+    const quadMat = compositeMaterial();
+    const quadGeo = new PlaneGeometry(2, 2);
+    const quadScene = new Scene();
+    const quadMesh = new Mesh(quadGeo, quadMat);
+    /* The composite writes clip space straight out and never looks at the
+       camera, so three would cull it against a frustum it does not live in and
+       the panel would come back empty. */
+    quadMesh.frustumCulled = false;
+    quadScene.add(quadMesh);
+    const quad = new OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    owned.push(quadMat, quadGeo);
+
+    const paint = () => {
+      /* Ids first, on black so the background reads as no part at all, and
+         without the creases: a line drawn into the id buffer is a false part,
+         and every one of them would come back as an outline of its own. */
+      creases.visible = false;
+      for (let i = 0; i < parts.length; i++)
+        group.children[i].material = idMats[i];
+      renderer.setRenderTarget(idTarget);
+      renderer.setClearColor(0x000000, 1);
+      renderer.clear();
+      renderer.render(scene, camera);
+
+      /* Then the shading and the creases, on the panel colour the composite
+         fades towards. */
+      creases.visible = true;
+      for (let i = 0; i < parts.length; i++)
+        group.children[i].material = fillMats[i];
+      renderer.setRenderTarget(fillTarget);
+      renderer.setClearColor(panelClear(), 1);
+      renderer.clear();
+      renderer.render(scene, camera);
+
+      /* And the lines, over the top, straight to the canvas. */
+      quadMat.uniforms.tColor.value = fillTarget.texture;
+      quadMat.uniforms.tId.value = idTarget.texture;
+      quadMat.uniforms.tDepth.value = idTarget.depthTexture;
+      quadMat.uniforms.texel.value.set(1 / bw, 1 / bh);
+      quadMat.uniforms.camNear.value = camNear;
+      quadMat.uniforms.camFar.value = camFar;
+      /* Cue across the model's own depth, so a long rocket seen end-on fades
+         over the same range as a short one rather than by its absolute size. */
+      quadMat.uniforms.cueNear.value = reachOut - R;
+      quadMat.uniforms.cueSpan.value = 2 * R;
+      renderer.setRenderTarget(null);
+      renderer.render(quadScene, quad);
+    };
+
+    paint();
 
     return () => {
+      renderer.setRenderTarget(null);
       for (const o of owned) o.dispose();
     };
   }, [parts, view, width, height, color]);

@@ -310,6 +310,30 @@ implying CI covered it.
   lazy-loaded for exactly that reason. The camera basis is four multiplications;
   it does not need `Vector3`. The renderer imports this module, never the other
   way round.
+- **A full-screen quad has to opt out of frustum culling.** The composite pass
+  writes clip space straight out of the vertex shader and never reads the
+  camera, so three culls it against a frustum it does not live in and the panel
+  comes back empty with nothing logged. `frustumCulled = false` on the mesh.
+- **A bare `ShaderMaterial` bypasses colour management in both directions.**
+  Nothing converts on the way in and nothing converts on the way out, so the
+  palette token is what gets drawn — which is what the shaders here want. The
+  trap is anything that does not go through them: `setClearColor(C.panel)`
+  converts the hex into the linear working space, and the drawing would sit in a
+  rectangle of the same colour about a third as bright as the card around it.
+  `panelClear()` names the working space so the conversion is a no-op.
+- **The surface-id buffer must not be filtered or multisampled.** A linear
+  filter blends two ids into a third along every boundary, and a multisample
+  resolve does the same; either invents parts that are not in the model and
+  outlines them. Nearest filtering, no samples. The fill target is multisampled,
+  because that one does want a smooth silhouette — which is why they are two
+  targets rather than one.
+- **Creases are geometry, silhouettes are screen space.** `EdgesGeometry` knows
+  where a cap meets a tube — 90 degrees, in the model, the same from every
+  angle. It cannot know a cylinder's side outline, which is an occluding contour
+  and depends on where the camera stands. And neither depth nor normals can find
+  the seam between two tanks of the same diameter, which is the commonest join
+  in the rocket: same plane, same normal. Surface ids find that one. Three
+  techniques, three jobs; do not try to make one of them do another's.
 - **A closed form cannot check itself.** `framing` reduces the model to one
   cylinder and solves for its extent. The containment test used to assert that
   answer against the same reasoning, which proved only that the arithmetic was
