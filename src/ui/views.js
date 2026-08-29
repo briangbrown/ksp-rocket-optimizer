@@ -48,7 +48,19 @@ export function viewRight(view) {
 }
 
 export function viewUp(view) {
-  return cross(unit(vec(viewOf(view).dir)), viewRight(view));
+  return cross(viewAxis(view), viewRight(view));
+}
+
+/* The direction from what the camera looks at towards where it stands, as a
+   unit vector. `VIEWS` writes `dir` unnormalised because the numbers read
+   better that way — the isometric is 0.72, 0.52, 0.72 — and its length is
+   1.143, not 1. Placing the camera at `dir * distance` therefore stands it 14%
+   further off than the distance says, which is how the far plane came to cut
+   the back off the isometric while the side and the plan, whose directions
+   happen to be unit vectors, were fine. Normalise once, here, and use the same
+   vector to place the camera and to size its depth. #63 */
+export function viewAxis(view) {
+  return unit(vec(viewOf(view).dir));
 }
 
 /* How far the model reaches along one screen axis.
@@ -87,4 +99,39 @@ export function fitOrtho(view, extent, aspect) {
   const need = framing(view, extent);
   const halfH = Math.max(need.h, need.w / aspect) * 1.08;
   return { halfW: halfH * aspect, halfH };
+}
+
+/* How far off the camera stands. An orthographic projection does not care, so
+   this is generous rather than tight — far enough that no part of any rocket
+   is ever behind the camera. */
+const standOff = ({ height, reach }) => Math.max(height, reach * 2) * 3 + 10;
+
+/* Everything about the camera for one view of one model.
+
+   Near and far come from how deep the model actually is along the axis the
+   camera looks down — the same `spanAlong` the framing uses, asked about a
+   third direction — rather than from a bounding sphere and a fudge factor. A
+   sphere is a poor fit for a stack of cylinders seen end-on, and the fudge was
+   what let the shortfall from the unnormalised direction above go unnoticed:
+   it was generous enough to hide the error on a tall rocket and not on a short
+   one, so the clipping appeared only at the last staging steps. */
+export function cameraFor(view, extent, aspect) {
+  const axis = viewAxis(view);
+  const dist = standOff(extent);
+  const half = spanAlong(axis, extent.height, extent.reach);
+  /* Enough that a rounding error at the silhouette does not shave it, and
+     little enough that the depth buffer keeps its precision where the drawing
+     is. */
+  const slack = half * 0.05 + 0.5;
+  return {
+    axis,
+    dist,
+    near: Math.max(0.01, dist - half - slack),
+    far: dist + half + slack,
+    /* The model's own depth range, for cueing: the front of the rocket is
+       untouched and the back takes the full fade, whatever its size. */
+    cueNear: dist - half,
+    cueSpan: 2 * half || 1,
+    ...fitOrtho(view, extent, aspect),
+  };
 }

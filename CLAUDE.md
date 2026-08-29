@@ -350,6 +350,15 @@ implying CI covered it.
   outlines them. Nearest filtering, no samples. The fill target is multisampled,
   because that one does want a smooth silhouette — which is why they are two
   targets rather than one.
+- **`VIEWS` writes its directions unnormalised, and `viewAxis` is the only way
+  to use one.** The isometric is `[0.72, 0.52, 0.72]`, which reads well and is
+  1.143 long. Placing the camera at `dir * distance` therefore stood it 14%
+  further off than its near and far planes were told, and the far plane cut the
+  back off the model — visibly at the last staging steps, where the stand-off's
+  constant term dominates, and invisibly behind other geometry everywhere else.
+  `cameraFor` now returns the position, the frustum and the depth window
+  together, so the axis that places the camera is the axis its depth is measured
+  along.
 - **Creases are geometry, silhouettes are screen space.** `EdgesGeometry` knows
   where a cap meets a tube — 90 degrees, in the model, the same from every
   angle. It cannot know a cylinder's side outline, which is an occluding contour
@@ -363,6 +372,12 @@ implying CI covered it.
   consistent with itself. It samples the rim circles of every part and projects
   them through the camera basis instead — independent, and it names the part
   and the metres when it fails.
+
+  This is not a mistake you make once. The first depth-containment check took
+  its camera position and its near and far planes from the same `cameraFor`
+  call, so a direction of the wrong length inflated both together and the test
+  passed with the bug it was written for still in place. It stands the camera
+  where the renderer stands it and normalises the look direction itself.
 
 ---
 

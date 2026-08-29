@@ -4,7 +4,7 @@ import { extentOf, modelOf } from "../src/core/model.js";
 import { stackGeometry, stageSize } from "../src/core/geometry.js";
 import { stagingSteps, stepModels } from "../src/ui/components/build.jsx";
 import { missionCases } from "./grid.js";
-import { PANELS, escapes } from "./framing.js";
+import { PANELS, escapes, escapesDepth } from "./framing.js";
 
 /* The rocket as shapes, checked as shapes.
 
@@ -184,6 +184,24 @@ describe("the build model", () => {
         bad.push(`${name}: plan reaches past the elevation`);
     }
     expect(bad.slice(0, 8), `${bad.length} bad plans`).toEqual([]);
+  }, 300_000);
+
+  it("stands between the near and far planes of every camera", () => {
+    /* Framing says the rocket is inside the picture. This says it is inside the
+       depth the camera can see, which is a different question and went wrong on
+       its own: the isometric cut the back off the model at the last two staging
+       steps, and no framing check could have noticed. */
+    const bad = [];
+    for (const { name, parts } of MODELS) {
+      if (!parts.length) continue;
+      const extent = extentOf(parts);
+      for (const view of ["side", "plan", "iso"]) {
+        const out = escapesDepth(view, parts, extent);
+        if (out > EPS)
+          bad.push(`${name}: ${view} clips ${out.toFixed(3)} m of depth`);
+      }
+    }
+    expect(bad.slice(0, 6), `${bad.length} views clip in depth`).toEqual([]);
   }, 300_000);
 
   it("describes the payload when every stage has been dropped", () => {

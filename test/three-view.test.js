@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { fitOrtho, viewRight } from "../src/ui/views.js";
-import { PANELS, asCylinder, escapes } from "./framing.js";
+import { fitOrtho, viewAxis, viewRight } from "../src/ui/views.js";
+import { PANELS, asCylinder, escapes, escapesDepth } from "./framing.js";
 
 /* Does the camera see the whole rocket?
 
@@ -38,6 +38,36 @@ describe("the orthographic framing", () => {
         }
       }
     expect(bad.slice(0, 6), `${bad.length} views clip the model`).toEqual([]);
+  });
+
+  it("looks down a unit vector", () => {
+    /* `VIEWS` writes its directions unnormalised because they read better that
+       way — the isometric is 0.72, 0.52, 0.72, whose length is 1.143. Anything
+       that multiplies a distance by the direction has to normalise it first,
+       and the one place that did not stood the camera 14% further off than its
+       far plane was told. */
+    for (const view of ["side", "plan", "iso"]) {
+      const a = viewAxis(view);
+      expect(Math.hypot(a.x, a.y, a.z), `${view} axis`).toBeCloseTo(1, 12);
+    }
+  });
+
+  it("keeps the whole depth of the model between its planes", () => {
+    /* Over the same spread of shapes. A short wide model is the case that
+       failed: the stand-off carries a constant term, so the further the
+       distance runs ahead of the model's own size, the more an error in where
+       the camera actually stands matters. */
+    const bad = [];
+    for (const height of [0.5, 1, 2.5, 7, 18, 40, 90, 200])
+      for (const reach of [0.15, 0.6, 1.25, 3, 8, 25]) {
+        const extent = { height, reach, width: reach * 2 };
+        for (const view of ["side", "plan", "iso"]) {
+          const out = escapesDepth(view, asCylinder(extent), extent);
+          if (out > 1e-9)
+            bad.push(`${view}: ${height}x${reach} clips ${out.toFixed(3)}`);
+        }
+      }
+    expect(bad.slice(0, 6), `${bad.length} clip in depth`).toEqual([]);
   });
 
   it("keeps the panel's own shape, so nothing is stretched", () => {

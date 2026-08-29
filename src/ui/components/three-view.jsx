@@ -15,7 +15,7 @@ import {
   WebGLRenderer,
 } from "three";
 import { extentOf } from "../../core/model.js";
-import { fitOrtho, viewOf } from "../views.js";
+import { cameraFor, viewOf } from "../views.js";
 import { C } from "../tokens.js";
 import {
   compositeMaterial,
@@ -161,27 +161,23 @@ export default function ThreeView({ parts, view, width, height, color }) {
 
     const extent = extentOf(parts);
     const mid = extent.height / 2;
-    const { dir, up } = viewOf(view);
-    const { halfW, halfH } = fitOrtho(view, extent, width / height);
-
-    /* The camera stands well clear of the model so nothing is ever behind the
-       near plane; the orthographic frustum makes the distance free. */
-    const R = Math.hypot(extent.reach, extent.height / 2) || 1;
-    const reachOut = Math.max(extent.height, extent.reach * 2) * 3 + 10;
-    const camNear = Math.max(0.01, reachOut - R * 1.5);
-    const camFar = reachOut + R * 1.5;
+    const { up } = viewOf(view);
+    /* Where it stands, what it can see and how deep it can see, all from one
+       place — the axis that positions the camera is the axis its near and far
+       planes are measured along, which is what stops the two disagreeing. */
+    const cam = cameraFor(view, extent, width / height);
     const camera = new OrthographicCamera(
-      -halfW,
-      halfW,
-      halfH,
-      -halfH,
-      camNear,
-      camFar,
+      -cam.halfW,
+      cam.halfW,
+      cam.halfH,
+      -cam.halfH,
+      cam.near,
+      cam.far,
     );
     camera.position.set(
-      dir[0] * reachOut,
-      mid + dir[1] * reachOut,
-      dir[2] * reachOut,
+      cam.axis.x * cam.dist,
+      mid + cam.axis.y * cam.dist,
+      cam.axis.z * cam.dist,
     );
     camera.up.set(up[0], up[1], up[2]);
     camera.lookAt(0, mid, 0);
@@ -243,12 +239,12 @@ export default function ThreeView({ parts, view, width, height, color }) {
       quadMat.uniforms.tId.value = idTarget.texture;
       quadMat.uniforms.tDepth.value = idTarget.depthTexture;
       quadMat.uniforms.texel.value.set(1 / bw, 1 / bh);
-      quadMat.uniforms.camNear.value = camNear;
-      quadMat.uniforms.camFar.value = camFar;
+      quadMat.uniforms.camNear.value = cam.near;
+      quadMat.uniforms.camFar.value = cam.far;
       /* Cue across the model's own depth, so a long rocket seen end-on fades
          over the same range as a short one rather than by its absolute size. */
-      quadMat.uniforms.cueNear.value = reachOut - R;
-      quadMat.uniforms.cueSpan.value = 2 * R;
+      quadMat.uniforms.cueNear.value = cam.cueNear;
+      quadMat.uniforms.cueSpan.value = cam.cueSpan;
       renderer.setRenderTarget(null);
       renderer.render(quadScene, quad);
     };
