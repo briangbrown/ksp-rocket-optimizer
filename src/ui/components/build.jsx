@@ -799,7 +799,7 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
                 onClick={() => setAngle(angle === "iso" ? "side" : "iso")}
                 title="Turn the same model three-quarters on. The plan does not move; it is the same scene from underneath."
               >
-                ¾
+                Iso
               </button>
             </div>
             <Suspense fallback={<Loading w={Math.max(sw, 60)} h={sh} />}>
