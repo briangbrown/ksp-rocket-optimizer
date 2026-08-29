@@ -27,6 +27,7 @@ npm run build      # production build into dist/
 npm run preview    # serve the production build
 npm test           # the whole suite — see Verification below
 npm run test:bless # accept current solver output as the new baseline
+npm run test:visual # the build view in a real browser — see Verification
 npm run lint       # eslint, one rule: no-undef
 ```
 
@@ -160,10 +161,27 @@ solver knows nothing about. Containment in the 3D view is true by construction:
 `fitOrtho` sizes the frustum from the same extent the panel is sized from, and
 `test/three-view.test.js` pins that arithmetic without a renderer.
 
-What none of this reaches is whether three.js draws the model it is handed.
-Nothing in the suite has ever made a WebGL context. Two bugs shipped through it
-already — a canvas holding a stale frame, and a camera mirroring the x axis —
-and both were found by a person looking at the preview.
+**The visual suite** is what does reach the drawing. `npm run test:visual`
+builds the application, serves it, and drives it through a real WebGL context in
+headless Chrome — jsdom implements none, so `canRender3D()` is false in every
+test under `test/` and the build view there takes a path no user takes. It
+checks that a shader compiled and something was drawn, that each canvas is the
+size of its panel at a device pixel ratio above one, that the drawing survives a
+repaint, that the plan redraws when a stage is dropped, that the outline colour
+appears at all, and that the console stayed quiet.
+
+Each of those is a bug that shipped past a green build. Reintroduce
+`setSize(w, h, false)` and one test fails; drop `preserveDrawingBuffer` and four
+do; break a line of GLSL and three do, one of them naming the compiler error.
+
+It asserts properties of the pixels rather than comparing against a golden
+image, on purpose: SwiftShader is not promised to be stable to the pixel across
+versions, and a baseline whose diffs nobody can explain is a cost this
+repository has already priced. It is a separate script and a separate CI job —
+the main suite is minutes long and `test/model.test.js` records a worker running
+out of memory when the mission models were built twice.
+
+It still says nothing about a real GPU, about performance, or about a phone.
 
 **The mission sweep** solves twelve whole missions through `planMission` — four
 destinations by three payloads at tier 9 — and pins the delivered stages against
@@ -178,6 +196,9 @@ these twelve. Re-bless it exactly as deliberately as the design snapshot.
     test/signature.js                     reducing a design to stable text
     test/app-harness.js                   driving the app in jsdom
     test/framing.js                       whether a camera sees the whole rocket
+    visual/browser.js                     chromium with a software WebGL context
+    visual/pixels.js                      reading a canvas back as numbers
+    visual/render.test.js                 what the build view actually draws
     test/design-snapshot.test.js          the design snapshot
     test/render-sweep.test.jsx            the render sweep
     test/model.test.js                    the rocket as shapes, checked as shapes
@@ -208,9 +229,11 @@ Know what none of them reach:
   case.
 - Containment is checked at the default tech tier and payload. Other rosters
   produce different shapes and are not swept.
-- Nothing here runs in a real browser. jsdom has no worker, no visual viewport,
-  no on-screen keyboard and no IME. The Cloudflare preview on each PR is where
-  those get checked, by a person.
+- The main suite runs in jsdom, which has no worker, no visual viewport, no
+  on-screen keyboard and no IME. `npm run test:visual` covers the WebGL half in
+  a real browser; everything else on that list is still checked on the
+  Cloudflare preview, by a person, and the device is still the only place
+  mobile behaviour is decided.
 
 A green build on its own says nothing about solver output. When you change
 something these checks cannot see, say plainly that it is unverified rather than

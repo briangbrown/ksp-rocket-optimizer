@@ -11,6 +11,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:visual": "npm run build && vitest run --config vitest.visual.config.js",
     "lint": "eslint .",
     "test:bless": "vitest run -u",
     "format": "prettier --write .",
@@ -39,6 +40,7 @@
     "globals": "^17.11.0",
     "jsdom": "^29.1.1",
     "prettier": "^3.9.6",
+    "puppeteer": "^25.9.0",
     "vite": "^8.0.1",
     "vitest": "^4.1.11"
   }

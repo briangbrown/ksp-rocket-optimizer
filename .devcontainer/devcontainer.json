@@ -9,6 +9,12 @@
   // See: https://github.com/anthropics/claude-code/issues/9376
   "runArgs": ["--sysctl", "net.ipv6.conf.all.disable_ipv6=1"],
   "containerEnv": {
+    // Chrome for Testing publishes no linux-arm64 build, so on Apple Silicon
+    // puppeteer's download is an x86_64 binary that dies inside Rosetta with a
+    // missing-loader error that looks like anything but a wrong architecture.
+    // The apt chromium installed below is native on both, and visual/browser.js
+    // prefers it. See #73.
+    "PUPPETEER_SKIP_DOWNLOAD": "true",
     "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
     "VSCODE_THEME_KIND": "${localEnv:VSCODE_THEME_KIND}",
     // git-identity below calls `gh api /user`, which needs gh authenticated at
@@ -34,6 +40,12 @@
     // Codespaces already handles its own auth; rewriting there breaks it.
     "git-https": "if [ -z \"$CODESPACES\" ]; then git config --global url.'https://github.com/'.insteadOf 'git@github.com:'; fi",
     "claude-code": "npm install -g @anthropic-ai/claude-code",
+    // `npm run test:visual` drives the real build view through a real WebGL
+    // context, which jsdom cannot provide. Chromium brings its own shared
+    // libraries, so this is one package rather than the thirty-odd puppeteer
+    // documents for a bare image. It is the slowest step in creating the
+    // container, and it is what makes the 3D view testable at all. #73
+    "chromium": "sudo apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq chromium",
     // Without this a fresh container has no node_modules, so `npm test` fails
     // before it runs. Harmless before this repo had dependencies; not now.
     "npm-install": "npm install",

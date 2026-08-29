@@ -105,6 +105,11 @@ sized the stage at, and that the whole stands as tall as the slenderness limit
 was applied to, which is where the drawing and the geometry have drifted apart
 three separate times.
 
+Alongside them, a **visual suite** builds the application and drives it through
+a real WebGL context in headless Chrome, because jsdom implements none and the
+3D build view is therefore invisible to everything above. It runs separately
+from `npm test`.
+
 A green build still says nothing about a solver change that these cannot see.
 `CLAUDE.md` records what each check reaches and what it does not.
 
@@ -116,6 +121,7 @@ A green build still says nothing about a solver change that these cannot see.
     npm run preview    # serve the production build
 
     npm test           # the whole suite, about half a minute
+    npm run test:visual # the build view, drawn in a real browser
     npm run lint       # eslint, one rule: no-undef
     npm run format     # prettier
 
