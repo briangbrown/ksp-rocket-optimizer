@@ -302,8 +302,20 @@ implying CI covered it.
   plan's up vector decides this, not its position. Looking up from underneath,
   +x on the right forces +z to the top: the SVG plan's z-down cannot be kept as
   well, and a camera above the rocket that keeps both puts the payload over the
-  engines. `viewRight` is the invariant, and `test/three-view.test.js` checks
-  it without a renderer.
+  engines. `viewRight` in `src/ui/views.js` is the invariant, and
+  `test/three-view.test.js` checks it without a renderer.
+- **`src/ui/views.js` must not import three.js.** The build view sizes its
+  panels from `framing`, so whatever that module imports lands in the bundle
+  that gets you to a solved rocket — and the renderer is half a megabyte of it,
+  lazy-loaded for exactly that reason. The camera basis is four multiplications;
+  it does not need `Vector3`. The renderer imports this module, never the other
+  way round.
+- **A closed form cannot check itself.** `framing` reduces the model to one
+  cylinder and solves for its extent. The containment test used to assert that
+  answer against the same reasoning, which proved only that the arithmetic was
+  consistent with itself. It samples the rim circles of every part and projects
+  them through the camera basis instead — independent, and it names the part
+  and the metres when it fails.
 
 ---
 

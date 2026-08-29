@@ -8,11 +8,12 @@ import {
   Mesh,
   MeshBasicMaterial,
   OrthographicCamera,
+  Fog,
   Scene,
-  Vector3,
   WebGLRenderer,
 } from "three";
 import { extentOf } from "../../core/model.js";
+import { fitOrtho, viewOf } from "../views.js";
 import { C } from "../tokens.js";
 
 /* The build model, drawn.
@@ -44,62 +45,6 @@ const FILL = {
    looking like a paper lantern. */
 const SEGMENTS = 28;
 const EDGE_ANGLE = 30;
-
-/* Where the camera stands and which way is up.
-
-   Plan looks up from underneath, as the SVG one does — that is how you read
-   what is bolted where, with the engines nearest the viewer.
-
-   Every view must put world +x to the right of the screen. The columns of a
-   parallel stage start at +x and work round, and the elevation draws that
-   first pair left and right, so a view that disagrees on x draws the same
-   rocket mirrored against the one beside it — three tanks leaning right in
-   the elevation and left in the plan. three.js builds the basis as
-   `right = up x (eye - target)`, so from underneath +x on the right forces +z
-   to the top; you cannot have both that and the SVG plan's z-down. Above the
-   rocket would give both and is wrong for a different reason: the payload
-   would sit over the engines. `viewRight` below is the check. */
-const VIEWS = {
-  side: { dir: [0, 0, 1], up: [0, 1, 0] },
-  plan: { dir: [0, -1, 0], up: [0, 0, 1] },
-  iso: { dir: [0.72, 0.52, 0.72], up: [0, 1, 0] },
-};
-
-/* The world direction a view sends to the right of the screen, by the same
-   arithmetic three.js uses to aim the camera. Exported because two views
-   disagreeing about it is a mirrored drawing, and that is checkable without a
-   GPU where the drawing itself is not. */
-export function viewRight(view) {
-  const { dir, up } = VIEWS[view] || VIEWS.side;
-  return new Vector3(...up).cross(new Vector3(...dir)).normalize();
-}
-
-/* Half-extents the view has to cover, before the panel's own shape is applied.
-   Straight from the model, which is what makes containment structural: the
-   frustum is the rocket's extent, so nothing can fall outside the panel. */
-export function framing(view, { height: H, reach }) {
-  if (view === "plan") return { w: reach, h: reach };
-  if (view === "iso") {
-    /* Any rotation about the axis fits inside the bounding sphere, so frame
-       that and accept a little air rather than solving for the angle. */
-    const r = Math.hypot(reach, H / 2);
-    return { w: r, h: r };
-  }
-  return { w: reach, h: H / 2 };
-}
-
-/* The frustum for a panel of a given shape.
-
-   Fit whichever half-extent is the tighter against the panel's own aspect, so a
-   pencil is limited by its height and a squat stage by its width, then leave a
-   little air. Separate from the component and exported because it carries the
-   claim worth checking — that nothing the model contains can fall outside the
-   view — and checking it needs no GPU, which jsdom has none of. */
-export function fitOrtho(view, extent, aspect) {
-  const need = framing(view, extent);
-  const halfH = Math.max(need.h, need.w / aspect) * 1.08;
-  return { halfW: halfH * aspect, halfH };
-}
 
 export default function ThreeView({ parts, view, width, height, color }) {
   const host = useRef(null);
@@ -158,13 +103,26 @@ export default function ThreeView({ parts, view, width, height, color }) {
     /* three.js allocates GPU buffers a garbage collector cannot see, so every
        one is kept and handed back when the rocket changes. */
     const owned = [];
-    const edgeMat = new LineBasicMaterial({ color: C.edge });
+    /* Slightly short of solid. An outline at full strength on a shape whose
+       fill is a near neighbour of it reads as a border rather than a drawn
+       edge, and a rocket of thirty parts becomes a mesh of them. */
+    const edgeMat = new LineBasicMaterial({
+      color: C.edge,
+      transparent: true,
+      opacity: 0.8,
+    });
     owned.push(edgeMat);
 
     for (const p of parts) {
       const geo = new CylinderGeometry(p.r, p.r, p.h, SEGMENTS);
       const mat = new MeshBasicMaterial({
         color: p.role === "booster" ? color : FILL[p.role] || C.dim,
+        /* The outline sits exactly on the surface it outlines, so the two
+           compete for the same depth and the edge comes and goes around the
+           silhouette. Push the fill back a hair and it stops. */
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1,
       });
       const mesh = new Mesh(geo, mat);
       /* The model puts a part's base at y; three.js centres a cylinder. */
@@ -180,10 +138,18 @@ export default function ThreeView({ parts, view, width, height, color }) {
 
     const extent = extentOf(parts);
     const mid = extent.height / 2;
-    const { dir, up } = VIEWS[view] || VIEWS.side;
+    const { dir, up } = viewOf(view);
     const { halfW, halfH } = fitOrtho(view, extent, width / height);
 
+    /* Depth cueing. Nothing is lit, so the only thing telling a viewer which
+       column is nearer is that the far one sinks slightly towards the panel it
+       is drawn on — the same trick as a pale distance in a drawing. Fog is
+       linear in camera depth, so near and far are placed to leave the front of
+       the rocket untouched and take about a third out of the back of it; more
+       than that and the far columns stop reading as the same rocket. */
+    const R = Math.hypot(extent.reach, extent.height / 2) || 1;
     const reachOut = Math.max(extent.height, extent.reach * 2) * 3 + 10;
+    scene.fog = new Fog(C.panel, reachOut - R, reachOut + 5.7 * R);
     const camera = new OrthographicCamera(
       -halfW,
       halfW,

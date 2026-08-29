@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { fitOrtho, viewRight } from "../src/ui/components/three-view.jsx";
-import { PANELS, clips } from "./framing.js";
+import { fitOrtho, viewRight } from "../src/ui/views.js";
+import { PANELS, asCylinder, escapes } from "./framing.js";
 
 /* Does the camera see the whole rocket?
 
@@ -29,9 +29,13 @@ describe("the orthographic framing", () => {
     for (const height of [0.5, 1, 2.5, 7, 18, 40, 90, 200])
       for (const reach of [0.15, 0.6, 1.25, 3, 8, 25]) {
         const extent = { height, reach, width: reach * 2 };
-        for (const [view, aspect] of PANELS)
-          if (clips(view, extent, aspect))
-            bad.push(`${view} @${aspect.toFixed(2)}: ${height}x${reach}`);
+        for (const [view, aspect] of PANELS) {
+          const out = escapes(view, asCylinder(extent), extent, aspect);
+          if (out > 1e-9)
+            bad.push(
+              `${view} @${aspect.toFixed(2)}: ${height}x${reach} escapes by ${out.toFixed(3)}`,
+            );
+        }
       }
     expect(bad.slice(0, 6), `${bad.length} views clip the model`).toEqual([]);
   });

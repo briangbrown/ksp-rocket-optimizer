@@ -2,6 +2,7 @@ import { Suspense, lazy, useState } from "react";
 
 import { PACK_BRACE, PACK_JOIN, stackGeometry } from "../../core/geometry.js";
 import { extentOf, modelOf } from "../../core/model.js";
+import { framing } from "../views.js";
 import { PLATE_SHROUD } from "../../core/parts.js";
 import { fmt, hms } from "../format.js";
 import { C } from "../tokens.js";
@@ -716,6 +717,10 @@ export function stepModels(solved, cur, payload) {
 function BuildView({ stages, payload, color, maxAspect = 14 }) {
   const solved = stages.filter((x) => x.sol);
   const [step, setStep] = useState(0);
+  /* Locked cameras, not an orbit: a schematic that moves stops being a
+     drawing. The three-quarter is the one angle that shows a ring of columns
+     as a ring while still reading as an elevation. #63 step 5. */
+  const [angle, setAngle] = useState("side");
   if (!solved.length) return null;
 
   const steps = stagingSteps(solved);
@@ -727,12 +732,18 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
      file pushed. They used to be reasoned back from a parts array that carried
      at most two of a stage's side columns — a side elevation cannot show a ring
      — and that is where #9 lived, and #58, and every geometry bug in this
-     repository: two descriptions of one rocket. */
-  const H = extentOf(model).height;
-  /* A floor so a very small rocket still gets a panel with room in it. */
-  const wMax = Math.max(1, extentOf(model).width);
+     repository: two descriptions of one rocket.
 
-  // ---- side elevation ----
+     Sized for the view actually on screen: turned three-quarters on, a stack is
+     shorter and wider than its elevation, and a panel cut for the elevation
+     would leave it drawn small in the middle of it. `framing` carries no
+     three.js, so asking it costs the bundle nothing. */
+  const need = framing(angle, extentOf(model));
+  const H = Math.max(0.1, need.h * 2);
+  /* A floor so a very small rocket still gets a panel with room in it. */
+  const wMax = Math.max(1, need.w * 2);
+
+  // ---- the elevation panel ----
   const SH = 300,
     pad = 10;
   const scale = Math.min((SH - 2 * pad) / H, 150 / wMax);
@@ -772,13 +783,29 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
           }}
         >
           <div>
-            <div className="eyebrow" style={{ marginBottom: 6 }}>
-              Elevation
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 6,
+              }}
+            >
+              <span className="eyebrow">Elevation</span>
+              <button
+                className="chip"
+                data-on={angle === "iso" ? 1 : 0}
+                style={{ padding: "2px 7px", fontSize: 10 }}
+                onClick={() => setAngle(angle === "iso" ? "side" : "iso")}
+                title="Turn the same model three-quarters on. The plan does not move; it is the same scene from underneath."
+              >
+                ¾
+              </button>
             </div>
             <Suspense fallback={<Loading w={Math.max(sw, 60)} h={sh} />}>
               <ThreeView
                 parts={model}
-                view="side"
+                view={angle}
                 width={Math.max(sw, 60)}
                 height={sh}
                 color={color}
