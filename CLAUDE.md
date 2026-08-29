@@ -162,9 +162,12 @@ these twelve. Re-bless it exactly as deliberately as the design snapshot.
     test/grid.js                          the configuration grid and its axes
     test/signature.js                     reducing a design to stable text
     test/app-harness.js                   driving the app in jsdom
+    test/framing.js                       whether a camera sees the whole rocket
     test/design-snapshot.test.js          the design snapshot
     test/render-sweep.test.jsx            the render sweep
     test/panel-containment.test.jsx       every part inside its panel
+    test/model.test.js                    the rocket as shapes, checked as shapes
+    test/three-view.test.js               the orthographic framing, on numbers
     test/seam-contract.test.js            planMission stays serialisable
     test/seam-input.test.jsx              what the app actually hands the seam
     test/resolve-wiring.test.jsx          does a control change re-solve
@@ -260,6 +263,33 @@ implying CI covered it.
   updated" is not evidence that anything did — the slider moving is, because the
   range input renders the committed value. Two fixes were built on the wrong
   reading of this before the real cause turned up.
+- **A WebGL canvas drawn once needs `preserveDrawingBuffer`.** `ThreeView`
+  renders a frame when the rocket or the view changes and never on a loop,
+  because the cameras do not move. The drawing buffer is cleared once it has
+  been composited, so without the flag the schematic is right on the frame that
+  draws it and can come back blank on the next repaint. Nothing in the suite
+  can see this: jsdom has no WebGL and never constructs a renderer. The other
+  half of the same fact: a canvas holds its last frame until something else is
+  drawn, so a render effect that returns early on an empty model leaves the
+  previous rocket up. The plan view showed the step before the last one that
+  way — the elevation, which always has a payload in it, was right alongside
+  it. Clear rather than return.
+- **`renderer.setSize(w, h, false)` does not size the canvas.** The third
+  argument suppresses the CSS width and height, and the canvas is
+  `devicePixelRatio` times bigger in device pixels — so it lays out at that
+  size and draws at twice the panel on any screen with a ratio above 1. It
+  looks correct in a container at ratio 1 and wrong on a phone. Let three.js
+  set the style.
+- **Every camera must send world +x to the right of the screen.** Columns start
+  at +x and work round, and the elevation draws that first pair left and right,
+  so a view that disagrees draws the same rocket mirrored against the one next
+  to it — a three-column stage leaned right in the elevation and left in the
+  plan. three.js builds its basis as `right = up x (eye - target)`, so the
+  plan's up vector decides this, not its position. Looking up from underneath,
+  +x on the right forces +z to the top: the SVG plan's z-down cannot be kept as
+  well, and a camera above the rocket that keeps both puts the payload over the
+  engines. `viewRight` is the invariant, and `test/three-view.test.js` checks
+  it without a renderer.
 
 ---
 
