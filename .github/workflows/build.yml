@@ -31,9 +31,9 @@ jobs:
         run: npm run lint
 
       # Runs before the build: a moved design, a blank render or a part drawn
-      # outside its panel is the failure worth seeing first, and the build
-      # passing says nothing about any of them.
-      - name: Design snapshot, render sweep, panel containment and mission sweep
+      # outside the shape the solver sized it at is the failure worth seeing
+      # first, and the build passing says nothing about any of them.
+      - name: Design snapshot, render sweep, model checks and mission sweep
         run: npm test
 
       - name: Build
