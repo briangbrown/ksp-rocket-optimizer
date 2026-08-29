@@ -181,10 +181,22 @@ function _fitStructure(opt) {
   const split = coup && hasStageBelow;
   const rejoin = split && !plated ? coup : null;
 
-  /* A plate on the stage above sits at that stage's bottom, which is this
-     interface, so it separates the two and this stage buys nothing. */
+  /* One, at the top of the stage, on the axis — or none, because a plate on the
+     stage above sits at that stage's bottom, which is this interface, so it
+     separates the two and this stage buys nothing.
+
+     It used to be `split ? perEng * stacks : stacks`, and both of those
+     disagreed with the rocket the model draws. `perEng` counts the nodes a
+     cluster presents at its *bottom*, and this part is at the top: model.js
+     puts it there — "the decoupler sits at the top of the stage, on the axis"
+     — and `plateAbove` zeroing it only makes sense for a top-mounted part.
+     Worse, a plated stage was charged one per engine for a joint its own plate
+     already makes, which is the same joint `plateAbove` tells the stage below
+     not to pay for. And `stacks` contradicted the line eight below it: radial
+     stacks never separate alone, so the joiners hold them and they buy no
+     decoupler of their own. #78 */
   const dd = decouplerFor(unlocked, stackD, excluded);
-  const nDec = plateAbove ? 0 : split ? perEng * stacks : stacks;
+  const nDec = plateAbove ? 0 : 1;
   const dec =
     nDec === 0
       ? { m: 0, n: null, cost: 0, d: stackD, qty: 0, viaPlateAbove: true }
