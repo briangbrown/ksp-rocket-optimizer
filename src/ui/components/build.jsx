@@ -9,6 +9,7 @@ import {
   stageGeom,
   tankStackLen,
   widthOf,
+  ringPositions,
 } from "../../core/geometry.js";
 import { PLATE_SHROUD, diaOf } from "../../core/parts.js";
 import { fmt, hms } from "../format.js";
@@ -628,17 +629,6 @@ const srbLen = (part) => {
   const d = diaOf(part);
   return part.fuelM / 1.5 / ((Math.PI / 4) * d * d) + 0.7 * d;
 };
-
-function ringPositions(n) {
-  const centre = n === 1 || n === 5 || n === 7 || n === 9 ? 1 : 0;
-  const ring = n - centre;
-  const pts = centre ? [[0, 0]] : [];
-  for (let i = 0; i < ring; i++) {
-    const th = (i / ring) * 2 * Math.PI - Math.PI / 2;
-    pts.push([Math.cos(th), Math.sin(th)]);
-  }
-  return pts;
-}
 
 function BuildView({ stages, payload, color, maxAspect = 14 }) {
   const solved = stages.filter((x) => x.sol);

@@ -184,11 +184,18 @@ describe("a control change re-solves", () => {
   }, 300_000);
 
   it("the slenderness limit changes the design", async () => {
+    /* On a 1 t payload, not the 2.5 t default. The limit only reaches the
+       design when it binds, and the default stack comes out at 5.84:1 — under
+       the slider's own minimum of 6, so no value it offers can touch it. A 1 t
+       payload wants a pencil: 13.57:1 left alone, 5.02:1 held to 6. */
     await mount();
+    const fields0 = numericFields();
+    await setField(fields0[0], 1);
+    await settle();
     const before = design();
     const fields = numericFields();
     expect(fields[3]?.value, "fourth field is no longer max aspect").toBe("14");
-    await setField(fields[3], 4);
+    await setField(fields[3], 6);
     await settle();
     expect(
       design(),
