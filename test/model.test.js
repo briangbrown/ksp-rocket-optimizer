@@ -4,7 +4,7 @@ import { extentOf, modelOf } from "../src/core/model.js";
 import { stackGeometry, stageSize } from "../src/core/geometry.js";
 import { stagingSteps, stepModels } from "../src/ui/components/build.jsx";
 import { missionCases } from "./grid.js";
-import { PANELS, clips } from "./framing.js";
+import { PANELS, escapes } from "./framing.js";
 
 /* The rocket as shapes, checked as shapes.
 
@@ -138,9 +138,13 @@ describe("the build model", () => {
     for (const { name, parts } of MODELS) {
       if (!parts.length) continue;
       const extent = extentOf(parts);
-      for (const [view, aspect] of PANELS)
-        if (clips(view, extent, aspect))
-          bad.push(`${name}: ${view} @${aspect.toFixed(2)} clips the rocket`);
+      for (const [view, aspect] of PANELS) {
+        const out = escapes(view, parts, extent, aspect);
+        if (out > EPS)
+          bad.push(
+            `${name}: ${view} @${aspect.toFixed(2)} clips by ${out.toFixed(3)} m`,
+          );
+      }
     }
     expect(bad.slice(0, 6), `${bad.length} views clip the rocket`).toEqual([]);
   }, 300_000);
