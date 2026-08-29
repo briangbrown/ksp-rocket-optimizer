@@ -142,13 +142,28 @@ all; and that the same destinations still produce a design, recorded in
 one that earns its keep — see the `fmt` entry below for why a text scan alone is
 not enough.
 
-**The panel-containment check** reads the SVG shapes in the build view and
-asserts every part lies inside its panel at every staging step, across ten
-destinations and all three objectives on Dres, checking between 4 and 37 shapes
-per step. SVG geometry lives in attributes rather than CSS, so it survives jsdom
-intact — which is why it catches drawing bugs the render sweep cannot. The
-elevation is drawn with overflow visible, so an escaping part is never clipped:
-it silently overlaps the rest of the page, and nothing throws.
+**The model checks** stand where the panel-containment check used to. That one
+read the SVG rectangles out of jsdom and asserted every part lay inside its
+panel; #63 step 4 deleted the SVG, and jsdom has no WebGL to draw a replacement,
+so there is nothing left to read. The questions moved to `modelOf` instead,
+which is stronger: no two parts overlap, the bottom stage reaches no further
+than `stageSize` says it does, the model stands exactly as tall as
+`stackGeometry` measured it for the slenderness limit, and every camera's
+frustum covers it. A part overlapping another is a rocket that cannot be built,
+whatever it is drawn with, where containment only ever said the drawing was
+tidy.
+
+The walk is the build view's own — `stagingSteps` and `stepModels` are exported
+from `build.jsx` and called by both the component and the test, so what is
+checked is what a user is shown, including the boosters-away step that the
+solver knows nothing about. Containment in the 3D view is true by construction:
+`fitOrtho` sizes the frustum from the same extent the panel is sized from, and
+`test/three-view.test.js` pins that arithmetic without a renderer.
+
+What none of this reaches is whether three.js draws the model it is handed.
+Nothing in the suite has ever made a WebGL context. Two bugs shipped through it
+already — a canvas holding a stale frame, and a camera mirroring the x axis —
+and both were found by a person looking at the preview.
 
 **The mission sweep** solves twelve whole missions through `planMission` — four
 destinations by three payloads at tier 9 — and pins the delivered stages against
@@ -165,7 +180,6 @@ these twelve. Re-bless it exactly as deliberately as the design snapshot.
     test/framing.js                       whether a camera sees the whole rocket
     test/design-snapshot.test.js          the design snapshot
     test/render-sweep.test.jsx            the render sweep
-    test/panel-containment.test.jsx       every part inside its panel
     test/model.test.js                    the rocket as shapes, checked as shapes
     test/three-view.test.js               the orthographic framing, on numbers
     test/seam-contract.test.js            planMission stays serialisable

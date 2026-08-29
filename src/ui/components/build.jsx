@@ -1,19 +1,8 @@
 import { Suspense, lazy, useState } from "react";
 
-import {
-  PACK_BRACE,
-  PACK_JOIN,
-  PART_H,
-  clusterSpan,
-  engineLen,
-  stackGeometry,
-  stageGeom,
-  tankStackLen,
-  widthOf,
-  ringPositions,
-} from "../../core/geometry.js";
+import { PACK_BRACE, PACK_JOIN, stackGeometry } from "../../core/geometry.js";
 import { extentOf, modelOf } from "../../core/model.js";
-import { PLATE_SHROUD, diaOf } from "../../core/parts.js";
+import { PLATE_SHROUD } from "../../core/parts.js";
 import { fmt, hms } from "../format.js";
 import { C } from "../tokens.js";
 import { Mini, Stat } from "./controls.jsx";
@@ -643,20 +632,11 @@ function PartsTable({ stages, payload, hardware, color }) {
    that they need lifting to read as a border on a dark panel, and light enough
    when filled that the label has to flip to dark ink. */
 /* ------------------------------- build view -------------------------------
-   Side and plan elevations of whatever the solver just produced, drawn from the
-   same geometry the drag model uses so the picture and the physics cannot drift
-   apart. Solid fuel is 7.5 kg per 5 litre unit, so a booster's casing length
-   comes out of its fuel mass the same way a tank's does. */
-/* Solid fuel is 7.5 kg per 5 litre unit, so 1.5 t per cubic metre. The grain
-   alone left the small boosters far too stubby — a Flea came out at 0.6 m — so
-   add a nozzle and closure allowance that scales with bore. Schematic, not
-   exact: this lands within about 20% across Flea to Kickback. */
-const srbLen = (part) => {
-  const real = PART_H[part.n];
-  if (real !== undefined) return real;
-  const d = diaOf(part);
-  return part.fuelM / 1.5 / ((Math.PI / 4) * d * d) + 0.7 * d;
-};
+   Side and plan views of whatever the solver just produced, projected from the
+   one model in core/model.js so the picture and the physics cannot drift apart.
+   Both were drawn here as SVG once, from two passes over the rocket that were
+   free to disagree; #63 replaced them with two cameras on a single scene, and
+   step 4 took the drawing out. What is left is layout and figures. */
 
 /* Holds the panel's space while the 3D chunk arrives, so the layout does not
    jump when it does. */
@@ -671,15 +651,38 @@ const Loading = ({ w, h }) => (
   />
 );
 
-function BuildView({ stages, payload, color, maxAspect = 14 }) {
-  const solved = stages.filter((x) => x.sol);
-  const [step, setStep] = useState(0);
-  const [view3d, setView3d] = useState(true);
-  if (!solved.length) return null;
+/* Where there is no context to draw into. The stage stepper, the figures below
+   the panels and the parts table are all still there and all still say what the
+   rocket is, so this is a missing picture rather than a missing answer — which
+   is why it is a line rather than a second drawing kept alive for it. #63. */
+const NoWebGL = () => (
+  <div
+    style={{
+      border: `1px solid ${C.rule}`,
+      borderRadius: 3,
+      padding: "18px 16px",
+      color: C.muted,
+      fontSize: 12,
+      maxWidth: 460,
+    }}
+  >
+    This browser has no WebGL, so the rocket cannot be drawn. Every part of it
+    is in the stage table below.
+  </div>
+);
 
-  const hasBoost = !!solved[0].sol.boosters;
+/* The steps the stepper offers. Boosters leave on a step of their own, before
+   the stage that carries them, so `drop` and `boost` are separate: what has
+   been staged away, and whether what is left still has its boosters on.
+
+   Exported with `stepModels` because the model checks have to ask the build
+   view what it draws rather than deriving it a second time. The walk is not a
+   property of the solver — `planMission` knows nothing about a boosters-away
+   step — so a test that slices the stages itself is checking a rocket the
+   application never shows. #63 step 4. */
+export function stagingSteps(solved) {
   const steps = [{ label: "On the pad", drop: 0, boost: true }];
-  if (hasBoost)
+  if (solved.length && solved[0].sol.boosters)
     steps.push({
       label: "Boosters away · core burns on",
       drop: 0,
@@ -692,147 +695,42 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
       boost: false,
     }),
   );
-  const cur = steps[Math.min(step, steps.length - 1)];
+  return steps;
+}
+
+/* What a step draws: the whole vehicle for the elevation, and the bottom live
+   stage for the plan. Boosters are filtered out once they have gone, so the
+   panel is sized for the rocket on screen rather than for parts that left. */
+export function stepModels(solved, cur, payload) {
   const live = solved.slice(cur.drop);
-
-  // stack it bottom-up in metres
-  const parts = [];
-  let y = 0,
-    wMax = Math.max(1, Math.cbrt(payload) * 1.2);
-  live.forEach((st, i) => {
-    const sol = st.sol;
-    /* Same geometry the bounding box and the slenderness check use. Working it
-       out again here is what let the drawing describe a different rocket. */
-    const g = stageGeom(sol);
-    const { td, ed, S, perEng } = g;
-    /* One radius for the whole stage, from stageGeom. The side columns used to
-       be offset by each part's own width, so an engine and the tank above it in
-       the same column did not line up. #58 */
-    const ring = g.ringR;
-    const span = g.engineSpan; // the engine block, not the tank ring
-    const el = g.engine,
-      tl = g.tank;
-    if (el > 0)
-      parts.push({
-        kind: "engine",
-        y,
-        h: el,
-        w: span,
-        n: perEng,
-        ed,
-        td,
-        S,
-        ring,
-      });
-    y += el;
-    /* Carried on every column, like the engine and the tanks either side of
-       them. Without S these were drawn on the centre column alone, and the
-       radial columns of a multi-stack stage showed a gap where their engines
-       should meet their tanks — a stack that could not be built.
-
-       The solver prices one coupler for the whole stage and sizes it for every
-       engine on it, while the geometry treats the cluster as per column. Which
-       of those is right is a physics question, not a drawing one, and it is
-       filed separately. Drawing the column contiguous is correct under either
-       answer; the gap was correct under neither. */
-    if (g.coupler > 0) {
-      parts.push({
-        kind: "adapter",
-        y,
-        h: g.coupler,
-        w: sol.coupler.top,
-        S,
-        ring,
-      });
-      y += g.coupler;
-    }
-    g.adapters.forEach((a2) => {
-      parts.push({ kind: "adapter", y, h: a2.h, w: a2.w, S, ring });
-      y += a2.h;
-    });
-    /* A packed run is drawn band by band: any spare tanks sit on the centre
-       column at their own width, then each level of the ring is one tank tall and
-       as wide as the ring. Drawing the whole run as a single rectangle with two
-       tanks stuck on the side described a shape that does not exist when the ring
-       is more than one level deep. */
-    if (tl > 0) {
-      if (g.pack) {
-        const pk = g.pack;
-        const spareH = pk.spare * pk.levelH;
-        const rest = tl - spareH - pk.levels * pk.levelH;
-        if (rest > 0.01) {
-          parts.push({ kind: "tank", y, h: rest, w: td, S, ring });
-          y += rest;
-        }
-        for (let L = 0; L < pk.levels; L++) {
-          parts.push({
-            kind: "tank",
-            y,
-            h: pk.levelH,
-            w: td,
-            S,
-            ring,
-            pack: { r: pk.r, w: pk.w, td: pk.td },
-          });
-          y += pk.levelH;
-        }
-        if (spareH > 0.01) {
-          parts.push({ kind: "tank", y, h: spareH, w: td, S, ring });
-          y += spareH;
-        }
-        y -= tl; // the common y += tl below adds it back
-      } else {
-        parts.push({ kind: "tank", y, h: tl, w: td, S, ring, pack: null });
-      }
-    }
-    y += tl;
-    if (sol.decoupler) {
-      const dh = g.decoupler; // shared with stageSize, not recomputed
-      parts.push({ kind: "struct", y, h: dh, w: td });
-      y += dh;
-    }
-    if (i === 0 && cur.boost && sol.boosters) {
-      /* A liquid column is drawn at its tank diameter and its real stacked
-         height, not the engine's — an SRB is one part, a column is a stack. */
-      const bo = sol.boosters;
-      const bd = bo.part.column
-        ? diaOf(bo.part.column.list[0].t)
-        : widthOf(bo.part, diaOf(bo.part));
-      const bl = bo.part.column
-        ? tankStackLen(bo.part.column) + engineLen(bo.part)
-        : srbLen(bo.part);
-      // they sit on the pad alongside the core, nozzles roughly level
-      parts.push({ kind: "booster", y: 0, h: bl, w: bd, n: bo.n, core: td });
-    }
-  });
-  const geo = stackGeometry(stages, payload);
+  /* Sized from the payload's mass, not the width the user set — see #67. */
   const payD = Math.max(0.9, Math.cbrt(payload) * 1.1);
-  parts.push({ kind: "payload", y, h: payD * 1.3, w: payD });
-  /* Measure both axes from what is actually drawn. Deriving an extent separately
-     from the parts let the two disagree: anything wider than the estimate ran off
-     the side, and a booster taller than the stage it is strapped to ran off the
-     top, since the height came from the stack alone. */
-  /* The extent comes from the model, not from a second pass over the shapes
-     this file happens to have pushed.
-
-     Both numbers used to be worked out here, from a parts array that carries
-     at most two of a stage's side columns — a side elevation cannot show a ring
-     — so the width had to be reasoned back rather than measured. That is where
-     #9 lived, and #58, and it is the shape of every geometry bug in this
-     repository: two descriptions of one rocket. modelOf is the description
-     now, and if it ever misses a part the panel shrinks and panel-containment
-     fails, which is the check working rather than a new risk. #63 */
-  /* Boosters leave at their own step, so the model is filtered the way the
-     shapes are rather than the panel being sized for parts no longer on the
-     rocket. */
   const attached = (p) => cur.boost || p.role !== "booster";
-  /* 3D where the browser will give us a context, the flat drawing where it
-     will not — which is also what every jsdom suite sees, so the checks that
-     read SVG keep working while both paths exist. #63 step 3. */
-  const solid = view3d && canRender3D();
-  const model = modelOf(live, payload, payD).filter(attached);
+  return {
+    live,
+    model: modelOf(live, payload, payD).filter(attached),
+    planModel: modelOf(live.slice(0, 1), payload, payD).filter(attached),
+  };
+}
+
+function BuildView({ stages, payload, color, maxAspect = 14 }) {
+  const solved = stages.filter((x) => x.sol);
+  const [step, setStep] = useState(0);
+  if (!solved.length) return null;
+
+  const steps = stagingSteps(solved);
+  const cur = steps[Math.min(step, steps.length - 1)];
+  const { live, model, planModel } = stepModels(solved, cur, payload);
+
+  const geo = stackGeometry(stages, payload);
+  /* Both numbers come from the model, not from a second pass over shapes this
+     file pushed. They used to be reasoned back from a parts array that carried
+     at most two of a stage's side columns — a side elevation cannot show a ring
+     — and that is where #9 lived, and #58, and every geometry bug in this
+     repository: two descriptions of one rocket. */
   const H = extentOf(model).height;
-  wMax = Math.max(wMax, extentOf(model).width);
+  /* A floor so a very small rocket still gets a panel with room in it. */
+  const wMax = Math.max(1, extentOf(model).width);
 
   // ---- side elevation ----
   const SH = 300,
@@ -840,269 +738,12 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
   const scale = Math.min((SH - 2 * pad) / H, 150 / wMax);
   const sw = wMax * scale + 2 * pad,
     sh = H * scale + 2 * pad;
-  const px = (v) => v * scale;
-  const fill = {
-    tank: C.tank,
-    engine: C.engine,
-    booster: color,
-    payload: C.payloadFill,
-    adapter: C.violet,
-    struct: C.dim,
-  };
-
-  const sideParts = [];
-  parts.forEach((q, i) => {
-    const yTop = sh - pad - px(q.y + q.h);
-    if (q.kind === "booster") {
-      // one ring, drawn as the two you would see side-on
-      const xs = [sw / 2 - px(q.core / 2) - px(q.w), sw / 2 + px(q.core / 2)];
-      xs.forEach((x, j) =>
-        sideParts.push(
-          <rect
-            key={`b${i}-${j}`}
-            x={x}
-            y={yTop}
-            width={px(q.w)}
-            height={px(q.h)}
-            rx={px(q.w) / 3}
-            fill={fill.booster}
-            opacity={0.9}
-            stroke={C.edge}
-            strokeWidth="0.8"
-          />,
-        ),
-      );
-      sideParts.push(
-        <text
-          key={`bn${i}`}
-          x={sw / 2 + px(q.core / 2 + q.w / 2)}
-          y={yTop - 3}
-          textAnchor="middle"
-          fontSize="8"
-          fill={color}
-          fontFamily="monospace"
-        >
-          {q.n}×
-        </text>,
-      );
-      return;
-    }
-    sideParts.push(
-      <rect
-        key={i}
-        x={sw / 2 - px(q.w) / 2}
-        y={yTop}
-        width={px(q.w)}
-        height={px(q.h)}
-        rx={q.kind === "payload" ? px(q.w) / 4 : 1.5}
-        fill={fill[q.kind]}
-        stroke={C.edge}
-        strokeWidth="0.8"
-      />,
-    );
-    /* the other columns of a parallel stage, drawn either side of the middle */
-    /* Outer stacks ring the core, so from the side you see the two widest of
-       them flanking it — drawing every one in a row would be a lie about the
-       width. */
-    /* A packed tank block is a centre column with a ring around it, so from the
-       side you see the two nearest ring tanks flanking the middle — the same way
-       parallel stacks are drawn, and for the same reason. */
-    if (q.pack)
-      for (let c = 1; c <= 2; c++) {
-        const off = ((c % 2 ? 1 : -1) * (q.pack.w - q.pack.td)) / 2;
-        sideParts.push(
-          <rect
-            key={`${i}k${c}`}
-            x={sw / 2 - px(q.pack.td) / 2 + px(off)}
-            y={yTop}
-            width={px(q.pack.td)}
-            height={px(q.h)}
-            rx={1.5}
-            fill={fill[q.kind]}
-            stroke={C.edge}
-            strokeWidth="0.8"
-            opacity="0.92"
-          />,
-        );
-      }
-    if (q.S > 1)
-      for (let c = 1; c <= Math.min(2, q.S - 1); c++) {
-        const off = (c % 2 ? 1 : -1) * q.ring;
-        sideParts.push(
-          <rect
-            key={`${i}p${c}`}
-            x={sw / 2 - px(q.w) / 2 + px(off)}
-            y={sh - pad - px(q.y) - px(q.h)}
-            width={px(q.w)}
-            height={px(q.h)}
-            rx={1.5}
-            fill={fill[q.kind]}
-            stroke={C.edge}
-            strokeWidth="0.8"
-            opacity="0.92"
-          />,
-        );
-      }
-    if (q.kind === "engine" && q.n > 1)
-      sideParts.push(
-        <text
-          key={`n${i}`}
-          x={sw / 2}
-          y={yTop + px(q.h) / 2 + 3}
-          textAnchor="middle"
-          fontSize="9"
-          fill={C.onLight}
-          fontFamily="monospace"
-          fontWeight="700"
-        >
-          {q.n}×
-        </text>,
-      );
-  });
-
-  // ---- plan view: widest live stage, plus any boosters ----
-  const bottom = live[0] && live[0].sol;
-  /* Outside the guard below, because the last step has no stage left and still
-     has a payload to draw. Asked for no stages modelOf describes the payload
-     alone, which is what the elevation shows at that step — computing this
-     only when a stage remains left the plan holding the frame it drew for the
-     step before, and the payload looking like the stage it had just shed. */
-  const planModel = modelOf(live.slice(0, 1), payload, payD).filter(attached);
+  /* The plan panel is square. Everything that used to stand here to fill it —
+     the ring of stacks, the boosters outside it, the packed ring, the payload,
+     and four expressions for how far the whole thing reached — was a second
+     description of a rocket the model already describes, each with a comment
+     recording the time it was wrong. Gone rather than corrected again. */
   const PS = 150;
-  const plan = [];
-  if (bottom) {
-    const td = bottom.tanks
-      ? diaOf(bottom.tanks.list[0].t)
-      : diaOf(bottom.engine);
-    const ed = widthOf(bottom.engine, diaOf(bottom.engine));
-    const S = bottom.stacks || 1;
-    /* Same description, restricted to what the plan shows: the bottom live
-       stage, and the payload over it, with the boosters dropped at their own
-       step the way the shapes are.
-
-       Four expressions used to work this out — the ring of stacks, the
-       boosters outside it, the packed ring, the payload — each with its own
-       comment recording the time it was wrong. They are gone rather than
-       corrected again. */
-    const planReach = extentOf(planModel).reach;
-    const ringOff = S > 1 ? stageGeom(bottom).ringR : 0;
-    /* One description again: whatever the model says this stage reaches, which
-       is what the elevation is sized from too. Four expressions used to work it
-       out here — the cluster, the boosters, the packed ring, the payload — and
-       each was a chance to disagree with the shapes actually drawn. That is
-       #9 and #58 and the plan view half of #63. */
-    const reach = planReach;
-    const ps = (PS - 16) / (2 * reach);
-    /* Where a stage runs parallel columns the plan is the arrangement seen from
-       above: two side by side, three in a triangle. Each carries its own engines,
-       so the cluster ring is drawn per column. */
-    /* One in the middle, the rest evenly around it — the arrangement you get
-       from radial symmetry in the VAB. */
-    /* Start the ring at the right and work round, so the first pair sits left and
-       right — which is the pair the side elevation draws. Starting at the top put
-       the plan out of step with the elevation for no reason. */
-    /* The radius comes from stageGeom, which is the one authority on it. It
-       used to be `td` here, so a column wider than its tank overlapped its
-       neighbours — #58. */
-    const ringR = stageGeom(bottom).ringR;
-    /* Each column carries the angle it sits at, because what is bolted to it
-       turns with it. Radial symmetry in the VAB rotates every copy by the
-       symmetry angle, so a pair of engines on a column at 120 degrees points
-       along that column, not along whichever axis the centre one uses. Drawing
-       every cluster at the same orientation put two engines one above the other
-       on all three columns of a three-stack stage. */
-    const centres = [[0, 0, 0]];
-    for (let i = 0; i < S - 1; i++) {
-      const th = (i / (S - 1)) * 2 * Math.PI;
-      centres.push([Math.cos(th) * ringR, Math.sin(th) * ringR, th]);
-    }
-    /* Turn a position in a column's own frame into the plan's frame. */
-    const turn = (cx, cy, th) => [
-      cx * Math.cos(th) - cy * Math.sin(th),
-      cx * Math.sin(th) + cy * Math.cos(th),
-    ];
-    const perEng = bottom.n / S;
-    const rr = ((clusterSpan(perEng, ed) - ed) / 2) * ps;
-    /* The plan is the view looking up from underneath, so it is drawn back to
-       front: whatever sits highest goes down first and the engines, nearest the
-       viewer, go last. Any packed tank ring is above the engines, so it belongs
-       in that first pass. */
-    const pk = bottom.packed;
-    centres.forEach(([ox, oy, oth], c) => {
-      const X = PS / 2 + ox * ps,
-        Y = PS / 2 + oy * ps;
-      plan.push(
-        <circle
-          key={`core${c}`}
-          cx={X}
-          cy={Y}
-          r={(td / 2) * ps}
-          fill={fill.tank}
-          stroke={C.edge}
-          strokeWidth="0.9"
-        />,
-      );
-      if (pk) {
-        const rk = ((pk.width - diaOf(pk.tank)) / 2) * ps;
-        for (let i = 0; i < pk.r; i++) {
-          const th = (i / pk.r) * 2 * Math.PI + oth; // right first, matching the elevation
-          plan.push(
-            <circle
-              key={`k${c}_${i}`}
-              cx={X + Math.cos(th) * rk}
-              cy={Y + Math.sin(th) * rk}
-              r={(diaOf(pk.tank) / 2) * ps}
-              fill={fill.tank}
-              stroke={C.edge}
-              strokeWidth="0.8"
-              opacity="0.92"
-            />,
-          );
-        }
-      }
-    });
-    /* Engines last: they are the closest thing to you looking up the stack. */
-    centres.forEach(([ox, oy, oth], c) => {
-      const X = PS / 2 + ox * ps,
-        Y = PS / 2 + oy * ps;
-      ringPositions(perEng).forEach(([cx0, cy0], i) => {
-        const [cx, cy] = turn(cx0, cy0, oth);
-        return plan.push(
-          <circle
-            key={`e${c}_${i}`}
-            cx={X + cx * rr}
-            cy={Y + cy * rr}
-            r={(ed / 2) * ps}
-            fill={fill.engine}
-            stroke={C.edge}
-            strokeWidth="0.8"
-          />,
-        );
-      });
-    });
-    if (cur.boost && bottom.boosters) {
-      const b = bottom.boosters;
-      const bd = b.part.column
-        ? diaOf(b.part.column.list[0].t)
-        : widthOf(b.part, diaOf(b.part));
-      const br = ((S > 1 ? ringR : td / 2) + bd / 2) * ps;
-      for (let i = 0; i < b.n; i++) {
-        const th = (i / b.n) * 2 * Math.PI; // right first, matching the elevation
-        plan.push(
-          <circle
-            key={`b${i}`}
-            cx={PS / 2 + Math.cos(th) * br}
-            cy={PS / 2 + Math.sin(th) * br}
-            r={(bd / 2) * ps}
-            fill={fill.booster}
-            opacity={0.75}
-            stroke={C.rule}
-            strokeWidth="0.6"
-          />,
-        );
-      }
-    }
-  }
 
   return (
     <div>
@@ -1120,38 +761,20 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
           </button>
         ))}
       </div>
-      <div
-        style={{
-          display: "flex",
-          gap: 22,
-          flexWrap: "nowrap",
-          alignItems: "flex-end",
-          overflowX: "auto",
-        }}
-      >
-        <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 6,
-            }}
-          >
-            <span className="eyebrow">Elevation</span>
-            {canRender3D() && (
-              <button
-                className="chip"
-                data-on={view3d ? 1 : 0}
-                style={{ padding: "2px 7px", fontSize: 10 }}
-                onClick={() => setView3d(!view3d)}
-                title="Both views are the same model; this is how it is drawn"
-              >
-                3D
-              </button>
-            )}
-          </div>
-          {solid ? (
+      {canRender3D() ? (
+        <div
+          style={{
+            display: "flex",
+            gap: 22,
+            flexWrap: "nowrap",
+            alignItems: "flex-end",
+            overflowX: "auto",
+          }}
+        >
+          <div>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>
+              Elevation
+            </div>
             <Suspense fallback={<Loading w={Math.max(sw, 60)} h={sh} />}>
               <ThreeView
                 parts={model}
@@ -1161,21 +784,11 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
                 color={color}
               />
             </Suspense>
-          ) : (
-            <svg
-              width={Math.max(sw, 60)}
-              height={sh}
-              style={{ overflow: "visible" }}
-            >
-              {sideParts}
-            </svg>
-          )}
-        </div>
-        <div>
-          <div className="eyebrow" style={{ marginBottom: 6 }}>
-            Plan
           </div>
-          {solid ? (
+          <div>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>
+              Plan
+            </div>
             <Suspense fallback={<Loading w={PS} h={PS} />}>
               <ThreeView
                 parts={planModel}
@@ -1185,21 +798,11 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
                 color={color}
               />
             </Suspense>
-          ) : (
-            <svg width={PS} height={PS}>
-              <circle
-                cx={PS / 2}
-                cy={PS / 2}
-                r={(PS - 16) / 2}
-                fill="none"
-                stroke={C.rule}
-                strokeDasharray="2 3"
-              />
-              {plan}
-            </svg>
-          )}
+          </div>
         </div>
-      </div>
+      ) : (
+        <NoWebGL />
+      )}
       <div
         style={{
           display: "flex",
@@ -1676,11 +1279,4 @@ function AscentPanel({ a, color }) {
   );
 }
 
-export {
-  AscentPanel,
-  BuildView,
-  PartsTable,
-  StageStack,
-  ringPositions,
-  srbLen,
-};
+export { AscentPanel, BuildView, PartsTable, StageStack };

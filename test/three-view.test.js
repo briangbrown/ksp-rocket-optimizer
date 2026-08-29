@@ -4,9 +4,9 @@ import { PANELS, clips } from "./framing.js";
 
 /* Does the camera see the whole rocket?
 
-   `test/panel-containment.test.jsx` reads the SVG and asserts nothing escapes
-   its panel. There is no equivalent for the 3D view: jsdom has no WebGL, so
-   there are no pixels to measure and nothing that produces any. #63.
+   There are no pixels to measure and nothing that produces any: jsdom has no
+   WebGL. `test/panel-containment.test.jsx` could read the SVG rectangles while
+   there were any; #63 step 4 removed them.
 
    What can be checked without a GPU is the claim the 3D view rests on — that
    the frustum is derived from the model's own extent, so a part cannot fall

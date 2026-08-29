@@ -1,20 +1,27 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { planMission } from "../src/core/plan.js";
 import { extentOf, modelOf } from "../src/core/model.js";
-import { stageSize } from "../src/core/geometry.js";
+import { stackGeometry, stageSize } from "../src/core/geometry.js";
+import { stagingSteps, stepModels } from "../src/ui/components/build.jsx";
 import { missionCases } from "./grid.js";
 import { PANELS, clips } from "./framing.js";
 
 /* The rocket as shapes, checked as shapes.
 
-   `test/panel-containment.test.jsx` asserts that nothing the build view draws
-   escapes its panel. That is a statement about the picture, and it works only
-   because SVG geometry survives jsdom — the 3D view in #63 has no pixels to
-   read, and jsdom has no WebGL to make any.
+   `test/panel-containment.test.jsx` used to assert that nothing the build view
+   draws escapes its panel, by reading the SVG rectangles out of jsdom. Step 4
+   of #63 deleted the SVG, and there is nothing to read in its place: jsdom has
+   no WebGL and produces no pixels.
 
-   So the checks move to the model, where they are stronger anyway. A part
-   overlapping another part is a rocket that cannot be built, whatever it is
-   drawn with, and containment only ever said the drawing was tidy. #63 step 1.
+   The checks live here instead, and are stronger for it. A part overlapping
+   another part is a rocket that cannot be built, whatever it is drawn with,
+   where containment only ever said the drawing was tidy — and containment in
+   the 3D view is true by construction anyway, since the frustum is sized from
+   the same extent the panel is.
+
+   The walk comes from the build view itself. `stagingSteps` and `stepModels`
+   are what the component calls, so these are the models a user is shown,
+   including the boosters-away step, which the solver knows nothing about.
 
    Millimetres, because these are sums of measured drag-cube dimensions and
    parts are meant to touch. Real failures here run to metres — the column
@@ -45,12 +52,20 @@ const buildModels = async () => {
     if (!res) continue;
     /* Every staging step, since which parts are present changes with it and
        the bugs this replaces all appeared partway down the stack. */
-    for (let drop = 0; drop < res.stages.length; drop++) {
-      const live = res.stages.slice(drop);
+    const solved = res.stages.filter((x) => x.sol);
+    for (const cur of stagingSteps(solved)) {
+      const { live, model, planModel } = stepModels(
+        solved,
+        cur,
+        c.input.payload,
+      );
       out.push({
-        name: `${c.name} +${drop}`,
+        name: `${c.name} · ${cur.label}`,
+        cur,
         live,
-        parts: modelOf(live, c.input.payload, c.input.payloadDia),
+        payload: c.input.payload,
+        parts: model,
+        planParts: planModel,
       });
     }
   }
@@ -128,6 +143,43 @@ describe("the build model", () => {
           bad.push(`${name}: ${view} @${aspect.toFixed(2)} clips the rocket`);
     }
     expect(bad.slice(0, 6), `${bad.length} views clip the rocket`).toEqual([]);
+  }, 300_000);
+
+  it("stands as tall as the slenderness limit was applied to", () => {
+    /* stackGeometry is what the aspect ratio is measured on and what the
+       maxAspect limit rejects a design by, and the figures under the panels
+       report it. A model taller than that is a rocket drawn more slender than
+       the constraint ever saw. Boosters are excluded from stackGeometry
+       deliberately — they stage away — so this asks it of the steps that have
+       none left. */
+    const bad = [];
+    for (const { name, cur, live, payload, parts } of MODELS) {
+      if (cur.boost || !live.length) continue;
+      const geo = stackGeometry(live, payload);
+      const { height, width } = extentOf(parts);
+      if (Math.abs(height - geo.h) > EPS)
+        bad.push(
+          `${name}: ${height.toFixed(3)} m tall, measured at ${geo.h.toFixed(3)}`,
+        );
+      if (width > geo.w + EPS)
+        bad.push(
+          `${name}: ${width.toFixed(3)} m across, measured at ${geo.w.toFixed(3)}`,
+        );
+    }
+    expect(bad.slice(0, 8), `${bad.length} disagreements`).toEqual([]);
+  }, 300_000);
+
+  it("draws the plan from the stage the elevation stands on", () => {
+    /* The plan shows the bottom live stage. It must never reach further than
+       the whole vehicle does, and it must describe something at every step —
+       it was empty at the last one, and the canvas kept the previous rocket. */
+    const bad = [];
+    for (const { name, parts, planParts } of MODELS) {
+      if (!planParts.length) bad.push(`${name}: nothing in the plan`);
+      else if (extentOf(planParts).reach > extentOf(parts).reach + EPS)
+        bad.push(`${name}: plan reaches past the elevation`);
+    }
+    expect(bad.slice(0, 8), `${bad.length} bad plans`).toEqual([]);
   }, 300_000);
 
   it("describes the payload when every stage has been dropped", () => {
