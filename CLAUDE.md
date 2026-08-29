@@ -250,6 +250,15 @@ implying CI covered it.
 - **`fitStructure` is shared between `solveStage` and `boostedAscent`.** Five
   bugs came from fixing one and not the other: couplers, the thrust limiter, the
   gimbal check, the cluster cap, and a missing decoupler quantity.
+- **A stage buys one decoupler, at its top, on the axis.** The count was
+  `split ? perEng * stacks : stacks`, and both branches disagreed with the
+  rocket `modelOf` draws. `perEng` counts the nodes a cluster presents at its
+  _bottom_; this part is at the top, which is why `plateAbove` zeroing it makes
+  sense and why `stacks` contradicted the line below it — radial stacks are held
+  by joiners and never separate alone. A plated stage was charged one decoupler
+  per engine for the joint its own plate makes, the same joint `plateAbove`
+  tells the stage below not to pay for. It was in the original commit and never
+  revisited, and nothing tied the charge to the drawing until #78.
 - **Stage solutions are shared between candidate chains.** Writing to one leaks
   into another. The tank-packing pass copies before it writes, for exactly this
   reason.

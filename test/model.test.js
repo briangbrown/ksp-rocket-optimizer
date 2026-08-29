@@ -204,6 +204,29 @@ describe("the build model", () => {
     expect(bad.slice(0, 6), `${bad.length} views clip in depth`).toEqual([]);
   }, 300_000);
 
+  it("charges one decoupler a stage, because that is what it draws", () => {
+    /* `modelOf` puts a single decoupler at the top of each stage, on the axis —
+       "the columns hang off the core through joiners rather than separating on
+       their own" — while the solver was charging one per engine on a clustered
+       stage and one per column otherwise. Nothing held the two together, so a
+       plated three-engine stage bought three decouplers for a joint its own
+       plate already made. #78 */
+    const bad = [];
+    for (const { name, live, parts } of MODELS) {
+      const drawn = parts.filter((p) => p.role === "decoupler").length;
+      let charged = 0;
+      for (const st of live) {
+        if (!st.sol) continue;
+        const q = st.sol.decoupler ? (st.sol.decoupler.qty ?? 1) : 0;
+        if (q > 1) bad.push(`${name}: a stage buys ${q} decouplers`);
+        charged += q;
+      }
+      if (drawn !== charged)
+        bad.push(`${name}: draws ${drawn} decouplers and buys ${charged}`);
+    }
+    expect(bad.slice(0, 6), `${bad.length} disagreements`).toEqual([]);
+  }, 300_000);
+
   it("describes the payload when every stage has been dropped", () => {
     /* The last staging step. The build view derives both views from what is
        still attached, and at that step nothing is — so a model of no stages
