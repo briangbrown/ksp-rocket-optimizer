@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { fitOrtho } from "../src/ui/components/three-view.jsx";
+import { fitOrtho, viewRight } from "../src/ui/components/three-view.jsx";
 import { PANELS, clips } from "./framing.js";
 
 /* Does the camera see the whole rocket?
@@ -44,6 +44,19 @@ describe("the orthographic framing", () => {
       const { halfW, halfH } = fitOrtho(view, { height: 30, reach: 4 }, aspect);
       expect(halfW / halfH, `${view} @${aspect}`).toBeCloseTo(aspect, 9);
     }
+  });
+
+  it("sends +x to the right of the screen in every view", () => {
+    /* Two views that disagree about this draw the same rocket mirrored. The
+       columns of a parallel stage start at +x and work round, and the
+       elevation draws that first pair left and right, so a stage with three
+       radial tanks leaned right in the elevation and left in the plan for as
+       long as the plan's up vector was -z. Nothing renders here, but the basis
+       three.js would build from is arithmetic, and mirroring is a sign. */
+    for (const view of ["side", "plan", "iso"])
+      expect(viewRight(view).x, `${view} mirrors the x axis`).toBeGreaterThan(
+        0,
+      );
   });
 
   it("leaves room, but not a lot", () => {

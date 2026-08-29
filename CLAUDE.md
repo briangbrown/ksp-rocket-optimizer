@@ -280,6 +280,16 @@ implying CI covered it.
   size and draws at twice the panel on any screen with a ratio above 1. It
   looks correct in a container at ratio 1 and wrong on a phone. Let three.js
   set the style.
+- **Every camera must send world +x to the right of the screen.** Columns start
+  at +x and work round, and the elevation draws that first pair left and right,
+  so a view that disagrees draws the same rocket mirrored against the one next
+  to it — a three-column stage leaned right in the elevation and left in the
+  plan. three.js builds its basis as `right = up x (eye - target)`, so the
+  plan's up vector decides this, not its position. Looking up from underneath,
+  +x on the right forces +z to the top: the SVG plan's z-down cannot be kept as
+  well, and a camera above the rocket that keeps both puts the payload over the
+  engines. `viewRight` is the invariant, and `test/three-view.test.js` checks
+  it without a renderer.
 
 ---
 

@@ -9,6 +9,7 @@ import {
   MeshBasicMaterial,
   OrthographicCamera,
   Scene,
+  Vector3,
   WebGLRenderer,
 } from "three";
 import { extentOf } from "../../core/model.js";
@@ -47,14 +48,31 @@ const EDGE_ANGLE = 30;
 /* Where the camera stands and which way is up.
 
    Plan looks up from underneath, as the SVG one does — that is how you read
-   what is bolted where. Its up vector is -z so the first engine of a cluster
-   sits at the top of the circle, which is the convention the elevation has
-   followed since the two were drawn apart. */
+   what is bolted where, with the engines nearest the viewer.
+
+   Every view must put world +x to the right of the screen. The columns of a
+   parallel stage start at +x and work round, and the elevation draws that
+   first pair left and right, so a view that disagrees on x draws the same
+   rocket mirrored against the one beside it — three tanks leaning right in
+   the elevation and left in the plan. three.js builds the basis as
+   `right = up x (eye - target)`, so from underneath +x on the right forces +z
+   to the top; you cannot have both that and the SVG plan's z-down. Above the
+   rocket would give both and is wrong for a different reason: the payload
+   would sit over the engines. `viewRight` below is the check. */
 const VIEWS = {
   side: { dir: [0, 0, 1], up: [0, 1, 0] },
-  plan: { dir: [0, -1, 0], up: [0, 0, -1] },
+  plan: { dir: [0, -1, 0], up: [0, 0, 1] },
   iso: { dir: [0.72, 0.52, 0.72], up: [0, 1, 0] },
 };
+
+/* The world direction a view sends to the right of the screen, by the same
+   arithmetic three.js uses to aim the camera. Exported because two views
+   disagreeing about it is a mirrored drawing, and that is checkable without a
+   GPU where the drawing itself is not. */
+export function viewRight(view) {
+  const { dir, up } = VIEWS[view] || VIEWS.side;
+  return new Vector3(...up).cross(new Vector3(...dir)).normalize();
+}
 
 /* Half-extents the view has to cover, before the panel's own shape is applied.
    Straight from the model, which is what makes containment structural: the
