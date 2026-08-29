@@ -70,6 +70,14 @@ export function manifest(sol) {
   if (sol.tanks)
     for (const x of sol.tanks.list) add("tank", x.t, x.c, x.t.dry, x.t.cost);
 
+  /* Between a column's tank and its engine, so once per column as well — and
+     above the coupler, because that is the order they are assembled in: the
+     tank narrows through the adapter onto the plate, and the plate carries the
+     engines. Listing them the other way round described a stack nobody can
+     build, and did it in two places at once. #77 */
+  if (sol.adapters)
+    for (const t of sol.adapters.parts) add("adapter", t, S, t.dry, t.cost);
+
   /* A cluster is joined to the tank above it once per column — each column has
      its own engines to gather. The shroud replaces the coupler's own mass when
      an engine plate carries one. */
@@ -77,10 +85,6 @@ export function manifest(sol) {
     const p = sol.shroud || sol.coupler;
     add("coupler", p, S, p.m, sol.coupler.cost ?? 0);
   }
-
-  /* Between a column's tank and its engine, so once per column as well. */
-  if (sol.adapters)
-    for (const t of sol.adapters.parts) add("adapter", t, S, t.dry, t.cost);
 
   /* A solid booster's `m` carries its fuel; `dry` is what is left once it has
      burned, which is the mass the stage is sized on. Liquid engines have no

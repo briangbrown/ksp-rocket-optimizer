@@ -202,6 +202,7 @@ these twelve. Re-bless it exactly as deliberately as the design snapshot.
     test/design-snapshot.test.js          the design snapshot
     test/render-sweep.test.jsx            the render sweep
     test/model.test.js                    the rocket as shapes, checked as shapes
+    test/parts-order.test.jsx             the parts list reads as a build order
     test/three-view.test.js               the orthographic framing, on numbers
     test/seam-contract.test.js            planMission stays serialisable
     test/seam-input.test.jsx              what the app actually hands the seam
@@ -250,6 +251,15 @@ implying CI covered it.
 - **`fitStructure` is shared between `solveStage` and `boostedAscent`.** Five
   bugs came from fixing one and not the other: couplers, the thrust limiter, the
   gimbal check, the cluster cap, and a missing decoupler quantity.
+- **An engine plate is a decoupler.** It is a coupler that sits _above_ the
+  engines it carries, with them hanging inside its shroud, and it separates the
+  stack at its own node. So a plated stage reads tanks, adapter, plate, engines
+  and then straight into the next stage's tanks — the plate is the joint, and
+  nothing else goes there. An unplated stage reads tanks, engines, decoupler,
+  next stage's tanks. The solver charges every joint to the stage _below_ it —
+  the decoupler is drawn at a stage's top — which is the same joint named the
+  other way round, and is why `plateAbove` zeroes the decoupler a stage would
+  otherwise buy.
 - **A stage buys one decoupler, at its top, on the axis.** The count was
   `split ? perEng * stacks : stacks`, and both branches disagreed with the
   rocket `modelOf` draws. `perEng` counts the nodes a cluster presents at its

@@ -272,8 +272,9 @@ function StageStack({ stages, color, splitBy, onSetSplit }) {
 function PartsTable({ stages, payload, hardware, color }) {
   /* Listed the way you build it: payload at the top, then each stage downward to
      the one standing on the pad. Within a stage the order is physical too —
-     decoupler at its top, then tanks, then any adapter, then the engine, with
-     radial boosters last since they hang off the side. Stage numbers therefore
+     decoupler at its top, then tanks, then any adapter, then the coupler a
+     cluster hangs from, then the engine, with radial boosters last since they
+     hang off the side. Stage numbers therefore
      count down, which is also how the staging list reads in game. */
   const rows = [];
   const solved = stages.map((s, i) => ({ s, n: i + 1 })).filter((x) => x.s.sol);
@@ -372,6 +373,20 @@ function PartsTable({ stages, payload, hardware, color }) {
           kind: "tank",
         }),
       );
+    /* Above the coupler, because that is the order they go on: the tank narrows
+       through the adapter onto the plate, and the plate carries the engines.
+       Listed the other way round it described a stack nobody can build — and
+       made a needed adapter look redundant, which is how it was reported. #77 */
+    s.sol.adapters?.parts.forEach((t) =>
+      rows.push({
+        stage: n,
+        part: t.n,
+        qty: 1,
+        each: t.wet,
+        tot: S * t.wet, // one set per column, like the coupler below
+        kind: "adapter",
+      }),
+    );
     if (s.sol.coupler) {
       const pl = PLATE_SHROUD[s.sol.coupler.n];
       rows.push({
@@ -388,16 +403,6 @@ function PartsTable({ stages, payload, hardware, color }) {
             : ""),
       });
     }
-    s.sol.adapters?.parts.forEach((t) =>
-      rows.push({
-        stage: n,
-        part: t.n,
-        qty: 1,
-        each: t.wet,
-        tot: S * t.wet, // one set per column, like the coupler above
-        kind: "adapter",
-      }),
-    );
     rows.push({
       stage: n,
       part: s.sol.engine.n,
