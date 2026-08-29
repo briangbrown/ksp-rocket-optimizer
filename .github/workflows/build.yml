@@ -23,6 +23,11 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        # The visual job below is the only one that needs a browser, and
+        # downloading Chrome on every job would cost this one a minute for
+        # nothing.
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "true"
 
       # Before the tests: no-undef finds in a second what the suite can only
       # find if its grid happens to reach the branch. esbuild resolves no
@@ -38,3 +43,43 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # Separate from `build` on purpose. The main suite is already a couple of
+  # minutes and test/model.test.js carries a note about a worker running out of
+  # memory when the mission models were built twice; a browser in that run
+  # invites it back. three.js splits its own screenshot tests out for the same
+  # reason. #73
+  visual:
+    name: Visual
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      # Chrome is downloaded here and nowhere else. The runner is amd64, where
+      # Chrome for Testing does publish a build, so puppeteer's own is fine and
+      # the apt chromium the dev container needs is not.
+      - name: Cache the browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/puppeteer
+          key: puppeteer-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      # What jsdom cannot see: whether a shader compiles, whether anything is
+      # drawn, whether the canvas is the size of its panel, whether the drawing
+      # survives a repaint, and whether the plan redraws when a stage is
+      # dropped. Every one of those shipped past a green build at least once.
+      - name: Render the build view in a real browser
+        run: npm run test:visual
