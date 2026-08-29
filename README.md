@@ -117,7 +117,9 @@ A green build still says nothing about a solver change that these cannot see.
     npm run lint       # eslint, one rule: no-undef
     npm run format     # prettier
 
-Requires Node 24 or newer. Dependencies are React and Vite alone.
+Requires Node 24 or newer. Dependencies are React, Vite and three.js —
+the last loaded only when the build view first draws, so it is not in the
+bundle that gets you to a solved rocket.
 
 This began as a single self-contained component written in a Claude artifact.
 It is not one any more — it is a Vite application with a tested solver — and the

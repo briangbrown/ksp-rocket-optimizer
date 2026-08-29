@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
+
 import {
   PACK_BRACE,
   PACK_JOIN,
@@ -16,6 +17,32 @@ import { PLATE_SHROUD, diaOf } from "../../core/parts.js";
 import { fmt, hms } from "../format.js";
 import { C } from "../tokens.js";
 import { Mini, Stat } from "./controls.jsx";
+
+/* Loaded when the build view first draws, not with the application. three.js
+   is about the size of everything else here put together, and nothing above
+   this panel needs it — see #63. */
+const ThreeView = lazy(() => import("./three-view.jsx"));
+let webgl = null;
+const canRender3D = () => {
+  if (webgl === null)
+    try {
+      /* Ask whether the constructors exist before asking for a context.
+         jsdom implements neither and logs a "not implemented" error for the
+         call itself, which turns every suite that mounts the app into a wall
+         of noise — and the answer is the same either way. */
+      webgl =
+        (typeof WebGL2RenderingContext !== "undefined" ||
+          typeof WebGLRenderingContext !== "undefined") &&
+        !!document
+          .createElement("canvas")
+          .getContext(
+            typeof WebGL2RenderingContext !== "undefined" ? "webgl2" : "webgl",
+          );
+    } catch {
+      webgl = false;
+    }
+  return webgl;
+};
 
 function StageStack({ stages, color, splitBy, onSetSplit }) {
   const max = Math.max(...stages.map((x) => x.sol?.total || 1));
@@ -631,9 +658,23 @@ const srbLen = (part) => {
   return part.fuelM / 1.5 / ((Math.PI / 4) * d * d) + 0.7 * d;
 };
 
+/* Holds the panel's space while the 3D chunk arrives, so the layout does not
+   jump when it does. */
+const Loading = ({ w, h }) => (
+  <div
+    style={{
+      width: w,
+      height: h,
+      border: `1px solid ${C.rule}`,
+      borderRadius: 3,
+    }}
+  />
+);
+
 function BuildView({ stages, payload, color, maxAspect = 14 }) {
   const solved = stages.filter((x) => x.sol);
   const [step, setStep] = useState(0);
+  const [view3d, setView3d] = useState(true);
   if (!solved.length) return null;
 
   const hasBoost = !!solved[0].sol.boosters;
@@ -785,6 +826,10 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
      shapes are rather than the panel being sized for parts no longer on the
      rocket. */
   const attached = (p) => cur.boost || p.role !== "booster";
+  /* 3D where the browser will give us a context, the flat drawing where it
+     will not — which is also what every jsdom suite sees, so the checks that
+     read SVG keep working while both paths exist. #63 step 3. */
+  const solid = view3d && canRender3D();
   const model = modelOf(live, payload, payD).filter(attached);
   const H = extentOf(model).height;
   wMax = Math.max(wMax, extentOf(model).width);
@@ -917,6 +962,7 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
 
   // ---- plan view: widest live stage, plus any boosters ----
   const bottom = live[0] && live[0].sol;
+  let planModel = [];
   const PS = 150;
   const plan = [];
   if (bottom) {
@@ -933,9 +979,8 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
        boosters outside it, the packed ring, the payload — each with its own
        comment recording the time it was wrong. They are gone rather than
        corrected again. */
-    const planReach = extentOf(
-      modelOf([live[0]], payload, payD).filter(attached),
-    ).reach;
+    planModel = modelOf([live[0]], payload, payD).filter(attached);
+    const planReach = extentOf(planModel).reach;
     const ringOff = S > 1 ? stageGeom(bottom).ringR : 0;
     /* One description again: whatever the model says this stage reaches, which
        is what the elevation is sized from too. Four expressions used to work it
@@ -1081,32 +1126,74 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
         }}
       >
         <div>
-          <div className="eyebrow" style={{ marginBottom: 6 }}>
-            Elevation
-          </div>
-          <svg
-            width={Math.max(sw, 60)}
-            height={sh}
-            style={{ overflow: "visible" }}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 6,
+            }}
           >
-            {sideParts}
-          </svg>
+            <span className="eyebrow">Elevation</span>
+            {canRender3D() && (
+              <button
+                className="chip"
+                data-on={view3d ? 1 : 0}
+                style={{ padding: "2px 7px", fontSize: 10 }}
+                onClick={() => setView3d(!view3d)}
+                title="Both views are the same model; this is how it is drawn"
+              >
+                3D
+              </button>
+            )}
+          </div>
+          {solid ? (
+            <Suspense fallback={<Loading w={Math.max(sw, 60)} h={sh} />}>
+              <ThreeView
+                parts={model}
+                view="side"
+                width={Math.max(sw, 60)}
+                height={sh}
+                color={color}
+              />
+            </Suspense>
+          ) : (
+            <svg
+              width={Math.max(sw, 60)}
+              height={sh}
+              style={{ overflow: "visible" }}
+            >
+              {sideParts}
+            </svg>
+          )}
         </div>
         <div>
           <div className="eyebrow" style={{ marginBottom: 6 }}>
             Plan
           </div>
-          <svg width={PS} height={PS}>
-            <circle
-              cx={PS / 2}
-              cy={PS / 2}
-              r={(PS - 16) / 2}
-              fill="none"
-              stroke={C.rule}
-              strokeDasharray="2 3"
-            />
-            {plan}
-          </svg>
+          {solid ? (
+            <Suspense fallback={<Loading w={PS} h={PS} />}>
+              <ThreeView
+                parts={planModel}
+                view="plan"
+                width={PS}
+                height={PS}
+                color={color}
+              />
+            </Suspense>
+          ) : (
+            <svg width={PS} height={PS}>
+              <circle
+                cx={PS / 2}
+                cy={PS / 2}
+                r={(PS - 16) / 2}
+                fill="none"
+                stroke={C.rule}
+                strokeDasharray="2 3"
+              />
+              {plan}
+            </svg>
+          )}
         </div>
       </div>
       <div

@@ -260,6 +260,18 @@ implying CI covered it.
   updated" is not evidence that anything did — the slider moving is, because the
   range input renders the committed value. Two fixes were built on the wrong
   reading of this before the real cause turned up.
+- **A WebGL canvas drawn once needs `preserveDrawingBuffer`.** `ThreeView`
+  renders a frame when the rocket or the view changes and never on a loop,
+  because the cameras do not move. The drawing buffer is cleared once it has
+  been composited, so without the flag the schematic is right on the frame that
+  draws it and can come back blank on the next repaint. Nothing in the suite
+  can see this: jsdom has no WebGL and never constructs a renderer.
+- **`renderer.setSize(w, h, false)` does not size the canvas.** The third
+  argument suppresses the CSS width and height, and the canvas is
+  `devicePixelRatio` times bigger in device pixels — so it lays out at that
+  size and draws at twice the panel on any screen with a ratio above 1. It
+  looks correct in a container at ratio 1 and wrong on a phone. Let three.js
+  set the style.
 
 ---
 
