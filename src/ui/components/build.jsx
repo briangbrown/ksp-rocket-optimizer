@@ -962,7 +962,12 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
 
   // ---- plan view: widest live stage, plus any boosters ----
   const bottom = live[0] && live[0].sol;
-  let planModel = [];
+  /* Outside the guard below, because the last step has no stage left and still
+     has a payload to draw. Asked for no stages modelOf describes the payload
+     alone, which is what the elevation shows at that step — computing this
+     only when a stage remains left the plan holding the frame it drew for the
+     step before, and the payload looking like the stage it had just shed. */
+  const planModel = modelOf(live.slice(0, 1), payload, payD).filter(attached);
   const PS = 150;
   const plan = [];
   if (bottom) {
@@ -979,7 +984,6 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
        boosters outside it, the packed ring, the payload — each with its own
        comment recording the time it was wrong. They are gone rather than
        corrected again. */
-    planModel = modelOf([live[0]], payload, payD).filter(attached);
     const planReach = extentOf(planModel).reach;
     const ringOff = S > 1 ? stageGeom(bottom).ringR : 0;
     /* One description again: whatever the model says this stage reaches, which

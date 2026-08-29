@@ -1,8 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { fitOrtho } from "../src/ui/components/three-view.jsx";
-import { extentOf, modelOf } from "../src/core/model.js";
-import { planMission } from "../src/core/plan.js";
-import { missionCases } from "./grid.js";
+import { PANELS, clips } from "./framing.js";
 
 /* Does the camera see the whole rocket?
 
@@ -12,55 +10,31 @@ import { missionCases } from "./grid.js";
 
    What can be checked without a GPU is the claim the 3D view rests on — that
    the frustum is derived from the model's own extent, so a part cannot fall
-   outside the view. That is containment by construction rather than by
-   inspection, and it is a stronger statement: it holds for every rocket, not
-   for the ones a sweep happens to solve.
+   outside the view. `fitOrtho` is arithmetic over an extent, so the property
+   holds or fails on numbers rather than on rockets: the sweep here is over
+   extents no solver would produce as well as ones it would, which is a wider
+   net than twelve missions and costs no solve at all. `test/model.test.js`
+   runs the same assertion over the models actually built, against the
+   rockets it has already solved for its own checks.
 
    The rest of the renderer — that three.js draws what it is handed — is not
    testable here and is checked on the Cloudflare preview by a person. */
 
-/* The panels as the build view sizes them. The elevation varies with the
-   rocket; these are the shapes it lands on. */
-const PANELS = [
-  ["side", 170 / 300],
-  ["side", 60 / 300],
-  ["side", 300 / 300],
-  ["plan", 1],
-  ["iso", 1],
-];
-
 describe("the orthographic framing", () => {
-  it("covers the model, whatever shape the panel is", async () => {
+  it("covers the extent, whatever shape the panel and the rocket are", () => {
+    /* A pencil, a squat stage, and everything between — including ratios past
+       anything the slenderness limit allows, because the frustum should not
+       depend on the rocket being buildable. */
     const bad = [];
-    for (const c of missionCases()) {
-      const res = await planMission(c.input, {
-        onYield: () => Promise.resolve(),
-      });
-      if (!res) continue;
-      for (let drop = 0; drop < res.stages.length; drop++) {
-        const parts = modelOf(
-          res.stages.slice(drop),
-          c.input.payload,
-          c.input.payloadDia,
-        );
-        if (!parts.length) continue;
-        const extent = extentOf(parts);
-        for (const [view, aspect] of PANELS) {
-          const { halfW, halfH } = fitOrtho(view, extent, aspect);
-          /* Side-on, the camera looks across the stack: the horizontal need is
-             how far parts reach from the axis, the vertical is its height.
-             Looking up, both are the reach. */
-          const needW = extent.reach;
-          const needH = view === "side" ? extent.height / 2 : extent.reach;
-          if (halfW + 1e-9 < needW || halfH + 1e-9 < needH)
-            bad.push(
-              `${c.name} +${drop} ${view} @${aspect.toFixed(2)}: frustum ${halfW.toFixed(2)}x${halfH.toFixed(2)} against ${needW.toFixed(2)}x${needH.toFixed(2)}`,
-            );
-        }
+    for (const height of [0.5, 1, 2.5, 7, 18, 40, 90, 200])
+      for (const reach of [0.15, 0.6, 1.25, 3, 8, 25]) {
+        const extent = { height, reach, width: reach * 2 };
+        for (const [view, aspect] of PANELS)
+          if (clips(view, extent, aspect))
+            bad.push(`${view} @${aspect.toFixed(2)}: ${height}x${reach}`);
       }
-    }
-    expect(bad.slice(0, 6), `${bad.length} views clip the rocket`).toEqual([]);
-  }, 300_000);
+    expect(bad.slice(0, 6), `${bad.length} views clip the model`).toEqual([]);
+  });
 
   it("keeps the panel's own shape, so nothing is stretched", () => {
     /* An orthographic frustum whose aspect differs from the canvas squashes

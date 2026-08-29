@@ -119,11 +119,19 @@ export default function ThreeView({ parts, view, width, height, color }) {
 
   useEffect(() => {
     const renderer = gl.current;
-    if (!renderer || !parts.length) return;
+    if (!renderer) return;
     /* Sized in CSS pixels, and the style left to three.js to set: the canvas
        is devicePixelRatio times bigger in device pixels, and without a style
        it would lay out at that size — twice the panel on a phone. */
     renderer.setSize(width, height);
+    /* Clear rather than return. A canvas holds the last frame drawn into it
+       until something else is drawn — the more so with preserveDrawingBuffer —
+       so bailing out on an empty model leaves the previous rocket on screen
+       and it reads as a rocket that did not change. */
+    if (!parts.length) {
+      renderer.clear();
+      return;
+    }
 
     const scene = new Scene();
     const group = new Group();

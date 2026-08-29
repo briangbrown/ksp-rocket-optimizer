@@ -3,6 +3,7 @@ import { planMission } from "../src/core/plan.js";
 import { extentOf, modelOf } from "../src/core/model.js";
 import { stageSize } from "../src/core/geometry.js";
 import { missionCases } from "./grid.js";
+import { PANELS, clips } from "./framing.js";
 
 /* The rocket as shapes, checked as shapes.
 
@@ -110,4 +111,36 @@ describe("the build model", () => {
       expect(Number.isFinite(height) && Number.isFinite(reach)).toBe(true);
     }
   }, 300_000);
+
+  it("fits inside the frustum every camera is given", () => {
+    /* The 3D view's containment check, run here because the models are already
+       built: solving these twelve missions a second time in a second worker to
+       ask one more question of the same parts is what the note above about
+       running a worker out of memory is describing. `test/three-view.test.js`
+       sweeps the arithmetic over extents no rocket produces; this is the same
+       claim over the rockets that actually get built. #63. */
+    const bad = [];
+    for (const { name, parts } of MODELS) {
+      if (!parts.length) continue;
+      const extent = extentOf(parts);
+      for (const [view, aspect] of PANELS)
+        if (clips(view, extent, aspect))
+          bad.push(`${name}: ${view} @${aspect.toFixed(2)} clips the rocket`);
+    }
+    expect(bad.slice(0, 6), `${bad.length} views clip the rocket`).toEqual([]);
+  }, 300_000);
+
+  it("describes the payload when every stage has been dropped", () => {
+    /* The last staging step. The build view derives both views from what is
+       still attached, and at that step nothing is — so a model of no stages
+       has to be the payload rather than nothing at all. The 3D plan view drew
+       the step before this one for a while: it was handed an empty list, made
+       no frame, and the canvas kept the rocket it already had. */
+    const parts = modelOf([], 1.2, 0);
+    expect(parts).toHaveLength(1);
+    expect(parts[0].role).toBe("payload");
+    const { height, reach } = extentOf(parts);
+    expect(height).toBeGreaterThan(0);
+    expect(reach).toBeGreaterThan(0);
+  });
 });

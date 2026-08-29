@@ -162,9 +162,12 @@ these twelve. Re-bless it exactly as deliberately as the design snapshot.
     test/grid.js                          the configuration grid and its axes
     test/signature.js                     reducing a design to stable text
     test/app-harness.js                   driving the app in jsdom
+    test/framing.js                       whether a camera sees the whole rocket
     test/design-snapshot.test.js          the design snapshot
     test/render-sweep.test.jsx            the render sweep
     test/panel-containment.test.jsx       every part inside its panel
+    test/model.test.js                    the rocket as shapes, checked as shapes
+    test/three-view.test.js               the orthographic framing, on numbers
     test/seam-contract.test.js            planMission stays serialisable
     test/seam-input.test.jsx              what the app actually hands the seam
     test/resolve-wiring.test.jsx          does a control change re-solve
@@ -265,7 +268,12 @@ implying CI covered it.
   because the cameras do not move. The drawing buffer is cleared once it has
   been composited, so without the flag the schematic is right on the frame that
   draws it and can come back blank on the next repaint. Nothing in the suite
-  can see this: jsdom has no WebGL and never constructs a renderer.
+  can see this: jsdom has no WebGL and never constructs a renderer. The other
+  half of the same fact: a canvas holds its last frame until something else is
+  drawn, so a render effect that returns early on an empty model leaves the
+  previous rocket up. The plan view showed the step before the last one that
+  way — the elevation, which always has a payload in it, was right alongside
+  it. Clear rather than return.
 - **`renderer.setSize(w, h, false)` does not size the canvas.** The third
   argument suppresses the CSS width and height, and the canvas is
   `devicePixelRatio` times bigger in device pixels — so it lays out at that
