@@ -40,8 +40,10 @@ const BAD_TEXT = /\b(NaN|Infinity|undefined|null)\b/;
 
    Catching a bad number in the drawing therefore needs assertions on the
    geometry functions themselves — `stageGeom` and `stageSize` are pure and
-   testable — which is what test/panel-containment.test.jsx does instead, by
-   reading the SVG attributes jsdom preserves. */
+   testable — which is what test/model.test.js does instead, over the models the
+   build view actually draws. It read the SVG attributes jsdom preserves until
+   #63 step 4 removed the SVG; there is nothing to read now, since jsdom makes
+   no WebGL context. */
 const BAD_STYLE = /\b(NaN|Infinity|undefined)\b/;
 
 async function click(label) {

@@ -99,9 +99,11 @@ the same thing, because the app flies the candidates through the ascent
 simulator and takes the first that works; a **render sweep** drives the app
 across every destination, objective and profile and fails on a bad number
 reaching the text or a destination quietly ceasing to produce a design; and a
-**panel-containment check** reads the SVG in the build view and asserts every
-part lies inside its panel at every staging step, which is where the drawing and
-the geometry have drifted apart three separate times.
+set of **model checks** asks of the shapes the build view draws — at every
+staging step — that no two overlap, that none reaches past the width the solver
+sized the stage at, and that the whole stands as tall as the slenderness limit
+was applied to, which is where the drawing and the geometry have drifted apart
+three separate times.
 
 A green build still says nothing about a solver change that these cannot see.
 `CLAUDE.md` records what each check reaches and what it does not.
