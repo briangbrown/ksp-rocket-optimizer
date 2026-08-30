@@ -88,10 +88,15 @@ any React project" property is gone, deliberately.
 The conventions here differ from a typical React project. Match the file rather
 than habit:
 
-> **TypeScript.** `.claude/typescript-style-guide.md` is staged for the
-> conversion in [#11](../../issues/11) and does not apply to the current `.jsx`
-> source. Its opening section lists four rules this project deliberately breaks
-> — read that before applying anything from the rest of it.
+> **TypeScript.** The conversion in [#11](../../issues/11) is under way, a
+> chunk at a time. `tsconfig.json` has `allowJs` on so converted and
+> unconverted files sit together, and `npm run typecheck` is what stands in
+> `no-undef`'s place for a file that has moved — eslint here has no TypeScript
+> parser, so a `.ts` file it does not lint at all.
+> `.claude/typescript-style-guide.md` is the conventions reference. Its opening
+> section lists four rules this project deliberately breaks — read that before
+> applying anything from the rest of it, and note that the two "keep it one
+> file" rules describe a layout this repository has already left behind.
 
 - **Inline `style={{}}` is correct here.** There is no Tailwind, no CSS file,
   and no class-based design system. Static styling lives in a `<style>` block
@@ -244,6 +249,12 @@ implying CI covered it.
 
 ## Where the bodies are buried
 
+- **A `.js` import specifier resolves to a `.ts` file, everywhere it matters.**
+  Vite, vitest and `tsc` all map `./foo.js` onto `foo.ts` when that is what is
+  on disk, so converting a module is a rename and nothing else — no caller
+  changes, and no extensionless-import sweep across the repository. The
+  alternative was rewriting every specifier in `src/` and `test/`, which would
+  have buried the conversion diff in churn that proves nothing.
 - **`stageGeom` is the single source of stage geometry.** `stageSize` sums it
   into a bounding box; the elevation lays it out as rectangles. They drifted
   apart on width, then height, then packing — do not recompute either one

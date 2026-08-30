@@ -1,8 +1,18 @@
 import { NONE, expBits } from "./constants.js";
 import couplersData from "../data/couplers.json";
 import structureData from "../data/structure.json";
+import type { Excluded, Expansions, Roster } from "./constants.js";
+import type {
+  Coupler,
+  Engine,
+  PartBase,
+  Shroud,
+  StructKind,
+  StructPart,
+  Tank,
+} from "./catalogue.js";
 
-function compatible(engine, tank) {
+function compatible(engine: Engine, tank: Tank) {
   const needs = engine.f.filter((x) => x !== "El");
   if (needs.includes("SF")) return false;
   if (needs.includes("Xe")) return tank.xe > 0;
@@ -11,7 +21,11 @@ function compatible(engine, tank) {
   if (needs.includes("LF")) return tank.lf > 0 && tank.ox === 0;
   return false;
 }
-const SZ_DIA = {
+/* Keyed by the string the data uses, not by a union of them: the tables write
+   size classes as strings and TypeScript widens them to `string` on the way in,
+   so a narrower key type here would have to be asserted into place rather than
+   checked. */
+const SZ_DIA: Record<string, number> = {
   0: 0.625,
   1: 1.25,
   1.5: 1.875,
@@ -31,7 +45,7 @@ const SZ_DIA = {
    so this was recomputing the same answer millions of times — and doing it with
    a filter, a map and a spread, so three throwaway arrays each time. It was 23%
    of a solve on its own, with much of the garbage collection behind it. */
-function computeDia(p) {
+function computeDia(p: PartBase) {
   let best = 0,
     sawStack = false;
   for (const z of p.sz)
@@ -47,7 +61,7 @@ function computeDia(p) {
     }
   return best || 1.25;
 }
-const diaOf = (p) => {
+const diaOf = (p: PartBase) => {
   const d = p._dia;
   return d !== undefined ? d : (p._dia = computeDia(p));
 };
@@ -58,7 +72,7 @@ const diaOf = (p) => {
    bridge two sizes without the word "adapter" anywhere in them. Testing the name
    let those two through into the tank pool, so a stage could list the same part
    twice, once as tankage and once as its adapter. */
-const stackDias = (p) =>
+const stackDias = (p: PartBase) =>
   [
     ...new Set(
       p.sz
@@ -67,7 +81,7 @@ const stackDias = (p) =>
         .filter(Boolean),
     ),
   ].sort((x, y) => x - y);
-const isAdapter = (p) => stackDias(p).length > 1;
+const isAdapter = (p: PartBase) => stackDias(p).length > 1;
 
 /* A part with no stack profile at all can only be surface-attached — the R-11
    'Baguette' and R-4 'Dumpling' are ovoids that bolt to the side of something,
@@ -76,7 +90,7 @@ const isAdapter = (p) => stackDias(p).length > 1;
    sizing a radial booster and wrong for deciding what can be stacked. Radial
    tanks are not modelled as side-mounted loads, so for now they are simply not
    available as a stage's tankage. */
-const isRadialOnly = (p) => stackDias(p).length === 0;
+const isRadialOnly = (p: PartBase) => stackDias(p).length === 0;
 
 /* An engine may sit under a stack its own width or wider — that is what adapters
    and engine plates are for, and it is how a Vector cluster ends up beneath a 5 m
@@ -87,7 +101,8 @@ const isRadialOnly = (p) => stackDias(p).length === 0;
    with a single adapter at the engine. Ungrouped, this rule produced stages
    mixing 5 m, 3.75 m, 1.25 m and 0.625 m tanks in one stack: a few percent
    lighter and nobody's idea of a rocket. */
-const sizeMatch = (e, t) => e.sz.includes("R") || diaOf(t) >= diaOf(e);
+const sizeMatch = (e: Engine, t: Tank) =>
+  e.sz.includes("R") || diaOf(t) >= diaOf(e);
 
 /* How many of an engine you can realistically mount on a stack of its size. */
 /* Clustering needs something to bolt the engines to, and the only stock parts
@@ -101,9 +116,10 @@ const sizeMatch = (e, t) => e.sz.includes("R") || diaOf(t) >= diaOf(e);
    clears the engine — a 0.97 m Terrier needs Medium-Short on an EP-18, because
    Short only clears 0.675 m. Since engine heights are measured from the drag
    cubes, the tool can just pick rather than leaving it to you. */
-const PLATE_SHROUD = couplersData.PLATE_SHROUD;
+const PLATE_SHROUD: Readonly<Record<string, ReadonlyArray<Shroud>>> =
+  couplersData.PLATE_SHROUD;
 
-const shroudFor = (plateName, engineHeight) => {
+const shroudFor = (plateName: string, engineHeight: number) => {
   const vs = PLATE_SHROUD[plateName];
   if (!vs) return null;
   return vs.find((v) => v.len >= engineHeight) || vs[vs.length - 1];
@@ -117,10 +133,15 @@ const shroudFor = (plateName, engineHeight) => {
 
    This is what lets small engines cluster at all: every TVR coupler has 1.25 m
    outlets, so a Spark or an Ant could never be grouped before. */
-const COUPLERS = couplersData.COUPLERS;
-const isRadial = (e) =>
+const COUPLERS: ReadonlyArray<Coupler> = couplersData.COUPLERS;
+const isRadial = (e: Engine) =>
   e.sz.includes("R") && e.sz.filter((z) => z !== "R").length === 0;
-function couplersFor(e, unlocked, excluded, expansions) {
+function couplersFor(
+  e: Engine,
+  unlocked: Roster,
+  excluded: Excluded,
+  expansions?: Expansions | null,
+) {
   /* Engine plates ship with ReStock+; without it they are not in the game and
      must not appear in a design. */
   /* Hoisted: the engine does not change inside the filter, so asking for its
@@ -134,9 +155,9 @@ function couplersFor(e, unlocked, excluded, expansions) {
       !(excluded && excluded.has(c.n)),
   );
 }
-const maxCluster = (e, unlocked, excluded) => {
+const maxCluster = (e: Engine, unlocked: Roster | null, excluded: Excluded) => {
   if (isRadial(e)) return 8;
-  const c = couplersFor(e, unlocked || new Set(), excluded);
+  const c = couplersFor(e, unlocked || new Set<string>(), excluded);
   return c.length ? Math.max(...c.map((x) => x.out)) : 1;
 };
 /* The coupler must have exactly as many outlets as there are engines. Leaving a
@@ -148,7 +169,12 @@ const maxCluster = (e, unlocked, excluded) => {
    bottom to gather back to a single node when there is a stage below. Stock
    couplers only have 1.25 m outlets, so wider columns simply cannot be joined —
    which is the honest answer, not something to model around. */
-const columnCoupler = (d, n, unlocked, excluded) => {
+const columnCoupler = (
+  d: number,
+  n: number,
+  unlocked: Roster,
+  excluded: Excluded,
+) => {
   const fit = COUPLERS.filter(
     (c) =>
       c.dia === d &&
@@ -172,7 +198,19 @@ const columnCoupler = (d, n, unlocked, excluded) => {
    Keyed on identity alone this served stale couplers, in 108 of the
    engine/count combinations the tests sweep. */
 
-function scope(root, a, b, c) {
+/* One bucket of answers, keyed by the numeric cache key built below. */
+type CouplerBucket = Map<number, Coupler | null>;
+type CouplerCache = WeakMap<
+  object,
+  WeakMap<object, WeakMap<object, CouplerBucket>>
+>;
+
+function scope(
+  root: CouplerCache,
+  a: object | null | undefined,
+  b: object | null | undefined,
+  c: object,
+): CouplerBucket {
   let l1 = root.get(a || NONE);
   if (!l1) {
     l1 = new WeakMap();
@@ -191,8 +229,15 @@ function scope(root, a, b, c) {
   return l3;
 }
 
-const _coupCache = new WeakMap();
-const couplerFor = (e, n, unlocked, excluded, noPlate, expansions) => {
+const _coupCache: CouplerCache = new WeakMap();
+const couplerFor = (
+  e: Engine,
+  n: number,
+  unlocked: Roster,
+  excluded: Excluded,
+  noPlate: boolean,
+  expansions: Expansions | null | undefined,
+) => {
   const bucket = scope(_coupCache, unlocked, excluded, e);
   /* Numeric key, no string. Building `e.n + "|" + n + "|" + noPlate` allocated
      on every one of 54 million calls and cost about what the lookup saved —
@@ -204,7 +249,14 @@ const couplerFor = (e, n, unlocked, excluded, noPlate, expansions) => {
   bucket.set(ck, val);
   return val;
 };
-const _couplerFor = (e, n, unlocked, excluded, noPlate, expansions) => {
+const _couplerFor = (
+  e: Engine,
+  n: number,
+  unlocked: Roster,
+  excluded: Excluded,
+  noPlate: boolean,
+  expansions: Expansions | null | undefined,
+): Coupler | null => {
   if (n <= 1 || isRadial(e)) return null;
   const fit = couplersFor(e, unlocked, excluded, expansions).filter(
     (c) => c.out === n && !(noPlate && c.plate),
@@ -228,8 +280,14 @@ const _couplerFor = (e, n, unlocked, excluded, noPlate, expansions) => {
    carries. KSP's config `mass` field is dry only, so a 2.5 m heat shield reads
    0.5 t there and weighs 1.3 t on the pad once its 800 units of ablator count.
    Same trap as the Castor booster. */
-const STRUCT = structureData;
-const pickStruct = (kind, unlocked, d, excluded) => {
+const STRUCT: Readonly<Record<StructKind, ReadonlyArray<StructPart>>> =
+  structureData;
+const pickStruct = (
+  kind: StructKind,
+  unlocked: Roster,
+  d: number | null | undefined,
+  excluded: Excluded,
+) => {
   let ok = STRUCT[kind].filter(
     (x) => (!x.t || unlocked.has(x.t)) && !(excluded && excluded.has(x.n)),
   );
@@ -247,10 +305,13 @@ const pickStruct = (kind, unlocked, d, excluded) => {
    neither changes during a solve — but fitStructure asks for it on every single
    candidate, and each call filtered and sorted the decoupler table into three
    fresh arrays. Keyed on diameter, thrown away when the roster changes. */
-let _decCache = new Map(),
-  _decFor = null,
-  _decEx = null;
-const decouplerFor = (unlocked, d, excluded) => {
+/* The fallback below is not a part in the tables: it stands in when nothing
+   the player has researched fits, so it carries no tech node. */
+type Decoupler = StructPart | { n: string; m: number; cost: number; d: number };
+let _decCache = new Map<number, Decoupler>(),
+  _decFor: Roster | null = null,
+  _decEx: Excluded = null;
+const decouplerFor = (unlocked: Roster, d: number, excluded: Excluded) => {
   if (unlocked !== _decFor || excluded !== _decEx) {
     _decCache = new Map();
     _decFor = unlocked;
@@ -258,7 +319,7 @@ const decouplerFor = (unlocked, d, excluded) => {
   }
   const hit = _decCache.get(d);
   if (hit !== undefined) return hit;
-  const v = pickStruct("decoupler", unlocked, d, excluded) || {
+  const v: Decoupler = pickStruct("decoupler", unlocked, d, excluded) || {
     n: "TD-12",
     m: 0.04,
     cost: 200,
@@ -281,9 +342,20 @@ const decouplerFor = (unlocked, d, excluded) => {
    That does mean the 82% discount the route takes on an atmospheric descent is
    granted on trust: it assumes chutes are fitted, and if you leave them off the
    descent budget is wrong. Hence saying so plainly. */
-function missionHardware(route, payload, origin, unlocked, excluded) {
+/* Only the three fields this reads. The whole leg is described in orbits.js,
+   which is still JavaScript; asking for no more than is used keeps the two from
+   having to be converted in one step. */
+type RouteLeg = { kind: string; atm?: boolean; free?: boolean };
+
+function missionHardware(
+  route: ReadonlyArray<RouteLeg>,
+  payload: number,
+  origin: string,
+  unlocked: Roster | null,
+  excluded: Excluded,
+) {
   const items = [];
-  const has = unlocked || new Set();
+  const has = unlocked || new Set<string>();
   const landsAtm = route.some((l) => l.kind === "land" && l.atm);
   const landsAny = route.some((l) => l.kind === "land");
   const aeroHome = route.some((l) => l.kind === "aero" && l.free);
@@ -346,7 +418,7 @@ const RADIAL_JOIN_FALLBACK = {
   cost: 600,
   t: "Advanced Construction",
 };
-const radialJoin = (unlocked, excluded) =>
+const radialJoin = (unlocked: Roster, excluded: Excluded) =>
   (!RADIAL_JOIN.t || unlocked.has(RADIAL_JOIN.t)) &&
   !(excluded && excluded.has(RADIAL_JOIN.n))
     ? RADIAL_JOIN
