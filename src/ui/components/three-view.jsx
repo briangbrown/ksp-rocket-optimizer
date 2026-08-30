@@ -49,6 +49,7 @@ const FILL = {
   adapter: C.violet,
   decoupler: C.dim,
   payload: C.payloadFill,
+  service: C.shroud,
 };
 
 /* Enough segments to read as round at this size. The count used to be pulled
