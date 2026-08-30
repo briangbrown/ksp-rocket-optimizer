@@ -170,7 +170,7 @@ describe("the build view, in a browser", () => {
        rocket — flat-shaded cylinders with cap rims — and only the absence of
        the edge colour would say so. */
     await step("On the pad");
-    const ink = await forCanvas(page, NEAR, ELEVATION, C.edge, 26);
+    const ink = await forCanvas(page, NEAR, ELEVATION, C.paper, 26);
     expect(ink, "no outline colour anywhere in the elevation").toBeGreaterThan(
       0.002,
     );

@@ -18,6 +18,7 @@ import { extentOf } from "../../core/model.js";
 import { cameraFor, viewOf } from "../views.js";
 import { C } from "../tokens.js";
 import {
+  LINE,
   compositeMaterial,
   ghostMaterial,
   goochMaterial,
@@ -144,7 +145,7 @@ export default function ThreeView({ parts, view, width, height, color }) {
        would not be if lines were interleaved among them. */
     const creases = new Group();
     scene.add(creases);
-    const creaseMat = new LineBasicMaterial({ color: C.edge });
+    const creaseMat = new LineBasicMaterial({ color: LINE });
     owned.push(creaseMat);
 
     for (const [i, p] of parts.entries()) {

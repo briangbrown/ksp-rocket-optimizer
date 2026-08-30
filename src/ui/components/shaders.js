@@ -40,6 +40,13 @@ import { C, rgbOf } from "../tokens.js";
    the drawing stays a drawing rather than becoming a render with lines on it.
 */
 
+/* Every line in the drawing is this. Light on a dark panel, which keeps
+   Gooch's rule that the extremes belong to the linework — the fills stay in the
+   mid-tones and the lines are the brightest thing in the picture, where before
+   they were a near neighbour of the fill and had to be held back with opacity
+   to stop thirty parts reading as a mesh. */
+export const LINE = C.paper;
+
 /* Palette colours as they are written, not as three.js would manage them.
    Everything here renders to a target and composites without a colour-space
    conversion at any step, so what is authored is what is drawn — and mixing in
@@ -161,7 +168,7 @@ export function compositeMaterial() {
       tId: { value: null },
       tDepth: { value: null },
       texel: { value: new Vector2() },
-      edgeColor: { value: vec3(C.edge) },
+      edgeColor: { value: vec3(LINE) },
       panel: { value: vec3(C.panel) },
       camNear: { value: 0 },
       camFar: { value: 1 },
@@ -186,6 +193,10 @@ export function compositeMaterial() {
       uniform float camNear, camFar, cueNear, cueSpan;
       varying vec2 vUv;
 
+      /* Ids start at 1, so anything below half a step is the background the id
+         pass cleared to. */
+      #define BG (0.5 / 255.0)
+
       /* Orthographic depth is linear in view distance, so no reciprocal games:
          a metre at the front of the rocket is a metre at the back. */
       float dist(vec2 uv) {
@@ -197,13 +208,23 @@ export function compositeMaterial() {
         float d0 = dist(vUv);
         float i0 = texture2D(tId, vUv).x;
 
+        /* Two weights, which is how a drawing is inked: the outline of the
+           whole object heavier than the lines inside it. The outer silhouette
+           is where a part meets the background, and it is drawn two samples
+           wide against one for everything else. Both are taken on one side of
+           the boundary only — the lower id of the pair, and the background is
+           the lowest of all, so the outline lands just outside the shape and
+           never eats into it. */
         float e = 0.0;
         for (int k = 0; k < 4; k++) {
           vec2 off = k < 2
             ? vec2(k == 0 ? texel.x : -texel.x, 0.0)
             : vec2(0.0, k == 2 ? texel.y : -texel.y);
+          float i1 = texture2D(tId, vUv + off).x;
           /* A different part next door — or the background, which is zero. */
-          if (texture2D(tId, vUv + off).x - i0 > 0.001) e = 1.0;
+          if (i1 - i0 > 0.001) e = 1.0;
+          /* One further out, but only where this is the outside edge. */
+          if (i0 < BG && texture2D(tId, vUv + off * 2.0).x > BG) e = 1.0;
         }
 
         float cue = clamp((d0 - cueNear) / cueSpan, 0.0, 1.0);
@@ -269,7 +290,7 @@ export function ghostMaterial(baseHex, dashPeriod) {
   m.depthFunc = GreaterDepth;
   m.depthWrite = false;
   m.polygonOffset = false;
-  m.uniforms.edgeColor = { value: vec3(C.edge) };
+  m.uniforms.edgeColor = { value: vec3(LINE) };
   m.uniforms.dash = { value: dashPeriod };
   m.fragmentShader = /* glsl */ `
       uniform vec3 base, cool, warm, edgeColor;
