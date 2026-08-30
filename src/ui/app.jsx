@@ -360,8 +360,8 @@ export default function KSPMissionPlanner() {
   }, [stages, route]);
 
   const geom = useMemo(() => {
-    return stackGeometry(stages, payload);
-  }, [stages, payload]);
+    return stackGeometry(stages, payload, payloadDia);
+  }, [stages, payload, payloadDia]);
 
   const srbAvail = engines.some((e) => e.f.includes("SF") && e.fuelM > 0);
   const airDescent = route.some((l) => l.kind === "land" && l.atm);
@@ -1488,6 +1488,7 @@ export default function KSPMissionPlanner() {
               <BuildView
                 stages={stages}
                 payload={payload}
+                payloadDia={payloadDia}
                 color={dcolor}
                 maxAspect={maxAspect}
               />

@@ -1,4 +1,11 @@
-import { clusterSpan, ringPositions, stageGeom, widthOf } from "./geometry.js";
+import {
+  PAYLOAD_ASPECT,
+  clusterSpan,
+  payloadDiaOf,
+  ringPositions,
+  stageGeom,
+  widthOf,
+} from "./geometry.js";
 import { diaOf } from "./parts.js";
 
 /* The rocket as solid shapes, in metres.
@@ -215,9 +222,7 @@ export function modelOf(stages, payload = 0, payloadDia = 0) {
     if (!st.sol) continue;
     y += stageParts(st.sol, y, push);
   }
-  /* The same figure the build view uses when no diameter is given, so the two
-     cannot draw a different payload. */
-  const payD = payloadDia || Math.max(0.9, Math.cbrt(payload || 0.1) * 1.1);
+  const payD = payloadDiaOf(payload, payloadDia);
   if (payD > 0)
     parts.push({
       role: "payload",
@@ -225,7 +230,14 @@ export function modelOf(stages, payload = 0, payloadDia = 0) {
       z: 0,
       y,
       r: payD / 2,
-      h: payD * 1.3,
+      /* KSP's pods taper by one stack size, and that ladder halves: the Mk1
+         goes 1.25 to 0.625, the Mk1-3 2.5 to 1.25. The Mk2 is the odd one at
+         two thirds. */
+      rTop: payD / 4,
+      /* The same figure the slenderness limit is measured on — see
+         PAYLOAD_ASPECT. Drawing a shape the solver did not measure is the
+         two-descriptions failure this whole model exists to prevent. */
+      h: payD * PAYLOAD_ASPECT,
     });
   return parts;
 }

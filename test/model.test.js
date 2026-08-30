@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { planMission } from "../src/core/plan.js";
 import { extentOf, modelOf } from "../src/core/model.js";
-import { stackGeometry, stageSize } from "../src/core/geometry.js";
+import {
+  PAYLOAD_ASPECT,
+  stackGeometry,
+  stageSize,
+} from "../src/core/geometry.js";
 import { stagingSteps, stepModels } from "../src/ui/components/build.jsx";
 import { missionCases } from "./grid.js";
 import { PANELS, escapes, escapesDepth } from "./framing.js";
@@ -58,12 +62,14 @@ const buildModels = async () => {
         solved,
         cur,
         c.input.payload,
+        c.input.payloadDia,
       );
       out.push({
         name: `${c.name} · ${cur.label}`,
         cur,
         live,
         payload: c.input.payload,
+        payloadDia: c.input.payloadDia,
         parts: model,
         planParts: planModel,
       });
@@ -157,9 +163,9 @@ describe("the build model", () => {
        deliberately — they stage away — so this asks it of the steps that have
        none left. */
     const bad = [];
-    for (const { name, cur, live, payload, parts } of MODELS) {
+    for (const { name, cur, live, payload, payloadDia, parts } of MODELS) {
       if (cur.boost || !live.length) continue;
-      const geo = stackGeometry(live, payload);
+      const geo = stackGeometry(live, payload, payloadDia);
       const { height, width } = extentOf(parts);
       if (Math.abs(height - geo.h) > EPS)
         bad.push(
@@ -264,10 +270,38 @@ describe("the build model", () => {
        the step before this one for a while: it was handed an empty list, made
        no frame, and the canvas kept the rocket it already had. */
     const parts = modelOf([], 1.2, 0);
-    expect(parts).toHaveLength(1);
-    expect(parts[0].role).toBe("payload");
+    expect(parts.map((p) => p.role)).toEqual(["payload"]);
     const { height, reach } = extentOf(parts);
     expect(height).toBeGreaterThan(0);
     expect(reach).toBeGreaterThan(0);
+
+    /* And it is a command pod, which is what a payload usually is: KSP's pods
+       taper by one stack size, and that ladder halves. The height is not part
+       of the shape — `stackGeometry` measures the slenderness limit on the same
+       figure, so narrowing the top is free and shortening it would not be. #82 */
+    const pod = parts[0];
+    expect(pod.rTop).toBeCloseTo(pod.r / 2, 12);
+    /* And it is a pod's shape, not a drum's. Measured from the parts, a pod
+       stands 0.65 to 0.90 of its own width: the Mk1 0.90, the Mk2 0.84, the
+       Mk1-3 0.65. */
+    const width = pod.r * 2;
+    expect(pod.h / width).toBeGreaterThanOrEqual(0.65);
+    expect(pod.h / width).toBeLessThanOrEqual(0.9);
+    /* And it is exactly what the solver measured. Drawing a payload the
+       slenderness limit was not applied to is the two-descriptions failure
+       this model exists to prevent. */
+    expect(height).toBeCloseTo(width * PAYLOAD_ASPECT, 12);
+  });
+
+  it("keeps the payload inside the envelope the solver measured", () => {
+    /* The taper narrows the top; nothing may widen it. `extentOf` reads the
+       base radius, and the panel and every camera are sized from that. */
+    for (const { name, parts } of MODELS)
+      for (const p of parts)
+        if (p.rTop !== undefined)
+          expect(
+            p.rTop,
+            `${name}: ${p.role} flares outwards`,
+          ).toBeLessThanOrEqual(p.r);
   });
 });

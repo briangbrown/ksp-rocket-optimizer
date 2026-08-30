@@ -1,6 +1,11 @@
 import { Suspense, lazy, useState } from "react";
 
-import { PACK_BRACE, PACK_JOIN, stackGeometry } from "../../core/geometry.js";
+import {
+  PACK_BRACE,
+  PACK_JOIN,
+  payloadDiaOf,
+  stackGeometry,
+} from "../../core/geometry.js";
 import { extentOf, modelOf } from "../../core/model.js";
 import { framing } from "../views.js";
 import { PLATE_SHROUD } from "../../core/parts.js";
@@ -707,10 +712,9 @@ export function stagingSteps(solved) {
 /* What a step draws: the whole vehicle for the elevation, and the bottom live
    stage for the plan. Boosters are filtered out once they have gone, so the
    panel is sized for the rocket on screen rather than for parts that left. */
-export function stepModels(solved, cur, payload) {
+export function stepModels(solved, cur, payload, payloadDia) {
   const live = solved.slice(cur.drop);
-  /* Sized from the payload's mass, not the width the user set — see #67. */
-  const payD = Math.max(0.9, Math.cbrt(payload) * 1.1);
+  const payD = payloadDiaOf(payload, payloadDia);
   const attached = (p) => cur.boost || p.role !== "booster";
   return {
     live,
@@ -719,7 +723,7 @@ export function stepModels(solved, cur, payload) {
   };
 }
 
-function BuildView({ stages, payload, color, maxAspect = 14 }) {
+function BuildView({ stages, payload, payloadDia, color, maxAspect = 14 }) {
   const solved = stages.filter((x) => x.sol);
   const [step, setStep] = useState(0);
   /* Locked cameras, not an orbit: a schematic that moves stops being a
@@ -730,9 +734,14 @@ function BuildView({ stages, payload, color, maxAspect = 14 }) {
 
   const steps = stagingSteps(solved);
   const cur = steps[Math.min(step, steps.length - 1)];
-  const { live, model, planModel } = stepModels(solved, cur, payload);
+  const { live, model, planModel } = stepModels(
+    solved,
+    cur,
+    payload,
+    payloadDia,
+  );
 
-  const geo = stackGeometry(stages, payload);
+  const geo = stackGeometry(stages, payload, payloadDia);
   /* Both numbers come from the model, not from a second pass over shapes this
      file pushed. They used to be reasoned back from a parts array that carried
      at most two of a stage's side columns — a side elevation cannot show a ring
