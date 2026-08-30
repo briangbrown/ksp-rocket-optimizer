@@ -103,6 +103,11 @@ function stageParts(sol, base, push) {
     y += a.h;
   }
 
+  /* Where the tanks start, kept because the radial boosters below hang off
+     them and would otherwise have to add the engine, the coupler and every
+     adapter back up for themselves. */
+  const tankBase = y;
+
   /* Tanks. A packed run is a ring of tanks around the column's own centre,
      level by level, with anything that did not fit still stacked on it. */
   if (g.tank > 0) {
@@ -178,15 +183,33 @@ function stageParts(sol, base, push) {
     y += g.decoupler;
   }
 
-  /* Radial boosters stand on the pad beside the stage, outside the ring of
-     columns rather than inside it. */
+  /* Radial boosters stand beside the stage, outside the ring of columns rather
+     than inside it — and against the tanks, which is what they are bolted to.
+
+     `br` was already measured off the tank's diameter, because that is where
+     the decoupler goes. The foot was not: standing it on the stage's base put
+     it alongside the engine, the coupler and the adapters, every one of them
+     narrower than the tank, so a booster was drawn against nothing at all for
+     that whole length and read as floating. Every booster-bearing stage in the
+     mission grid had it, and where a stage's own engine is a solid booster —
+     `engineLen` is then the entire casing, and a Clydesdale is 22 m — it ran to
+     twenty-five metres of empty space. #86 */
   if (sol.boosters) {
     const b = sol.boosters;
     /* The same width stageSize charges for it, so the shapes cannot reach
        further than the stage was sized at. */
     const bd = widthOf(b.part, diaOf(b.part));
     const br = (S > 1 ? g.ringR : g.td / 2) + bd / 2;
-    const bh = Math.min(g.engine + g.tank, boosterLength(b, bd));
+    /* A stage with no tanks has nothing to hang them from, so they keep the
+       engine for company — the case where the core is itself a solid booster. */
+    const run = g.tank > 0 ? g.tank : g.engine;
+    const foot = g.tank > 0 ? tankBase : base;
+    /* Capped at the run it is bolted to, so it never rises past the stage top.
+       A long booster on a short core is therefore drawn shorter than it is;
+       letting it stand full height would grow the model's extent instead, and
+       the panel is sized from that — the whole rocket would shrink to make room
+       for a booster sticking out of the top of it. */
+    const bh = Math.min(run, boosterLength(b, bd));
     for (let i = 0; i < b.n; i++) {
       const a = (i / b.n) * 2 * Math.PI;
       push({
@@ -194,7 +217,7 @@ function stageParts(sol, base, push) {
         part: b.part,
         x: Math.cos(a) * br,
         z: Math.sin(a) * br,
-        y: base,
+        y: foot,
         r: bd / 2,
         h: bh,
       });

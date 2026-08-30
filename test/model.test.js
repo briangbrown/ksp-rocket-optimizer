@@ -210,6 +210,38 @@ describe("the build model", () => {
     expect(bad.slice(0, 6), `${bad.length} views clip in depth`).toEqual([]);
   }, 300_000);
 
+  it("stands a radial booster against what it is bolted to", () => {
+    /* A booster's inner face is set at the tank's radius, because that is where
+       its decoupler goes. Its foot has to be there too. It stood on the stage's
+       base instead — alongside the engine, the coupler and the adapters, all
+       narrower than the tank — so it was drawn against nothing and read as
+       floating. Every booster-bearing stage in the mission grid had it, and
+       where a stage's own engine is a solid booster it ran to 25 m. #86 */
+    const bad = [];
+    let checked = 0;
+    for (const { name, parts } of MODELS) {
+      for (const b of parts.filter((p) => p.role === "booster")) {
+        checked++;
+        /* How far in the booster's near side reaches. Something has to be
+           there, at the height its foot is at. */
+        const inner = Math.hypot(b.x, b.z) - b.r;
+        const touching = parts.some(
+          (p) =>
+            p.role !== "booster" &&
+            p.y <= b.y + EPS &&
+            p.y + p.h >= b.y + EPS &&
+            Math.hypot(p.x, p.z) + p.r >= inner - EPS,
+        );
+        if (!touching)
+          bad.push(
+            `${name}: a ${b.part ? b.part.n : "booster"} stands against nothing at y=${b.y.toFixed(2)}`,
+          );
+      }
+    }
+    expect(checked, "no boosters in the grid to check").toBeGreaterThan(4);
+    expect(bad.slice(0, 6), `${bad.length} floating boosters`).toEqual([]);
+  }, 300_000);
+
   it("draws a tank run tank by tank, not as one tube", () => {
     /* Two tanks of the same diameter stacked end to end are continuous in depth
        and in normals, so the outline pass finds that seam by surface id or not
