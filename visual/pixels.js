@@ -37,7 +37,10 @@ export const READ = `
   const top = [...seen.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
   return {
     buffer: [canvas.width, canvas.height],
-    css: [Math.round(box.width), Math.round(box.height)],
+    /* Unrounded. A panel is sized from the model and lands on fractions, and
+       three floors the buffer at \`width * pixelRatio\` — so rounding here and
+       multiplying turns an 80.5 px panel into 162 against a buffer of 161. */
+    css: [box.width, box.height],
     distinct: seen.size,
     pixels: d.length / 4,
     top: top.map(([k, n]) => [

@@ -110,11 +110,16 @@ describe("the build view, in a browser", () => {
       ["plan", PLAN],
     ]) {
       const { buffer, css } = await read(i);
+      /* `Math.floor`, not a plain multiply: three sizes the buffer at
+         `floor(css * pixelRatio)` and a panel's width is a fraction, so an
+         80.5 px panel is a 161 px buffer and not 162. Rounding the css first
+         made this pass on one browser and fail on another half a pixel away —
+         the drawing was right in both. */
       expect(buffer[0], `${name}: buffer is not ${SCALE}x its css width`).toBe(
-        css[0] * SCALE,
+        Math.floor(css[0] * SCALE),
       );
       expect(buffer[1], `${name}: buffer is not ${SCALE}x its css height`).toBe(
-        css[1] * SCALE,
+        Math.floor(css[1] * SCALE),
       );
     }
   });
