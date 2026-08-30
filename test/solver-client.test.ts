@@ -1,4 +1,6 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
+import { must } from "./must.js";
+import type { PlanInput } from "../src/core/plan.js";
 
 /* The worker client's message protocol.
 
@@ -14,16 +16,25 @@ import { describe, it, expect, afterEach, vi } from "vitest";
    that needs a browser, and the Cloudflare preview on each PR is where it gets
    checked. */
 
+/* What the client posts, and what it is handed back. Named so the assertions
+   below can read the fields rather than reaching into an `any`. */
+type Posted = { id: number; input: PlanInput; threads: number };
+type Reply = { data: { id: number; result?: unknown; error?: string } };
+
 class FakeWorker {
-  static last = null;
-  constructor(url, opts) {
+  static last: FakeWorker | null = null;
+  url: string | URL;
+  opts: { type?: string } | undefined;
+  posted: Array<Posted> = [];
+  terminated = false;
+  onmessage: ((e: Reply) => void) | null = null;
+  onerror: ((e: { message: string }) => void) | null = null;
+  constructor(url: string | URL, opts?: { type?: string }) {
     this.url = url;
     this.opts = opts;
-    this.posted = [];
-    this.terminated = false;
     FakeWorker.last = this;
   }
-  postMessage(m) {
+  postMessage(m: Posted) {
     this.posted.push(m);
   }
   terminate() {
@@ -31,20 +42,35 @@ class FakeWorker {
   }
 }
 
-async function withWorker(fn) {
-  globalThis.Worker = FakeWorker;
+/* A stand-in, and asserted as one: it implements the four members the client
+   touches and none of the rest of the Worker interface, which is the whole
+   point — a real one would need a thread. */
+const asWorkerCtor = () => FakeWorker as unknown as typeof Worker;
+
+/* A sentinel, not a mission. These tests are about the message protocol — what
+   is posted, what comes back, and what is ignored — so the input only has to be
+   recognisable on the other side. */
+const marker = (o: object) => o as unknown as PlanInput;
+
+/* The one FakeWorker the client just built. */
+const latest = () => must(FakeWorker.last, "a worker to have been built");
+
+async function withWorker(
+  fn: (mod: typeof import("../src/ui/solver-client.js")) => Promise<unknown>,
+) {
+  globalThis.Worker = asWorkerCtor();
   vi.resetModules();
   const mod = await import("../src/ui/solver-client.js");
   try {
     return await fn(mod);
   } finally {
     mod.cancelSolve();
-    delete globalThis.Worker;
+    delete (globalThis as { Worker?: unknown }).Worker;
   }
 }
 
 afterEach(() => {
-  delete globalThis.Worker;
+  delete (globalThis as { Worker?: unknown }).Worker;
 });
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -52,38 +78,40 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
 describe("solver client, with a worker", () => {
   it("posts the input and resolves with the result", async () => {
     await withWorker(async ({ solve }) => {
-      const p = solve({ marker: 1 });
+      const p = solve(marker({ marker: 1 }));
       await tick();
-      const w = FakeWorker.last;
-      expect(w.opts.type, "a module worker is required for the imports").toBe(
+      const w = latest();
+      expect(w.opts?.type, "a module worker is required for the imports").toBe(
         "module",
       );
       expect(w.posted).toHaveLength(1);
       expect(w.posted[0].input).toEqual({ marker: 1 });
 
-      w.onmessage({ data: { id: w.posted[0].id, result: { stages: ["x"] } } });
+      w.onmessage?.({
+        data: { id: w.posted[0].id, result: { stages: ["x"] } },
+      });
       expect(await p).toEqual({ stages: ["x"] });
     });
   });
 
   it("ignores a reply from a superseded run", async () => {
     await withWorker(async ({ solve }) => {
-      const first = solve({ n: 1 });
+      const first = solve(marker({ n: 1 }));
       await tick();
-      const staleId = FakeWorker.last.posted[0].id;
-      const staleWorker = FakeWorker.last;
+      const staleId = latest().posted[0].id;
+      const staleWorker = latest();
 
       /* Starting a second solve terminates the first and settles it as null,
          the same value planMission gives when its signal aborts. */
-      const second = solve({ n: 2 });
+      const second = solve(marker({ n: 2 }));
       await tick();
       expect(staleWorker.terminated).toBe(true);
       expect(await first).toBeNull();
 
       /* A late message from the dead run must not resolve the live one. */
-      const w = FakeWorker.last;
-      w.onmessage({ data: { id: staleId, result: { stages: ["stale"] } } });
-      w.onmessage({
+      const w = latest();
+      w.onmessage?.({ data: { id: staleId, result: { stages: ["stale"] } } });
+      w.onmessage?.({
         data: { id: w.posted[0].id, result: { stages: ["live"] } },
       });
       expect(await second).toEqual({ stages: ["live"] });
@@ -93,10 +121,10 @@ describe("solver client, with a worker", () => {
   it("resolves null when the worker reports an error", async () => {
     await withWorker(async ({ solve }) => {
       const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-      const p = solve({});
+      const p = solve(marker({}));
       await tick();
-      const w = FakeWorker.last;
-      w.onmessage({ data: { id: w.posted[0].id, error: "boom" } });
+      const w = latest();
+      w.onmessage?.({ data: { id: w.posted[0].id, error: "boom" } });
       expect(await p).toBeNull();
       spy.mockRestore();
     });
@@ -107,9 +135,9 @@ describe("solver client, with a worker", () => {
        import or an out-of-memory kill fires onerror and never onmessage. */
     await withWorker(async ({ solve }) => {
       const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-      const p = solve({});
+      const p = solve(marker({}));
       await tick();
-      FakeWorker.last.onerror({ message: "failed to import" });
+      latest().onerror?.({ message: "failed to import" });
       expect(await p).toBeNull();
       spy.mockRestore();
     });
@@ -117,9 +145,9 @@ describe("solver client, with a worker", () => {
 
   it("cancelSolve terminates and settles", async () => {
     await withWorker(async ({ solve, cancelSolve }) => {
-      const p = solve({});
+      const p = solve(marker({}));
       await tick();
-      const w = FakeWorker.last;
+      const w = latest();
       cancelSolve();
       expect(w.terminated).toBe(true);
       expect(await p).toBeNull();
@@ -167,6 +195,6 @@ describe("solver client, without a worker", () => {
       boosters: true,
     });
     expect(result).not.toBeNull();
-    expect(Array.isArray(result.stages)).toBe(true);
+    expect(Array.isArray(must(result, "a plan").stages)).toBe(true);
   }, 300_000);
 });

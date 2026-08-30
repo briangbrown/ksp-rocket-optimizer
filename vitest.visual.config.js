@@ -12,7 +12,7 @@ import { defineConfig } from "vitest/config";
    by accident — the same arrangement `perf/` has. #73 */
 export default defineConfig({
   test: {
-    include: ["visual/**/*.test.js"],
+    include: ["visual/**/*.test.ts"],
     /* One browser, one page, walked in order. Parallel workers would each
        launch their own Chrome, and software rendering is slow enough that the
        launches would cost more than the assertions. */

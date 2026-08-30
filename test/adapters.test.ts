@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { adapterChain, adapterGraph, fitStructure } from "../src/core/tanks.js";
 import { DATA } from "../src/core/catalogue.js";
 import { withDeps } from "../src/core/tech.js";
+import { must } from "./must.js";
 
 /* The adapter subsystem.
 
@@ -12,7 +13,7 @@ import { withDeps } from "../src/core/tech.js";
 
    These tests are the ones that would have caught it. */
 
-const tierUnlocks = (lvl) =>
+const tierUnlocks = (lvl: number) =>
   withDeps(
     DATA.nodes,
     new Set(
@@ -24,7 +25,7 @@ const tierUnlocks = (lvl) =>
 
 /* A fresh array each time: these caches are keyed on the array, so reusing one
    would be testing the cache rather than the roster. */
-const tanksFor = (lvl) => {
+const tanksFor = (lvl: number) => {
   const unlocked = tierUnlocks(lvl);
   return DATA.tanks.filter(
     (t) => (!t.t || unlocked.has(t.t)) && !t.mh && !t.rs,
@@ -37,22 +38,23 @@ describe("adapter chains", () => {
      0.625>1.25, 1.25>2.5 and 2.5>3.75. */
   it("spans narrow to wide, which is the only direction the graph is keyed", () => {
     const tanks = tanksFor(9);
-    const up = adapterChain(tanks, 1.25, 2.5);
-    expect(up).not.toBeNull();
+    const up = must(adapterChain(tanks, 1.25, 2.5), "a 1.25 -> 2.5 chain");
     expect(up.parts.length).toBeGreaterThan(0);
     expect(up.dry).toBeGreaterThan(0);
 
     /* Asked the other way round it returns the empty sentinel rather than
        searching. `fitStructure` used to call it exactly like this, which is why
        it never fitted an adapter to anything. */
-    const down = adapterChain(tanks, 2.5, 1.25);
+    const down = must(adapterChain(tanks, 2.5, 1.25), "the empty sentinel");
     expect(down.parts).toEqual([]);
     expect(down.dry).toBe(0);
   });
 
   it("chains hops when no single part spans the gap", () => {
-    const chain = adapterChain(tanksFor(9), 0.625, 3.75);
-    expect(chain).not.toBeNull();
+    const chain = must(
+      adapterChain(tanksFor(9), 0.625, 3.75),
+      "a 0.625 -> 3.75 chain",
+    );
     expect(chain.parts.length).toBe(3); // 0.625 -> 1.25 -> 2.5 -> 3.75
   });
 
@@ -75,8 +77,10 @@ describe("roster changes invalidate the caches", () => {
     const late = tanksFor(9);
     expect(adapterGraph(late).size).toBeGreaterThan(0);
 
-    const chain = adapterChain(late, 0.625, 1.25);
-    expect(chain).not.toBeNull();
+    const chain = must(
+      adapterChain(late, 0.625, 1.25),
+      "a chain once the roster has one",
+    );
     expect(chain.parts.length).toBeGreaterThan(0);
   });
 
@@ -100,8 +104,10 @@ describe("fitStructure", () => {
     /* A coupler wider than the tank below it needs something to span the two.
        Picking an engine that takes a coupler at all is what makes `under` come
        from the coupler rather than from the engine. */
-    const engine = DATA.engines.find((e) => e.n.includes("Terrier"));
-    expect(engine).toBeTruthy();
+    const engine = must(
+      DATA.engines.find((e) => e.n.includes("Terrier")),
+      "the Terrier",
+    );
 
     const wide = fitStructure({
       engine,
@@ -122,16 +128,21 @@ describe("fitStructure", () => {
   });
 
   it("fits nothing when the engine is narrower than the stack", () => {
-    const engine = DATA.engines.find((e) => e.n.includes("Spark"));
-    const fit = fitStructure({
-      engine,
-      n: 1,
-      stackD: 2.5,
-      tanks: tanksFor(9),
-      unlocked,
-      excluded: new Set(),
-    });
-    expect(fit).toBeTruthy();
+    const engine = must(
+      DATA.engines.find((e) => e.n.includes("Spark")),
+      "the Spark",
+    );
+    const fit = must(
+      fitStructure({
+        engine,
+        n: 1,
+        stackD: 2.5,
+        tanks: tanksFor(9),
+        unlocked,
+        excluded: new Set(),
+      }),
+      "a structural fit",
+    );
     expect(fit.adapt.parts).toEqual([]);
   });
 });

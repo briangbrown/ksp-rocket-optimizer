@@ -11,19 +11,22 @@ import { act } from "react";
    because opacity is transitioned and lags behind the state. */
 export const solving = () => !!document.querySelector('[style*="pulse"]');
 
-export const byText = (label) =>
+export const byText = (label: string) =>
   [...document.querySelectorAll("button")].find(
     (b) => b.textContent.trim() === label,
   );
 
-export const allByText = (label) =>
+export const allByText = (label: string) =>
   [...document.querySelectorAll("button")].filter(
     (b) => b.textContent.trim() === label,
   );
 
-export async function click(target) {
+export async function click(target: string | Element | null | undefined) {
   const el = typeof target === "string" ? byText(target) : target;
-  if (!el) throw new Error(`no button labelled "${target}"`);
+  /* `instanceof` rather than a truth test: the callers hand this whatever
+     `byText` or a querySelector found, and both can come back with nothing. */
+  if (!(el instanceof HTMLElement))
+    throw new Error(`no button labelled "${target}"`);
   await act(async () => {
     el.click();
   });
@@ -51,16 +54,15 @@ export async function settle(timeoutMs = 120_000) {
 
 /* Stat renders <div class="eyebrow">label</div> followed by the value div,
    whose trailing span holds the unit. */
-export function stat(label) {
+export function stat(label: string) {
   for (const el of document.querySelectorAll(".eyebrow")) {
-    if (el.textContent.trim() !== label) continue;
+    if (el.textContent?.trim() !== label) continue;
     const value = el.nextElementSibling;
     if (!value) return null;
     const unit = value.querySelector("span");
-    const text = value.textContent;
-    return unit
-      ? text.slice(0, text.length - unit.textContent.length).trim()
-      : text.trim();
+    const text = value.textContent ?? "";
+    const tail = unit?.textContent ?? "";
+    return unit ? text.slice(0, text.length - tail.length).trim() : text.trim();
   }
   return null;
 }

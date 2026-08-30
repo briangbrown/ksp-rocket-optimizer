@@ -30,7 +30,7 @@ const { default: KSPMissionPlanner } = await import("../src/ui/app.jsx");
 
 const KEY = "ksp-planner:roster";
 
-const tier = (lvl) =>
+const tier = (lvl: number) =>
   withDeps(
     DATA.nodes,
     new Set(
@@ -46,26 +46,27 @@ const saved = () => JSON.parse(localStorage.getItem(KEY) ?? "null");
    count is on screen without opening the panel. */
 function nodesShown() {
   for (const el of document.querySelectorAll(".eyebrow")) {
-    const m = /Tech tree · (\d+) of/.exec(el.textContent);
+    const m = /Tech tree · (\d+) of/.exec(el.textContent ?? "");
     if (m) return Number(m[1]);
   }
   throw new Error("no tech tree header on screen");
 }
 
-const button = (text) =>
+const button = (text: string) =>
   [...document.querySelectorAll("button")].find((b) =>
-    b.textContent.includes(text),
+    (b.textContent ?? "").includes(text),
   );
 
 /* Scoped to the row the "Unlock through tier:" label sits in — a bare `.chip`
    reading "3" also matches chips elsewhere in the controls. */
-function tierChip(lvl) {
+function tierChip(lvl: number) {
   const label = [...document.querySelectorAll("span")].find(
-    (s) => s.textContent.trim() === "Unlock through tier:",
+    (s) => (s.textContent ?? "").trim() === "Unlock through tier:",
   );
-  if (!label) throw new Error("the tech panel is not open");
-  return [...label.parentElement.querySelectorAll("button.chip")].find(
-    (b) => b.textContent.trim() === String(lvl),
+  const row = label && label.parentElement;
+  if (!row) throw new Error("the tech panel is not open");
+  return [...row.querySelectorAll("button.chip")].find(
+    (b) => (b.textContent ?? "").trim() === String(lvl),
   );
 }
 

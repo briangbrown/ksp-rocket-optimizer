@@ -67,11 +67,11 @@ Three layers, and the boundary between the first two is the point:
     src/core/   solver and physics. No React, no DOM, no imports from ui.
     src/ui/     the application
 
-**`src/core/plan.js` is the seam.** `planMission(input, { signal, onYield })`
+**`src/core/plan.ts` is the seam.** `planMission(input, { signal, onYield })`
 takes a destination and a payload and returns solved stages. Everything crossing
 it is plain data — no `Set`, no `Map`, no object identity, no functions — so the
 solver behind it can become a Web Worker or a Rust/WASM module without the UI
-changing. `test/seam-contract.test.js` enforces that and will fail if it slips.
+changing. `test/seam-contract.test.ts` enforces that and will fail if it slips.
 
 Part data is extracted from a specific KSP install (Squad 1.12.5 + Breaking
 Ground + ReStock+). It is not re-derived at runtime, so changing a number in
@@ -88,15 +88,19 @@ any React project" property is gone, deliberately.
 The conventions here differ from a typical React project. Match the file rather
 than habit:
 
-> **TypeScript.** The conversion in [#11](../../issues/11) is under way, a
-> chunk at a time. `tsconfig.json` has `allowJs` on so converted and
-> unconverted files sit together, and `npm run typecheck` is what stands in
-> `no-undef`'s place for a file that has moved — eslint here has no TypeScript
-> parser, so a `.ts` file it does not lint at all.
+> **TypeScript.** All of it, since [#11](../../issues/11): `src/`, `test/`,
+> `visual/` and the two `perf/` entry points that go through vite. What is left
+> in JavaScript is the configuration at the root and the two benchmark scripts
+> node runs directly.
+>
+> `npm run typecheck` is a CI step and is what stands in `no-undef`'s place —
+> eslint here has no TypeScript parser, so it lints none of the source, and
+> neither the build nor the suite can see a type error either: vite and vitest
+> both strip types with esbuild and never check them.
+>
 > `.claude/typescript-style-guide.md` is the conventions reference. Its opening
 > section lists four rules this project deliberately breaks — read that before
-> applying anything from the rest of it, and note that the two "keep it one
-> file" rules describe a layout this repository has already left behind.
+> applying anything from the rest of it.
 
 - **Inline `style={{}}` is correct here.** There is no Tailwind, no CSS file,
   and no class-based design system. Static styling lives in a `<style>` block
@@ -160,11 +164,11 @@ whatever it is drawn with, where containment only ever said the drawing was
 tidy.
 
 The walk is the build view's own — `stagingSteps` and `stepModels` are exported
-from `build.jsx` and called by both the component and the test, so what is
+from `build.tsx` and called by both the component and the test, so what is
 checked is what a user is shown, including the boosters-away step that the
 solver knows nothing about. Containment in the 3D view is true by construction:
 `fitOrtho` sizes the frustum from the same extent the panel is sized from, and
-`test/three-view.test.js` pins that arithmetic without a renderer.
+`test/three-view.test.ts` pins that arithmetic without a renderer.
 
 **The visual suite** is what does reach the drawing. `npm run test:visual`
 builds the application, serves it, and drives it through a real WebGL context in
@@ -183,7 +187,7 @@ It asserts properties of the pixels rather than comparing against a golden
 image, on purpose: SwiftShader is not promised to be stable to the pixel across
 versions, and a baseline whose diffs nobody can explain is a cost this
 repository has already priced. It is a separate script and a separate CI job —
-the main suite is minutes long and `test/model.test.js` records a worker running
+the main suite is minutes long and `test/model.test.ts` records a worker running
 out of memory when the mission models were built twice.
 
 It still says nothing about a real GPU, about performance, or about a phone.
@@ -197,24 +201,25 @@ flies, and then re-solves against the flown cost. Dropping the cluster-cap
 variant left every one of the 81 grid _designs_ untouched and moved three of
 these twelve. Re-bless it exactly as deliberately as the design snapshot.
 
-    test/grid.js                          the configuration grid and its axes
-    test/signature.js                     reducing a design to stable text
-    test/app-harness.js                   driving the app in jsdom
-    test/framing.js                       whether a camera sees the whole rocket
-    visual/browser.js                     chromium with a software WebGL context
-    visual/pixels.js                      reading a canvas back as numbers
-    visual/render.test.js                 what the build view actually draws
-    test/design-snapshot.test.js          the design snapshot
-    test/render-sweep.test.jsx            the render sweep
-    test/model.test.js                    the rocket as shapes, checked as shapes
-    test/parts-order.test.jsx             the parts list reads as a build order
-    test/three-view.test.js               the orthographic framing, on numbers
-    test/seam-contract.test.js            planMission stays serialisable
-    test/seam-input.test.jsx              what the app actually hands the seam
-    test/resolve-wiring.test.jsx          does a control change re-solve
-    test/solver-client.test.js            the worker message protocol
-    test/mission-sweep.test.js            what planMission actually delivers
-    test/shard.test.js                    the sharded search folds back in order
+    test/grid.ts                          the configuration grid and its axes
+    test/signature.ts                     reducing a design to stable text
+    test/app-harness.ts                   driving the app in jsdom
+    test/framing.ts                       whether a camera sees the whole rocket
+    test/must.ts                          an expectation the compiler can read
+    visual/browser.ts                     chromium with a software WebGL context
+    visual/pixels.ts                      reading a canvas back as numbers
+    visual/render.test.ts                 what the build view actually draws
+    test/design-snapshot.test.ts          the design snapshot
+    test/render-sweep.test.tsx            the render sweep
+    test/model.test.ts                    the rocket as shapes, checked as shapes
+    test/parts-order.test.tsx             the parts list reads as a build order
+    test/three-view.test.ts               the orthographic framing, on numbers
+    test/seam-contract.test.ts            planMission stays serialisable
+    test/seam-input.test.tsx              what the app actually hands the seam
+    test/resolve-wiring.test.tsx          does a control change re-solve
+    test/solver-client.test.ts            the worker message protocol
+    test/mission-sweep.test.ts            what planMission actually delivers
+    test/shard.test.ts                    the sharded search folds back in order
     test/__snapshots__/designs.txt        solver baseline
     test/__snapshots__/missions.txt       delivered-design baseline
     test/__snapshots__/solvability.txt    which destinations build, and how big
@@ -255,6 +260,25 @@ implying CI covered it.
   changes, and no extensionless-import sweep across the repository. The
   alternative was rewriting every specifier in `src/` and `test/`, which would
   have buried the conversion diff in churn that proves nothing.
+- **A solved stage is not one shape.** A boosted stage carries no `stacks`,
+  `perStack`, `rejoin` or `joiner` at all — it is a single core with a ring
+  bolted to the side of it, built by `boostedAscent` from a different literal
+  than the scratch object `solveStage` fills. Every reader already wrote
+  `sol.stacks || 1` and tested the other three before use; `Solution` in
+  `src/core/solution.ts` now says which is which and why.
+- **Which part a shape stands for follows from the job it is doing.** `modelOf`
+  writes `role` and `part` together, so a booster shape carries whatever the
+  ring is made of and a coupler shape may carry a shroud, which has no name at
+  all. Asking a shape's part what it is instead — does it have a `column`? —
+  finds the liquid columns and misses every solid booster in the game, because
+  a solid one is a plain engine record. `ModelPart` is discriminated on the
+  role for that reason; narrow by asking the role.
+- **Flow analysis cannot see an assignment made inside a callback.** Two locals
+  set only by a nested `scan` still read as their initialiser everywhere below
+  it, which is how `optimiseTurn` ended up holding its two running bests on an
+  object instead. The same shape appears wherever a helper mutates a local of
+  its enclosing function: give the function an explicit return type, or hold
+  the state somewhere the compiler has to re-read.
 - **`stageGeom` is the single source of stage geometry.** `stageSize` sums it
   into a bounding box; the elevation lays it out as rectangles. They drifted
   apart on width, then height, then packing — do not recompute either one
@@ -355,9 +379,9 @@ implying CI covered it.
   plan's up vector decides this, not its position. Looking up from underneath,
   +x on the right forces +z to the top: the SVG plan's z-down cannot be kept as
   well, and a camera above the rocket that keeps both puts the payload over the
-  engines. `viewRight` in `src/ui/views.js` is the invariant, and
-  `test/three-view.test.js` checks it without a renderer.
-- **`src/ui/views.js` must not import three.js.** The build view sizes its
+  engines. `viewRight` in `src/ui/views.ts` is the invariant, and
+  `test/three-view.test.ts` checks it without a renderer.
+- **`src/ui/views.ts` must not import three.js.** The build view sizes its
   panels from `framing`, so whatever that module imports lands in the bundle
   that gets you to a solved rocket — and the renderer is half a megabyte of it,
   lazy-loaded for exactly that reason. The camera basis is four multiplications;
@@ -379,7 +403,7 @@ implying CI covered it.
   fails to compile, the pass it belongs to draws nothing, and the only trace is
   a console message. It is worse than it sounds, because it depends on the
   value: 2.6 and 3.4 compiled and 3.0 did not, so tuning a constant broke it.
-  Everything interpolated into a shader goes through `f()` in `shaders.js`.
+  Everything interpolated into a shader goes through `f()` in `shaders.ts`.
   `npm run test:visual` is what caught it, by reading the console — nothing in
   `test/` can.
 - **The surface-id buffer must not be filtered or multisampled.** A linear
@@ -437,11 +461,11 @@ implying CI covered it.
   live object reference across the `planMission` boundary — both are the whole
   reason the split exists.
 - Do not re-bless the design snapshot to make a red build green.
-- Do not convert to TypeScript without running the snapshot over the result.
-  Doing it before the snapshot existed would have meant a mechanical diff across
-  thousands of lines of physics with nothing able to detect a silently changed
-  result — the exact failure this repository keeps recording. That guardrail is
-  now in place; use it.
+- Do not make a mechanical, repository-wide change without running the snapshot
+  over the result. The TypeScript conversion was held back for exactly this
+  reason until there was something able to detect a silently changed design, and
+  then done a chunk at a time against it. The next such change gets the same
+  treatment.
 - Do not replace inline styles with Tailwind or another CSS framework.
 - Do not recompute stage geometry locally, or fix `solveStage` without checking
   `boostedAscent` — see "Where the bodies are buried".

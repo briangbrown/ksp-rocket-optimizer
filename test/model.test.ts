@@ -7,7 +7,13 @@ import {
   stackGeometry,
   stageSize,
 } from "../src/core/geometry.js";
-import { stagingSteps, stepModels } from "../src/ui/components/build.jsx";
+import {
+  isSolved,
+  stagingSteps,
+  stepModels,
+} from "../src/ui/components/build.jsx";
+import type { SolvedStage, Step } from "../src/ui/components/build.jsx";
+import type { ModelPart } from "../src/core/model.js";
 import { missionCases } from "./grid.js";
 import { PANELS, escapes, escapesDepth } from "./framing.js";
 
@@ -35,7 +41,10 @@ const EPS = 1e-3;
 
 /* Two cylinders share space when they overlap along the stack *and* their
    footprints overlap in plan. Touching is not overlapping. */
-function overlaps(a, b) {
+/* Only the five numbers this needs of a shape. */
+type Cyl = { x: number; y: number; z: number; r: number; h: number };
+
+function overlaps(a: Cyl, b: Cyl) {
   const dy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
   if (dy <= EPS) return 0;
   const d = Math.hypot(a.x - b.x, a.z - b.z);
@@ -46,10 +55,19 @@ function overlaps(a, b) {
 /* Solved once and shared. Building them per assertion meant three passes over
    twelve missions and every staging step of each, which was enough to run a
    worker out of memory. */
-let MODELS = [];
+type Built = Awaited<ReturnType<typeof buildModels>>;
+let MODELS: Built = [];
 
 const buildModels = async () => {
-  const out = [];
+  const out: Array<{
+    name: string;
+    cur: Step;
+    live: ReadonlyArray<SolvedStage>;
+    payload: number;
+    payloadDia: number;
+    parts: Array<ModelPart>;
+    planParts: Array<ModelPart>;
+  }> = [];
   for (const c of missionCases()) {
     const res = await planMission(c.input, {
       onYield: () => Promise.resolve(),
@@ -57,7 +75,7 @@ const buildModels = async () => {
     if (!res) continue;
     /* Every staging step, since which parts are present changes with it and
        the bugs this replaces all appeared partway down the stack. */
-    const solved = res.stages.filter((x) => x.sol);
+    const solved = res.stages.filter(isSolved);
     for (const cur of stagingSteps(solved)) {
       const { live, model, planModel } = stepModels(
         solved,
@@ -236,7 +254,7 @@ describe("the build model", () => {
       for (const b of parts.filter((p) => p.role === "booster")) {
         /* A liquid radial is a stack of tanks with an engine under it, so the
            part's own height is not its length. */
-        if (!b.part || b.part.column) continue;
+        if (b.part.column) continue;
         const measured = PART_H[b.part.n];
         if (measured === undefined) continue;
         checked++;
@@ -273,7 +291,7 @@ describe("the build model", () => {
         );
         if (!touching)
           bad.push(
-            `${name}: a ${b.part ? b.part.n : "booster"} stands against nothing at y=${b.y.toFixed(2)}`,
+            `${name}: a ${b.part.n} stands against nothing at y=${b.y.toFixed(2)}`,
           );
       }
     }

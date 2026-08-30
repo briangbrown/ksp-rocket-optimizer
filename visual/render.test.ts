@@ -2,6 +2,21 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SCALE, open, serve, settle } from "./browser.js";
 import { LEAN, NEAR, READ, forCanvas } from "./pixels.js";
 import { C } from "../src/ui/tokens.js";
+import type { Page } from "puppeteer";
+
+/* What `READ` hands back from inside the page: the canvas's two sizes, how
+   many distinct colours it holds, the commonest few, and a hash of the lot. */
+type Read = {
+  buffer: [number, number];
+  css: [number, number];
+  distinct: number;
+  pixels: number;
+  top: Array<[string, number]>;
+  hash: number;
+};
+
+/* And `LEAN`: how much ink each side of the panel's own centre line. */
+type Lean = { left: number; right: number; ink: number };
 
 /* What the build view actually draws.
 
@@ -16,9 +31,15 @@ import { C } from "../src/ui/tokens.js";
 const ELEVATION = 0;
 const PLAN = 1;
 
-let ctx;
-let page;
-let problems;
+/* Both panels, named, for the checks that ask the same thing of each. */
+const PANELS: ReadonlyArray<[string, number]> = [
+  ["elevation", ELEVATION],
+  ["plan", PLAN],
+];
+
+let ctx: Awaited<ReturnType<typeof serve>>;
+let page: Page;
+let problems: Array<string>;
 
 beforeAll(async () => {
   ctx = await serve();
@@ -31,13 +52,13 @@ afterAll(async () => {
   await ctx?.close();
 });
 
-const read = (i) => forCanvas(page, READ, i);
+const read = (i: number) => forCanvas(page, READ, i) as Promise<Read>;
 
 /* The stage stepper, by the labels it generates. */
 const steps = () =>
   page.$$eval("button", (bs) =>
     bs
-      .map((b) => b.textContent.trim())
+      .map((b) => (b.textContent ?? "").trim())
       .filter((t) =>
         /^(On the pad|Boosters away · core burns on|Stage \d+ spent|Payload alone)$/.test(
           t,
@@ -45,10 +66,10 @@ const steps = () =>
       ),
   );
 
-async function step(label) {
-  await page.evaluate((want) => {
+async function step(label: string) {
+  await page.evaluate((want: string) => {
     const b = [...document.querySelectorAll("button")].find(
-      (x) => x.textContent.trim() === want,
+      (x) => (x.textContent ?? "").trim() === want,
     );
     if (!b) throw new Error("no step " + want);
     b.click();
@@ -85,10 +106,7 @@ describe("the build view, in a browser", () => {
        sight is a cap whose normal points at the camera, so the cool-to-warm
        ramp has nothing to vary over and thirteen colours is a complete
        drawing. The elevation, seeing the tubes side-on, has around 480. */
-    for (const [name, i] of [
-      ["elevation", ELEVATION],
-      ["plan", PLAN],
-    ]) {
+    for (const [name, i] of PANELS) {
       const px = await read(i);
       expect(px.pixels, `${name}: empty canvas`).toBeGreaterThan(0);
       expect(px.distinct, `${name}: one flat colour`).toBeGreaterThan(4);
@@ -105,10 +123,7 @@ describe("the build view, in a browser", () => {
        lays out at its drawing buffer — devicePixelRatio times too big. At a
        ratio of 1 the two numbers agree and the bug is invisible, which is why
        the harness runs at 2. */
-    for (const [name, i] of [
-      ["elevation", ELEVATION],
-      ["plan", PLAN],
-    ]) {
+    for (const [name, i] of PANELS) {
       const { buffer, css } = await read(i);
       /* `Math.floor`, not a plain multiply: three sizes the buffer at
          `floor(css * pixelRatio)` and a panel's width is a fraction, so an
@@ -154,7 +169,7 @@ describe("the build view, in a browser", () => {
     const labels = await steps();
     expect(labels.length, "no staging steps to walk").toBeGreaterThan(2);
 
-    const seen = [];
+    const seen: Array<{ label: string; plan: number }> = [];
     for (const label of labels) {
       await step(label);
       seen.push({ label, plan: (await read(PLAN)).hash });
@@ -188,17 +203,17 @@ describe("the build view, in a browser", () => {
        arithmetic in `test/three-view.test.js`; this pins it end to end, on the
        pixels a person would have had to notice. */
     await step("On the pad");
-    const [side, plan] = await Promise.all([
+    const [side, plan] = (await Promise.all([
       forCanvas(page, LEAN, ELEVATION, C.panel),
       forCanvas(page, LEAN, PLAN, C.panel),
-    ]);
+    ])) as [Lean, Lean];
     expect(side.ink, "nothing drawn in the elevation").toBeGreaterThan(0);
     expect(plan.ink, "nothing drawn in the plan").toBeGreaterThan(0);
     /* A rocket on its axis is close to symmetric either way, so this cannot
        assert a lean — only that neither view is wholly on one side while the
        other is wholly on the opposite, which is what a mirrored basis on an
        asymmetric stage produces. */
-    const bias = (v) => (v.right - v.left) / v.ink;
+    const bias = (v: Lean) => (v.right - v.left) / v.ink;
     expect(
       Math.abs(bias(side) - bias(plan)),
       `elevation leans ${bias(side).toFixed(2)}, plan ${bias(plan).toFixed(2)}`,

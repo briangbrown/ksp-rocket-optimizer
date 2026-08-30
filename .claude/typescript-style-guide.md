@@ -4,27 +4,27 @@
 
 # Where this project differs
 
-This guide is staged here for the TypeScript conversion ([#11]) — the source is
-still `.jsx` today, so nothing below applies yet.
-
-Four of its rules contradict deliberate choices in this repository. Where they
-conflict, this section wins.
+The conversion in [#11] is done, so this guide is live. Four of its rules
+contradict deliberate choices in this repository. Where they conflict, this
+section wins.
 
 - **"Always use named exports. Avoid default exports."**
-  `KSPMissionPlanner` is a default export and stays one. The component is meant
-  to be droppable into any React project or pasted into a Claude artifact, which
-  is where it was written. The named exports at the foot of the file exist for
-  the tests and are added when something needs them, not as a convention.
+  `KSPMissionPlanner` is a default export and stays one. The component was
+  written to be droppable into a React project or pasted into a Claude
+  artifact. The named exports at the foot of a module exist for the tests and
+  are added when something needs them, not as a convention.
 
 - **"Organise files/folders by feature. Collocate related code as close as
-  possible."** and **"Match the file name to its primary export."**
-  The application is one file on purpose. Part tables, physics, solver and UI
-  all live in `src/ksp-mission-planner.jsx`, and it is not to be split. File
-  naming rules have nothing to act on.
+  possible."**
+  The split here is by layer, not by feature: `src/data` is measurements,
+  `src/core` is physics with no DOM in it, `src/ui` is the application. That
+  boundary is the point — see `CLAUDE.md` — and a feature-shaped layout would
+  cut across it.
 
 - **"Collocate `foo.ts` and `foo.test.ts` rather than separating source and
-  tests."** Tests live in `test/`, because they test the file as a whole rather
-  than any module within it.
+  tests."** Tests live in `test/`, because most of them are about the whole
+  solver rather than any one module of it. `visual/` is separate again: it
+  needs a browser, and it is a separate CI job for that reason.
 
 - **"Discourage snapshot testing."**
   The design snapshot is the primary verification in this repository and the

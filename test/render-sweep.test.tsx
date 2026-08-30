@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { act } from "react";
-import { byText, settle, solving, stat } from "./app-harness.js";
+import { byText, settle, stat } from "./app-harness.js";
 import KSPMissionPlanner from "../src/ui/app.jsx";
 
 /* The render sweep.
@@ -46,7 +46,7 @@ const BAD_TEXT = /\b(NaN|Infinity|undefined|null)\b/;
    no WebGL context. */
 const BAD_STYLE = /\b(NaN|Infinity|undefined)\b/;
 
-async function click(label) {
+async function click(label: string) {
   const el = byText(label);
   if (!el) throw new Error(`no button labelled "${label}"`);
   await act(async () => {
@@ -56,10 +56,10 @@ async function click(label) {
 
 /* Offenders are reported with context — "NaN appears somewhere in 10 kB of text"
    is not an actionable failure. */
-function scan(where) {
-  const problems = [];
+function scan(where: string) {
+  const problems: Array<string> = [];
 
-  const text = document.body.textContent;
+  const text = document.body.textContent ?? "";
   const m = text.match(BAD_TEXT);
   if (m) {
     const at = text.indexOf(m[0]);
@@ -69,7 +69,7 @@ function scan(where) {
   }
 
   for (const el of document.querySelectorAll("[style]")) {
-    const style = el.getAttribute("style");
+    const style = el.getAttribute("style") ?? "";
     const sm = style.match(BAD_STYLE);
     if (sm) {
       problems.push(

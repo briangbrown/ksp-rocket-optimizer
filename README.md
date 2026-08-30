@@ -69,12 +69,12 @@ simulator cannot fly to orbit at all, so their ascent goes unverified.
     src/data/       part tables, bodies, curves — JSON, no logic
     src/core/       the solver and the physics. No React, no DOM.
     src/ui/         the application
-    src/main.jsx    mounts it
+    src/main.tsx    mounts it
     test/           the checks — see How it is verified
     perf/           solver benchmarks, deliberately outside CI
     docs/optimiser-flow.mermaid    how the search works, and where simulation enters
 
-`src/core/plan.js` is the seam: `planMission()` takes a destination and a payload
+`src/core/plan.ts` is the seam: `planMission()` takes a destination and a payload
 and returns solved stages. Everything crossing it is plain data, so the solver
 behind it can be replaced — a Web Worker, or the Rust/WASM port that is the
 reason the boundary looks like this.

@@ -13,22 +13,42 @@ import { missionInput, MISSIONS } from "./cases.js";
 
 const argv = process.argv.slice(2);
 const mode = argv[0] || "grid";
-const flag = (name, dflt) => {
+/* One row of whichever benchmark ran: the grid names a case and what it was,
+   the mission names a destination and how many stages it delivered. */
+type Row = {
+  name: string;
+  ms: number;
+  tier?: number | null;
+  payload?: number | null;
+  dv?: number | null;
+  objective?: string | null;
+  solved?: boolean;
+  stages?: number;
+};
+
+const flag = <T extends string | number | null>(
+  name: string,
+  dflt: T,
+): string | T => {
   const i = argv.indexOf(`--${name}`);
   return i === -1 ? dflt : argv[i + 1];
 };
 
-const ms = (fn) => {
+const ms = <T>(fn: () => T): [number, T] => {
   const t0 = process.hrtime.bigint();
   const out = fn();
   return [Number(process.hrtime.bigint() - t0) / 1e6, out];
 };
 
-const pct = (n, d) => (d ? (100 * n) / d : 0);
+const pct = (n: number, d: number) => (d ? (100 * n) / d : 0);
 
-function summarise(rows, keyOf, label) {
+function summarise(
+  rows: ReadonlyArray<Row>,
+  keyOf: (r: Row) => unknown,
+  label: string,
+) {
   const total = rows.reduce((a, r) => a + r.ms, 0);
-  const by = new Map();
+  const by = new Map<unknown, { ms: number; n: number }>();
   for (const r of rows) {
     const k = keyOf(r);
     const e = by.get(k) || { ms: 0, n: 0 };
@@ -45,7 +65,7 @@ function summarise(rows, keyOf, label) {
 }
 
 async function grid() {
-  const rows = [];
+  const rows: Array<Row> = [];
   for (const c of cases()) {
     const [t, res] = ms(() => solveGroup(c.input));
     const m = c.name.match(/^tier(\d+)-pay([\d.]+)-dv(\d+)-(\w+)$/);
@@ -75,7 +95,7 @@ async function grid() {
 async function mission() {
   const tier = +flag("tier", 9);
   const repeat = +flag("repeat", 3);
-  const rows = [];
+  const rows: Array<Row> = [];
   console.log(`mission: tech tier ${tier}, best of ${repeat}\n`);
   for (const dest of MISSIONS) {
     const input = missionInput(dest, tier);

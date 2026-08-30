@@ -25,16 +25,19 @@ const { act } = await import("react");
 const { solving } = await import("./app-harness.js");
 const { default: KSPMissionPlanner } = await import("../src/ui/app.jsx");
 
+import { must } from "./must.js";
+
 const REPO = "https://github.com/briangbrown/ksp-rocket-optimizer";
 
 const links = () => [...document.querySelectorAll("a")];
 
 /* Anything an ancestor has switched off counts as switched off. */
-function suppressed(el) {
-  for (let n = el; n; n = n.parentElement) {
-    if (n.style && n.style.pointerEvents === "none")
+function suppressed(el: Element) {
+  for (let n: Element | null = el; n; n = n.parentElement) {
+    if (!(n instanceof HTMLElement)) continue;
+    if (n.style.pointerEvents === "none")
       return `pointer-events on ${n.tagName}`;
-    if (n.style && n.style.opacity && Number(n.style.opacity) < 0.5)
+    if (n.style.opacity && Number(n.style.opacity) < 0.5)
       return `opacity ${n.style.opacity} on ${n.tagName}`;
   }
   return null;
@@ -80,9 +83,9 @@ describe("attribution", () => {
     await act(async () => {
       await new Promise((r) => setTimeout(r, 300));
     });
-    const last = links()[0].closest("div");
+    const last = must(links()[0].closest("div"), "the attribution's own div");
     expect(
-      last.parentElement.lastElementChild,
+      must(last.parentElement, "a parent to the attribution").lastElementChild,
       "something has been added below the attribution",
     ).toBe(last);
   }, 60_000);

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
+import type { PlanInput, PlanOpts } from "../src/core/plan.js";
 
 /* What the application actually hands the seam.
 
@@ -13,12 +14,12 @@ import { describe, it, expect, vi } from "vitest";
    worker and the input had to survive a structured clone. So this intercepts
    the real call. */
 
-const calls = [];
+const calls: Array<PlanInput> = [];
 vi.mock("../src/core/plan.js", async (importOriginal) => {
-  const real = await importOriginal();
+  const real = await importOriginal<typeof import("../src/core/plan.js")>();
   return {
     ...real,
-    planMission: (input, opts) => {
+    planMission: (input: PlanInput, opts: PlanOpts) => {
       calls.push(input);
       return real.planMission(input, opts);
     },
@@ -32,8 +33,12 @@ const { default: KSPMissionPlanner } = await import("../src/ui/app.jsx");
 /* Same walk as the seam contract's checker, kept separate rather than shared:
    this one is about what the app builds, and coupling them would let a change
    to one quietly redefine the other. */
-function unserialisable(value, path = "input", ancestors = new Set()) {
-  const bad = [];
+function unserialisable(
+  value: unknown,
+  path = "input",
+  ancestors: ReadonlySet<unknown> = new Set(),
+): Array<string> {
+  const bad: Array<string> = [];
   if (value === null || typeof value !== "object") {
     if (typeof value === "function") bad.push(`${path}: function`);
     if (typeof value === "undefined") bad.push(`${path}: undefined`);

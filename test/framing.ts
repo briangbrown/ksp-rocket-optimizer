@@ -1,4 +1,9 @@
-import { cameraFor, viewAxis, viewRight, viewUp } from "../src/ui/views.js";
+import { cameraFor, viewRight, viewUp } from "../src/ui/views.js";
+import type { Extent } from "../src/ui/views.js";
+
+/* Only the five numbers a rim sample needs. `modelOf` produces more, and the
+   sweeps here also feed it bounding cylinders that were never parts. */
+type Cyl = { x: number; y: number; z: number; r: number; h: number };
 
 /* Does a camera see the whole rocket?
 
@@ -19,7 +24,7 @@ const RIM = 36;
 
 /* The panels as the build view sizes them. The elevation varies with the
    rocket and the angle it is turned to; these are the shapes it lands on. */
-export const PANELS = [
+export const PANELS: ReadonlyArray<[string, number]> = [
   ["side", 170 / 300],
   ["side", 60 / 300],
   ["side", 300 / 300],
@@ -31,7 +36,12 @@ export const PANELS = [
 /* How far outside the frustum the worst point of `parts` falls, in metres.
    Zero or less is contained. The camera looks at the middle of the model's
    height, which is what the frustum is centred on. */
-export function escapes(view, parts, extent, aspect) {
+export function escapes(
+  view: string,
+  parts: ReadonlyArray<Cyl>,
+  extent: Extent,
+  aspect: number,
+) {
   const { halfW, halfH } = cameraFor(view, extent, aspect);
   const r = viewRight(view);
   const u = viewUp(view);
@@ -55,7 +65,7 @@ export function escapes(view, parts, extent, aspect) {
 }
 
 /* The bounding cylinder as a part, for sweeping shapes rather than rockets. */
-export const asCylinder = ({ height, reach }) => [
+export const asCylinder = ({ height, reach }: Extent): Array<Cyl> => [
   { x: 0, z: 0, y: 0, h: height, r: reach },
 ];
 
@@ -70,7 +80,11 @@ export const asCylinder = ({ height, reach }) => [
    last staging steps and only in one of the three views.
 
    Depth along the view axis, measured from where the camera actually is. */
-export function escapesDepth(view, parts, extent) {
+export function escapesDepth(
+  view: string,
+  parts: ReadonlyArray<Cyl>,
+  extent: Extent,
+) {
   const { axis, dist, near, far } = cameraFor(view, extent, 1);
   const midY = extent.height / 2;
 

@@ -17,13 +17,13 @@
     "test:bless": "vitest run -u",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "perf:build": "vite build --ssr perf/run.js --outDir perf/.out --logLevel error",
+    "perf:build": "vite build --ssr perf/run.ts --outDir perf/.out --logLevel error",
     "perf": "npm run perf:build && node perf/.out/run.js grid",
     "perf:mission": "npm run perf:build && node perf/.out/run.js mission",
     "perf:save": "npm run perf:build && node perf/.out/run.js grid --out perf/baselines/local.json",
     "perf:compare": "npm run perf:build && node perf/.out/run.js grid --out perf/.out/current.json && node perf/compare.mjs perf/baselines/local.json perf/.out/current.json",
     "perf:profile": "npm run perf:build && node --cpu-prof --cpu-prof-dir=perf/.prof perf/.out/run.js grid",
-    "perf:config": "vite build --ssr perf/config.js --outDir perf/.out --logLevel error && node perf/.out/config.js",
+    "perf:config": "vite build --ssr perf/config.ts --outDir perf/.out --logLevel error && node perf/.out/config.js",
     "perf:map": "vite build --sourcemap hidden --logLevel error && echo 'map written to dist/assets/'",
     "perf:device": "npm run perf:profile && npm run perf:map && node perf/profile.mjs perf/.prof perf/traces --map dist/assets",
     "perf:heap": "npm run perf:build && node --heap-prof --heap-prof-dir=perf/.prof perf/.out/run.js grid"
@@ -36,6 +36,7 @@
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
+    "@types/node": "^26.4.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
     "@types/three": "^0.185.4",
