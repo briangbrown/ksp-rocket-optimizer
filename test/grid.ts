@@ -138,3 +138,34 @@ export function missionCases() {
       });
   return out;
 }
+
+/* A mission the drop-tank pool actually builds for.
+
+   Asparagus is what turns that pool on, and nothing else here turns it on: the
+   grid above never sets it and the mission sweep pins it off. So a stage built
+   from drop tanks was solved by no check at all until #93, which is how the
+   stand-in part for one came to carry no price. Twelve tonnes was not enough to
+   reach for them; twenty is. */
+export function asparagusInput(objective: Objective): PlanInput {
+  const unlocked = tierUnlocks(9);
+  return {
+    route: buildRoute("Mun", "land", true, "Kerbin", true, false),
+    cuts: [],
+    payload: 20,
+    payloadDia: 1.25,
+    margin: 10,
+    extraDv: 0,
+    engines: enginesFor(unlocked),
+    tanks: tanksFor(unlocked),
+    unlocked: [...unlocked],
+    excluded: [],
+    needGimbal: true,
+    maxAspect: 14,
+    expansions: { mh: false, rs: false },
+    asparagus: true,
+    objective,
+    origin: "Kerbin",
+    splitBy: [],
+    boosters: true,
+  };
+}

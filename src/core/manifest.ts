@@ -41,7 +41,7 @@ type RowPart =
   | null;
 
 /* The visitor `eachRow` hands each row to. `cost` is allowed to be missing
-   because a synthesised booster part has no price — see #93. */
+   because a handful of tanks in the part tables carry no price. */
 type AddRow = (
   role: Role,
   part: RowPart,
@@ -213,10 +213,13 @@ const _mass: AddRow = (_role, _part, qty, mass) => {
   _acc += qty * mass;
 };
 const _cost: AddRow = (_role, _part, qty, _mass, cost) => {
-  /* NaN rather than zero where a row has no price. A synthesised drop tank is
-     the only row that can be missing one, and the sum it lands in is already
-     NaN for the same reason — #93. Defaulting to zero here would hide half of
-     that and leave the two totals disagreeing. */
+  /* NaN rather than zero where a row has no price. What can be missing one is
+     a tank: seventeen of them carry no figure, all Making History, which the
+     app has off by default and neither baseline turns on. `stageCost` estimates
+     a price for those and this does not, so the two would disagree on such a
+     design — but only this one is read by a test, so nothing a user sees can
+     reach it. Defaulting to zero here would hide the disagreement rather than
+     fix it. */
   _acc += qty * (cost ?? NaN);
 };
 const _count: AddRow = (_role, _part, qty) => {

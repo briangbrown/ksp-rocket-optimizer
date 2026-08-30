@@ -108,17 +108,14 @@ function stageCost(c: Solution) {
   if (c.tanks) f += c.tanks.list.reduce((a, x) => a + x.c * est(x.t), 0);
   if (c.adapters)
     f += (c.stacks || 1) * c.adapters.parts.reduce((a, t) => a + est(t), 0);
-  /* A liquid radial column costs its engine plus its tanks, not just the engine —
-     reporting only the engine made columns look cheap, and the cost objective
-     picked them over designs that were genuinely cheaper. */
+  /* A liquid radial column costs its engine plus its tanks, not just the
+     engine — reporting only the engine made columns look cheap, and the cost
+     objective picked them over designs that were genuinely cheaper. A drop
+     tank is the same sum with nothing in the first term. */
   if (c.boosters)
-    /* A synthesised drop tank carries no price, and `undefined` here is what
-       makes a drop-tank stage cost NaN — see #93. Written as NaN rather than
-       defaulted or asserted away: the arithmetic is exactly what it was, and
-       the hole is where a reader can see it. */
     f +=
       c.boosters.n *
-      ((c.boosters.part.cost ?? NaN) +
+      (c.boosters.part.cost +
         (c.boosters.part.column ? c.boosters.part.column.funds || 0 : 0) +
         DECOUPLER_FUNDS);
   return f;

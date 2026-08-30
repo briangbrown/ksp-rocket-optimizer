@@ -60,9 +60,10 @@ type Joiner = { n: string; m: number; cost: number; t: string };
    A real engine most of the time — an SRB or a Twin-Boar. The liquid-column
    and drop-tank pools synthesise one instead, standing in for a whole radial
    column so the ascent simulator can fly it as though it were a single part.
-   Those carry no price and no gimbal, which is why an `Engine` will not do:
-   the fields a synthesised one omits have to be optional here or every reader
-   would be lying about what it has. */
+   A synthesised one carries no gimbal, which is why an `Engine` will not do.
+   It does carry a price: a stand-in that leaves one out is a hole in every sum
+   it lands in, which is what #93 was — so `cost` is required here, and the
+   pools that build one have to say what it is even when the answer is nothing. */
 type BoosterPart = {
   n: string;
   t: string | null;
@@ -76,7 +77,7 @@ type BoosterPart = {
   fv: number;
   fa?: number;
   gim?: number;
-  cost?: number;
+  cost: number;
   _dia?: number;
   /* Set on a synthesised column: the tankage it stands for, and how many
      engines are at the foot of it. A drop tank has none of the latter. */
