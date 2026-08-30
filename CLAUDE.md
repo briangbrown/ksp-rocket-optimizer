@@ -282,6 +282,13 @@ implying CI covered it.
   `createPortal` to `document.body` for that reason, and sits at a z-index
   below the app's own solving bar — which is fixed at 50 and outside the veil —
   so a full-screen rocket about to be replaced still says so.
+
+  What a portal costs is that it is a second root. The type stack is set on the
+  application's own root div, and `button { font-family: inherit }` in the
+  style block therefore reaches the browser's default in anything portaled out
+  of it — the chips in the overlay came out in Times. `FONT` in
+  `src/ui/tokens.ts` exists so the two roots cannot disagree about it.
+
 - **A stand-in part has to be a whole one.** The booster pools dress a liquid
   column and a drop tank up as engines so the two-phase maths can fly them
   without a second version of itself. The drop tank was built without a `cost`,

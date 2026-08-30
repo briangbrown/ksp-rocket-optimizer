@@ -117,24 +117,24 @@ describe("the orthographic framing", () => {
 describe("the panels", () => {
   const GAP = 22;
 
-  it("gives the elevation the height, and the plan what is left across", () => {
-    /* A pencil in a wide box: room for both, so the drawing that is the rocket
-       takes all the height there is. */
+  it("gives the elevation the height, and the plan a square beside it", () => {
+    /* A pencil in a wide box: the drawing that is the rocket takes all the
+       height there is, and the plan is as wide as the elevation and no wider. */
     const { elev, plan } = panelSizes({ aw: 1000, ah: 1300 }, 0.216, GAP);
     expect(elev.h).toBe(1300);
     expect(elev.w).toBeCloseTo(1300 * 0.216, 6);
     expect(plan.w).toBe(plan.h);
+    expect(plan.w).toBeCloseTo(elev.w, 6);
     expect(elev.w + GAP + plan.w).toBeLessThanOrEqual(1000 + 1e-9);
   });
 
-  it("shares the width where there is not enough for both", () => {
-    /* A squat stage: at full height its elevation would be twice as wide as
-       the box, so the two take one height between them instead — which is the
-       arrangement that keeps the plan worth looking at, and the plan is the
-       view that matters on a stage with a ring of columns. */
+  it("shrinks both by the same factor where they do not fit", () => {
+    /* A squat stage: at full height its elevation alone would be twice as wide
+       as the box, so the row scales down as a whole rather than letting one
+       view eat the other. The proportions survive it. */
     const { elev, plan } = panelSizes({ aw: 1000, ah: 1300 }, 2, GAP);
-    expect(elev.h).toBeCloseTo(plan.h, 9);
-    expect(elev.w).toBeCloseTo(elev.h * 2, 6);
+    expect(elev.w / elev.h).toBeCloseTo(2, 9);
+    expect(plan.w).toBeLessThanOrEqual(elev.w + 1e-9);
     expect(elev.w + GAP + plan.w).toBeCloseTo(1000, 6);
   });
 
@@ -155,15 +155,18 @@ describe("the panels", () => {
         for (const aspect of [0.02, 0.1, 0.216, 0.5, 1, 2, 6]) {
           const { elev, plan } = panelSizes({ aw, ah }, aspect, GAP);
           const across = elev.w + GAP + plan.w;
-          /* Two claims: the row fits the width it was given, and neither panel
-             is taller than the height it was given. A panel that overflows
-             either is a drawing drawn outside its own section. */
+          const where = `${aw}x${ah} @${aspect}`;
+          /* The row fits the width it was given, neither panel is taller than
+             the height it was given, the plan is square, and the plan is never
+             the wider of the two. A panel that breaks any of them is a drawing
+             drawn outside its own section. */
           if (across > aw + 1e-9)
-            bad.push(`${aw}x${ah} @${aspect}: row ${across.toFixed(1)}`);
+            bad.push(`${where}: row ${across.toFixed(1)}`);
           if (elev.h > ah + 1e-9 || plan.h > ah + 1e-9)
-            bad.push(`${aw}x${ah} @${aspect}: taller than its box`);
-          if (plan.w !== plan.h)
-            bad.push(`${aw}x${ah} @${aspect}: the plan is not square`);
+            bad.push(`${where}: taller than its box`);
+          if (plan.w !== plan.h) bad.push(`${where}: the plan is not square`);
+          if (plan.w > elev.w + 1e-9)
+            bad.push(`${where}: the plan is wider than the elevation`);
         }
     expect(bad.slice(0, 6), `${bad.length} boxes do not fit`).toEqual([]);
   });

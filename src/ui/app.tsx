@@ -27,7 +27,7 @@ import { BodyPicker, RouteMap } from "./components/route.jsx";
 import { parseConfig } from "./config.js";
 import { craftName, fmt } from "./format.js";
 import { loadRoster, saveRoster } from "./storage.js";
-import { BODY_HUE, C, edgeOf } from "./tokens.js";
+import { BODY_HUE, C, FONT, edgeOf } from "./tokens.js";
 import type { Objective } from "../core/performance.js";
 import type { PlanStage } from "../core/plan.js";
 import type { Tally } from "../core/tally.js";
@@ -600,7 +600,7 @@ export default function KSPMissionPlanner() {
         background: C.ink,
         color: C.paper,
         minHeight: "100vh",
-        fontFamily: "'Inter',system-ui,-apple-system,sans-serif",
+        fontFamily: FONT,
         padding: "0 0 60px",
       }}
     >

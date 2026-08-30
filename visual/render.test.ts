@@ -69,7 +69,9 @@ const steps = () =>
 async function press(label: string) {
   await page.evaluate((want: string) => {
     const b = [...document.querySelectorAll("button")].find(
-      (x) => (x.textContent ?? "").trim() === want,
+      (x) =>
+        (x.textContent ?? "").trim() === want ||
+        x.getAttribute("aria-label") === want,
     );
     if (!b) throw new Error("no button labelled " + want);
     b.click();
@@ -262,6 +264,18 @@ describe("the build view, in a browser", () => {
       `the elevation went from ${small.css[1]} to ${big.css[1]} px tall`,
     ).toBeGreaterThan(small.css[1] * 1.5);
     expect(bigPlan.css[0]).toBeGreaterThan(smallPlan.css[0]);
+    /* Never wider than the elevation, and standing on the same line as it. */
+    expect(bigPlan.css[0]).toBeLessThanOrEqual(big.css[0] + 1);
+
+    /* The overlay is a second root, rendered through a portal to the body and
+       outside the one the application sets its type stack on — `button {
+       font-family: inherit }` reached the browser's default there, and every
+       chip in it came out in Times. */
+    const font = await page.$eval(
+      '[aria-label="Leave full screen"]',
+      (b) => getComputedStyle(b).fontFamily,
+    );
+    expect(font, "the overlay is not in the app's own type").toContain("Inter");
 
     const tops = await labelTops();
     expect(tops.length, "the rail is not up beside the drawings").toBe(3);

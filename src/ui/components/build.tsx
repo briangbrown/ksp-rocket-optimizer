@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { Maximize, Minimize } from "lucide-react";
 
 import { payloadDiaOf, stackGeometry } from "../../core/geometry.js";
 import { manifest } from "../../core/manifest.js";
@@ -15,7 +16,7 @@ import { extentOf, modelOf } from "../../core/model.js";
 import { framing, panelSizes } from "../views.js";
 import { PLATE_SHROUD } from "../../core/parts.js";
 import { fmt, hms } from "../format.js";
-import { C } from "../tokens.js";
+import { C, FONT } from "../tokens.js";
 import { Mini, Stat } from "./controls.jsx";
 import type { CSSProperties, ReactNode } from "react";
 import type { Vehicle, Turn } from "../../core/ascent.js";
@@ -1002,6 +1003,10 @@ function BuildView({
     </button>
   ));
 
+  const heading = (
+    <span className="eyebrow">Build · step through the staging</span>
+  );
+
   const header = (
     <div
       style={{
@@ -1011,19 +1016,24 @@ function BuildView({
         marginBottom: 12,
       }}
     >
-      <span className="eyebrow">Build · step through the staging</span>
+      {heading}
       <span style={{ flex: 1 }} />
       {drawn && (
         <button
           className="chip"
+          /* The label is the only text on it, so it has to be a real one: the
+             browser reads it out, and the browser suite finds the button by
+             it. */
+          aria-label={full ? "Leave full screen" : "Full screen"}
           onClick={() => setFull(!full)}
           title={
             full
               ? "Back to the page — Escape does the same"
               : "Fill the window with the drawings"
           }
+          style={{ display: "flex", alignItems: "center", padding: "4px 8px" }}
         >
-          {full ? "Close" : "Full screen"}
+          {full ? <Minimize size={14} /> : <Maximize size={14} />}
         </button>
       )}
     </div>
@@ -1036,17 +1046,22 @@ function BuildView({
     size: { w: number; h: number },
     extra?: ReactNode,
   ) => (
-    <div style={{ flexShrink: 0 }}>
+    <div style={{ flexShrink: 0, display: "flex", flexDirection: "column" }}>
       {head(label, extra)}
-      <Suspense fallback={<Loading w={size.w} h={size.h} />}>
-        <ThreeView
-          parts={parts}
-          view={view}
-          width={size.w}
-          height={size.h}
-          color={color}
-        />
-      </Suspense>
+      {/* At the foot of its column, so the base of the plan and the base of
+          the elevation are the same line — which is the bottom of the section.
+          The elevation is the taller of the two and never moves. */}
+      <div style={{ marginTop: "auto" }}>
+        <Suspense fallback={<Loading w={size.w} h={size.h} />}>
+          <ThreeView
+            parts={parts}
+            view={view}
+            width={size.w}
+            height={size.h}
+            color={color}
+          />
+        </Suspense>
+      </div>
     </div>
   );
 
@@ -1056,7 +1071,9 @@ function BuildView({
       style={{
         display: "flex",
         gap: GAP,
-        alignItems: "flex-start",
+        /* Every column the height of the row, so the one that pushes its
+           drawing to the bottom has something to push against. */
+        alignItems: "stretch",
         /* Full screen: everything the two lines of text do not need. */
         flex: full ? 1 : undefined,
         minHeight: 0,
@@ -1147,6 +1164,20 @@ function BuildView({
     </>
   );
 
+  /* What is left in the card while the overlay is up. A line rather than the
+     same button again: two controls with one label is two things for a screen
+     reader to read out and one of them to pick from, and the way back is on
+     the overlay where the eye already is. */
+  const placeholder = (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      {heading}
+      <span style={{ flex: 1 }} />
+      <span style={{ fontSize: 11.5, color: C.dim }}>
+        shown full screen · Escape to come back
+      </span>
+    </div>
+  );
+
   /* Through a portal, and this is not a detail. The overlay has to escape the
      `Solving` veil: that wrapper drops to `opacity: .22` and `filter:
      grayscale(1)` while a solve runs, and either of those makes it the
@@ -1161,7 +1192,7 @@ function BuildView({
      controls. Filling the window is the promise it can keep. */
   return (
     <>
-      <div>{full ? header : body}</div>
+      <div>{full ? placeholder : body}</div>
       {full &&
         createPortal(
           <div
@@ -1170,6 +1201,11 @@ function BuildView({
               inset: 0,
               zIndex: 45,
               background: C.ink,
+              /* A second root. Outside the one the application sets these on,
+                 `button { font-family: inherit }` reaches the browser default
+                 and every chip in here comes out in Times. */
+              fontFamily: FONT,
+              color: C.paper,
               padding: 16,
               display: "flex",
               flexDirection: "column",
