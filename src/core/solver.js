@@ -29,6 +29,40 @@ import { fitStructure, pickTanksMemo, poolsFor } from "./tanks.js";
        mp = (R-1)(P+E) / (1 + k - R*k)
    Feasible only while R < (1+k)/k — for stock 9:1 tanks that caps a single
    stage at Isp*g0*ln(9).                                                   */
+/* One options object for `fitStructure`, reused rather than rebuilt.
+
+   It was handed a fresh literal on every call — two million of them for a
+   single heavy grid case, tens of millions across the grid — and memoising
+   inside `fitStructure` does not touch that, because the object is built at
+   the call site before the call happens. GC was 3.8% of the container profile
+   and is normally a larger share on a phone, where the collector is slower and
+   the memory tighter, so this is a mobile-weighted win that container
+   profiling understates. #28
+
+   Two constraints come with it, and they are the price:
+
+   `fitStructure` must not retain what it is handed. It destructures
+   immediately and its cache stores the result rather than the argument, so it
+   does not — but that is now a property something depends on.
+
+   And every call site must set every field. A site that leaves one out
+   inherits whatever the previous call put there, silently. The design
+   snapshot is what would catch it: it is byte-exact, and a stale flag changes
+   the structure a stage is built with. */
+const FIT_OPT = {
+  engine: null,
+  n: 0,
+  stacks: 1,
+  stackD: 0,
+  tanks: null,
+  unlocked: null,
+  excluded: null,
+  noPlate: false,
+  expansions: null,
+  plateAbove: false,
+  hasStageBelow: false,
+};
+
 function solveStage({
   dv,
   payload,
@@ -228,19 +262,18 @@ function solveStage({
           const { usable, k, dia: stackD, biggest } = grp;
           /* A cluster hangs off a coupler, so the adapter run starts at the coupler's
            upper face rather than the engine's own diameter. */
-          const fit = fitStructure({
-            engine: e,
-            n,
-            stacks,
-            stackD,
-            tanks,
-            unlocked,
-            excluded,
-            noPlate,
-            expansions,
-            plateAbove,
-            hasStageBelow,
-          });
+          FIT_OPT.engine = e;
+          FIT_OPT.n = n;
+          FIT_OPT.stacks = stacks;
+          FIT_OPT.stackD = stackD;
+          FIT_OPT.tanks = tanks;
+          FIT_OPT.unlocked = unlocked;
+          FIT_OPT.excluded = excluded;
+          FIT_OPT.noPlate = noPlate;
+          FIT_OPT.expansions = expansions;
+          FIT_OPT.plateAbove = plateAbove;
+          FIT_OPT.hasStageBelow = hasStageBelow;
+          const fit = fitStructure(FIT_OPT);
           if (!fit) continue;
           const { coup, shroud, coupM, adapt, rejoin, dec, joiner } = fit;
           const perEng = fit.perEng;
@@ -729,19 +762,18 @@ function boostedAscent({
           const ispCore = ispAt(c, pR);
           const stackD = grp.dia;
           const coup = couplerFor(c, nc, unlocked, excluded);
-          const fit = fitStructure({
-            engine: c,
-            n: nc,
-            stacks: 1,
-            stackD,
-            tanks,
-            unlocked,
-            excluded,
-            noPlate,
-            expansions,
-            plateAbove: false,
-            hasStageBelow: false,
-          });
+          FIT_OPT.engine = c;
+          FIT_OPT.n = nc;
+          FIT_OPT.stacks = 1;
+          FIT_OPT.stackD = stackD;
+          FIT_OPT.tanks = tanks;
+          FIT_OPT.unlocked = unlocked;
+          FIT_OPT.excluded = excluded;
+          FIT_OPT.noPlate = noPlate;
+          FIT_OPT.expansions = expansions;
+          FIT_OPT.plateAbove = false;
+          FIT_OPT.hasStageBelow = false;
+          const fit = fitStructure(FIT_OPT);
           if (!fit) continue;
           const { coupM, adapt, dec, shroud } = fit;
           const fixed =
