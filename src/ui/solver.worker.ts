@@ -1,5 +1,22 @@
-import { TALLY } from "../core/tally.js";
+import { addTally } from "../core/tally.js";
 import { planMission } from "../core/plan.js";
+import type { PlanInput } from "../core/plan.js";
+import type { Tally } from "../core/tally.js";
+import type { ChainCandidate, Prepared } from "../core/solver.js";
+
+/* One unit's answer coming back from a thread, or the reason there is none. */
+type UnitReply = {
+  i: number;
+  cands?: Array<ChainCandidate>;
+  tally?: Tally;
+  error?: string;
+};
+
+/* As `errText` in unit.worker.ts, and for the same reason. */
+const errText = (err: unknown) => {
+  const m = err instanceof Error ? err.message : undefined;
+  return String(m || err);
+};
 
 /* The solver, running off the main thread.
 
@@ -40,10 +57,13 @@ import { planMission } from "../core/plan.js";
    one Chrome allows and still correct, just slower. ?threads=N overrides all of
    it; see perf/README.md. */
 const CORES = (self.navigator && self.navigator.hardwareConcurrency) || 4;
+/* Not in anyone's lib yet, and Safari and Firefox do not have it at all —
+   which is why the sizing below falls back rather than depending on it. */
+type UaData = { mobile?: boolean };
 const MOBILE = !!(
   self.navigator &&
-  self.navigator.userAgentData &&
-  self.navigator.userAgentData.mobile
+  (self.navigator as Navigator & { userAgentData?: UaData }).userAgentData
+    ?.mobile
 );
 const WANT = MOBILE
   ? Math.min(4, Math.max(2, Math.floor(CORES / 2)))
@@ -52,8 +72,8 @@ const WANT = MOBILE
 /* Nested workers, which every current browser allows and some older ones do
    not. If construction throws, `fanOut` stays null and planMission solves the
    units here in order — slower, and identical. */
-function makePool(want) {
-  let workers;
+function makePool(want: number) {
+  let workers: Array<Worker>;
   try {
     workers = Array.from(
       { length: want },
@@ -70,27 +90,31 @@ function makePool(want) {
      advance. They are not equal — k=1 is a single split and k=3 is twelve — and
      on a phone the cores are not equal either, so a static split leaves the big
      cores idle waiting on a little one. */
-  const fanOut = (p, units) =>
-    new Promise((resolve, reject) => {
-      const out = new Array(units.length);
+  const fanOut = (
+    p: Prepared,
+    units: Array<{ k: number; shares: Array<number> }>,
+  ) =>
+    new Promise<Array<Array<ChainCandidate>>>((resolve, reject) => {
+      const out = new Array<Array<ChainCandidate>>(units.length);
       let next = 0,
         left = units.length;
       if (!left) return resolve(out);
       for (const w of workers) {
-        w.onmessage = (e) => {
-          const m = e.data;
+        w.onmessage = (e: MessageEvent) => {
+          const m: UnitReply = e.data;
           if (m.error) return reject(new Error(m.error));
-          out[m.i] = m.cands;
+          if (m.cands) out[m.i] = m.cands;
           /* Fold the thread's counters back in, so the search stats describe
              the whole search rather than the part of it that ran here. */
-          for (const key in m.tally) TALLY[key] += m.tally[key];
+          if (m.tally) addTally(m.tally);
           if (--left === 0) return resolve(out);
           if (next < units.length) {
             const i = next++;
             w.postMessage({ i, ...units[i] });
           }
         };
-        w.onerror = (err) => reject(new Error(err.message || "unit worker"));
+        w.onerror = (err: ErrorEvent) =>
+          reject(new Error(err.message || "unit worker"));
         w.postMessage({ type: "init", p });
       }
       /* Prime every thread before waiting on any of them. */
@@ -104,8 +128,12 @@ function makePool(want) {
   return { fanOut, close: () => workers.forEach((w) => w.terminate()) };
 }
 
-self.onmessage = async (e) => {
-  const { id, input, threads } = e.data;
+self.onmessage = async (e: MessageEvent) => {
+  const {
+    id,
+    input,
+    threads,
+  }: { id: number; input: PlanInput; threads: number } = e.data;
   const want = threads > 0 ? threads : WANT;
   const pool = makePool(want);
   try {
@@ -117,7 +145,7 @@ self.onmessage = async (e) => {
   } catch (err) {
     /* An Error does not survive a structured clone with its stack intact, and
        the message is the part worth keeping. */
-    self.postMessage({ id, error: String((err && err.message) || err) });
+    self.postMessage({ id, error: errText(err) });
   } finally {
     if (pool) pool.close();
   }

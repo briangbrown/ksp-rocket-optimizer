@@ -28,6 +28,29 @@ import { parseConfig } from "./config.js";
 import { craftName, fmt } from "./format.js";
 import { loadRoster, saveRoster } from "./storage.js";
 import { BODY_HUE, C, edgeOf } from "./tokens.js";
+import type { Objective } from "../core/performance.js";
+import type { PlanStage } from "../core/plan.js";
+import type { Tally } from "../core/tally.js";
+import type { Ascent } from "./components/build.jsx";
+
+/* What the last solve cost, as the footer reports it: the search counters the
+   solver kept, how many threads it had, and how long it took. */
+type SearchStats = Tally & { threads: number; ms: number };
+
+/* Where the parts come from, and what to call each. Stock is always on — it is
+   the game — which is what `locked` reads below. */
+const PART_SOURCES: ReadonlyArray<["stock" | "mh" | "rs", string]> = [
+  ["stock", "Stock"],
+  ["mh", "Making History"],
+  ["rs", "ReStock+"],
+];
+
+/* What the search is asked to minimise, and what to call each. */
+const OBJECTIVES: ReadonlyArray<[Objective, string]> = [
+  ["mass", "Lightest"],
+  ["cost", "Cheapest"],
+  ["parts", "Fewest parts"],
+];
 
 export default function KSPMissionPlanner() {
   const [origin, setOrigin] = useState("Kerbin");
@@ -44,7 +67,7 @@ export default function KSPMissionPlanner() {
   const [extraDv, setExtraDv] = useState(0);
   const [chutes, setChutes] = useState(true);
   const [boosters, setBoosters] = useState(true);
-  const [objective, setObjective] = useState("cost");
+  const [objective, setObjective] = useState<Objective>("cost");
   /* Expansions, checked against the uploaded configs: no MakingHistory folder,
      Serenity present. Making History carries seven liquid engines and the whole
      stock 1.875 m tank line, so leaving it on was putting parts in designs that
@@ -57,7 +80,7 @@ export default function KSPMissionPlanner() {
   const [expansions, setExpansions] = useState({ mh: false, rs: true });
   const hasMH = expansions.mh,
     hasRS = expansions.rs;
-  const [splitBy, setSplitBy] = useState(() => new Map());
+  const [splitBy, setSplitBy] = useState(() => new Map<number, number>());
   const [unlocked, setUnlocked] = useState(() =>
     withDeps(
       DATA.nodes,
@@ -68,11 +91,11 @@ export default function KSPMissionPlanner() {
       ),
     ),
   );
-  const [cuts, setCuts] = useState(null); // null = follow defaultCuts
+  const [cuts, setCuts] = useState<Set<number> | null>(null); // null = follow defaultCuts
   const [showTech, setShowTech] = useState(false);
   const [showOrigin, setShowOrigin] = useState(false);
   const [showDest, setShowDest] = useState(true);
-  const [excluded, setExcluded] = useState(() => new Set()); // parts the user has ruled out
+  const [excluded, setExcluded] = useState(() => new Set<string>()); // parts the user has ruled out
   /* The part roster is setup, not a per-session choice: it describes your install
      and what you have researched, and retyping it every time would be tedious.
      Where it is kept depends on the host — see ui/storage.js. Mission settings
@@ -107,8 +130,8 @@ export default function KSPMissionPlanner() {
       live = false;
     };
   }, []);
-  const [openNode, setOpenNode] = useState(null);
-  const toggleExcluded = (n) =>
+  const [openNode, setOpenNode] = useState<string | null>(null);
+  const toggleExcluded = (n: string) =>
     setExcluded((p) => {
       const s2 = new Set(p);
       s2.has(n) ? s2.delete(n) : s2.add(n);
@@ -198,7 +221,9 @@ export default function KSPMissionPlanner() {
 
   /* Cut positions (cut i = separate after leg i). The grouping itself now
      happens inside planMission, from indices. */
-  const effCuts = useMemo(() => cuts ?? defaultCuts(route), [cuts, route]);
+  /* `defaultCuts` takes nothing — the whole mission is solved as one span
+     unless the user says otherwise — and was being handed the route. */
+  const effCuts = useMemo(() => cuts ?? defaultCuts(), [cuts]);
 
   /* Solve bottom-up: the last group flies first, so build from the top down.
      Each segment can expand into several stages, so the result is flattened. */
@@ -208,10 +233,10 @@ export default function KSPMissionPlanner() {
      cancel this one. `token` is the abandon signal — if the inputs change, the
      run in flight stops at its next yield instead of finishing work nobody
      wants. */
-  const [stages, setStages] = useState([]);
+  const [stages, setStages] = useState<Array<PlanStage>>([]);
   const [busy, setBusy] = useState(false);
   const runId = useRef(0);
-  const abortRef = useRef(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const token = ++runId.current;
@@ -304,7 +329,10 @@ export default function KSPMissionPlanner() {
     asparagus,
   ]);
 
-  const runSim = (pick, bodyName) => {
+  const runSim = (
+    pick: (s: PlanStage) => boolean,
+    bodyName: string,
+  ): Ascent | null => {
     const v = buildVehicleFor(stages, pick, bodyName, payloadDia);
     if (!v) return null;
     try {
@@ -371,7 +399,7 @@ export default function KSPMissionPlanner() {
     [route, payload, origin, unlocked, excluded],
   );
 
-  const [search, setSearch] = useState(null);
+  const [search, setSearch] = useState<SearchStats | null>(null);
   const [copied, setCopied] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const configText = useMemo(
@@ -428,35 +456,41 @@ export default function KSPMissionPlanner() {
      count of what was skipped is reported so it is not a silent partial load. */
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteText, setPasteText] = useState("");
-  const [pasteNote, setPasteNote] = useState(null);
+  const [pasteNote, setPasteNote] = useState<{
+    bad: boolean;
+    msg: string;
+  } | null>(null);
 
   const applyConfig = () => {
     const r = parseConfig(pasteText);
-    if (r.error) {
+    if (r.error !== undefined) {
       setPasteNote({ bad: true, msg: r.error });
       return;
     }
+    /* Asking for the value rather than for the key: `take` writes a field only
+       when it validated, so the two questions have the same answer — and only
+       one of them narrows the type. */
     const v = r.values;
-    if ("origin" in v) setOrigin(v.origin);
-    if ("dest" in v) setDest(v.dest);
-    if ("profile" in v) setProfile(v.profile);
-    if ("returning" in v) setReturning(v.returning);
-    if ("payload" in v) setPayload(v.payload);
-    if ("payloadDia" in v) setPayloadDia(v.payloadDia);
-    if ("margin" in v) setMargin(v.margin);
-    if ("extraDv" in v) setExtraDv(v.extraDv);
-    if ("objective" in v) setObjective(v.objective);
-    if ("boosters" in v) setBoosters(v.boosters);
-    if ("chutes" in v) setChutes(v.chutes);
-    if ("needGimbal" in v) setNeedGimbal(v.needGimbal);
-    if ("planeNow" in v) setPlaneNow(v.planeNow);
-    if ("asparagus" in v) setAsparagus(v.asparagus);
-    if ("maxAspect" in v) setMaxAspect(v.maxAspect);
-    if ("expansions" in v) setExpansions(v.expansions);
-    if ("tech" in v) setUnlocked(v.tech);
-    if ("excluded" in v) setExcluded(v.excluded);
-    if ("cuts" in v) setCuts(v.cuts);
-    if ("splits" in v) setSplitBy(v.splits);
+    if (v.origin !== undefined) setOrigin(v.origin);
+    if (v.dest !== undefined) setDest(v.dest);
+    if (v.profile !== undefined) setProfile(v.profile);
+    if (v.returning !== undefined) setReturning(v.returning);
+    if (v.payload !== undefined) setPayload(v.payload);
+    if (v.payloadDia !== undefined) setPayloadDia(v.payloadDia);
+    if (v.margin !== undefined) setMargin(v.margin);
+    if (v.extraDv !== undefined) setExtraDv(v.extraDv);
+    if (v.objective !== undefined) setObjective(v.objective);
+    if (v.boosters !== undefined) setBoosters(v.boosters);
+    if (v.chutes !== undefined) setChutes(v.chutes);
+    if (v.needGimbal !== undefined) setNeedGimbal(v.needGimbal);
+    if (v.planeNow !== undefined) setPlaneNow(v.planeNow);
+    if (v.asparagus !== undefined) setAsparagus(v.asparagus);
+    if (v.maxAspect !== undefined) setMaxAspect(v.maxAspect);
+    if (v.expansions !== undefined) setExpansions(v.expansions);
+    if (v.tech !== undefined) setUnlocked(v.tech);
+    if (v.excluded !== undefined) setExcluded(v.excluded);
+    if (v.cuts !== undefined) setCuts(v.cuts);
+    if (v.splits !== undefined) setSplitBy(v.splits);
     setPasteNote({
       bad: false,
       msg: `Loaded ${r.took} settings${r.left ? `, ${r.left} left at their defaults` : ""}.`,
@@ -522,21 +556,21 @@ export default function KSPMissionPlanner() {
     return k && BODY_HUE[k] ? edgeOf(BODY_HUE[k]) : C.sky;
   })();
 
-  const setSplit = (key, k) =>
+  const setSplit = (key: number, k: number) =>
     setSplitBy((p) => {
       const n = new Map(p);
       k ? n.set(key, k) : n.delete(key);
       return n;
     });
 
-  const toggleCut = (i) =>
+  const toggleCut = (i: number) =>
     setCuts((p) => {
-      const n = new Set(p ?? defaultCuts(route));
+      const n = new Set(p ?? defaultCuts());
       n.has(i) ? n.delete(i) : n.add(i);
       return n;
     });
 
-  const setTier = (lvl) =>
+  const setTier = (lvl: number) =>
     setUnlocked(
       withDeps(
         DATA.nodes,
@@ -765,11 +799,7 @@ export default function KSPMissionPlanner() {
               marginBottom: 16,
             }}
           >
-            {[
-              ["stock", "Stock"],
-              ["mh", "Making History"],
-              ["rs", "ReStock+"],
-            ].map(([k, lab]) => {
+            {PART_SOURCES.map(([k, lab]) => {
               const locked = k === "stock";
               return (
                 <label
@@ -786,7 +816,7 @@ export default function KSPMissionPlanner() {
                 >
                   <input
                     type="checkbox"
-                    checked={locked ? true : expansions[k]}
+                    checked={k === "stock" ? true : expansions[k]}
                     disabled={locked}
                     style={{ accentColor: dcolor }}
                     onChange={(e) =>
@@ -1072,7 +1102,6 @@ export default function KSPMissionPlanner() {
                 </button>
               )}
               <BodyPicker
-                color={dcolor}
                 value={origin}
                 options={Object.keys(SYS).filter(
                   (b) => b !== "Sun" && SYS[b].ascent,
@@ -1105,7 +1134,6 @@ export default function KSPMissionPlanner() {
           {showDest ? (
             <div style={{ marginBottom: 16 }}>
               <BodyPicker
-                color={dcolor}
                 value={dest}
                 options={destList}
                 onPick={(d) => {
@@ -1276,11 +1304,7 @@ export default function KSPMissionPlanner() {
                 Optimise for
               </div>
               <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                {[
-                  ["mass", "Lightest"],
-                  ["cost", "Cheapest"],
-                  ["parts", "Fewest parts"],
-                ].map(([k, lab]) => (
+                {OBJECTIVES.map(([k, lab]) => (
                   <button
                     key={k}
                     className="chip"

@@ -2,18 +2,48 @@ import { Suspense, lazy, useState } from "react";
 
 import { payloadDiaOf, stackGeometry } from "../../core/geometry.js";
 import { manifest } from "../../core/manifest.js";
+import type { ManifestRow } from "../../core/manifest.js";
 import { extentOf, modelOf } from "../../core/model.js";
 import { framing } from "../views.js";
 import { PLATE_SHROUD } from "../../core/parts.js";
 import { fmt, hms } from "../format.js";
 import { C } from "../tokens.js";
 import { Mini, Stat } from "./controls.jsx";
+import type { CSSProperties, ReactNode } from "react";
+import type { Vehicle, Turn } from "../../core/ascent.js";
+import type { PlanStage } from "../../core/plan.js";
+import type { Solution } from "../../core/solution.js";
+
+/* A stage the solver actually built. `stages` arrives with the unsolved ones
+   still in it — a segment with no design is a row that says so — and every
+   panel here works on what is left. */
+type SolvedStage = PlanStage & { sol: Solution };
+const isSolved = (s: PlanStage): s is SolvedStage => s.sol !== null;
+
+/* One step of the stepper: what has been staged away, and whether what is left
+   still has its boosters on. */
+type Step = { label: string; drop: number; boost: boolean };
+
+/* What the mission needs fitted that no stage pays for — chutes, legs, a heat
+   shield — as a reminder rather than a charge. */
+type Hardware = {
+  items: Array<{ name: string; qty: number; why: string }>;
+  mass: number;
+};
+
+/* A flown ascent as the panel needs it: what the simulator returned, the
+   vehicle that flew it, and where from. A design that cannot reach orbit is
+   worth saying out loud, which is why the failure is a variant of this rather
+   than a null. */
+type Ascent =
+  | (Turn & { veh: Vehicle; bodyName: string; target: number })
+  | { ok: false; veh: Vehicle; bodyName: string; target: number };
 
 /* Loaded when the build view first draws, not with the application. three.js
    is about the size of everything else here put together, and nothing above
    this panel needs it — see #63. */
 const ThreeView = lazy(() => import("./three-view.jsx"));
-let webgl = null;
+let webgl: boolean | null = null;
 const canRender3D = () => {
   if (webgl === null)
     try {
@@ -35,11 +65,25 @@ const canRender3D = () => {
   return webgl;
 };
 
-function StageStack({ stages, color, splitBy, onSetSplit }) {
+type StageStackProps = {
+  stages: ReadonlyArray<PlanStage>;
+  color: string;
+  splitBy: ReadonlyMap<number, number>;
+  onSetSplit: (key: number, k: number) => void;
+};
+
+function StageStack({ stages, color, splitBy, onSetSplit }: StageStackProps) {
   const max = Math.max(...stages.map((x) => x.sol?.total || 1));
+  /* A boosted stage carries no column count at all — it is one core with a ring
+     bolted to it — so the same `|| 1` the solver and the geometry use. */
+  const columns = (sol: Solution) => sol.stacks || 1;
 
   // stages arrive bottom-first; collect them back under the segment they serve
-  const segs = [];
+  const segs: Array<{
+    key: number;
+    legs: PlanStage["legs"];
+    items: Array<{ s: PlanStage; n: number }>;
+  }> = [];
   stages.forEach((s, i) => {
     const last = segs[segs.length - 1];
     if (last && last.key === s.key) last.items.push({ s, n: i + 1 });
@@ -189,7 +233,7 @@ function StageStack({ stages, color, splitBy, onSetSplit }) {
                               }}
                             >
                               + <strong>{sol.boosters.n}×</strong>{" "}
-                              {sol.boosters.part.n}
+                              {partName(sol.boosters.part)}
                               <span style={{ color: C.dim }}>
                                 {"  radial · "}
                                 {fmt(sol.boosters.dv)} m/s, separate at T+
@@ -208,7 +252,7 @@ function StageStack({ stages, color, splitBy, onSetSplit }) {
                             99.5% of its share — a solid cannot be tuned to hit a
                             number exactly — so flagging a strict shortfall painted
                             a stage red for being 0.1 m/s under. */}
-                            {sol.stacks > 1 && (
+                            {columns(sol) > 1 && (
                               <span
                                 style={{
                                   fontSize: 11.5,
@@ -216,7 +260,7 @@ function StageStack({ stages, color, splitBy, onSetSplit }) {
                                   fontWeight: 600,
                                 }}
                               >
-                                core + {sol.stacks - 1} radial
+                                core + {columns(sol) - 1} radial
                               </span>
                             )}
                             <Mini
@@ -270,15 +314,43 @@ function StageStack({ stages, color, splitBy, onSetSplit }) {
 /* Header for a body picker that can be folded away. Open, it offers a way to
    collapse; closed, it shows what is selected and a way back in. The two pickers
    differ only in where they start — origin closed, destination open. */
-function PartsTable({ stages, payload, hardware, color }) {
+type PartsTableProps = {
+  stages: ReadonlyArray<PlanStage>;
+  payload: number;
+  hardware?: Hardware | null;
+  color: string;
+};
+
+/* One row of the bill. `kind` drives how it is drawn, and a note carries words
+   instead of a part. */
+type Row = {
+  stage: number;
+  part?: string;
+  /* Null on a note, which carries words where a part would carry figures. */
+  qty?: number | null;
+  each?: number | null;
+  tot?: number | null;
+  kind: string;
+  note?: ReactNode;
+};
+
+/* The part's name, where the row has one to give. Every row this table names
+   does; the one row whose part might not — a coupler wearing an engine plate's
+   shroud, which is measured rather than named — is drawn from `sol.coupler` a
+   little further down instead. */
+const partName = (p: ManifestRow["part"]) => (p && "n" in p ? (p.n ?? "") : "");
+
+function PartsTable({ stages, payload, hardware, color }: PartsTableProps) {
   /* Listed the way you build it: payload at the top, then each stage downward to
      the one standing on the pad. Within a stage the order is physical too —
      decoupler at its top, then tanks, then any adapter, then the coupler a
      cluster hangs from, then the engine, with radial boosters last since they
      hang off the side. Stage numbers therefore
      count down, which is also how the staging list reads in game. */
-  const rows = [];
-  const solved = stages.map((s, i) => ({ s, n: i + 1 })).filter((x) => x.s.sol);
+  const rows: Array<Row> = [];
+  const solved = stages
+    .map((s, i) => ({ s, n: i + 1 }))
+    .filter((x): x is { s: SolvedStage; n: number } => isSolved(x.s));
   [...solved].reverse().forEach(({ s, n }) => {
     /* One list, from core, and the numbers below are read off it rather than
        worked out again beside it. That is the whole of #62: this table was the
@@ -290,25 +362,26 @@ function PartsTable({ stages, payload, hardware, color }) {
        header that already says how many there are. The manifest returns facts;
        every word of this is the view's. */
     const bill = manifest(s.sol);
-    const of = (role) => bill.filter((r) => r.role === role);
-    const one = (role) => of(role)[0];
+    const of = (role: ManifestRow["role"]) =>
+      bill.filter((r) => r.role === role);
+    const one = (role: ManifestRow["role"]) => of(role)[0];
     /* A tank you place in the VAB is full. The manifest carries propellant per
        part now, so wet is dry plus what that part holds — one list serving the
        reading the solver wants and the reading you would check against the
        game. */
-    const wet = (r) => r.mass + r.prop;
+    const wet = (r: ManifestRow) => r.mass + r.prop;
     /* With radial stacks the header says how many there are, so the rows below
        it are one stack's worth — quantities multiplied out under a header that
        already states the count read as though each stack needed all of them. */
     const S = s.sol.stacks || 1;
-    const per = (r) => r.qty / S;
+    const per = (r: ManifestRow) => r.qty / S;
     const dec = one("decoupler");
     /* The manifest still lists a decoupler a stage did not buy, with no part
        on it, so the mass check has something to account for. Nothing to show. */
     if (dec && dec.part)
       rows.push({
         stage: n,
-        part: dec.part.n,
+        part: partName(dec.part),
         qty: dec.qty,
         each: wet(dec),
         tot: dec.qty * wet(dec),
@@ -318,20 +391,20 @@ function PartsTable({ stages, payload, hardware, color }) {
     if (rej)
       rows.push({
         stage: n,
-        part: rej.part.n + " (inverted)",
+        part: partName(rej.part) + " (inverted)",
         qty: rej.qty,
         each: wet(rej),
         tot: rej.qty * wet(rej),
         kind: "adapter",
       });
-    if (s.sol.stacks > 1) {
+    if (S > 1) {
       rows.push({
         stage: n,
         kind: "note",
         qty: null,
         each: null,
         tot: null,
-        part: `— core + ${s.sol.stacks - 1} radial stacks, each of the following —`,
+        part: `— core + ${S - 1} radial stacks, each of the following —`,
       });
       const join = one("joiner");
       /* Two per extra stack, and the header above counts the stacks, so the
@@ -339,7 +412,7 @@ function PartsTable({ stages, payload, hardware, color }) {
       if (join)
         rows.push({
           stage: n,
-          part: `${join.part.n} (holds a stack on, top and bottom)`,
+          part: `${partName(join.part)} (holds a stack on, top and bottom)`,
           qty: 2,
           each: wet(join),
           tot: join.qty * wet(join),
@@ -369,7 +442,7 @@ function PartsTable({ stages, payload, hardware, color }) {
       if (pj)
         rows.push({
           stage: n,
-          part: pj.part.n,
+          part: partName(pj.part),
           qty: per(pj),
           each: wet(pj),
           tot: pj.qty * wet(pj),
@@ -378,7 +451,7 @@ function PartsTable({ stages, payload, hardware, color }) {
       if (pb)
         rows.push({
           stage: n,
-          part: `${pb.part.n} (steadies each column)`,
+          part: `${partName(pb.part)} (steadies each column)`,
           qty: per(pb),
           each: wet(pb),
           tot: pb.qty * wet(pb),
@@ -393,7 +466,7 @@ function PartsTable({ stages, payload, hardware, color }) {
       .forEach((r) =>
         rows.push({
           stage: n,
-          part: r.part.n,
+          part: partName(r.part),
           qty: per(r),
           each: wet(r),
           tot: r.qty * wet(r),
@@ -407,7 +480,7 @@ function PartsTable({ stages, payload, hardware, color }) {
     of("adapter").forEach((r) =>
       rows.push({
         stage: n,
-        part: r.part.n,
+        part: partName(r.part),
         qty: per(r),
         each: wet(r),
         tot: r.qty * wet(r), // one set per column, like the coupler below
@@ -415,8 +488,11 @@ function PartsTable({ stages, payload, hardware, color }) {
       }),
     );
     const coup = one("coupler");
-    if (coup) {
-      const pl = PLATE_SHROUD[s.sol.coupler.n];
+    /* The row exists only where the stage has a coupler, so naming it is
+       asking the question the row already answered. */
+    const cp = s.sol.coupler;
+    if (coup && cp) {
+      const pl = PLATE_SHROUD[cp.n];
       rows.push({
         stage: n,
         qty: per(coup),
@@ -424,9 +500,9 @@ function PartsTable({ stages, payload, hardware, color }) {
         tot: coup.qty * wet(coup),
         kind: "adapter",
         part:
-          s.sol.coupler.n +
+          cp.n +
           (pl
-            ? ` · ${["", "Single", "Double", "Triple", "Quad"][s.sol.coupler.out] || s.sol.coupler.out + "-way"}` +
+            ? ` · ${["", "Single", "Double", "Triple", "Quad"][cp.out] || cp.out + "-way"}` +
               (s.sol.shroud ? `, ${s.sol.shroud.v} shroud` : "")
             : ""),
       });
@@ -434,7 +510,7 @@ function PartsTable({ stages, payload, hardware, color }) {
     const eng = one("engine");
     rows.push({
       stage: n,
-      part: eng.part.n,
+      part: partName(eng.part),
       qty: per(eng), // per stack
       each: wet(eng),
       tot: eng.qty * wet(eng),
@@ -449,7 +525,7 @@ function PartsTable({ stages, payload, hardware, color }) {
       /* Each of the radial stacks, so the quantity column is one stack's worth
          under the header that counts them. A plain booster has no header, so
          its rows carry the full count. */
-      const each = (r) => (b.part.column ? r.qty / b.n : r.qty);
+      const each = (r: ManifestRow) => (b.part.column ? r.qty / b.n : r.qty);
       if (b.part.column)
         rows.push({
           stage: n,
@@ -511,7 +587,7 @@ function PartsTable({ stages, payload, hardware, color }) {
           .forEach((r) =>
             rows.push({
               stage: n,
-              part: r.part.n,
+              part: partName(r.part),
               qty: each(r),
               each: wet(r),
               tot: r.qty * wet(r),
@@ -520,7 +596,7 @@ function PartsTable({ stages, payload, hardware, color }) {
           );
         rows.push({
           stage: n,
-          part: bo.part.n,
+          part: partName(bo.part),
           qty: each(bo),
           each: wet(bo),
           tot: bo.qty * wet(bo),
@@ -529,7 +605,7 @@ function PartsTable({ stages, payload, hardware, color }) {
       } else {
         rows.push({
           stage: n,
-          part: bo.part.n,
+          part: partName(bo.part),
           qty: bo.qty,
           each: wet(bo),
           tot: bo.qty * wet(bo),
@@ -538,7 +614,7 @@ function PartsTable({ stages, payload, hardware, color }) {
       }
     }
   });
-  const th = {
+  const th: CSSProperties = {
     textAlign: "left",
     padding: "6px 8px",
     borderBottom: `1px solid ${C.rule}`,
@@ -681,7 +757,7 @@ function PartsTable({ stages, payload, hardware, color }) {
 
 /* Holds the panel's space while the 3D chunk arrives, so the layout does not
    jump when it does. */
-const Loading = ({ w, h }) => (
+const Loading = ({ w, h }: { w: number; h: number }) => (
   <div
     style={{
       width: w,
@@ -721,8 +797,8 @@ const NoWebGL = () => (
    property of the solver — `planMission` knows nothing about a boosters-away
    step — so a test that slices the stages itself is checking a rocket the
    application never shows. #63 step 4. */
-export function stagingSteps(solved) {
-  const steps = [{ label: "On the pad", drop: 0, boost: true }];
+export function stagingSteps(solved: ReadonlyArray<SolvedStage>) {
+  const steps: Array<Step> = [{ label: "On the pad", drop: 0, boost: true }];
   if (solved.length && solved[0].sol.boosters)
     steps.push({
       label: "Boosters away · core burns on",
@@ -742,10 +818,15 @@ export function stagingSteps(solved) {
 /* What a step draws: the whole vehicle for the elevation, and the bottom live
    stage for the plan. Boosters are filtered out once they have gone, so the
    panel is sized for the rocket on screen rather than for parts that left. */
-export function stepModels(solved, cur, payload, payloadDia) {
+export function stepModels(
+  solved: ReadonlyArray<SolvedStage>,
+  cur: Step,
+  payload: number,
+  payloadDia: number,
+) {
   const live = solved.slice(cur.drop);
   const payD = payloadDiaOf(payload, payloadDia);
-  const attached = (p) => cur.boost || p.role !== "booster";
+  const attached = (p: { role: string }) => cur.boost || p.role !== "booster";
   return {
     live,
     model: modelOf(live, payload, payD).filter(attached),
@@ -753,8 +834,22 @@ export function stepModels(solved, cur, payload, payloadDia) {
   };
 }
 
-function BuildView({ stages, payload, payloadDia, color, maxAspect = 14 }) {
-  const solved = stages.filter((x) => x.sol);
+type BuildViewProps = {
+  stages: ReadonlyArray<PlanStage>;
+  payload: number;
+  payloadDia: number;
+  color: string;
+  maxAspect?: number;
+};
+
+function BuildView({
+  stages,
+  payload,
+  payloadDia,
+  color,
+  maxAspect = 14,
+}: BuildViewProps) {
+  const solved = stages.filter(isSolved);
   const [step, setStep] = useState(0);
   /* Locked cameras, not an orbit: a schematic that moves stops being a
      drawing. The three-quarter is the one angle that shows a ring of columns
@@ -906,7 +1001,7 @@ function BuildView({ stages, payload, payloadDia, color, maxAspect = 14 }) {
    iframe sized to its content, so the parent page scrolls and nothing inside can
    stay in view. Marking the panels themselves works wherever you happen to be
    looking. */
-function AscentPanel({ a, color }) {
+function AscentPanel({ a, color }: { a: Ascent; color: string }) {
   const atm = (a.veh.atmo.p(0) / 101.325).toFixed(2);
   if (!a.ok) {
     const m0 =
@@ -942,8 +1037,14 @@ function AscentPanel({ a, color }) {
   }
   const handed = a.handT >= 0;
   const hot = a.maxQ > 40000;
-  const limited = a.limit && a.limit < 0.999;
-  const cored = a.core && a.core < 0.999;
+  /* Named as numbers rather than as truthiness, so the throttle settings below
+     can be read without asking again whether they are there. */
+  const limit = a.limit ?? 1;
+  const core = a.core ?? 1;
+  /* Null where no stage was still live to circularise on. */
+  const circBurn = a.circBurn ?? 0;
+  const limited = limit < 0.999;
+  const cored = core < 0.999;
   /* TWR of the stage that has to finish the job, at the moment it lights. Below
      1.0 the ascent is unforgiving and the flight card should say so. */
   /* The two numbers side by side: what this flight costs, and what the rocket
@@ -965,7 +1066,7 @@ function AscentPanel({ a, color }) {
     ...(limited
       ? [
           [
-            `Set ${limitOn} to ${Math.round(a.limit * 100)}% thrust`,
+            `Set ${limitOn} to ${Math.round(limit * 100)}% thrust`,
             "in the VAB, before you launch",
           ],
         ]
@@ -973,7 +1074,7 @@ function AscentPanel({ a, color }) {
     ...(cored
       ? [
           [
-            `Fly the core at ${Math.round(a.core * 100)}% throttle`,
+            `Fly the core at ${Math.round(core * 100)}% throttle`,
             "boosters stay at full — they cannot be throttled",
           ],
         ]
@@ -1090,7 +1191,7 @@ function AscentPanel({ a, color }) {
         <Stat label="Peak Mach" value={a.maxMach.toFixed(2)} unit="" small />
       </div>
 
-      {a.circBurn > 90 && (
+      {circBurn > 90 && (
         <div
           style={{
             fontSize: 12,
@@ -1099,7 +1200,7 @@ function AscentPanel({ a, color }) {
             lineHeight: 1.5,
           }}
         >
-          That circularisation runs {Math.round(a.circBurn)} s on a low-thrust
+          That circularisation runs {Math.round(circBurn)} s on a low-thrust
           stage. Centring it still helps, but over a burn that long the apoapsis
           drifts while you push — expect to arrive slightly elliptical and trim
           it on the next pass.
@@ -1186,9 +1287,9 @@ function AscentPanel({ a, color }) {
                       ? "burn level"
                       : w.coast
                         ? "coast"
-                        : w.nav >= 0
-                          ? `${w.nav}° up`
-                          : `${-w.nav}° down`}
+                        : (w.nav ?? 0) >= 0
+                          ? `${w.nav ?? 0}° up`
+                          : `${-(w.nav ?? 0)}° down`}
                   </td>
                   <td
                     className="mono"
@@ -1271,7 +1372,7 @@ function AscentPanel({ a, color }) {
           }}
         >
           <strong style={{ color: C.mint }}>
-            Hold the core at {Math.round(a.core * 100)}% until the boosters burn
+            Hold the core at {Math.round(core * 100)}% until the boosters burn
             out.
           </strong>{" "}
           Solids have no shutdown, so at full throttle this stack carries its
@@ -1292,7 +1393,7 @@ function AscentPanel({ a, color }) {
           }}
         >
           <strong style={{ color: C.mint }}>
-            Throttled to {Math.round(a.limit * 100)}% on {limitOn}.
+            Throttled to {Math.round(limit * 100)}% on {limitOn}.
           </strong>{" "}
           At full thrust this stack passes 40 kPa, where a real one tends to
           flip or shed parts. Right-click the part in the VAB and drag the
@@ -1351,3 +1452,4 @@ function AscentPanel({ a, color }) {
 }
 
 export { AscentPanel, BuildView, PartsTable, StageStack };
+export type { Ascent, Hardware, SolvedStage, Step };

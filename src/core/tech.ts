@@ -40,7 +40,9 @@ const NODE_PARTS = (() => {
 
 /* ------------------------------ tech tree gating ------------------------------ */
 const TIERS = (() => {
-  const t: Record<number, Array<string>> = {};
+  /* Keyed by string, which is what an object key is: `Object.keys` hands the
+     tier picker strings back and they have to index this again. */
+  const t: Record<string, Array<string>> = {};
   Object.entries(DATA.nodes).forEach(([name, v]) => {
     (t[v.lvl] ||= []).push(name);
   });

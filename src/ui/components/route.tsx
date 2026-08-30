@@ -1,16 +1,38 @@
 import { fmt } from "../format.js";
 import { C, SYSTEMS, edgeOf, hueFor, inkOn } from "../tokens.js";
+import type { CSSProperties } from "react";
+import type { Leg } from "../../core/orbits.js";
+import type { PlanStage } from "../../core/plan.js";
 
-function RouteMap({ route, cuts, onToggle, color, stages, onPlaneMode }) {
+/* The mission as a transit line. `cuts` holds the route indices the user has
+   cut at — separate after leg i — and `stages` is what the solver made of
+   them, so each cut can say which stage actually falls away there. */
+type RouteMapProps = {
+  route: ReadonlyArray<Leg>;
+  cuts: ReadonlySet<number>;
+  onToggle: (i: number) => void;
+  color: string;
+  stages: ReadonlyArray<PlanStage>;
+  onPlaneMode: (now: boolean) => void;
+};
+
+function RouteMap({
+  route,
+  cuts,
+  onToggle,
+  color,
+  stages,
+  onPlaneMode,
+}: RouteMapProps) {
   /* Which stage actually falls away at a cut. Every solved stage carries the route
      index its segment starts at, so the count through a cut is just the stages
      whose segment began at or before it. The label used to read off the cut's own
      ordinal, so the first cut always claimed "stage 1" even when four stages had
      already burned. */
-  const stagesThrough = (i) => stages.filter((s) => s.sol && s.key <= i).length;
+  const stagesThrough = (i: number) =>
+    stages.filter((s) => s.sol && s.key <= i).length;
   const shown = route.filter((l) => !l.free);
   const rows = [...route].reverse();
-  const cutIdx = [...cuts].sort((a, b) => a - b);
 
   return (
     <div>
@@ -70,20 +92,30 @@ function RouteMap({ route, cuts, onToggle, color, stages, onPlaneMode }) {
                 )}
                 {/* The one leg whose cost is a choice rather than a number: pay it
                     in Δv now, or in waiting for a launch window. */}
-                {leg.kind === "plane" && leg.cheap < leg.costly && (
-                  <button
-                    className="chip"
-                    onClick={() => onPlaneMode(!leg.planeNow)}
-                    style={{ marginLeft: 8, fontSize: 10, padding: "1px 7px" }}
-                    title={
-                      leg.planeNow
-                        ? "Switch to timing the encounter at a node — far cheaper, but you wait for the window"
-                        : "Switch to burning it out of low orbit — costs more, goes whenever you like"
-                    }
-                  >
-                    {leg.planeNow ? "burning it now" : "timed at a node"}
-                  </button>
-                )}
+                {/* Both figures are written together on a plane change and on
+                    nothing else, so asking for each is asking whether this is
+                    one — the same question the kind already answered. */}
+                {leg.kind === "plane" &&
+                  leg.cheap !== undefined &&
+                  leg.costly !== undefined &&
+                  leg.cheap < leg.costly && (
+                    <button
+                      className="chip"
+                      onClick={() => onPlaneMode(!leg.planeNow)}
+                      style={{
+                        marginLeft: 8,
+                        fontSize: 10,
+                        padding: "1px 7px",
+                      }}
+                      title={
+                        leg.planeNow
+                          ? "Switch to timing the encounter at a node — far cheaper, but you wait for the window"
+                          : "Switch to burning it out of low orbit — costs more, goes whenever you like"
+                      }
+                    >
+                      {leg.planeNow ? "burning it now" : "timed at a node"}
+                    </button>
+                  )}
                 {leg.note && (
                   <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
                     {leg.note}
@@ -147,10 +179,17 @@ function RouteMap({ route, cuts, onToggle, color, stages, onPlaneMode }) {
   );
 }
 
-function BodyPicker({ options, value, onPick, color }) {
+type BodyPickerProps = {
+  options: ReadonlyArray<string>;
+  value: string;
+  onPick: (o: string) => void;
+};
+
+function BodyPicker({ options, value, onPick }: BodyPickerProps) {
   // DEST calls it "Jool orbit" where SYS calls it "Jool", so match loosely
-  const find = (b) => options.find((o) => o === b || o.startsWith(b + " "));
-  const named = new Set();
+  const find = (b: string) =>
+    options.find((o) => o === b || o.startsWith(b + " "));
+  const named = new Set<string>();
   SYSTEMS.forEach(([pl, ms]) =>
     [pl, ...ms].forEach((b) => {
       const o = find(b);
@@ -159,7 +198,7 @@ function BodyPicker({ options, value, onPick, color }) {
   );
   const extras = options.filter((o) => !named.has(o));
 
-  const planetBtn = (b, on, live) => {
+  const planetBtn = (b: string, on: boolean, live: boolean): CSSProperties => {
     const h = hueFor(b);
     return {
       padding: "7px 11px",
@@ -177,7 +216,7 @@ function BodyPicker({ options, value, onPick, color }) {
       border: `1.5px solid ${on ? h : edgeOf(h)}`,
     };
   };
-  const moonBtn = (b, on) => {
+  const moonBtn = (b: string, on: boolean): CSSProperties => {
     const h = hueFor(b);
     return {
       padding: "3px 9px",
@@ -212,7 +251,11 @@ function BodyPicker({ options, value, onPick, color }) {
       )}
       {SYSTEMS.map(([pl, ms]) => {
         const po = find(pl),
-          mo = ms.map((b) => [b, find(b)]).filter(([, o]) => o);
+          /* Named rather than a pair, so what survives the filter is a moon
+             with an option and not an array that might hold one. */
+          mo = ms
+            .map((b) => ({ b, o: find(b) }))
+            .filter((m): m is { b: string; o: string } => m.o !== undefined);
         if (!po && !mo.length) return null;
         return (
           <div
@@ -246,7 +289,7 @@ function BodyPicker({ options, value, onPick, color }) {
                     marginTop: 4,
                   }}
                 >
-                  {mo.map(([b, o]) => (
+                  {mo.map(({ b, o }) => (
                     <button
                       key={b}
                       style={moonBtn(b, o === value)}

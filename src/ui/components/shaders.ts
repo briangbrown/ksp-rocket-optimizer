@@ -52,14 +52,17 @@ export const LINE = C.paper;
    conversion at any step, so what is authored is what is drawn — and mixing in
    the space the palette was chosen in is what makes the mid-tones land where a
    designer put them. */
-const raw = (hex) => rgbOf(hex).map((v) => v / 255);
+const raw = (hex: string): [number, number, number] => {
+  const [r, g, b] = rgbOf(hex);
+  return [r / 255, g / 255, b / 255];
+};
 
 /* A number as GLSL sees it. `${3.0}` is the string "3", and GLSL has no
    `pow(float, int)` — the shader fails to compile, the pass draws nothing, and
    the only trace is a console message. Anything interpolated into a shader
    goes through here. */
-const f = (n) => (Number.isInteger(n) ? n.toFixed(1) : String(n));
-const vec3 = (hex) => new Vector3(...raw(hex));
+const f = (n: number) => (Number.isInteger(n) ? n.toFixed(1) : String(n));
+const vec3 = (hex: string) => new Vector3(...raw(hex));
 
 /* The panel colour as a clear colour, and the reason this is not just
    `setClearColor(C.panel)`: three converts a hex it is handed from sRGB into
@@ -88,7 +91,7 @@ const WARM_MIX = 0.2;
 const COOL = vec3(C.panel);
 const WARM = new Vector3(1.0, 0.96, 0.88);
 
-export function goochMaterial(baseHex) {
+export function goochMaterial(baseHex: string) {
   return new ShaderMaterial({
     uniforms: {
       base: { value: vec3(baseHex) },
@@ -119,7 +122,7 @@ export function goochMaterial(baseHex) {
    management, so it survives the round trip as the integer it went in as. Read
    back with a nearest filter — anything that interpolates ids invents parts
    that are not there along every boundary. */
-export function idMaterial(index) {
+export function idMaterial(index: number) {
   /* Two channels, not one. A single byte caps the model at 254 parts, and the
      way it fails is silent: the 255th clamps onto the first and its outlines
      simply stop being drawn. The biggest model in the mission grid is 78 parts
@@ -287,13 +290,15 @@ const GHOST_TURN = 3.0;
    counts as its silhouette is narrow. */
 const EDGE_LO = 0.45;
 const EDGE_HI = 0.85;
-/* Dashes, in CSS pixels: on for a bit over half of each period. Drawn on the
-   screen diagonal so an edge of any orientation crosses them. */
-const DASH = 7.0;
+/* Dashes: on for a bit over half of each period, drawn on the screen diagonal
+   so an edge of any orientation crosses them. The period itself is
+   `DASH_PERIOD` in three-view.jsx, which scales it by the pixel ratio and
+   passes it in — there was a second copy of the number here, unused, which is
+   how two constants meaning the same thing start disagreeing. */
 const DASH_DUTY = 0.55;
 const LINE_ALPHA = 0.85;
 
-export function ghostMaterial(baseHex, dashPeriod) {
+export function ghostMaterial(baseHex: string, dashPeriod: number) {
   const m = goochMaterial(baseHex);
   m.transparent = true;
   m.depthFunc = GreaterDepth;
