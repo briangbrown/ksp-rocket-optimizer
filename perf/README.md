@@ -223,9 +223,27 @@ Copy the exported trace into **`perf/traces/`** and run:
 npm run perf:device
 ```
 
-That takes a fresh container profile, builds a sourcemap for the deployed
-bundle, and compares the two. Both directories resolve to the newest file in
+That takes a fresh container profile, builds sourcemaps for the deployed
+bundles, and compares the two. Both directories resolve to the newest file in
 them, so nothing has to be renamed.
+
+`--map` on a directory loads **every** map in it and picks one per frame by the
+bundle the frame came from. It has to: the application is no longer one file,
+and a device trace spans several of them — the solve runs in `solver.worker`
+and the interface that starts it is in `index`. A frame whose bundle matches
+none of the maps is left minified and warned about once, which is the case
+where the profile and the build are different commits.
+
+**Comparing two device traces is a different job**, and one set of maps cannot
+do it: two deployments have different content hashes, so maps built from one
+commit describe one of the traces and none of the other. Name the pair, and
+read the named half:
+
+```bash
+node perf/profile.mjs perf/traces/<prod>.json perf/traces/<branch>.json --map dist/assets
+```
+
+Only the last profile is mapped, so build the commit whose trace you want named.
 
 `perf/traces/` is gitignored apart from its `.gitkeep`. It lives inside the
 repository because a dev container cannot read anything outside it, and a 35 MB
