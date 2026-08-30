@@ -10,6 +10,42 @@ import {
   widthOf,
 } from "./geometry.js";
 import { diaOf } from "./parts.js";
+import type { Coupler, Engine, Shroud, Tank } from "./catalogue.js";
+import type {
+  BoosterPart,
+  Boosters,
+  DecouplerFit,
+  Solution,
+} from "./solution.js";
+
+/* One shape. A cylinder standing on the stack axis or on a ring around it:
+   where its base sits, how wide, how tall, and what it is.
+
+   `part` is absent on a shape that stands for no single part — a level of a
+   packed ring is drawn as the column it belongs to. `rTop` is set only where
+   the shape tapers, which today is the payload alone. `stage` is stamped on by
+   `modelOf` as it walks, and the payload has none because it belongs to no
+   stage. */
+type ModelRole =
+  | "engine"
+  | "coupler"
+  | "adapter"
+  | "tank"
+  | "decoupler"
+  | "booster"
+  | "payload";
+
+type ModelPart = {
+  role: ModelRole;
+  part?: Tank | Engine | Coupler | Shroud | DecouplerFit | BoosterPart | null;
+  x: number;
+  z: number;
+  y: number;
+  r: number;
+  h: number;
+  rTop?: number;
+  stage?: number;
+};
 
 /* The rocket as solid shapes, in metres.
 
@@ -35,8 +71,8 @@ import { diaOf } from "./parts.js";
    Radial symmetry puts one on the axis and the rest on a ring, and everything
    bolted to a column turns with it — a pair of engines on a column at 120
    degrees points along that column. */
-function columnsOf(S, ringR) {
-  const out = [[0, 0, 0]];
+function columnsOf(S: number, ringR: number) {
+  const out: Array<[number, number, number]> = [[0, 0, 0]];
   for (let i = 0; i < S - 1; i++) {
     const th = (i / (S - 1)) * 2 * Math.PI;
     out.push([Math.cos(th) * ringR, Math.sin(th) * ringR, th]);
@@ -44,13 +80,13 @@ function columnsOf(S, ringR) {
   return out;
 }
 
-const turn = (x, z, th) => [
+const turn = (x: number, z: number, th: number) => [
   x * Math.cos(th) - z * Math.sin(th),
   x * Math.sin(th) + z * Math.cos(th),
 ];
 
 /* One stage's worth of shapes, standing on `base`, and how tall it came out. */
-function stageParts(sol, base, push) {
+function stageParts(sol: Solution, base: number, push: (p: ModelPart) => void) {
   const g = stageGeom(sol);
   const S = g.S;
   const columns = columnsOf(S, g.ringR);
@@ -79,7 +115,10 @@ function stageParts(sol, base, push) {
   /* A coupler gathers one column's cluster onto that column's tank, and the
      adapters bridge that column's diameters — one set per column, which is
      what #60 settled. */
-  if (g.coupler > 0) {
+  /* `sol.coupler` is named as well as measured: `g.coupler` is zero without
+     one, so the second test never changes what runs — it says out loud what the
+     first one already relies on. */
+  if (g.coupler > 0 && sol.coupler) {
     for (const [cx, cz] of columns)
       push({
         role: "coupler",
@@ -118,7 +157,7 @@ function stageParts(sol, base, push) {
       const pk = g.pack;
       const spareH = pk.spare * pk.levelH;
       const rest = g.tank - spareH - pk.levels * pk.levelH;
-      const column = (yy, h) => {
+      const column = (yy: number, h: number) => {
         for (const [cx, cz] of columns)
           push({ role: "tank", x: cx, z: cz, y: yy, r: g.td / 2, h });
       };
@@ -281,7 +320,7 @@ function stageParts(sol, base, push) {
    fuel is 7.5 kg per 5 litre unit, so 1.5 t per cubic metre; the grain alone
    left the small boosters far too stubby, so it adds a nozzle and closure
    allowance that scales with bore. */
-function boosterLength(b, bd) {
+function boosterLength(b: Boosters, bd: number) {
   const p = b.part;
   if (p.column) return tankStackLen(p.column) + engineLen(p);
   const measured = heightOf(p, 0);
@@ -293,15 +332,19 @@ function boosterLength(b, bd) {
 /* The whole vehicle: the stages still attached, bottom first, with the payload
    on top. `stages` is what the build view calls `live` — already sliced to the
    staging step being shown. */
-export function modelOf(stages, payload = 0, payloadDia = 0) {
-  const parts = [];
+export function modelOf(
+  stages: ReadonlyArray<{ sol?: Solution | null }>,
+  payload = 0,
+  payloadDia = 0,
+) {
+  const parts: Array<ModelPart> = [];
   /* Which stage a part came from. Nothing in the drawing needs it — every view
      is a projection of the whole rocket — but a check does: a booster longer
      than the run it hangs from genuinely reaches into the stage above, and
      telling that apart from a part overlapping its own stage takes knowing
      which stage each one is. */
   let stage = 0;
-  const push = (p) => parts.push({ ...p, stage });
+  const push = (p: ModelPart) => parts.push({ ...p, stage });
   let y = 0;
   for (const st of stages) {
     if (!st.sol) continue;
@@ -331,7 +374,7 @@ export function modelOf(stages, payload = 0, payloadDia = 0) {
 /* The box the model occupies: how tall, and how far anything reaches from the
    axis. The cameras frame from this, which is what makes containment true by
    construction rather than something to check in pixels afterwards. */
-export function extentOf(parts) {
+export function extentOf(parts: ReadonlyArray<ModelPart>) {
   let height = 0,
     reach = 0;
   for (const p of parts) {
@@ -340,3 +383,5 @@ export function extentOf(parts) {
   }
   return { height, reach, width: reach * 2 };
 }
+
+export type { ModelPart, ModelRole };

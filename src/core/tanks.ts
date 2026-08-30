@@ -14,22 +14,82 @@ import {
   stackDias,
 } from "./parts.js";
 import { TANK_FUNDS_DRY, TANK_FUNDS_PROP } from "./performance.js";
+import type { Excluded, Expansions, Roster } from "./constants.js";
+import type { Coupler, Engine, Shroud, Tank } from "./catalogue.js";
+import type { Objective } from "./performance.js";
+import type {
+  AdapterChain,
+  DecouplerFit,
+  Joiner,
+  TankSet,
+} from "./solution.js";
+
+/* A tank pool with its memo hung off it.
+
+   The memo lives on the array rather than in a Map keyed by one, because pools
+   are themselves cached: the same array comes back every time, so a property
+   read replaces a hash. See `pickTanksMemo`. */
+type TankPool = Array<Tank> & {
+  _memo?: Array<Map<number, TankSet | null>>;
+};
+
+/* One group of interchangeable tanks: same diameter, same structural
+   coefficient, sorted largest first for `pickTanks`. */
+type Pool = {
+  usable: TankPool;
+  k: number;
+  dia: number;
+  biggest: number;
+};
+
+/* Everything that can change what a stage has to be built from. Passed as one
+   object because `solveStage` and `boostedAscent` both ask, and a positional
+   list of eleven was how they drifted apart. */
+type FitOpt = {
+  engine: Engine;
+  n: number;
+  stacks?: number;
+  stackD: number;
+  tanks: ReadonlyArray<Tank>;
+  unlocked: Roster;
+  excluded: Excluded;
+  noPlate?: boolean;
+  expansions?: Expansions | null;
+  plateAbove?: boolean;
+  hasStageBelow?: boolean;
+};
+
+/* What has to be fitted, and what it weighs. */
+type Fit = {
+  coup: Coupler | null;
+  plated: boolean;
+  shroud: Shroud | null;
+  coupM: number;
+  adapt: AdapterChain;
+  rejoin: Coupler | null;
+  dec: DecouplerFit;
+  joiner: Joiner | null;
+  joins: number;
+  perEng: number;
+  dry: number;
+};
 
 /* Keyed on the parts array, the way poolsFor is, so researching a node or
    toggling an expansion builds a new array and invalidates this for free. It
    used to be a bare `let`, computed once from whichever roster asked first and
    never rebuilt — and an empty Map is truthy, so a first roster with no
    adapters pinned it empty for the life of the module. */
-const _adapterGraphs = new WeakMap();
-function adapterGraph(tanks) {
+const _adapterGraphs = new WeakMap<object, Map<string, Tank>>();
+function adapterGraph(tanks: ReadonlyArray<Tank>) {
   const cached = _adapterGraphs.get(tanks);
   if (cached) return cached;
-  const edges = new Map(); // "from>to" -> lightest spanning part
-  tanks.forEach((t) => {
+  const edges = new Map<string, Tank>(); // "from>to" -> lightest spanning part
+  tanks.forEach((t: Tank) => {
     const ds = stackDias(t);
     if (ds.length < 2 || /Mk2|Mk3/.test(t.sz.join())) return;
     const key = ds[0] + ">" + ds[ds.length - 1];
-    if (!edges.has(key) || t.dry < edges.get(key).dry) edges.set(key, t);
+    const at = edges.get(key);
+    if (!at || t.dry < at.dry) edges.set(key, t);
   });
   _adapterGraphs.set(tanks, edges);
   return edges;
@@ -40,7 +100,10 @@ function adapterGraph(tanks) {
 /* Strip an adapter chain's propellant down to what the engine can actually use.
    The parts stay — they are structurally needed — but fuel with no matching
    oxidiser aboard is mass, not range. */
-function usableAdapterProp(chain, engine) {
+function usableAdapterProp(
+  chain: AdapterChain | null | undefined,
+  engine: Engine,
+) {
   if (!chain || !chain.parts || !chain.parts.length) return chain;
   let prop = 0,
     dead = 0;
@@ -70,10 +133,21 @@ function usableAdapterProp(chain, engine) {
    Six nested lookups thirty million times would cost more than they save, so
    the three roster levels collapse to three reference comparisons whenever the
    roster has not changed — which, inside a single solve, is always. */
-const _fitCache = new WeakMap();
+type FitBucket = Map<object, Map<number, Map<number, Fit | null>>>;
+const _fitCache = new WeakMap<
+  object,
+  WeakMap<object, WeakMap<object, FitBucket>>
+>();
 
-let _lastU, _lastX, _lastT, _lastBucket;
-function fitScope(u, x, t) {
+let _lastU: Roster | null | undefined,
+  _lastX: Excluded,
+  _lastT: ReadonlyArray<Tank> | undefined,
+  _lastBucket: FitBucket | undefined;
+function fitScope(
+  u: Roster | null | undefined,
+  x: Excluded,
+  t: ReadonlyArray<Tank>,
+) {
   if (u === _lastU && x === _lastX && t === _lastT && _lastBucket)
     return _lastBucket;
   let l1 = _fitCache.get(u || NONE);
@@ -98,11 +172,11 @@ function fitScope(u, x, t) {
   return l3;
 }
 
-function fitStructure(opt) {
+function fitStructure(opt: FitOpt) {
   const bucket = fitScope(opt.unlocked, opt.excluded, opt.tanks);
   let byEngine = bucket.get(opt.engine);
   if (!byEngine) {
-    byEngine = new Map();
+    byEngine = new Map<number, Map<number, Fit | null>>();
     bucket.set(opt.engine, byEngine);
   }
   /* stackD stays its own level rather than being folded into the numeric key:
@@ -110,7 +184,7 @@ function fitStructure(opt) {
      of anything. */
   let byD = byEngine.get(opt.stackD);
   if (!byD) {
-    byD = new Map();
+    byD = new Map<number, Fit | null>();
     byEngine.set(opt.stackD, byD);
   }
   const fk =
@@ -127,7 +201,7 @@ function fitStructure(opt) {
   return out;
 }
 
-function _fitStructure(opt) {
+function _fitStructure(opt: FitOpt): Fit | null {
   const {
     engine,
     n,
@@ -229,12 +303,16 @@ function _fitStructure(opt) {
 /* Also per-roster. Keyed on from>to alone, a span with no route under one
    roster stayed unroutable under every later one — so researching the adapter
    that would have spanned it changed nothing. */
-const _chainMemos = new WeakMap();
-function adapterChain(tanks, from, to) {
+const _chainMemos = new WeakMap<object, Map<string, AdapterChain | null>>();
+function adapterChain(
+  tanks: ReadonlyArray<Tank>,
+  from: number,
+  to: number,
+): AdapterChain | null | undefined {
   if (from >= to) return { parts: [], dry: 0, prop: 0 };
   let memos = _chainMemos.get(tanks);
   if (!memos) {
-    memos = new Map();
+    memos = new Map<string, AdapterChain | null>();
     _chainMemos.set(tanks, memos);
   }
   const memo = from + ">" + to;
@@ -243,8 +321,8 @@ function adapterChain(tanks, from, to) {
   const dias = [
     ...new Set([...edges.keys()].flatMap((k) => k.split(">").map(Number))),
   ].sort((a, b) => a - b);
-  let best = null;
-  const walk = (at, used, dry, prop) => {
+  let best: AdapterChain | null = null;
+  const walk = (at: number, used: Array<Tank>, dry: number, prop: number) => {
     if (used.length > 3) return;
     if (at === to) {
       if (!best || dry < best.dry) best = { parts: [...used], dry, prop };
@@ -267,11 +345,11 @@ function adapterChain(tanks, from, to) {
    cluster-size loop: 17 000 regex tests, 1 260 adapter walks and 1 260 sorts per
    solveStage call, times ~41 calls per solve. Built once and cached, keyed on
    the parts array itself so a tech-tree change invalidates it. */
-const _poolCache = new WeakMap();
-function poolsFor(engine, tanks) {
+const _poolCache = new WeakMap<object, Map<string, Array<Pool>>>();
+function poolsFor(engine: Engine, tanks: ReadonlyArray<Tank>) {
   let byEngine = _poolCache.get(tanks);
   if (!byEngine) {
-    byEngine = new Map();
+    byEngine = new Map<string, Array<Pool>>();
     _poolCache.set(tanks, byEngine);
   }
   let got = byEngine.get(engine.n);
@@ -283,11 +361,12 @@ function poolsFor(engine, tanks) {
       !isAdapter(t) &&
       !isRadialOnly(t),
   );
-  const groups = new Map();
-  pool.forEach((t) => {
+  const groups = new Map<string, Array<Tank>>();
+  pool.forEach((t: Tank) => {
     const key = diaOf(t) + "|" + t.k;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(t);
+    let g = groups.get(key);
+    if (!g) groups.set(key, (g = []));
+    g.push(t);
   });
   got = [...groups.values()].map((g) => {
     const usable = [...g].sort((x, y) => y.prop - x.prop); // pre-sorted for pickTanks
@@ -332,7 +411,7 @@ function poolsFor(engine, tanks) {
    (objective, tank limit) pair. Those two have three and two possible values, so
    they index an array rather than forming part of a key. What is left is a
    property read, an array index, and a Map lookup on a plain number. */
-const _OBJ_IX = { mass: 0, cost: 1, parts: 2 };
+const _OBJ_IX: Record<Objective, number> = { mass: 0, cost: 1, parts: 2 };
 /* Capped. Propellant requirements are continuous, so a long search generates
    endless distinct keys — without a bound this grew until the heap gave out on a
    deep stack. Dropping the whole map when it fills is crude but right for this
@@ -341,7 +420,12 @@ const _OBJ_IX = { mass: 0, cost: 1, parts: 2 };
 const TANK_MEMO_MAX = 20000;
 let _tankHits = 0,
   _tankCalls = 0;
-function pickTanksMemo(pool, mp, maxTanks, objective) {
+function pickTanksMemo(
+  pool: TankPool,
+  mp: number,
+  maxTanks: number,
+  objective: Objective,
+) {
   _tankCalls++;
   let slots = pool._memo;
   if (slots === undefined) {
@@ -363,9 +447,14 @@ function pickTanksMemo(pool, mp, maxTanks, objective) {
   return v;
 }
 
-function pickTanksRaw(pool, mp, maxTanks = 12, objective = "mass") {
+function pickTanksRaw(
+  pool: ReadonlyArray<Tank>,
+  mp: number,
+  maxTanks = 12,
+  objective: Objective = "mass",
+): TankSet | null {
   const sorted = pool; // callers pass a descending-by-capacity list
-  const smallestCovering = (need) => {
+  const smallestCovering = (need: number): Tank | null => {
     for (let i = sorted.length - 1; i >= 0; i--)
       if (sorted[i].prop >= need - 1e-9) return sorted[i];
     return null;
@@ -375,17 +464,17 @@ function pickTanksRaw(pool, mp, maxTanks = 12, objective = "mass") {
      tank group, so the allocations here were the largest single source of
      garbage in a solve. Tank lists are a dozen entries at most, so the linear
      scan for an existing entry beats hashing. */
-  const build = (chosen) => {
+  const build = (chosen: ReadonlyArray<Tank>): TankSet | null => {
     const n = chosen.length;
     if (!n || n > maxTanks) return null;
-    const list = [];
+    const list: Array<{ t: Tank; c: number }> = [];
     let prop = 0,
       dryMass = 0;
     for (let i = 0; i < n; i++) {
       const t = chosen[i];
       prop += t.prop;
       dryMass += t.dry;
-      let found = null;
+      let found: { t: Tank; c: number } | null = null;
       for (let j = 0; j < list.length; j++)
         if (list[j].t === t) {
           found = list[j];
@@ -397,7 +486,7 @@ function pickTanksRaw(pool, mp, maxTanks = 12, objective = "mass") {
     return { list, prop, dryMass, count: n };
   };
 
-  const greedy = [];
+  const greedy: Array<Tank> = [];
   let left = mp;
   for (const t of sorted)
     while (left > t.prop * 0.999 && greedy.length < maxTanks) {
@@ -417,12 +506,12 @@ function pickTanksRaw(pool, mp, maxTanks = 12, objective = "mass") {
      funds/t against an X200-8's 200 — so least-overshoot was the wrong proxy for
      cheapest. Some small tanks beat it outright: the R-11 'Baguette' is 185
      funds/t, which is why cost designs reach for handfuls of them. */
-  const price = (t) =>
+  const price = (t: Tank) =>
     t.cost != null ? t.cost : t.prop * TANK_FUNDS_PROP + t.dry * TANK_FUNDS_DRY;
   const byValue = [...sorted].sort(
     (x, y) => price(x) / x.prop - price(y) / y.prop,
   );
-  const cheap = [];
+  const cheap: Array<Tank> = [];
   let owe = mp;
   for (const t of byValue)
     while (owe > t.prop * 0.999 && cheap.length < maxTanks) {
@@ -436,7 +525,7 @@ function pickTanksRaw(pool, mp, maxTanks = 12, objective = "mass") {
      greedy walks past a tank that would have finished the job — needing 23 t it
      took an X200-32 then two X200-8s, where an X200-32 and an X200-16 carry the
      same 24 t in one part fewer and for less money. */
-  const tidy = [];
+  const tidy: Array<Tank> = [];
   let rem = mp;
   for (const t of sorted) {
     while (rem > t.prop * 0.999 && tidy.length < maxTanks) {
@@ -462,7 +551,7 @@ function pickTanksRaw(pool, mp, maxTanks = 12, objective = "mass") {
      holding exactly the combined propellant weighs exactly the same — one part
      instead of two, for nothing. Where it would overshoot, only take it if the
      active objective says the trade is worth it. */
-  const simplify = (set) => {
+  const simplify = (set: TankSet | null): TankSet | null => {
     if (!set) return set;
     /* Flatten with a loop; flatMap allocated an intermediate array per entry on
        top of the result.
@@ -472,7 +561,7 @@ function pickTanksRaw(pool, mp, maxTanks = 12, objective = "mass") {
        time. Reusing this array, replacing the for-of with an index, and
        compacting instead of splicing all left that number unchanged, so the
        garbage is somewhere else in here. See #28. */
-    const list = [];
+    const list: Array<Tank> = [];
     for (const x of set.list) for (let i = 0; i < x.c; i++) list.push(x.t);
     for (let pass = 0; pass < 6; pass++) {
       let swapped = false;
@@ -507,10 +596,14 @@ function pickTanksRaw(pool, mp, maxTanks = 12, objective = "mass") {
     build(fewest),
     build(cheap),
     build(tidy),
-  ].filter(Boolean);
+    /* `!== null` rather than `Boolean`: `build` returns a tank set or null and
+       nothing else, so the two are the same test — and this one narrows the
+       type, where the other leaves the nulls in it. */
+  ].filter((c) => c !== null);
   if (!cands.length) return null;
-  const funds = (c) => c.list.reduce((a, x) => a + x.c * price(x.t), 0);
-  const rank = (a, b) =>
+  const funds = (c: TankSet) =>
+    c.list.reduce((a, x) => a + x.c * price(x.t), 0);
+  const rank = (a: TankSet, b: TankSet) =>
     objective === "parts"
       ? a.count - b.count || a.prop - b.prop
       : objective === "cost"
@@ -534,3 +627,4 @@ export {
   poolsFor,
   usableAdapterProp,
 };
+export type { Fit, FitOpt, Pool, TankPool };

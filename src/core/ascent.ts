@@ -1,12 +1,147 @@
-import { TALLY, resetTally } from "./tally.js";
+import { TALLY } from "./tally.js";
 import { BODY, atmoFor, cdOf, frontalArea, ispCurve } from "./atmosphere.js";
 import { stageSize } from "./geometry.js";
-import { mu, vCirc } from "./orbits.js";
 import { diaOf } from "./parts.js";
 import { ispCut } from "./performance.js";
+import type { Atmo, AtmoBody } from "./atmosphere.js";
+import type { Solution } from "./solution.js";
+
+/* ------------------------- the vehicle, as it is flown -------------------------
+
+   Not a solved stage: a solved stage knows what it is built from, and the
+   simulator only needs what changes its trajectory. `buildVehicleFor` at the
+   foot of this file is the one place the two meet. */
+type FlightBoosters = {
+  n: number;
+  mdot: number;
+  isp: (patm: number) => number;
+  prop: number;
+  dry: number;
+  wet: number;
+  dia: number;
+  area: number;
+  /* Asparagus sheds a pair at a time rather than the whole ring at once, and
+     both the mass and the drag have to step down together — which is why it
+     reaches the simulator at all and not just the rocket equation. */
+  asparagus: boolean;
+  pairProp: number;
+  pairDry: number;
+  pairArea: number;
+};
+
+type FlightStage = {
+  mdot: number;
+  isp: (patm: number) => number;
+  prop: number;
+  dry: number;
+  wet: number;
+  dia: number;
+  area: number;
+  boosters: FlightBoosters | null;
+};
+
+type Vehicle = {
+  body: AtmoBody;
+  atmo: Atmo;
+  bodyName: string;
+  payload: number;
+  stages: Array<FlightStage>;
+  payloadArea: number;
+};
+
+/* The turn, and the two throttles. `limit` is the booster slider people
+   actually reach for; `core` throttles the liquid core so the two finish
+   together. */
+type AscentOpt = {
+  target: number;
+  vKick: number;
+  kick: number;
+  limit?: number;
+  core?: number;
+  trace?: boolean;
+};
+
+/* A waypoint on the flight card. `nav` is the navball reading — degrees above
+   the horizon — and is absent on the coast, where there is nothing to hold. */
+type Mark = {
+  t: number;
+  h: number;
+  v: number;
+  nav?: number;
+  meco?: boolean;
+  coast?: boolean;
+  apoMark?: boolean;
+};
+
+type TracePoint = {
+  t: number;
+  h: number;
+  sr: number;
+  pitch: number;
+  apo: number;
+  m: number;
+  T: number;
+  q: number;
+};
+
+/* Two outcomes, told apart by `ok`. The failure carries it as an absent
+   optional rather than not at all, so `if (!r.ok)` reads the same on both. */
+type AscentFail = {
+  ok?: false;
+  fail: string;
+  t?: number;
+  apo?: number;
+  dvUsed?: number;
+  trace?: Array<TracePoint> | null;
+};
+
+type AscentOk = {
+  ok: true;
+  marks: Array<Mark>;
+  tApo: number;
+  toApo: number;
+  tMeco: number | null;
+  t: number;
+  dvUsed: number;
+  circ: number;
+  total: number;
+  apo: number;
+  handT: number;
+  handV: number;
+  handAlt: number;
+  vApo: number;
+  vCirc: number;
+  circBurn: number | null;
+  circProp: number | null;
+  circShort: boolean;
+  gLoss: number;
+  dLoss: number;
+  sLoss: number;
+  maxQ: number;
+  maxQalt: number;
+  maxMach: number;
+  propLeft: number;
+  mass: number;
+  /* Written on afterwards by plan.js, which re-solves against the flown cost
+     and keeps what the design was built to carry next to what it turned out to
+     need. */
+  carried?: number;
+};
+
+type AscentResult = AscentOk | AscentFail;
+
+/* A flown ascent with the turn that produced it, which is what the flight card
+   is built from. */
+type Turn = AscentOk & {
+  vKick: number;
+  kick: number;
+  limit?: number;
+  core?: number;
+  fullThrottle?: number;
+};
 
 /* ---------- ascent integration ---------- */
-function flyAscent(veh, opt) {
+function flyAscent(veh: Vehicle, opt: AscentOpt): AscentResult {
   TALLY.flights++;
   const b = veh.body,
     atmo = veh.atmo,
@@ -47,9 +182,9 @@ function flyAscent(veh, opt) {
      drifted off the profile — and the profile is unforgiving, because arriving at
      apoapsis a few hundred m/s slow turns a 125 m/s circularisation into well
      over a thousand. */
-  const trace = opt.trace ? [] : null;
-  const marks = [];
-  let tMeco = null;
+  const trace: Array<TracePoint> | null = opt.trace ? [] : null;
+  const marks: Array<Mark> = [];
+  let tMeco: number | null = null;
 
   for (; t < 900; t += dt) {
     const r = Math.hypot(pos[0], pos[1]),
@@ -187,8 +322,8 @@ function flyAscent(veh, opt) {
            takes on whatever stage is still live, so the burn can be centred on
            apoapsis rather than started there. */
         const live = veh.stages[iS];
-        let circBurn = null,
-          circProp = null,
+        let circBurn: number | null = null,
+          circProp: number | null = null,
           circShort = false,
           circDv = vC - vApo;
         if (live) {
@@ -412,10 +547,12 @@ function flyAscent(veh, opt) {
         if (iS >= veh.stages.length)
           return { fail: "out of fuel", t, apo: apo - b.R, dvUsed, trace };
         prop = veh.stages[iS].prop;
-        bProp = veh.stages[iS].boosters
-          ? veh.stages[iS].boosters.n * veh.stages[iS].boosters.prop
-          : 0;
-        bLeft = veh.stages[iS].boosters ? veh.stages[iS].boosters.n : 0;
+        /* Read once. Three lookups through a variable index say the same thing
+           three times, and only the name makes it plain that they are one
+           booster pool rather than three. */
+        const nb = veh.stages[iS].boosters;
+        bProp = nb ? nb.n * nb.prop : 0;
+        bLeft = nb ? nb.n : 0;
       }
     }
   }
@@ -427,10 +564,15 @@ function flyAscent(veh, opt) {
    hold prograde through, so cap max Q at a level people actually fly.
    Coarse pass then a local refine — a full fine grid is ~550 trajectories and
    costs most of a second, which is too slow to sit inside a live recompute. */
-function optimiseTurn(veh, target = 80000, qCap = 40000) {
-  let best = null,
-    gentlest = null;
-  const scan = (vs, ks) => {
+function optimiseTurn(veh: Vehicle, target = 80000, qCap = 40000) {
+  /* Held on an object rather than in two locals. `scan` below assigns both
+     from inside a callback, and flow analysis cannot see through that — as
+     plain `let`s they would still read as `null` at every use after it. */
+  const found: { best: Turn | null; gentlest: Turn | null } = {
+    best: null,
+    gentlest: null,
+  };
+  const scan = (vs: Array<number>, ks: Array<number>) => {
     for (const vK of vs)
       for (const kd of ks) {
         const r = flyAscent(veh, {
@@ -443,12 +585,13 @@ function optimiseTurn(veh, target = 80000, qCap = 40000) {
         /* If nothing meets the q cap, fall back to the calmest trajectory, not the
          cheapest — the cheapest is the most aggressive, which is the opposite of
          what you want when the vehicle is already fighting the air. */
-        if (!gentlest || r.maxQ < gentlest.maxQ) gentlest = c;
-        if (r.maxQ <= qCap && (!best || r.total < best.total)) best = c;
+        if (!found.gentlest || r.maxQ < found.gentlest.maxQ) found.gentlest = c;
+        if (r.maxQ <= qCap && (!found.best || r.total < found.best.total))
+          found.best = c;
       }
   };
-  const range = (a, b, st) => {
-    const o = [];
+  const range = (a: number, b: number, st: number) => {
+    const o: Array<number> = [];
     for (let x = a; x <= b; x += st) o.push(x);
     return o;
   };
@@ -458,22 +601,27 @@ function optimiseTurn(veh, target = 80000, qCap = 40000) {
      cannot leave the pad, so the workable range is an interval, not a half-line.
      Scan down from full thrust and take the first setting that both flies and
      stays under — the highest thrust that behaves. */
-  if (!best && gentlest) {
+  if (!found.best && found.gentlest) {
     for (let lim = 0.95; lim >= 0.3; lim -= 0.05) {
       const r = flyAscent(veh, {
         target,
-        vKick: gentlest.vKick,
-        kick: (gentlest.kick * Math.PI) / 180,
+        vKick: found.gentlest.vKick,
+        kick: (found.gentlest.kick * Math.PI) / 180,
         limit: lim,
       });
       if (r.ok && r.maxQ <= qCap) {
-        best = { ...r, vKick: gentlest.vKick, kick: gentlest.kick, limit: lim };
+        found.best = {
+          ...r,
+          vKick: found.gentlest.vKick,
+          kick: found.gentlest.kick,
+          limit: lim,
+        };
         break;
       }
     }
   }
 
-  const seed = best || gentlest;
+  const seed = found.best || found.gentlest;
   if (seed)
     scan(
       range(Math.max(25, seed.vKick - 15), seed.vKick + 15, 5),
@@ -485,7 +633,7 @@ function optimiseTurn(veh, target = 80000, qCap = 40000) {
      turn alone, because it stops the stack carrying its apoapsis past the mark
      with thrust it cannot switch off. */
   if (veh.stages[0] && veh.stages[0].boosters) {
-    const seedTurn = best || gentlest;
+    const seedTurn = found.best || found.gentlest;
     if (seedTurn)
       for (let cr = 1; cr >= 0.35; cr -= 0.05) {
         const r = flyAscent(veh, {
@@ -494,8 +642,12 @@ function optimiseTurn(veh, target = 80000, qCap = 40000) {
           kick: (seedTurn.kick * Math.PI) / 180,
           core: cr,
         });
-        if (r.ok && r.maxQ <= qCap && (!best || r.total < best.total))
-          best = {
+        if (
+          r.ok &&
+          r.maxQ <= qCap &&
+          (!found.best || r.total < found.best.total)
+        )
+          found.best = {
             ...r,
             vKick: seedTurn.vKick,
             kick: seedTurn.kick,
@@ -505,11 +657,11 @@ function optimiseTurn(veh, target = 80000, qCap = 40000) {
       }
   }
 
-  return best || gentlest;
+  return found.best || found.gentlest;
 }
 
-const _simCache = new Map();
-function simCached(veh, target) {
+const _simCache = new Map<string, Turn | null>();
+function simCached(veh: Vehicle, target: number) {
   const key =
     veh.bodyName +
     "|" +
@@ -528,18 +680,33 @@ function simCached(veh, target) {
         ].join(","),
       )
       .join(";");
-  if (_simCache.has(key)) return _simCache.get(key);
+  if (_simCache.has(key)) return _simCache.get(key) ?? null;
   const r = optimiseTurn(veh, target, 40000);
   if (_simCache.size > 300) _simCache.clear();
   _simCache.set(key, r);
   return r;
 }
 
-function buildVehicleFor(stages, pick, bodyName, payloadDia = 0) {
+/* Only what this reads of a stage in a plan. The whole thing is assembled in
+   plan.js, and `payloadIn` is what that stage is carrying above it. */
+type PlannedStage = { sol: Solution | null; payloadIn: number };
+
+/* One that has been solved. The filter below tests exactly what it always
+   tested, in the same order; saying so as a predicate is what lets the map
+   read `sol.engine` without asking again. */
+type FlownStage = PlannedStage & { sol: Solution };
+
+function buildVehicleFor(
+  stages: ReadonlyArray<PlannedStage>,
+  pick: (s: PlannedStage) => boolean,
+  bodyName: string,
+  payloadDia = 0,
+): Vehicle | null {
   if (!BODY[bodyName]) return null; // airless, or no atmosphere data
-  const sel = stages.filter((s) => pick(s) && s.sol);
+  const keep = (s: PlannedStage): s is FlownStage => pick(s) && s.sol !== null;
+  const sel = stages.filter(keep);
   if (!sel.length) return null;
-  const simStages = sel.map((s) => {
+  const simStages: Array<FlightStage> = sel.map((s) => {
     const sol = s.sol,
       e = sol.engine,
       b = sol.boosters;
@@ -597,3 +764,16 @@ function buildVehicleFor(stages, pick, bodyName, payloadDia = 0) {
    adjective and the suffix drawn from a hash of the rest of the settings. */
 
 export { buildVehicleFor, flyAscent, optimiseTurn, simCached };
+export type {
+  AscentFail,
+  AscentOk,
+  AscentOpt,
+  AscentResult,
+  FlightBoosters,
+  FlightStage,
+  Mark,
+  PlannedStage,
+  TracePoint,
+  Turn,
+  Vehicle,
+};

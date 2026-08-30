@@ -1,6 +1,64 @@
 import { PACK_BRACE, PACK_JOIN } from "./geometry.js";
 import { RADIAL_DECOUPLER } from "./parts.js";
 import { DECOUPLER_FUNDS } from "./performance.js";
+import type { Coupler, Engine, Shroud, Tank } from "./catalogue.js";
+import type {
+  BoosterPart,
+  DecouplerFit,
+  Joiner,
+  Solution,
+} from "./solution.js";
+
+/* What a row is: the job the part does in the stage, not the part's own kind.
+   Two rows can be the same tank doing different work — a tank in the run and a
+   tank hanging off a radial column are listed apart, because a build order
+   needs them apart. */
+type Role =
+  | "decoupler"
+  | "rejoin"
+  | "joiner"
+  | "pack-join"
+  | "pack-brace"
+  | "tank"
+  | "adapter"
+  | "coupler"
+  | "engine"
+  | "booster"
+  | "booster-decoupler"
+  | "booster-tank";
+
+/* Whatever the row is about. Null where the row is a charge with no part behind
+   it — the fallback decoupler, and the one every radial booster hangs on. */
+type RowPart =
+  | Tank
+  | Engine
+  | Coupler
+  | Shroud
+  | Joiner
+  | DecouplerFit
+  | BoosterPart
+  | { n: string; m: number; cost: number }
+  | null;
+
+/* The visitor `eachRow` hands each row to. `cost` is allowed to be missing
+   because a synthesised booster part has no price — see #93. */
+type AddRow = (
+  role: Role,
+  part: RowPart,
+  qty: number,
+  mass: number,
+  cost: number | undefined,
+  prop?: number,
+) => void;
+
+type ManifestRow = {
+  role: Role;
+  part: RowPart;
+  qty: number;
+  mass: number;
+  cost: number | undefined;
+  prop: number;
+};
 
 /* Everything a stage is made of, counted once.
 
@@ -28,7 +86,7 @@ import { DECOUPLER_FUNDS } from "./performance.js";
    called once per viable candidate, which is 1.9 million times across two of
    the grid's eighty-one cases alone; materialising ten row objects each would
    undo #26 and #51 several times over. Folding costs nothing but the walk. */
-export function eachRow(sol, add) {
+export function eachRow(sol: Solution | null | undefined, add: AddRow) {
   if (!sol) return;
   const S = sol.stacks || 1;
 
@@ -135,8 +193,8 @@ export function eachRow(sol, add) {
 
 /* The same walk, collected. Off the hot path by construction: anything that
    wants the rows themselves is showing them to someone. */
-export function manifest(sol) {
-  const rows = [];
+export function manifest(sol: Solution | null | undefined) {
+  const rows: Array<ManifestRow> = [];
   eachRow(sol, (role, part, qty, mass, cost, prop) => {
     if (qty) rows.push({ role, part, qty, mass, cost, prop: prop || 0 });
   });
@@ -151,25 +209,35 @@ export function manifest(sol) {
    level accumulator is not pretty and is not reentrant, and `eachRow` does not
    recurse, so it does not need to be. */
 let _acc = 0;
-const _mass = (role, part, qty, mass) => {
+const _mass: AddRow = (_role, _part, qty, mass) => {
   _acc += qty * mass;
 };
-const _cost = (role, part, qty, mass, cost) => {
-  _acc += qty * cost;
+const _cost: AddRow = (_role, _part, qty, _mass, cost) => {
+  /* NaN rather than zero where a row has no price. A synthesised drop tank is
+     the only row that can be missing one, and the sum it lands in is already
+     NaN for the same reason — #93. Defaulting to zero here would hide half of
+     that and leave the two totals disagreeing. */
+  _acc += qty * (cost ?? NaN);
 };
-const _count = (role, part, qty) => {
+const _count: AddRow = (_role, _part, qty) => {
   _acc += qty;
 };
-const _prop = (role, part, qty, mass, cost, prop) => {
+const _prop: AddRow = (_role, _part, qty, _m, _c, prop) => {
   _acc += qty * (prop || 0);
 };
-const fold = (sol, visit) => {
+const fold = (sol: Solution | null | undefined, visit: AddRow) => {
   _acc = 0;
   eachRow(sol, visit);
   return _acc;
 };
 
-export const manifestMass = (sol) => fold(sol, _mass);
-export const manifestCost = (sol) => fold(sol, _cost);
-export const manifestCount = (sol) => fold(sol, _count);
-export const manifestProp = (sol) => fold(sol, _prop);
+export const manifestMass = (sol: Solution | null | undefined) =>
+  fold(sol, _mass);
+export const manifestCost = (sol: Solution | null | undefined) =>
+  fold(sol, _cost);
+export const manifestCount = (sol: Solution | null | undefined) =>
+  fold(sol, _count);
+export const manifestProp = (sol: Solution | null | undefined) =>
+  fold(sol, _prop);
+
+export type { AddRow, ManifestRow, Role, RowPart };

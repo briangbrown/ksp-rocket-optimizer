@@ -1,8 +1,14 @@
 import curvesData from "../data/curves.json";
 import { evalCurve, ispCurve } from "./atmosphere.js";
 import { G0 } from "./constants.js";
+import type { Curve } from "./atmosphere.js";
+import type { Tank } from "./catalogue.js";
+import type { Solution } from "./solution.js";
 
-function propellantFor(dv, dry, isp, k) {
+/* What the search is being asked to minimise. */
+type Objective = "mass" | "cost" | "parts";
+
+function propellantFor(dv: number, dry: number, isp: number, k: number) {
   if (!isFinite(dv)) return null;
   const R = Math.exp(dv / (isp * G0));
   const den = 1 + k - R * k;
@@ -30,15 +36,18 @@ const STAGE_PRESSURE = [0.62, 0.05, 0, 0];
    systematically optimistic for vacuum bells — a Terrier was given a 5.2 atm
    cutoff against a real 3.0, so it was still credited with thrust at pressures
    where it actually produces nothing. Everything computed at Eve moved. */
-const REAL_CURVE = curvesData.REAL_CURVE;
-const ispCut = (e) => Math.min(12, Math.max(3, 3 + 9 * (e.ia / e.iv)));
-const _ispFns = new Map();
+const REAL_CURVE: Readonly<Record<string, Curve>> = curvesData.REAL_CURVE;
+const ispCut = (e: { ia: number; iv: number }) =>
+  Math.min(12, Math.max(3, 3 + 9 * (e.ia / e.iv)));
+const _ispFns = new Map<string, (x: number) => number>();
 /* Cache the value, not just the curve. This is called 124 million times across
    the design grid and has 116 distinct answers — the curve lookup was already
    cached, but the evaluation was not, and evaluating a Hermite spline is not
    free. Pure in (engine, pressure), so nothing here needs invalidating. */
-const _ispVals = new Map();
-function ispAt(e, p) {
+const _ispVals = new Map<string, Map<number, number>>();
+/* Engines and the stand-in parts a booster pool synthesises alike: all this
+   needs is a name to key the cache on and the two Isp figures. */
+function ispAt(e: { n: string; iv: number; ia: number }, p: number) {
   if (!p) return e.iv;
   let byP = _ispVals.get(e.n);
   if (byP === undefined) {
@@ -50,7 +59,9 @@ function ispAt(e, p) {
   let f = _ispFns.get(e.n);
   if (!f) {
     const real = REAL_CURVE[e.n];
-    f = real ? (x) => evalCurve(real, x) : ispCurve(e.iv, e.ia, ispCut(e));
+    f = real
+      ? (x: number) => evalCurve(real, x)
+      : ispCurve(e.iv, e.ia, ispCut(e));
     _ispFns.set(e.n, f);
   }
   const v = Math.max(0, f(p));
@@ -84,8 +95,8 @@ const TANK_FUNDS_PROP = 92,
    So this stays fast and `test/manifest.test.js` holds it to the walk, which is
    the same arrangement `fitStructure`'s dry mass already has and for the same
    reason. #62 */
-function stageCost(c) {
-  const est = (t) =>
+function stageCost(c: Solution) {
+  const est = (t: Tank) =>
     t.cost != null ? t.cost : t.prop * TANK_FUNDS_PROP + t.dry * TANK_FUNDS_DRY;
   let f =
     c.n * c.engine.cost +
@@ -101,14 +112,18 @@ function stageCost(c) {
      reporting only the engine made columns look cheap, and the cost objective
      picked them over designs that were genuinely cheaper. */
   if (c.boosters)
+    /* A synthesised drop tank carries no price, and `undefined` here is what
+       makes a drop-tank stage cost NaN — see #93. Written as NaN rather than
+       defaulted or asserted away: the arithmetic is exactly what it was, and
+       the hole is where a reader can see it. */
     f +=
       c.boosters.n *
-      (c.boosters.part.cost +
+      ((c.boosters.part.cost ?? NaN) +
         (c.boosters.part.column ? c.boosters.part.column.funds || 0 : 0) +
         DECOUPLER_FUNDS);
   return f;
 }
-const stageParts = (c) =>
+const stageParts = (c: Solution) =>
   c.n +
   (c.tanks ? c.tanks.count : 0) +
   (c.adapters ? c.adapters.parts.length * (c.stacks || 1) : 0) +
@@ -132,7 +147,7 @@ const stageParts = (c) =>
    term also helps the part count, since lighter stages need fewer tanks. */
 const COUPLE_COST = 1500,
   COUPLE_PARTS = 20;
-function scoreOf(c, objective) {
+function scoreOf(c: Solution, objective: Objective) {
   if (objective === "cost") return stageCost(c) + c.total * COUPLE_COST;
   if (objective === "parts") return stageParts(c) + c.total / COUPLE_PARTS;
   return c.total * (1 + 0.006 * (c.n + (c.tanks ? c.tanks.count : 0)));
@@ -153,3 +168,4 @@ export {
   stageCost,
   stageParts,
 };
+export type { Objective };
