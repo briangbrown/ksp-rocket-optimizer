@@ -260,6 +260,19 @@ implying CI covered it.
   changes, and no extensionless-import sweep across the repository. The
   alternative was rewriting every specifier in `src/` and `test/`, which would
   have buried the conversion diff in churn that proves nothing.
+- **A stand-in part has to be a whole one.** The booster pools dress a liquid
+  column and a drop tank up as engines so the two-phase maths can fly them
+  without a second version of itself. The drop tank was built without a `cost`,
+  and `undefined` in `stageCost`'s booster term made the whole stage price NaN
+  — which is worse than a wrong number, because every comparison against NaN is
+  false and the stage could then never win the cost objective at any payload.
+  `BoosterPart.cost` is required for that reason: a pool that has nothing to
+  charge has to say so. #93
+- **Asparagus is solved by nothing but its own test.** Drop tanks and liquid
+  columns are only built when the user asks for asparagus, and neither the
+  design grid nor the mission sweep turns it on — so that whole branch of
+  `boostedAscent` ran in no check at all until `test/manifest.test.ts` grew one.
+  A change in there is invisible to both baselines; measure it deliberately.
 - **A solved stage is not one shape.** A boosted stage carries no `stacks`,
   `perStack`, `rejoin` or `joiner` at all — it is a single core with a ring
   bolted to the side of it, built by `boostedAscent` from a different literal

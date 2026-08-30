@@ -743,6 +743,14 @@ function boostedAscent({
           m: tk.dryMass + tk.prop,
           fuelM: tk.prop,
           dry: tk.dryMass,
+          /* Nothing, and said rather than left out. A drop tank is tankage and
+             the decoupler holding it on: `column.funds` prices the tanks and
+             `DECOUPLER_FUNDS` the decoupler, both added beside this in
+             `stageCost`, and there is no engine here to charge for. Omitted, it
+             was `undefined` in that sum — so the stage priced NaN, and since
+             every comparison against NaN is false it could never win the cost
+             objective at any payload. #93 */
+          cost: 0,
           sz: coreEngine.sz,
           f: coreEngine.f,
           t: null,
