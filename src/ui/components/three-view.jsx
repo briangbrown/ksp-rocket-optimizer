@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import {
   CylinderGeometry,
   DepthTexture,
+  LatheGeometry,
   EdgesGeometry,
   Group,
   LineBasicMaterial,
@@ -11,6 +12,7 @@ import {
   OrthographicCamera,
   PlaneGeometry,
   Scene,
+  Vector2,
   WebGLRenderTarget,
   WebGLRenderer,
 } from "three";
@@ -59,6 +61,38 @@ const FILL = {
    surface id marks it. */
 const SEGMENTS = 40;
 const CREASE_ANGLE = 30;
+
+/* The profile of a part that tapers, revolved to make it.
+
+   Read side-on a command pod is a trapezium with rounded corners, and the
+   corners are the point — a sharp cone edge reads as a nose cone rather than
+   as something with people in it. Each shoulder is a quarter circle in the
+   profile, tangent to the face it leaves and to the taper it joins, so the
+   silhouette turns smoothly and the outline pass has no crease to find there.
+   The straight run between them is one segment, since a lathe interpolates
+   between consecutive points. #82 */
+const SHOULDER = 9;
+
+function taperedProfile(rBase, rTop, h) {
+  /* Small enough that the shoulders never meet in the middle of a squat pod,
+     and small against the top face in particular: a fillet of much more than a
+     third of the top radius closes it over and the pod reads as a bullet
+     rather than as something with a hatch in it. */
+  const f = Math.min(rBase * 0.16, h * 0.1, rTop * 0.34);
+  const y0 = -h / 2;
+  const y1 = h / 2;
+  const arc = (cr, cy, from, to) =>
+    Array.from({ length: SHOULDER + 1 }, (_, i) => {
+      const a = from + ((to - from) * i) / SHOULDER;
+      return new Vector2(cr + Math.cos(a) * f, cy + Math.sin(a) * f);
+    });
+  return [
+    new Vector2(0, y0),
+    ...arc(rBase - f, y0 + f, -Math.PI / 2, 0),
+    ...arc(rTop - f, y1 - f, 0, Math.PI / 2),
+    new Vector2(0, y1),
+  ];
+}
 
 /* The dash period of a hidden edge, in CSS pixels — scaled to device pixels
    where it is used, since the shader measures in the buffer's own grid and a
@@ -149,7 +183,10 @@ export default function ThreeView({ parts, view, width, height, color }) {
     owned.push(creaseMat);
 
     for (const [i, p] of parts.entries()) {
-      const geo = new CylinderGeometry(p.r, p.r, p.h, SEGMENTS);
+      const geo =
+        p.rTop === undefined
+          ? new CylinderGeometry(p.r, p.r, p.h, SEGMENTS)
+          : new LatheGeometry(taperedProfile(p.r, p.rTop, p.h), SEGMENTS);
       const fill = goochMaterial(
         p.role === "booster" ? color : FILL[p.role] || C.dim,
       );

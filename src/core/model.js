@@ -225,6 +225,16 @@ export function modelOf(stages, payload = 0, payloadDia = 0) {
       z: 0,
       y,
       r: payD / 2,
+      /* A command pod, which is what a payload usually is. KSP's pods taper by
+         exactly one stack size and that ladder is 2.5, 1.25, 0.625 — so the top
+         is half the base on every one of them, which is a rule worth taking
+         from the part sizes rather than from any single model.
+
+         The height is untouched on purpose: `stackGeometry` adds the same
+         `payD * 1.3` to the stack it measures the slenderness limit on, so
+         changing it would move designs. Narrowing the top inside that envelope
+         moves nothing. #82 */
+      rTop: payD / 4,
       h: payD * 1.3,
     });
   return parts;

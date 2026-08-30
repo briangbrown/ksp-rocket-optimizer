@@ -269,5 +269,23 @@ describe("the build model", () => {
     const { height, reach } = extentOf(parts);
     expect(height).toBeGreaterThan(0);
     expect(reach).toBeGreaterThan(0);
+
+    /* And it is a command pod, which is what a payload usually is: KSP's pods
+       taper by one stack size, and that ladder halves. The height is not part
+       of the shape — `stackGeometry` measures the slenderness limit on the same
+       figure, so narrowing the top is free and shortening it would not be. #82 */
+    expect(parts[0].rTop).toBeCloseTo(parts[0].r / 2, 12);
+  });
+
+  it("keeps the payload inside the envelope the solver measured", () => {
+    /* The taper narrows the top; nothing may widen it. `extentOf` reads the
+       base radius, and the panel and every camera are sized from that. */
+    for (const { name, parts } of MODELS)
+      for (const p of parts)
+        if (p.rTop !== undefined)
+          expect(
+            p.rTop,
+            `${name}: ${p.role} flares outwards`,
+          ).toBeLessThanOrEqual(p.r);
   });
 });
