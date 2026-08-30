@@ -1,11 +1,7 @@
 import { Suspense, lazy, useState } from "react";
 
-import {
-  PACK_BRACE,
-  PACK_JOIN,
-  payloadDiaOf,
-  stackGeometry,
-} from "../../core/geometry.js";
+import { payloadDiaOf, stackGeometry } from "../../core/geometry.js";
+import { manifest } from "../../core/manifest.js";
 import { extentOf, modelOf } from "../../core/model.js";
 import { framing } from "../views.js";
 import { PLATE_SHROUD } from "../../core/parts.js";
@@ -284,24 +280,48 @@ function PartsTable({ stages, payload, hardware, color }) {
   const rows = [];
   const solved = stages.map((s, i) => ({ s, n: i + 1 })).filter((x) => x.s.sol);
   [...solved].reverse().forEach(({ s, n }) => {
-    if (s.sol.decoupler && s.sol.decoupler.qty > 0) {
-      const q = s.sol.decoupler.qty;
+    /* One list, from core, and the numbers below are read off it rather than
+       worked out again beside it. That is the whole of #62: this table was the
+       fourth description of a stage, and #77 was it disagreeing with the other
+       three about what order a plate and an adapter go on in.
+
+       What stays here is the wording and the shape — the build order, the
+       headers, the notes, and the quantity column staying per column under a
+       header that already says how many there are. The manifest returns facts;
+       every word of this is the view's. */
+    const bill = manifest(s.sol);
+    const of = (role) => bill.filter((r) => r.role === role);
+    const one = (role) => of(role)[0];
+    /* A tank you place in the VAB is full. The manifest carries propellant per
+       part now, so wet is dry plus what that part holds — one list serving the
+       reading the solver wants and the reading you would check against the
+       game. */
+    const wet = (r) => r.mass + r.prop;
+    /* With radial stacks the header says how many there are, so the rows below
+       it are one stack's worth — quantities multiplied out under a header that
+       already states the count read as though each stack needed all of them. */
+    const S = s.sol.stacks || 1;
+    const per = (r) => r.qty / S;
+    const dec = one("decoupler");
+    /* The manifest still lists a decoupler a stage did not buy, with no part
+       on it, so the mass check has something to account for. Nothing to show. */
+    if (dec && dec.part)
       rows.push({
         stage: n,
-        part: s.sol.decoupler.n,
-        qty: q,
-        each: s.sol.decoupler.m / q,
-        tot: s.sol.decoupler.m,
+        part: dec.part.n,
+        qty: dec.qty,
+        each: wet(dec),
+        tot: dec.qty * wet(dec),
         kind: "struct",
       });
-    }
-    if (s.sol.rejoin)
+    const rej = one("rejoin");
+    if (rej)
       rows.push({
         stage: n,
-        part: s.sol.rejoin.n + " (inverted)",
-        qty: 1,
-        each: s.sol.rejoin.m,
-        tot: s.sol.rejoin.m,
+        part: rej.part.n + " (inverted)",
+        qty: rej.qty,
+        each: wet(rej),
+        tot: rej.qty * wet(rej),
         kind: "adapter",
       });
     if (s.sol.stacks > 1) {
@@ -313,13 +333,16 @@ function PartsTable({ stages, payload, hardware, color }) {
         tot: null,
         part: `— core + ${s.sol.stacks - 1} radial stacks, each of the following —`,
       });
-      if (s.sol.joiner)
+      const join = one("joiner");
+      /* Two per extra stack, and the header above counts the stacks, so the
+         quantity column shows the two rather than dividing by anything. */
+      if (join)
         rows.push({
           stage: n,
-          part: `${s.sol.joiner.n} (holds a stack on, top and bottom)`,
+          part: `${join.part.n} (holds a stack on, top and bottom)`,
           qty: 2,
-          each: s.sol.joiner.m,
-          tot: (s.sol.stacks - 1) * 2 * s.sol.joiner.m,
+          each: wet(join),
+          tot: join.qty * wet(join),
           kind: "struct",
         });
     }
@@ -341,40 +364,39 @@ function PartsTable({ stages, payload, hardware, color }) {
       /* One ring per stack since #56, so the totals carry the stack count the
          way the tanks below them do — the quantity column stays per column,
          under the header that already says how many there are. */
-      const rings = s.sol.stacks || 1;
-      rows.push({
-        stage: n,
-        part: PACK_JOIN.n,
-        qty: pk.cols,
-        each: PACK_JOIN.m,
-        tot: rings * pk.cols * PACK_JOIN.m,
-        kind: "struct",
-      });
-      rows.push({
-        stage: n,
-        part: `${PACK_BRACE.n} (steadies each column)`,
-        qty: pk.cols,
-        each: PACK_BRACE.m,
-        tot: rings * pk.cols * PACK_BRACE.m,
-        kind: "struct",
-      });
-    }
-    /* With radial stacks the header says how many there are, so the rows below it
-       are one stack's worth — quantities multiplied out under a header that
-       already states the count read as though each stack needed all of them. */
-    const S = s.sol.stacks || 1;
-    /* Smallest at the top of the run, largest at the bottom — the order you would
-       actually assemble them in, and the order a rocket wants structurally. */
-    (S > 1 ? s.sol.perStack.list : s.sol.tanks ? s.sol.tanks.list : [])
-      .slice()
-      .sort((a, b) => a.t.wet - b.t.wet)
-      .forEach((x) =>
+      const pj = one("pack-join");
+      const pb = one("pack-brace");
+      if (pj)
         rows.push({
           stage: n,
-          part: x.t.n,
-          qty: x.c,
-          each: x.t.wet,
-          tot: (S > 1 ? S : 1) * x.c * x.t.wet,
+          part: pj.part.n,
+          qty: per(pj),
+          each: wet(pj),
+          tot: pj.qty * wet(pj),
+          kind: "struct",
+        });
+      if (pb)
+        rows.push({
+          stage: n,
+          part: `${pb.part.n} (steadies each column)`,
+          qty: per(pb),
+          each: wet(pb),
+          tot: pb.qty * wet(pb),
+          kind: "struct",
+        });
+    }
+    /* Smallest at the top of the run, largest at the bottom — the order you would
+       actually assemble them in, and the order a rocket wants structurally. */
+    of("tank")
+      .slice()
+      .sort((a, b) => wet(a) - wet(b))
+      .forEach((r) =>
+        rows.push({
+          stage: n,
+          part: r.part.n,
+          qty: per(r),
+          each: wet(r),
+          tot: r.qty * wet(r),
           kind: "tank",
         }),
       );
@@ -382,23 +404,24 @@ function PartsTable({ stages, payload, hardware, color }) {
        through the adapter onto the plate, and the plate carries the engines.
        Listed the other way round it described a stack nobody can build — and
        made a needed adapter look redundant, which is how it was reported. #77 */
-    s.sol.adapters?.parts.forEach((t) =>
+    of("adapter").forEach((r) =>
       rows.push({
         stage: n,
-        part: t.n,
-        qty: 1,
-        each: t.wet,
-        tot: S * t.wet, // one set per column, like the coupler below
+        part: r.part.n,
+        qty: per(r),
+        each: wet(r),
+        tot: r.qty * wet(r), // one set per column, like the coupler below
         kind: "adapter",
       }),
     );
-    if (s.sol.coupler) {
+    const coup = one("coupler");
+    if (coup) {
       const pl = PLATE_SHROUD[s.sol.coupler.n];
       rows.push({
         stage: n,
-        qty: 1,
-        each: s.sol.shroud ? s.sol.shroud.m : s.sol.coupler.m,
-        tot: S * (s.sol.shroud ? s.sol.shroud.m : s.sol.coupler.m),
+        qty: per(coup),
+        each: wet(coup),
+        tot: coup.qty * wet(coup),
         kind: "adapter",
         part:
           s.sol.coupler.n +
@@ -408,18 +431,25 @@ function PartsTable({ stages, payload, hardware, color }) {
             : ""),
       });
     }
+    const eng = one("engine");
     rows.push({
       stage: n,
-      part: s.sol.engine.n,
-      qty: s.sol.n / S, // per stack
-      each: s.sol.engine.m,
-      tot: s.sol.n * s.sol.engine.m,
+      part: eng.part.n,
+      qty: per(eng), // per stack
+      each: wet(eng),
+      tot: eng.qty * wet(eng),
       kind: "engine",
     });
     if (s.sol.boosters) {
       /* Decoupler first: it goes on the tank before the booster goes on it, and
          the list is meant to be read as a build order. */
       const b = s.sol.boosters;
+      const bo = one("booster");
+      const bdec = one("booster-decoupler");
+      /* Each of the radial stacks, so the quantity column is one stack's worth
+         under the header that counts them. A plain booster has no header, so
+         its rows carry the full count. */
+      const each = (r) => (b.part.column ? r.qty / b.n : r.qty);
       if (b.part.column)
         rows.push({
           stage: n,
@@ -429,22 +459,22 @@ function PartsTable({ stages, payload, hardware, color }) {
           tot: null,
           part: `— ${b.n} radial stacks, each of the following —`,
         });
-      else
+      else if (bdec)
         rows.push({
           stage: n,
           part: "TT-38K Radial Decoupler",
-          qty: b.n,
-          each: 0.05,
-          tot: b.n * 0.05,
+          qty: bdec.qty,
+          each: wet(bdec),
+          tot: bdec.qty * wet(bdec),
           kind: "struct",
         });
-      if (b.part.column)
+      if (b.part.column && bdec)
         rows.push({
           stage: n,
           part: "TT-38K Radial Decoupler",
-          qty: 1,
-          each: 0.05,
-          tot: 0.05,
+          qty: each(bdec),
+          each: wet(bdec),
+          tot: each(bdec) * wet(bdec),
           kind: "struct",
         });
       if (b.part.dropTank)
@@ -475,34 +505,34 @@ function PartsTable({ stages, payload, hardware, color }) {
         /* A column is a stack and is built like one: tanks first, engine at the
            bottom — the same order every other stage is listed in. Engine-then-
            tanks read as though the list ended on tankage with nothing under it. */
-        b.part.column.list
+        of("booster-tank")
           .slice()
-          .sort((a2, b2) => a2.t.wet - b2.t.wet)
-          .forEach((x) =>
+          .sort((a2, b2) => wet(a2) - wet(b2))
+          .forEach((r) =>
             rows.push({
               stage: n,
-              part: x.t.n,
-              qty: x.c,
-              each: x.t.wet,
-              tot: b.n * x.c * x.t.wet,
+              part: r.part.n,
+              qty: each(r),
+              each: wet(r),
+              tot: r.qty * wet(r),
               kind: "booster",
             }),
           );
         rows.push({
           stage: n,
-          part: b.part.n,
-          qty: 1,
-          each: b.part.dry - b.part.column.dryMass,
-          tot: b.n * (b.part.dry - b.part.column.dryMass),
+          part: bo.part.n,
+          qty: each(bo),
+          each: wet(bo),
+          tot: bo.qty * wet(bo),
           kind: "booster",
         });
       } else {
         rows.push({
           stage: n,
-          part: b.part.n,
-          qty: b.n,
-          each: b.part.m,
-          tot: b.n * b.part.m,
+          part: bo.part.n,
+          qty: bo.qty,
+          each: wet(bo),
+          tot: bo.qty * wet(bo),
           kind: "booster",
         });
       }
