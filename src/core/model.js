@@ -1,4 +1,5 @@
 import {
+  PAYLOAD_ASPECT,
   clusterSpan,
   payloadDiaOf,
   ringPositions,
@@ -222,36 +223,22 @@ export function modelOf(stages, payload = 0, payloadDia = 0) {
     y += stageParts(st.sol, y, push);
   }
   const payD = payloadDiaOf(payload, payloadDia);
-  if (payD > 0) {
-    /* A payload is a pod on something, not a pod on its own — the mission
-       hardware list puts a heat shield, parachutes and landing legs under it,
-       and they have to stand somewhere. So the envelope splits: a service
-       section carrying that, and the pod itself on top of it.
-
-       The split is what lets the pod have the proportions a pod actually has.
-       Measured from the parts: Mk1 is 1.25 m across and 1.13 tall, Mk2 1.875
-       and 1.58, Mk1-3 2.5 and 1.62 — so 0.65 to 0.90 of its own width, near
-       enough four fifths, where the whole envelope is 1.3 of it. Drawing the
-       pod over the full envelope made it half as tall again as any pod in the
-       game, which is what it looked like.
-
-       The envelope is untouched. `stackGeometry` adds the same `payD * 1.3` to
-       the stack the slenderness limit is measured on, so the two halves have to
-       come to that: 0.5 for the service section and 0.8 for the pod. #82 */
-    const service = payD * 0.5;
-    parts.push({ role: "service", x: 0, z: 0, y, r: payD / 2, h: service });
+  if (payD > 0)
     parts.push({
       role: "payload",
       x: 0,
       z: 0,
-      y: y + service,
+      y,
       r: payD / 2,
-      /* KSP's pods taper by one stack size, and that ladder halves: Mk1 is
-         1.25 to 0.625, Mk1-3 is 2.5 to 1.25. */
+      /* KSP's pods taper by one stack size, and that ladder halves: the Mk1
+         goes 1.25 to 0.625, the Mk1-3 2.5 to 1.25. The Mk2 is the odd one at
+         two thirds. */
       rTop: payD / 4,
-      h: payD * 0.8,
+      /* The same figure the slenderness limit is measured on — see
+         PAYLOAD_ASPECT. Drawing a shape the solver did not measure is the
+         two-descriptions failure this whole model exists to prevent. */
+      h: payD * PAYLOAD_ASPECT,
     });
-  }
   return parts;
 }
 

@@ -127,6 +127,18 @@ const tankRun = (tk) =>
 const payloadDiaOf = (payload, payloadDia) =>
   payloadDia || Math.max(0.9, Math.cbrt(Math.max(payload, 0.1)) * 1.1);
 
+/* How tall a payload stands for its width. Measured from the pods rather than
+   assumed: the Mk1 is 1.25 m across and 1.13 tall, the Mk2 1.875 and 1.58, the
+   Mk1-3 2.5 and 1.62 — 0.90, 0.84 and 0.65 of their own width, the larger ones
+   squatter. Four fifths is the middle of them.
+
+   It was 1.3, which is taller than any pod in the game by half again, and it
+   is load-bearing: `stackGeometry` adds it to the stack the slenderness limit
+   is measured on, so the stacks are shorter now and designs that were rejected
+   as too slender no longer are. `modelOf` draws the same figure, which is why
+   it lives here and not in both. */
+const PAYLOAD_ASPECT = 0.8;
+
 /* One definition of the stack's proportions, used by the summary, the drawing
    and the solver's slenderness limit alike. They disagreed before: the summary
    measured stages only, the drawing added the payload and the booster ring, and
@@ -143,7 +155,7 @@ function stackGeometry(chain, payload, payloadDia) {
     w = Math.max(w, g.coreWidth); // boosters excluded: they stage away
   });
   const payD = payloadDiaOf(payload, payloadDia);
-  h += payD * 1.3;
+  h += payD * PAYLOAD_ASPECT;
   w = Math.max(w, payD);
   return { h, w, payD, ar: w ? h / w : 0 };
 }
@@ -412,6 +424,7 @@ export {
   stackGeometry,
   stageGeom,
   stageSize,
+  PAYLOAD_ASPECT,
   payloadDiaOf,
   tankStackLen,
   widthOf,

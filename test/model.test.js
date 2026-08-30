@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { planMission } from "../src/core/plan.js";
 import { extentOf, modelOf } from "../src/core/model.js";
-import { stackGeometry, stageSize } from "../src/core/geometry.js";
+import {
+  PAYLOAD_ASPECT,
+  stackGeometry,
+  stageSize,
+} from "../src/core/geometry.js";
 import { stagingSteps, stepModels } from "../src/ui/components/build.jsx";
 import { missionCases } from "./grid.js";
 import { PANELS, escapes, escapesDepth } from "./framing.js";
@@ -266,9 +270,7 @@ describe("the build model", () => {
        the step before this one for a while: it was handed an empty list, made
        no frame, and the canvas kept the rocket it already had. */
     const parts = modelOf([], 1.2, 0);
-    /* A service section and the pod on it, which together are the envelope
-       `stackGeometry` measures. */
-    expect(parts.map((p) => p.role)).toEqual(["service", "payload"]);
+    expect(parts.map((p) => p.role)).toEqual(["payload"]);
     const { height, reach } = extentOf(parts);
     expect(height).toBeGreaterThan(0);
     expect(reach).toBeGreaterThan(0);
@@ -277,16 +279,18 @@ describe("the build model", () => {
        taper by one stack size, and that ladder halves. The height is not part
        of the shape — `stackGeometry` measures the slenderness limit on the same
        figure, so narrowing the top is free and shortening it would not be. #82 */
-    const pod = parts.find((p) => p.role === "payload");
+    const pod = parts[0];
     expect(pod.rTop).toBeCloseTo(pod.r / 2, 12);
-    /* And it is a pod's shape, not a drum's. Measured from the parts, a pod is
-       0.65 to 0.90 of its own width tall; drawn over the whole envelope it
-       would be 1.3, half again as tall as any of them. */
+    /* And it is a pod's shape, not a drum's. Measured from the parts, a pod
+       stands 0.65 to 0.90 of its own width: the Mk1 0.90, the Mk2 0.84, the
+       Mk1-3 0.65. */
     const width = pod.r * 2;
-    expect(pod.h / width).toBeGreaterThan(0.65);
-    expect(pod.h / width).toBeLessThan(0.9);
-    /* The two together are still exactly what the solver measured. */
-    expect(height).toBeCloseTo(width * 1.3, 12);
+    expect(pod.h / width).toBeGreaterThanOrEqual(0.65);
+    expect(pod.h / width).toBeLessThanOrEqual(0.9);
+    /* And it is exactly what the solver measured. Drawing a payload the
+       slenderness limit was not applied to is the two-descriptions failure
+       this model exists to prevent. */
+    expect(height).toBeCloseTo(width * PAYLOAD_ASPECT, 12);
   });
 
   it("keeps the payload inside the envelope the solver measured", () => {
