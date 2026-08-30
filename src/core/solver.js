@@ -940,6 +940,7 @@ function splitShares(k) {
 function prepare({
   dv,
   payload,
+  payloadDia,
   engines,
   tanks,
   unlocked,
@@ -970,6 +971,7 @@ function prepare({
   return {
     dv,
     payload,
+    payloadDia,
     engines,
     tanks,
     unlocked,
@@ -1022,6 +1024,7 @@ function solveUnit(p, k, shares) {
   const {
     dv,
     payload,
+    payloadDia,
     engines,
     tanks,
     unlocked,
@@ -1251,7 +1254,7 @@ function solveUnit(p, k, shares) {
             };
             chain[q] = { ...chain[q], sol: packedSol };
           }
-          const ar = stackGeometry(chain, payload).ar;
+          const ar = stackGeometry(chain, payload, payloadDia).ar;
           TALLY.chains++;
           const cand = {
             chain,

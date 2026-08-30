@@ -58,12 +58,14 @@ const buildModels = async () => {
         solved,
         cur,
         c.input.payload,
+        c.input.payloadDia,
       );
       out.push({
         name: `${c.name} · ${cur.label}`,
         cur,
         live,
         payload: c.input.payload,
+        payloadDia: c.input.payloadDia,
         parts: model,
         planParts: planModel,
       });
@@ -157,9 +159,9 @@ describe("the build model", () => {
        deliberately — they stage away — so this asks it of the steps that have
        none left. */
     const bad = [];
-    for (const { name, cur, live, payload, parts } of MODELS) {
+    for (const { name, cur, live, payload, payloadDia, parts } of MODELS) {
       if (cur.boost || !live.length) continue;
-      const geo = stackGeometry(live, payload);
+      const geo = stackGeometry(live, payload, payloadDia);
       const { height, width } = extentOf(parts);
       if (Math.abs(height - geo.h) > EPS)
         bad.push(

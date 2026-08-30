@@ -111,6 +111,7 @@ export async function planMission(
     let res = await solve({
       dv,
       payload: carried,
+      payloadDia,
       engines,
       tanks,
       unlocked,
@@ -207,6 +208,7 @@ export async function planMission(
         const grown = await solve({
           dv: flown.total * (1 + margin / 100),
           payload: carried,
+          payloadDia,
           engines,
           tanks,
           unlocked,

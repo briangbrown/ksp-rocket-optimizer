@@ -117,12 +117,22 @@ const tankRun = (tk) =>
         .sort((a, b) => b.h - a.h)
     : [];
 
+/* How wide the payload is.
+
+   The width the user set, and a guess off its mass only where none was given —
+   for a caller that has a mass and nothing else. It was two guesses and no
+   width: `stackGeometry` and `modelOf` each derived a diameter from the mass,
+   the slider reached the drag model and nothing else, and a 5 m payload was
+   drawn and measured at whatever cube root of its mass came to. #67 */
+const payloadDiaOf = (payload, payloadDia) =>
+  payloadDia || Math.max(0.9, Math.cbrt(Math.max(payload, 0.1)) * 1.1);
+
 /* One definition of the stack's proportions, used by the summary, the drawing
    and the solver's slenderness limit alike. They disagreed before: the summary
    measured stages only, the drawing added the payload and the booster ring, and
    the constraint used a third variant — so a design could be drawn at 13:1,
    reported at 11:1, and pass a 12:1 limit. */
-function stackGeometry(chain, payload) {
+function stackGeometry(chain, payload, payloadDia) {
   let h = 0,
     w = 0;
   chain.forEach((x) => {
@@ -132,7 +142,7 @@ function stackGeometry(chain, payload) {
     h += g.len;
     w = Math.max(w, g.coreWidth); // boosters excluded: they stage away
   });
-  const payD = Math.max(0.9, Math.cbrt(Math.max(payload, 0.1)) * 1.1);
+  const payD = payloadDiaOf(payload, payloadDia);
   h += payD * 1.3;
   w = Math.max(w, payD);
   return { h, w, payD, ar: w ? h / w : 0 };
@@ -402,6 +412,7 @@ export {
   stackGeometry,
   stageGeom,
   stageSize,
+  payloadDiaOf,
   tankStackLen,
   widthOf,
 };

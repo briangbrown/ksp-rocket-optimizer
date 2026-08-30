@@ -1,5 +1,5 @@
 Low orbit          liftoff=16.1      stages=2
-Stationary orbit   liftoff=30.1      stages=2
+Stationary orbit   liftoff=31.6      stages=2
 Moho               liftoff=—         stages=—
 Eve                liftoff=—         stages=—
 Gilly              liftoff=104.8     stages=3
