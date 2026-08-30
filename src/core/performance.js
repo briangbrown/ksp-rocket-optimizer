@@ -72,6 +72,18 @@ const TANK_FUNDS_PROP = 92,
 
 /* Prices are real now — every tank and decoupler carries the figure from its
    config. Only a part with no cost recorded falls back to the old model. */
+/* Kept as its own sum, and it is the only reading that is. Everything else a
+   stage's parts add up to comes from the one walk in manifest.js — the rows you
+   are shown, the mass, the cost off the hot path, the count — but `stageCost`
+   and `stageParts` are called for every viable candidate the search considers,
+   1.9 million times across two of the grid's eighty-one cases alone. Folding
+   the walk instead costs 9% of the whole grid, measured: 13.13s to 14.30s, and
+   hoisting the visitor out of the call changes nothing, because the cost is the
+   walk's ten calls against this one expression.
+
+   So this stays fast and `test/manifest.test.js` holds it to the walk, which is
+   the same arrangement `fitStructure`'s dry mass already has and for the same
+   reason. #62 */
 function stageCost(c) {
   const est = (t) =>
     t.cost != null ? t.cost : t.prop * TANK_FUNDS_PROP + t.dry * TANK_FUNDS_DRY;
