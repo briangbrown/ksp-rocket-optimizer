@@ -1,5 +1,6 @@
 import {
   Color,
+  GreaterDepth,
   LinearSRGBColorSpace,
   NoBlending,
   ShaderMaterial,
@@ -39,12 +40,25 @@ import { C, rgbOf } from "../tokens.js";
    the drawing stays a drawing rather than becoming a render with lines on it.
 */
 
+/* Every line in the drawing is this. Light on a dark panel, which keeps
+   Gooch's rule that the extremes belong to the linework — the fills stay in the
+   mid-tones and the lines are the brightest thing in the picture, where before
+   they were a near neighbour of the fill and had to be held back with opacity
+   to stop thirty parts reading as a mesh. */
+export const LINE = C.paper;
+
 /* Palette colours as they are written, not as three.js would manage them.
    Everything here renders to a target and composites without a colour-space
    conversion at any step, so what is authored is what is drawn — and mixing in
    the space the palette was chosen in is what makes the mid-tones land where a
    designer put them. */
 const raw = (hex) => rgbOf(hex).map((v) => v / 255);
+
+/* A number as GLSL sees it. `${3.0}` is the string "3", and GLSL has no
+   `pow(float, int)` — the shader fails to compile, the pass draws nothing, and
+   the only trace is a console message. Anything interpolated into a shader
+   goes through here. */
+const f = (n) => (Number.isInteger(n) ? n.toFixed(1) : String(n));
 const vec3 = (hex) => new Vector3(...raw(hex));
 
 /* The panel colour as a clear colour, and the reason this is not just
@@ -93,8 +107,8 @@ export function goochMaterial(baseHex) {
       varying vec3 vN;
       void main() {
         float t = 0.5 + 0.5 * dot(normalize(vN), normalize(${LIGHT}));
-        vec3 dark = mix(base, cool, ${COOL_MIX});
-        vec3 lit  = mix(base, warm, ${WARM_MIX});
+        vec3 dark = mix(base, cool, ${f(COOL_MIX)});
+        vec3 lit  = mix(base, warm, ${f(WARM_MIX)});
         gl_FragColor = vec4(mix(dark, lit, t), 1.0);
       }
     `,
@@ -106,8 +120,14 @@ export function goochMaterial(baseHex) {
    back with a nearest filter — anything that interpolates ids invents parts
    that are not there along every boundary. */
 export function idMaterial(index) {
+  /* Two channels, not one. A single byte caps the model at 254 parts, and the
+     way it fails is silent: the 255th clamps onto the first and its outlines
+     simply stop being drawn. The biggest model in the mission grid is 78 parts
+     now that a tank run is drawn tank by tank, which is comfortable and not
+     comfortable enough to leave a cliff in. */
+  const n = index + 1;
   return new ShaderMaterial({
-    uniforms: { id: { value: (index + 1) / 255 } },
+    uniforms: { id: { value: new Vector2((n & 255) / 255, (n >> 8) / 255) } },
     blending: NoBlending,
     vertexShader: /* glsl */ `
       void main() {
@@ -115,8 +135,8 @@ export function idMaterial(index) {
       }
     `,
     fragmentShader: /* glsl */ `
-      uniform float id;
-      void main() { gl_FragColor = vec4(id, 0.0, 0.0, 1.0); }
+      uniform vec2 id;
+      void main() { gl_FragColor = vec4(id, 0.0, 1.0); }
     `,
   });
 }
@@ -154,7 +174,7 @@ export function compositeMaterial() {
       tId: { value: null },
       tDepth: { value: null },
       texel: { value: new Vector2() },
-      edgeColor: { value: vec3(C.edge) },
+      edgeColor: { value: vec3(LINE) },
       panel: { value: vec3(C.panel) },
       camNear: { value: 0 },
       camFar: { value: 1 },
@@ -179,6 +199,14 @@ export function compositeMaterial() {
       uniform float camNear, camFar, cueNear, cueSpan;
       varying vec2 vUv;
 
+      /* The id back as the integer it went in as, from the two bytes it was
+         written across. Ids start at 1, so zero is the background the id pass
+         cleared to. */
+      float idAt(vec2 uv) {
+        vec4 t = texture2D(tId, uv);
+        return floor(t.r * 255.0 + 0.5) + floor(t.g * 255.0 + 0.5) * 256.0;
+      }
+
       /* Orthographic depth is linear in view distance, so no reciprocal games:
          a metre at the front of the rocket is a metre at the back. */
       float dist(vec2 uv) {
@@ -188,15 +216,24 @@ export function compositeMaterial() {
       void main() {
         vec4 c = texture2D(tColor, vUv);
         float d0 = dist(vUv);
-        float i0 = texture2D(tId, vUv).x;
+        float i0 = idAt(vUv);
 
+        /* Two weights, which is how a drawing is inked: the outline of the
+           whole object heavier than the lines inside it. The outer silhouette
+           is where a part meets the background, and it is drawn two samples
+           wide against one for everything else. Both are taken on one side of
+           the boundary only — the lower id of the pair, and the background is
+           the lowest of all, so the outline lands just outside the shape and
+           never eats into it. */
         float e = 0.0;
         for (int k = 0; k < 4; k++) {
           vec2 off = k < 2
             ? vec2(k == 0 ? texel.x : -texel.x, 0.0)
             : vec2(0.0, k == 2 ? texel.y : -texel.y);
           /* A different part next door — or the background, which is zero. */
-          if (texture2D(tId, vUv + off).x - i0 > 0.001) e = 1.0;
+          if (idAt(vUv + off) - i0 > 0.5) e = 1.0;
+          /* One further out, but only where this is the outside edge. */
+          if (i0 < 0.5 && idAt(vUv + off * 2.0) > 0.5) e = 1.0;
         }
 
         float cue = clamp((d0 - cueNear) / cueSpan, 0.0, 1.0);
@@ -207,4 +244,91 @@ export function compositeMaterial() {
       }
     `,
   });
+}
+
+/* What is behind something, drawn faintly through it.
+
+   A stage with parallel columns hides its rear ones behind the core seen
+   side-on. Drawing them correctly is not the same as being able to see them,
+   and the old SVG elevation drew `Math.min(2, S - 1)` columns precisely because
+   a ring cannot be faked in 2D — the 3D view draws all of them and then puts
+   the core in front of half.
+
+   The rule set is Diepstraten, Weiskopf and Ertl, Computer Graphics Forum 2002,
+   who derived it from how illustrators actually draw ghosted views rather than
+   from alpha blending. Two of their rules are here:
+
+   **Transparency is view-dependent.** A surface is more opaque towards its
+   silhouette and more transparent where it faces you, so a ghosted tank keeps
+   its outline and opens up in the middle — it still reads as a tank rather than
+   as a smear. With an orthographic camera the view direction is constant, so
+   this is the z of the view-space normal and costs nothing.
+
+   **Backfaces are suppressed.** Otherwise you see the inside of the far wall of
+   the thing you are seeing through, which no illustrator draws. three.js culls
+   them by default; it is a rule being kept rather than one being implemented.
+
+   The third — that layers are capped — is left to the geometry. A rocket is a
+   few columns deep, not a few hundred.
+
+   `GreaterDepth` with no depth write is what makes it a second pass rather than
+   a transparency problem: only fragments that *failed* the opaque pass draw, so
+   this paints exactly the hidden part of the model and nothing else, over the
+   top of what hid it. #71 */
+/* How see-through the thing in front becomes. The fill underneath is opaque;
+   this is painted over it, so raising these is what makes the foreground read
+   as translucent. */
+const GHOST_MIN = 0.13;
+const GHOST_MAX = 0.46;
+const GHOST_TURN = 3.0;
+
+/* Where the ghost stops being a wash and becomes a line. A cylinder turning
+   away from the viewer runs out of facing surface quickly, so the band that
+   counts as its silhouette is narrow. */
+const EDGE_LO = 0.45;
+const EDGE_HI = 0.85;
+/* Dashes, in CSS pixels: on for a bit over half of each period. Drawn on the
+   screen diagonal so an edge of any orientation crosses them. */
+const DASH = 7.0;
+const DASH_DUTY = 0.55;
+const LINE_ALPHA = 0.85;
+
+export function ghostMaterial(baseHex, dashPeriod) {
+  const m = goochMaterial(baseHex);
+  m.transparent = true;
+  m.depthFunc = GreaterDepth;
+  m.depthWrite = false;
+  m.polygonOffset = false;
+  m.uniforms.edgeColor = { value: vec3(LINE) };
+  m.uniforms.dash = { value: dashPeriod };
+  m.fragmentShader = /* glsl */ `
+      uniform vec3 base, cool, warm, edgeColor;
+      uniform float dash;
+      varying vec3 vN;
+      void main() {
+        vec3 n = normalize(vN);
+        float t = 0.5 + 0.5 * dot(n, normalize(${LIGHT}));
+        vec3 dark = mix(base, cool, ${f(COOL_MIX)});
+        vec3 lit  = mix(base, warm, ${f(WARM_MIX)});
+        /* Facing the viewer is see-through; turned away is nearly solid. */
+        float edge = pow(1.0 - abs(n.z), ${f(GHOST_TURN)});
+
+        /* A hidden edge is drawn dashed, which is what a technical drawing has
+           always done with a line you cannot see. The silhouette of a cylinder
+           is where it turns away from you, so the same term that fades the fill
+           finds the line — no second pass and nothing to detect. */
+        float along = (gl_FragCoord.x + gl_FragCoord.y) / dash;
+        float on = step(fract(along), ${f(DASH_DUTY)});
+
+        /* The silhouette band belongs to the line, not to the wash. Painting
+           the wash under it too was what stopped it reading as dashed: the
+           gaps came out at nearly the alpha of the dashes, so it alternated
+           strong and less strong rather than line and nothing. */
+        float sil = smoothstep(${f(EDGE_LO)}, ${f(EDGE_HI)}, edge);
+        float wash = mix(${f(GHOST_MIN)}, ${f(GHOST_MAX)}, edge) * (1.0 - sil);
+        vec3 col = mix(mix(dark, lit, t), edgeColor, sil * on);
+        gl_FragColor = vec4(col, wash + sil * on * ${f(LINE_ALPHA)});
+      }
+    `;
+  return m;
 }

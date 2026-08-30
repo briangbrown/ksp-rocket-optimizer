@@ -363,6 +363,14 @@ implying CI covered it.
   converts the hex into the linear working space, and the drawing would sit in a
   rectangle of the same colour about a third as bright as the card around it.
   `panelClear()` names the working space so the conversion is a no-op.
+- **A whole number interpolated into GLSL loses its decimal point.** `${3.0}`
+  is the string `3`, and there is no `pow(float, int)` in GLSL — the shader
+  fails to compile, the pass it belongs to draws nothing, and the only trace is
+  a console message. It is worse than it sounds, because it depends on the
+  value: 2.6 and 3.4 compiled and 3.0 did not, so tuning a constant broke it.
+  Everything interpolated into a shader goes through `f()` in `shaders.js`.
+  `npm run test:visual` is what caught it, by reading the console — nothing in
+  `test/` can.
 - **The surface-id buffer must not be filtered or multisampled.** A linear
   filter blends two ids into a third along every boundary, and a multisample
   resolve does the same; either invents parts that are not in the model and
@@ -378,6 +386,17 @@ implying CI covered it.
   `cameraFor` now returns the position, the frustum and the depth window
   together, so the axis that places the camera is the axis its depth is measured
   along.
+- **A line exists only where the model has two parts.** Surface ids find the
+  seam between two tanks of the same diameter, which nothing else can — but only
+  if there are two of them to have ids. The drawing put a whole tank run down as
+  a single cylinder, so a stage of five identical tanks came out as one tube
+  with no seams, while a packed ring beside it was drawn level by level and had
+  them. `stageGeom.run` is the run as the tanks it is made of; `tankStackLen`
+  sums the same per-tank length, so the drawing and the slenderness limit cannot
+  disagree about how long it is.
+- **The id buffer is two bytes wide.** One capped the model at 254 parts and
+  failed silently — the 255th clamps onto the first and its outlines stop being
+  drawn. The largest model in the mission grid is 78.
 - **Creases are geometry, silhouettes are screen space.** `EdgesGeometry` knows
   where a cap meets a tube — 90 degrees, in the model, the same from every
   angle. It cannot know a cylinder's side outline, which is an occluding contour

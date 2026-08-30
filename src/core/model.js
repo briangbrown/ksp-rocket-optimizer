@@ -133,15 +133,25 @@ function stageParts(sol, base, push) {
         y += spareH;
       }
     } else {
-      for (const [cx, cz] of columns)
-        push({
-          role: "tank",
-          x: cx,
-          z: cz,
-          y,
-          r: g.td / 2,
-          h: g.tank,
-        });
+      /* Tank by tank, not the run in one piece. Every seam between two of them
+         is a line in the drawing, and there is no other way to get it: two
+         tanks of the same diameter stacked end to end are continuous in depth
+         and in normals, so the outline pass finds them by surface id or not at
+         all — and a single cylinder has no ids to differ. */
+      let ty = y;
+      for (const tk of g.run) {
+        for (const [cx, cz] of columns)
+          push({
+            role: "tank",
+            part: tk.t,
+            x: cx,
+            z: cz,
+            y: ty,
+            r: g.td / 2,
+            h: tk.h,
+          });
+        ty += tk.h;
+      }
       y += g.tank;
     }
   }

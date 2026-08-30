@@ -204,6 +204,36 @@ describe("the build model", () => {
     expect(bad.slice(0, 6), `${bad.length} views clip in depth`).toEqual([]);
   }, 300_000);
 
+  it("draws a tank run tank by tank, not as one tube", () => {
+    /* Two tanks of the same diameter stacked end to end are continuous in depth
+       and in normals, so the outline pass finds that seam by surface id or not
+       at all — and a run drawn as a single cylinder has no ids to differ. It
+       was drawn as one, so a stage of five identical tanks came out as one tube
+       with no lines in it, while a packed ring beside it was drawn level by
+       level and did have them. #71 */
+    const bad = [];
+    let checked = 0;
+    for (const { name, live, parts } of MODELS) {
+      let want = 0;
+      let packed = false;
+      for (const st of live) {
+        if (!st.sol) continue;
+        /* A packed ring is a different shape and is drawn level by level. */
+        if (st.sol.packed) packed = true;
+        const S = st.sol.stacks || 1;
+        const list = (S > 1 ? st.sol.perStack : st.sol.tanks)?.list || [];
+        want += list.reduce((a, x) => a + x.c, 0) * S;
+      }
+      if (packed || !want) continue;
+      checked++;
+      const drawn = parts.filter((p) => p.role === "tank").length;
+      if (drawn !== want)
+        bad.push(`${name}: ${drawn} tank shapes for ${want} tanks`);
+    }
+    expect(checked, "no unpacked run to check").toBeGreaterThan(4);
+    expect(bad.slice(0, 6), `${bad.length} runs drawn whole`).toEqual([]);
+  }, 300_000);
+
   it("charges one decoupler a stage, because that is what it draws", () => {
     /* `modelOf` puts a single decoupler at the top of each stage, on the axis —
        "the columns hang off the core through joiners rather than separating on
