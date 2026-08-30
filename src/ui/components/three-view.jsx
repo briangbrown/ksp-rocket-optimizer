@@ -19,6 +19,7 @@ import { cameraFor, viewOf } from "../views.js";
 import { C } from "../tokens.js";
 import {
   compositeMaterial,
+  ghostMaterial,
   goochMaterial,
   idMaterial,
   panelClear,
@@ -124,6 +125,15 @@ export default function ThreeView({ parts, view, width, height, color }) {
        the rocket. #70 */
     const idMats = [];
     const fillMats = [];
+    /* Drawn only where the opaque pass was hidden, so this is the far side of
+       the rocket and nothing else. Not built for the plan: looking up from
+       underneath, the engines hide the tanks above them by design, and that is
+       what the view is for. #71 */
+    const ghost = view === "plan" ? null : new Group();
+    if (ghost) {
+      ghost.visible = false;
+      scene.add(ghost);
+    }
     /* Creases are their own group so the id pass can hide them in one call —
        and so the meshes stay index-aligned with their materials, which they
        would not be if lines were interleaved among them. */
@@ -153,6 +163,15 @@ export default function ThreeView({ parts, view, width, height, color }) {
       );
       line.position.copy(mesh.position);
       creases.add(line);
+      if (ghost) {
+        const gm = ghostMaterial(
+          p.role === "booster" ? color : FILL[p.role] || C.dim,
+        );
+        const back = new Mesh(geo, gm);
+        back.position.copy(mesh.position);
+        ghost.add(back);
+        owned.push(gm);
+      }
       const id = idMaterial(i);
       idMats.push(id);
       fillMats.push(fill);
@@ -217,6 +236,7 @@ export default function ThreeView({ parts, view, width, height, color }) {
          without the creases: a line drawn into the id buffer is a false part,
          and every one of them would come back as an outline of its own. */
       creases.visible = false;
+      if (ghost) ghost.visible = false;
       for (let i = 0; i < parts.length; i++)
         group.children[i].material = idMats[i];
       renderer.setRenderTarget(idTarget);
@@ -233,6 +253,21 @@ export default function ThreeView({ parts, view, width, height, color }) {
       renderer.setClearColor(panelClear(), 1);
       renderer.clear();
       renderer.render(scene, camera);
+
+      /* Then what is behind it, over the top. A separate render rather than a
+         group in the one above, because three sorts transparent objects after
+         opaque ones but still writes them into the same depth pass — and this
+         wants the finished depth buffer to test against, not a partial one. */
+      if (ghost) {
+        ghost.visible = true;
+        group.visible = false;
+        creases.visible = false;
+        renderer.autoClear = false;
+        renderer.render(scene, camera);
+        renderer.autoClear = true;
+        group.visible = true;
+        ghost.visible = false;
+      }
 
       /* And the lines, over the top, straight to the canvas. */
       quadMat.uniforms.tColor.value = fillTarget.texture;

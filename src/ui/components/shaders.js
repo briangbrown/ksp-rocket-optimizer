@@ -1,5 +1,6 @@
 import {
   Color,
+  GreaterDepth,
   LinearSRGBColorSpace,
   NoBlending,
   ShaderMaterial,
@@ -45,6 +46,12 @@ import { C, rgbOf } from "../tokens.js";
    the space the palette was chosen in is what makes the mid-tones land where a
    designer put them. */
 const raw = (hex) => rgbOf(hex).map((v) => v / 255);
+
+/* A number as GLSL sees it. `${3.0}` is the string "3", and GLSL has no
+   `pow(float, int)` — the shader fails to compile, the pass draws nothing, and
+   the only trace is a console message. Anything interpolated into a shader
+   goes through here. */
+const f = (n) => (Number.isInteger(n) ? n.toFixed(1) : String(n));
 const vec3 = (hex) => new Vector3(...raw(hex));
 
 /* The panel colour as a clear colour, and the reason this is not just
@@ -93,8 +100,8 @@ export function goochMaterial(baseHex) {
       varying vec3 vN;
       void main() {
         float t = 0.5 + 0.5 * dot(normalize(vN), normalize(${LIGHT}));
-        vec3 dark = mix(base, cool, ${COOL_MIX});
-        vec3 lit  = mix(base, warm, ${WARM_MIX});
+        vec3 dark = mix(base, cool, ${f(COOL_MIX)});
+        vec3 lit  = mix(base, warm, ${f(WARM_MIX)});
         gl_FragColor = vec4(mix(dark, lit, t), 1.0);
       }
     `,
@@ -207,4 +214,59 @@ export function compositeMaterial() {
       }
     `,
   });
+}
+
+/* What is behind something, drawn faintly through it.
+
+   A stage with parallel columns hides its rear ones behind the core seen
+   side-on. Drawing them correctly is not the same as being able to see them,
+   and the old SVG elevation drew `Math.min(2, S - 1)` columns precisely because
+   a ring cannot be faked in 2D — the 3D view draws all of them and then puts
+   the core in front of half.
+
+   The rule set is Diepstraten, Weiskopf and Ertl, Computer Graphics Forum 2002,
+   who derived it from how illustrators actually draw ghosted views rather than
+   from alpha blending. Two of their rules are here:
+
+   **Transparency is view-dependent.** A surface is more opaque towards its
+   silhouette and more transparent where it faces you, so a ghosted tank keeps
+   its outline and opens up in the middle — it still reads as a tank rather than
+   as a smear. With an orthographic camera the view direction is constant, so
+   this is the z of the view-space normal and costs nothing.
+
+   **Backfaces are suppressed.** Otherwise you see the inside of the far wall of
+   the thing you are seeing through, which no illustrator draws. three.js culls
+   them by default; it is a rule being kept rather than one being implemented.
+
+   The third — that layers are capped — is left to the geometry. A rocket is a
+   few columns deep, not a few hundred.
+
+   `GreaterDepth` with no depth write is what makes it a second pass rather than
+   a transparency problem: only fragments that *failed* the opaque pass draw, so
+   this paints exactly the hidden part of the model and nothing else, over the
+   top of what hid it. #71 */
+const GHOST_MIN = 0.04;
+const GHOST_MAX = 0.42;
+const GHOST_TURN = 3.0;
+
+export function ghostMaterial(baseHex) {
+  const m = goochMaterial(baseHex);
+  m.transparent = true;
+  m.depthFunc = GreaterDepth;
+  m.depthWrite = false;
+  m.polygonOffset = false;
+  m.fragmentShader = /* glsl */ `
+      uniform vec3 base, cool, warm;
+      varying vec3 vN;
+      void main() {
+        vec3 n = normalize(vN);
+        float t = 0.5 + 0.5 * dot(n, normalize(${LIGHT}));
+        vec3 dark = mix(base, cool, ${f(COOL_MIX)});
+        vec3 lit  = mix(base, warm, ${f(WARM_MIX)});
+        /* Facing the viewer is see-through; turned away is nearly solid. */
+        float edge = pow(1.0 - abs(n.z), ${f(GHOST_TURN)});
+        gl_FragColor = vec4(mix(dark, lit, t), mix(${f(GHOST_MIN)}, ${f(GHOST_MAX)}, edge));
+      }
+    `;
+  return m;
 }

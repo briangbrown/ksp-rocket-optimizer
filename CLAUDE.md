@@ -363,6 +363,14 @@ implying CI covered it.
   converts the hex into the linear working space, and the drawing would sit in a
   rectangle of the same colour about a third as bright as the card around it.
   `panelClear()` names the working space so the conversion is a no-op.
+- **A whole number interpolated into GLSL loses its decimal point.** `${3.0}`
+  is the string `3`, and there is no `pow(float, int)` in GLSL — the shader
+  fails to compile, the pass it belongs to draws nothing, and the only trace is
+  a console message. It is worse than it sounds, because it depends on the
+  value: 2.6 and 3.4 compiled and 3.0 did not, so tuning a constant broke it.
+  Everything interpolated into a shader goes through `f()` in `shaders.js`.
+  `npm run test:visual` is what caught it, by reading the console — nothing in
+  `test/` can.
 - **The surface-id buffer must not be filtered or multisampled.** A linear
   filter blends two ids into a third along every boundary, and a multisample
   resolve does the same; either invents parts that are not in the model and
