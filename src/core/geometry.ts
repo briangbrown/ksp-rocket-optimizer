@@ -1,5 +1,7 @@
 import geometryData from "../data/geometry.json";
 import { diaOf, isRadial } from "./parts.js";
+import type { PartBase, Tank } from "./catalogue.js";
+import type { Pack, Solution, TankLine, TankSet } from "./solution.js";
 
 /* ---------------------- vehicle -> simulator ---------------------- */
 /* Stock propellant is 5 kg per 5 litres, so one tonne of it is exactly one cubic
@@ -11,7 +13,7 @@ import { diaOf, isRadial } from "./parts.js";
    diameter. A cluster of four 1.25 m engines spans 3.02 m, so it sticks out past
    the 2.5 m tank above it and meets the airflow. */
 const SPAN = [0, 1, 2, 2.155, 2.414, 2.701, 3, 3, 3.304, 3.613, 3.813];
-const clusterSpan = (n, d) => d * (SPAN[n] || 1 + Math.sqrt(n));
+const clusterSpan = (n: number, d: number) => d * (SPAN[n] || 1 + Math.sqrt(n));
 
 /* How far a ring of parallel stacks sits from the middle.
 
@@ -33,10 +35,10 @@ const clusterSpan = (n, d) => d * (SPAN[n] || 1 + Math.sqrt(n));
    what the side elevation is drawn to agree with. Lives here rather than in the
    drawing because the model and the picture have to lay a cluster out the same
    way — that is the whole of #9, #58 and #60. */
-function ringPositions(n) {
+function ringPositions(n: number) {
   const centre = n === 1 || n === 5 || n === 7 || n === 9 ? 1 : 0;
   const ring = n - centre;
-  const pts = centre ? [[0, 0]] : [];
+  const pts: Array<[number, number]> = centre ? [[0, 0]] : [];
   for (let i = 0; i < ring; i++) {
     const th = (i / ring) * 2 * Math.PI - Math.PI / 2;
     pts.push([Math.cos(th), Math.sin(th)]);
@@ -44,7 +46,7 @@ function ringPositions(n) {
   return pts;
 }
 
-const stackRing = (S, columnWidth) => {
+const stackRing = (S: number, columnWidth: number) => {
   if (S < 2) return 0;
   const neighbours = S - 1;
   const gap =
@@ -52,8 +54,16 @@ const stackRing = (S, columnWidth) => {
   return Math.max(columnWidth, gap);
 };
 
-const ENGINE_LEN = { 0: 0.9, 1: 1.6, 1.5: 2.0, 2: 2.6, 3: 4.5, 4: 5.0, R: 0 };
-const engineLen = (e) =>
+const ENGINE_LEN: Record<string, number> = {
+  0: 0.9,
+  1: 1.6,
+  1.5: 2.0,
+  2: 2.6,
+  3: 4.5,
+  4: 5.0,
+  R: 0,
+};
+const engineLen = (e: PartBase) =>
   PART_H[e.n] !== undefined
     ? PART_H[e.n]
     : Math.max(
@@ -68,33 +78,37 @@ const engineLen = (e) =>
    The modelled lengths were close for tanks but wrong for boosters — a Kickback
    holds 19.5 t of solid fuel and is genuinely about 15 m long, which no simple
    volume formula was going to land on. Two parts have no cube; they fall back. */
-const PART_H = geometryData.PART_H;
+const PART_H: Readonly<Record<string, number>> = geometryData.PART_H;
 /* Real axial face areas, measured off the same drag cubes as the heights. It
    matters most for radial engines, where inferring an area from diameter is
    badly wrong — diaOf falls back to 1.25 m for anything with no stack profile,
    so a Twitch was being charged 1.23 m² of frontal area against a true 0.07. */
-const PART_A = geometryData.PART_A;
-const areaOf = (part, fallback) =>
+const PART_A: Readonly<Record<string, number>> = geometryData.PART_A;
+const areaOf = (part: { n: string }, fallback: number) =>
   PART_A[part.n] !== undefined ? PART_A[part.n] : fallback;
 
 /* The width a part actually presents, from its measured face area rather than
    its size class. It matters for anything without a stack profile: diaOf falls
    back to 1.25 m for a radial engine, so a Twitch drew as wide as the tank it
    bolts to when it is really 0.29 m across. */
-const widthOf = (part, fallback) =>
+const widthOf = (part: { n: string }, fallback: number) =>
   PART_A[part.n] !== undefined
     ? 2 * Math.sqrt(PART_A[part.n] / Math.PI)
     : fallback;
 
-const heightOf = (part, fallback) =>
-  PART_H[part.n] !== undefined ? PART_H[part.n] : fallback;
+/* The name is nullable because a stage whose joint is made by the plate above
+   it carries a decoupler fit with no part in it, and the elevation still asks
+   this for a height. A missing name was never in the table, so it takes the
+   fallback exactly as an unmeasured part does. */
+const heightOf = (part: { n: string | null }, fallback: number) =>
+  part.n !== null && PART_H[part.n] !== undefined ? PART_H[part.n] : fallback;
 /* How tall one tank stands. Named because two things need it and they must not
    drift: the run's total length, which the slenderness limit is measured on,
    and the run drawn tank by tank. */
-const tankLen = (t) =>
+const tankLen = (t: Tank) =>
   heightOf(t, (1.15 * t.prop) / ((Math.PI / 4) * Math.pow(diaOf(t), 2)));
 
-const tankStackLen = (tk) =>
+const tankStackLen = (tk: TankSet | null | undefined) =>
   tk ? tk.list.reduce((a, x) => a + x.c * tankLen(x.t), 0) : 0;
 
 /* The run as the tanks it is actually made of, bottom first — one entry per
@@ -108,7 +122,7 @@ const tankStackLen = (tk) =>
    Largest at the bottom, which is what the parts table has always claimed:
    "smallest at the top of the run, largest at the bottom — the order you would
    actually assemble them in, and the order a rocket wants structurally". */
-const tankRun = (tk) =>
+const tankRun = (tk: TankSet | null | undefined) =>
   tk
     ? tk.list
         .flatMap((x) =>
@@ -124,7 +138,7 @@ const tankRun = (tk) =>
    width: `stackGeometry` and `modelOf` each derived a diameter from the mass,
    the slider reached the drag model and nothing else, and a 5 m payload was
    drawn and measured at whatever cube root of its mass came to. #67 */
-const payloadDiaOf = (payload, payloadDia) =>
+const payloadDiaOf = (payload: number, payloadDia: number | null | undefined) =>
   payloadDia || Math.max(0.9, Math.cbrt(Math.max(payload, 0.1)) * 1.1);
 
 /* How tall a payload stands for its width. Measured from the pods rather than
@@ -144,11 +158,19 @@ const PAYLOAD_ASPECT = 0.8;
    measured stages only, the drawing added the payload and the booster ring, and
    the constraint used a third variant — so a design could be drawn at 13:1,
    reported at 11:1, and pass a 12:1 limit. */
-function stackGeometry(chain, payload, payloadDia) {
+/* Either a solved stage or the `{ sol }` wrapper the route hands back: the
+   summary calls this with one and the drawing with the other. */
+type StageLike = Solution | { sol: Solution | null };
+
+function stackGeometry(
+  chain: ReadonlyArray<StageLike | null | undefined>,
+  payload: number,
+  payloadDia: number | null | undefined,
+) {
   let h = 0,
     w = 0;
   chain.forEach((x) => {
-    const sol = x && x.sol ? x.sol : x;
+    const sol = x && "sol" in x ? x.sol : x;
     if (!sol || !sol.engine) return;
     const g = stageSize(sol);
     h += g.len;
@@ -196,8 +218,8 @@ const PACK_BRACE = { n: "Cubic Octagonal Strut", m: 0.001, cost: 16 };
    Preferring fewest levels, then the narrowest ring that achieves it. */
 const PACK_SYM = [2, 3, 4, 6, 8];
 
-function packShapes(n) {
-  const out = [];
+function packShapes(n: number) {
+  const out: Array<{ r: number; levels: number }> = [];
   for (const r of PACK_SYM)
     if (n % (r + 1) === 0) out.push({ r, levels: n / (r + 1) });
   /* shortest first, then narrowest */
@@ -205,7 +227,11 @@ function packShapes(n) {
   return out;
 }
 
-function packFor(sol, roomBelow, vacuumBase = false) {
+function packFor(
+  sol: Solution,
+  roomBelow: number,
+  vacuumBase = false,
+): Pack | null {
   /* Per column, not per stage.
 
      A packed ring is one column's tanks rearranged around that column's centre
@@ -224,7 +250,7 @@ function packFor(sol, roomBelow, vacuumBase = false) {
   /* Only one kind of tank can go in a ring, so pack the largest identical run
      and leave everything else stacked on the centre column. Counting the whole
      stage — three sizes mixed — described a shape that could not be built. */
-  const run = src.list.reduce(
+  const run = src.list.reduce<TankLine | null>(
     (best, x) =>
       !best || x.c > best.c || (x.c === best.c && x.t.wet > best.t.wet)
         ? x
@@ -284,7 +310,7 @@ function packFor(sol, roomBelow, vacuumBase = false) {
    out separately, and drifted apart three times — on width, on height, and again
    when packing arrived, each time leaving the drawing describing a different
    rocket from the one the slenderness check was judging. */
-function stageGeom(sol) {
+function stageGeom(sol: Solution) {
   const td = sol.tanks ? diaOf(sol.tanks.list[0].t) : diaOf(sol.engine);
   const ed = widthOf(sol.engine, diaOf(sol.engine));
   /* Parallel columns: height is one column, not the sum. Width spans them, and
@@ -364,7 +390,7 @@ function stageGeom(sol) {
   };
 }
 
-function stageSize(sol) {
+function stageSize(sol: Solution) {
   const g = stageGeom(sol);
   const { td, ed, S, perEng, span, tank } = g;
   /* A radial engine bolts to the side of the tank rather than sitting under it,

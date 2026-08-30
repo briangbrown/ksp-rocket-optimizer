@@ -1,9 +1,14 @@
 import { DATA } from "./catalogue.js";
 import { COUPLERS, STRUCT } from "./parts.js";
+import type { TechNode } from "./catalogue.js";
+
+/* What a node unlocks, as the parts list shows it: the part's name and which
+   kind of thing it is. */
+type NodePart = { name: string; kind: string };
 
 const NODE_PARTS = (() => {
-  const m = {};
-  const add = (n, name, kind) => {
+  const m: Record<string, Array<NodePart>> = {};
+  const add = (n: string | null, name: string, kind: string) => {
     if (!n) return;
     (m[n] = m[n] || []).push({ name, kind });
   };
@@ -35,7 +40,7 @@ const NODE_PARTS = (() => {
 
 /* ------------------------------ tech tree gating ------------------------------ */
 const TIERS = (() => {
-  const t = {};
+  const t: Record<number, Array<string>> = {};
   Object.entries(DATA.nodes).forEach(([name, v]) => {
     (t[v.lvl] ||= []).push(name);
   });
@@ -43,7 +48,10 @@ const TIERS = (() => {
   return t;
 })();
 
-function withDeps(nodes, set) {
+function withDeps(
+  nodes: Readonly<Record<string, TechNode>>,
+  set: Iterable<string>,
+) {
   const out = new Set(set);
   let changed = true;
   while (changed) {

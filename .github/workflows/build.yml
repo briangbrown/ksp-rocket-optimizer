@@ -35,6 +35,14 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # And the same argument, one step further: a file that has been converted
+      # to TypeScript is not linted at all — eslint here has no TS parser — so
+      # this is what stands in `no-undef`'s place for it, and finds a good deal
+      # more besides. Neither the build nor the suite can see any of it: vite
+      # and vitest both strip types with esbuild and never check them. #11
+      - name: Typecheck
+        run: npm run typecheck
+
       # Runs before the build: a moved design, a blank render or a part drawn
       # outside the shape the solver sized it at is the failure worth seeing
       # first, and the build passing says nothing about any of them.
