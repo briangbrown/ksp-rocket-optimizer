@@ -1504,11 +1504,10 @@ export default function KSPMissionPlanner() {
             </section>
           )}
 
+          {/* The heading lives in BuildView now, with the full-screen button
+              beside it, so the overlay carries its own title. #99 */}
           {stages.some((x) => x.sol) && (
             <section className="card" style={{ padding: 16 }}>
-              <div className="eyebrow" style={{ marginBottom: 12 }}>
-                Build · step through the staging
-              </div>
               <BuildView
                 stages={stages}
                 payload={payload}

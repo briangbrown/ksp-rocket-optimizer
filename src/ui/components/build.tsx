@@ -1,10 +1,18 @@
-import { Suspense, lazy, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 
 import { payloadDiaOf, stackGeometry } from "../../core/geometry.js";
 import { manifest } from "../../core/manifest.js";
 import type { ManifestRow } from "../../core/manifest.js";
 import { extentOf, modelOf } from "../../core/model.js";
-import { framing } from "../views.js";
+import { framing, panelSizes } from "../views.js";
 import { PLATE_SHROUD } from "../../core/parts.js";
 import { fmt, hms } from "../format.js";
 import { C } from "../tokens.js";
@@ -840,6 +848,63 @@ export function stepModels(
   };
 }
 
+/* ------------------------------- the build view -------------------------------
+
+   Layout constants, all in CSS pixels. */
+/* Wide enough for the longest step label — "Boosters away · core burns on" —
+   to stand on one line, so the rail reads as a list rather than a ragged
+   column of one- and two-line chips. */
+const RAIL = 200;
+const GAP = 22;
+/* The header line above each of the three columns, which is what makes their
+   labels share one. */
+const HEAD = 22;
+/* How tall the drawings stand when this is not full screen: what they have
+   always been. Full screen is where the space is. */
+const INLINE_H = 300;
+/* The container width at which the staging chips move to a rail down the left.
+   Width rather than aspect ratio, because what a rail needs is horizontal room
+   for itself and a phone held either way has none. #99 */
+const WIDE = 640;
+
+/* The observed size of an element.
+
+   Width is always safe to read: the row is as wide as the card, and the
+   drawings never affect that. Height is read only in full screen, where the row
+   is a flex child of a column of known height — inline it would be the
+   drawings' own height coming back round to size them again.
+
+   jsdom implements no ResizeObserver, and nothing there can see this anyway:
+   `canRender3D()` is false, so the panels this sizes are never built. */
+function useBox() {
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  const watching = useRef<ResizeObserver | null>(null);
+  /* A callback ref, not a `useRef` and an effect. The row it measures is
+     unmounted and rebuilt somewhere else every time full screen is toggled —
+     the portal is a different place in the tree — and an effect with no
+     dependencies would go on watching the element that left, which reports
+     nothing and sizes both panels to a pixel. React calls this with the new
+     element, and with null on the way out. */
+  const ref = useCallback((el: HTMLDivElement | null) => {
+    watching.current?.disconnect();
+    watching.current = null;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      const r = entries[0].contentRect;
+      /* The same object back where nothing moved, or every scroll of the page
+         would be a re-render and a repaint of two WebGL panels. */
+      setBox((was) =>
+        was.w === r.width && was.h === r.height
+          ? was
+          : { w: r.width, h: r.height },
+      );
+    });
+    ro.observe(el);
+    watching.current = ro;
+  }, []);
+  return { ref, w: box.w, h: box.h };
+}
+
 type BuildViewProps = {
   stages: ReadonlyArray<PlanStage>;
   payload: number;
@@ -861,10 +926,29 @@ function BuildView({
      drawing. The three-quarter is the one angle that shows a ring of columns
      as a ring while still reading as an elevation. #63 step 5. */
   const [angle, setAngle] = useState("side");
+  const [full, setFull] = useState(false);
+  const box = useBox();
+
+  /* Escape leaves, and the page behind does not scroll while it is covered. */
+  useEffect(() => {
+    if (!full) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFull(false);
+    };
+    const had = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = had;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [full]);
+
   if (!solved.length) return null;
 
   const steps = stagingSteps(solved);
-  const cur = steps[Math.min(step, steps.length - 1)];
+  const at = Math.min(step, steps.length - 1);
+  const cur = steps[at];
   const { live, model, planModel } = stepModels(
     solved,
     cur,
@@ -888,93 +972,155 @@ function BuildView({
   /* A floor so a very small rocket still gets a panel with room in it. */
   const wMax = Math.max(1, need.w * 2);
 
-  // ---- the elevation panel ----
-  const SH = 300,
-    pad = 10;
-  const scale = Math.min((SH - 2 * pad) / H, 150 / wMax);
-  const sw = wMax * scale + 2 * pad,
-    sh = H * scale + 2 * pad;
-  /* The plan panel is square. Everything that used to stand here to fill it —
-     the ring of stacks, the boosters outside it, the packed ring, the payload,
-     and four expressions for how far the whole thing reached — was a second
-     description of a rocket the model already describes, each with a comment
-     recording the time it was wrong. Gone rather than corrected again. */
-  const PS = 150;
+  const drawn = canRender3D();
+  /* Before the observer has reported, and in jsdom where it never will. */
+  const outerW = box.w || 320;
+  const railed = drawn && outerW >= WIDE;
+  const aw = railed ? outerW - RAIL - GAP : outerW;
+  const ah = full ? Math.max(1, box.h - HEAD) : INLINE_H;
+  const { elev, plan } = panelSizes({ aw, ah }, wMax / H, GAP);
 
-  return (
-    <div>
-      <div
-        style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 14 }}
-      >
-        {steps.map((st, i) => (
-          <button
-            key={i}
-            className="chip"
-            data-on={i === Math.min(step, steps.length - 1) ? 1 : 0}
-            onClick={() => setStep(i)}
+  /* One header line per column, so all three labels sit on it. */
+  const head = (label: string, extra?: ReactNode) => (
+    <div
+      style={{ display: "flex", alignItems: "center", gap: 8, height: HEAD }}
+    >
+      <span className="eyebrow">{label}</span>
+      {extra}
+    </div>
+  );
+
+  const chips = steps.map((st, i) => (
+    <button
+      key={i}
+      className="chip"
+      data-on={i === at ? 1 : 0}
+      onClick={() => setStep(i)}
+      style={railed ? { textAlign: "left", width: "100%" } : undefined}
+    >
+      {st.label}
+    </button>
+  ));
+
+  const header = (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 12,
+      }}
+    >
+      <span className="eyebrow">Build · step through the staging</span>
+      <span style={{ flex: 1 }} />
+      {drawn && (
+        <button
+          className="chip"
+          onClick={() => setFull(!full)}
+          title={
+            full
+              ? "Back to the page — Escape does the same"
+              : "Fill the window with the drawings"
+          }
+        >
+          {full ? "Close" : "Full screen"}
+        </button>
+      )}
+    </div>
+  );
+
+  const panel = (
+    label: string,
+    parts: typeof model,
+    view: string,
+    size: { w: number; h: number },
+    extra?: ReactNode,
+  ) => (
+    <div style={{ flexShrink: 0 }}>
+      {head(label, extra)}
+      <Suspense fallback={<Loading w={size.w} h={size.h} />}>
+        <ThreeView
+          parts={parts}
+          view={view}
+          width={size.w}
+          height={size.h}
+          color={color}
+        />
+      </Suspense>
+    </div>
+  );
+
+  const row = (
+    <div
+      ref={box.ref}
+      style={{
+        display: "flex",
+        gap: GAP,
+        alignItems: "flex-start",
+        /* Full screen: everything the two lines of text do not need. */
+        flex: full ? 1 : undefined,
+        minHeight: 0,
+        overflowX: railed ? undefined : "auto",
+      }}
+    >
+      {railed && (
+        <div
+          style={{
+            width: RAIL,
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {head("Staging")}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 5,
+              marginTop: 6,
+              overflowY: "auto",
+            }}
           >
-            {st.label}
-          </button>
-        ))}
-      </div>
-      {canRender3D() ? (
+            {chips}
+          </div>
+        </div>
+      )}
+      {panel(
+        "Elevation",
+        model,
+        angle,
+        elev,
+        <button
+          className="chip"
+          data-on={angle === "iso" ? 1 : 0}
+          style={{ padding: "2px 7px", fontSize: 10 }}
+          onClick={() => setAngle(angle === "iso" ? "side" : "iso")}
+          title="Turn the same model three-quarters on. The plan does not move; it is the same scene from underneath."
+        >
+          Iso
+        </button>,
+      )}
+      {panel("Plan", planModel, "plan", plan)}
+    </div>
+  );
+
+  const body = (
+    <>
+      {header}
+      {!railed && (
         <div
           style={{
             display: "flex",
-            gap: 22,
-            flexWrap: "nowrap",
-            alignItems: "flex-end",
-            overflowX: "auto",
+            gap: 5,
+            flexWrap: "wrap",
+            marginBottom: 14,
           }}
         >
-          <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 6,
-              }}
-            >
-              <span className="eyebrow">Elevation</span>
-              <button
-                className="chip"
-                data-on={angle === "iso" ? 1 : 0}
-                style={{ padding: "2px 7px", fontSize: 10 }}
-                onClick={() => setAngle(angle === "iso" ? "side" : "iso")}
-                title="Turn the same model three-quarters on. The plan does not move; it is the same scene from underneath."
-              >
-                Iso
-              </button>
-            </div>
-            <Suspense fallback={<Loading w={Math.max(sw, 60)} h={sh} />}>
-              <ThreeView
-                parts={model}
-                view={angle}
-                width={Math.max(sw, 60)}
-                height={sh}
-                color={color}
-              />
-            </Suspense>
-          </div>
-          <div>
-            <div className="eyebrow" style={{ marginBottom: 6 }}>
-              Plan
-            </div>
-            <Suspense fallback={<Loading w={PS} h={PS} />}>
-              <ThreeView
-                parts={planModel}
-                view="plan"
-                width={PS}
-                height={PS}
-                color={color}
-              />
-            </Suspense>
-          </div>
+          {chips}
         </div>
-      ) : (
-        <NoWebGL />
       )}
+      {drawn ? row : <NoWebGL />}
       <div
         style={{
           display: "flex",
@@ -998,7 +1144,42 @@ function BuildView({
           {geo.ar.toFixed(1)}:1 aspect
         </span>
       </div>
-    </div>
+    </>
+  );
+
+  /* Through a portal, and this is not a detail. The overlay has to escape the
+     `Solving` veil: that wrapper drops to `opacity: .22` and `filter:
+     grayscale(1)` while a solve runs, and either of those makes it the
+     containing block for a `position: fixed` descendant — so the overlay would
+     re-anchor itself to the results column halfway through a solve.
+
+     Under the app's own solving bar, which is fixed at 50 and lives outside the
+     veil, so a full-screen rocket about to be replaced still says so.
+
+     Not the Fullscreen API. This is meant to run inside a Claude artifact's
+     iframe, where `requestFullscreen` needs an `allow` attribute nobody here
+     controls. Filling the window is the promise it can keep. */
+  return (
+    <>
+      <div>{full ? header : body}</div>
+      {full &&
+        createPortal(
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 45,
+              background: C.ink,
+              padding: 16,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            {body}
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
 

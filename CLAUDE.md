@@ -260,6 +260,28 @@ implying CI covered it.
   changes, and no extensionless-import sweep across the repository. The
   alternative was rewriting every specifier in `src/` and `test/`, which would
   have buried the conversion diff in churn that proves nothing.
+- **A panel is never narrower than the label above it.** The elevation's header
+  — the word and the `Iso` chip beside it — runs to about 110 px, and a column
+  is as wide as the widest thing in it. Sizing the drawing below 110 widened
+  the column anyway, so the arithmetic that laid the row out described a row
+  narrower than the one on screen and the plan spilled three pixels past the
+  card. `MIN_PANEL` in `src/ui/views.ts` is that floor, and it is a layout
+  number rather than a drawing one: `fitOrtho` is happy to draw a pencil in a
+  wide panel with air either side of it.
+- **A ref that an effect installs stops working when the element moves.** The
+  build view's drawing row is unmounted and rebuilt inside a portal every time
+  full screen is toggled. An effect with an empty dependency list goes on
+  observing the element that left, which reports a zero box — and both panels
+  came out one pixel. A callback ref is called with the new element and with
+  null on the way out, which is the shape this needs.
+- **`position: fixed` is not the viewport inside the solving veil.** `Solving`
+  drops its children to `opacity: .22` and `filter: grayscale(1)` while a solve
+  runs, and either of those makes the wrapper the containing block for a fixed
+  descendant. A full-screen overlay rendered inside it re-anchors itself to the
+  results column halfway through a solve. The build view's goes through
+  `createPortal` to `document.body` for that reason, and sits at a z-index
+  below the app's own solving bar — which is fixed at 50 and outside the veil —
+  so a full-screen rocket about to be replaced still says so.
 - **A stand-in part has to be a whole one.** The booster pools dress a liquid
   column and a drop tank up as engines so the two-phase maths can fly them
   without a second version of itself. The drop tank was built without a `cost`,

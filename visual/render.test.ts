@@ -66,16 +66,41 @@ const steps = () =>
       ),
   );
 
-async function step(label: string) {
+async function press(label: string) {
   await page.evaluate((want: string) => {
     const b = [...document.querySelectorAll("button")].find(
       (x) => (x.textContent ?? "").trim() === want,
     );
-    if (!b) throw new Error("no step " + want);
+    if (!b) throw new Error("no button labelled " + want);
     b.click();
   }, label);
   await settle(page);
 }
+
+const step = press;
+
+/* Where the three column labels sit. They have to sit on one line: the row
+   used to bottom-align its columns, and the elevation's header is taller than
+   the plan's, so the two labels landed at different heights. #99 */
+const labelTops = () =>
+  page.$$eval("span.eyebrow", (els) =>
+    els
+      .filter((e) =>
+        ["Staging", "Elevation", "Plan"].includes((e.textContent ?? "").trim()),
+      )
+      .map((e) => Math.round(e.getBoundingClientRect().top)),
+  );
+
+/* Everything the drawings must stay inside. */
+const windowBox = () =>
+  page.evaluate(() => ({
+    w: window.innerWidth,
+    h: window.innerHeight,
+    canvases: [...document.querySelectorAll("canvas")].map((c) => {
+      const b = c.getBoundingClientRect();
+      return { right: b.right, bottom: b.bottom };
+    }),
+  }));
 
 describe("the build view, in a browser", () => {
   it("gets a real WebGL context rather than the fallback", async () => {
@@ -218,6 +243,50 @@ describe("the build view, in a browser", () => {
       Math.abs(bias(side) - bias(plan)),
       `elevation leans ${bias(side).toFixed(2)}, plan ${bias(plan).toFixed(2)}`,
     ).toBeLessThan(1.2);
+  });
+
+  it("fills the window when asked, and gives it back", async () => {
+    /* The panels were sized from constants — 300 tall at most for the
+       elevation, 150 square for the plan — so however much room the page had
+       they stayed a stamp in the middle of it. jsdom can see none of this: it
+       has no ResizeObserver to report a box and no WebGL to draw in one. #99 */
+    await step("On the pad");
+    const small = await read(ELEVATION);
+    const smallPlan = await read(PLAN);
+
+    await press("Full screen");
+    const big = await read(ELEVATION);
+    const bigPlan = await read(PLAN);
+    expect(
+      big.css[1],
+      `the elevation went from ${small.css[1]} to ${big.css[1]} px tall`,
+    ).toBeGreaterThan(small.css[1] * 1.5);
+    expect(bigPlan.css[0]).toBeGreaterThan(smallPlan.css[0]);
+
+    const tops = await labelTops();
+    expect(tops.length, "the rail is not up beside the drawings").toBe(3);
+    expect(new Set(tops).size, `labels at ${tops.join(", ")}`).toBe(1);
+
+    /* And inside the window, which is the whole of the promise: there is no
+       scrolling out to the rest of it while this is up. */
+    const box = await windowBox();
+    for (const [i, c] of box.canvases.entries()) {
+      expect(
+        c.right,
+        `canvas ${i} runs past the right edge`,
+      ).toBeLessThanOrEqual(box.w + 1);
+      expect(c.bottom, `canvas ${i} runs past the bottom`).toBeLessThanOrEqual(
+        box.h + 1,
+      );
+    }
+
+    /* Escape leaves, the same as the button. */
+    await page.keyboard.press("Escape");
+    await settle(page);
+    const back = await read(ELEVATION);
+    expect(back.css, "the panel did not go back to its inline size").toEqual(
+      small.css,
+    );
   });
 
   it("says nothing to the console", async () => {

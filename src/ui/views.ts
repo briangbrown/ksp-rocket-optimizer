@@ -148,4 +148,61 @@ export function cameraFor(view: string, extent: Extent, aspect: number) {
   };
 }
 
+/* ------------------------------ how big the box is ------------------------------
+
+   `framing` above says how much of the model a view has to cover. This is the
+   same question from the other side: how much room there is to cover it in.
+
+   The elevation is the drawing — it is the rocket — so it takes the height it
+   is offered and the plan takes the width left over. Where that would leave
+   the plan narrower than the elevation is wide, there is not enough room to
+   give both what they want and the two share instead, at equal heights.
+
+   Worth knowing why the height is not always filled. The plan is square,
+   because what it shows is a disc: a taller panel would draw the same disc at
+   the same size with empty space above and below it. So on a wide, short box
+   the height that is left over cannot be spent, and on a narrow, tall one the
+   width cannot.
+
+   No DOM and no three.js, so `test/three-view.test.ts` can pin it the way it
+   already pins `fitOrtho`. #99 */
+
+/* A pencil seen edge-on is a few pixels wide at any sensible height, and a
+   panel that narrow is not a drawing.
+
+   The floor is what it is because a column is never narrower than its own
+   label: "Elevation" and the Iso chip beside it run to about 110 px, and a
+   panel narrower than that widens the column anyway — the arithmetic here then
+   describes a row that does not fit, and the drawings spill past the card.
+   Below the floor the model is drawn at full height with air either side of
+   it, which is what `fitOrtho` does with a panel wider than the shape in it. */
+const MIN_PANEL = 120;
+
+export function panelSizes(
+  { aw, ah }: { aw: number; ah: number },
+  /* The elevation's own width over its height, in metres. */
+  aspect: number,
+  gap: number,
+) {
+  const across = Math.max(1, aw - gap);
+  const tall = Math.max(1, ah);
+
+  /* What the elevation would take, given the height. */
+  const eh = tall;
+  const ew = Math.max(MIN_PANEL, eh * aspect);
+  const ps = Math.min(tall, across - ew);
+  if (ps >= ew && ps >= MIN_PANEL)
+    return { elev: { w: ew, h: eh }, plan: { w: ps, h: ps } };
+
+  /* Not enough width for both, so they share it at one height. */
+  const h = Math.max(1, Math.min(tall, across / (aspect + 1)));
+  const w = h * aspect;
+  if (w >= MIN_PANEL) return { elev: { w, h }, plan: { w: h, h } };
+  /* Floored: the elevation is no longer sharing in proportion, so the plan is
+     sized against what the floor leaves rather than against the ratio. */
+  const h2 = Math.max(1, Math.min(tall, across - MIN_PANEL));
+  return { elev: { w: MIN_PANEL, h: h2 }, plan: { w: h2, h: h2 } };
+}
+
+export { MIN_PANEL };
 export type { Extent, Vec3, View };

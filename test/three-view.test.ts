@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { fitOrtho, viewAxis, viewRight } from "../src/ui/views.js";
+import {
+  MIN_PANEL,
+  fitOrtho,
+  panelSizes,
+  viewAxis,
+  viewRight,
+} from "../src/ui/views.js";
 import { PANELS, asCylinder, escapes, escapesDepth } from "./framing.js";
 
 /* Does the camera see the whole rocket?
@@ -97,5 +103,68 @@ describe("the orthographic framing", () => {
     const { halfH } = fitOrtho("side", { height: 40, reach: 5 }, 1);
     expect(halfH).toBeGreaterThan(20);
     expect(halfH).toBeLessThan(20 * 1.25);
+  });
+});
+
+/* How big a box each drawing gets.
+
+   The panels used to be sized from constants — 300 tall at most, 150 square —
+   so they could not grow into a window however much of one there was. This is
+   the arithmetic that replaced them, and it is here rather than in the browser
+   suite for the same reason `fitOrtho` is: it is a function of four numbers,
+   and a rule about how a row fits together is worth checking on every shape
+   rather than on the one rocket a screenshot happens to hold. #99 */
+describe("the panels", () => {
+  const GAP = 22;
+
+  it("gives the elevation the height, and the plan what is left across", () => {
+    /* A pencil in a wide box: room for both, so the drawing that is the rocket
+       takes all the height there is. */
+    const { elev, plan } = panelSizes({ aw: 1000, ah: 1300 }, 0.216, GAP);
+    expect(elev.h).toBe(1300);
+    expect(elev.w).toBeCloseTo(1300 * 0.216, 6);
+    expect(plan.w).toBe(plan.h);
+    expect(elev.w + GAP + plan.w).toBeLessThanOrEqual(1000 + 1e-9);
+  });
+
+  it("shares the width where there is not enough for both", () => {
+    /* A squat stage: at full height its elevation would be twice as wide as
+       the box, so the two take one height between them instead — which is the
+       arrangement that keeps the plan worth looking at, and the plan is the
+       view that matters on a stage with a ring of columns. */
+    const { elev, plan } = panelSizes({ aw: 1000, ah: 1300 }, 2, GAP);
+    expect(elev.h).toBeCloseTo(plan.h, 9);
+    expect(elev.w).toBeCloseTo(elev.h * 2, 6);
+    expect(elev.w + GAP + plan.w).toBeCloseTo(1000, 6);
+  });
+
+  it("never draws a panel narrower than its own label", () => {
+    /* A column is as wide as the widest thing in it, and the label above the
+       elevation runs to about 110 px. A panel narrower than that widens the
+       column anyway, and then the row is wider than the arithmetic thinks and
+       spills past the card — which it did, by three pixels, at 480 px wide. */
+    const { elev, plan } = panelSizes({ aw: 420, ah: 300 }, 0.02, GAP);
+    expect(elev.w).toBe(MIN_PANEL);
+    expect(elev.w + GAP + plan.w).toBeLessThanOrEqual(420 + 1e-9);
+  });
+
+  it("fits the row whatever the box and the rocket are", () => {
+    const bad = [];
+    for (const aw of [280, 420, 640, 980, 1700])
+      for (const ah of [120, 300, 700, 1300])
+        for (const aspect of [0.02, 0.1, 0.216, 0.5, 1, 2, 6]) {
+          const { elev, plan } = panelSizes({ aw, ah }, aspect, GAP);
+          const across = elev.w + GAP + plan.w;
+          /* Two claims: the row fits the width it was given, and neither panel
+             is taller than the height it was given. A panel that overflows
+             either is a drawing drawn outside its own section. */
+          if (across > aw + 1e-9)
+            bad.push(`${aw}x${ah} @${aspect}: row ${across.toFixed(1)}`);
+          if (elev.h > ah + 1e-9 || plan.h > ah + 1e-9)
+            bad.push(`${aw}x${ah} @${aspect}: taller than its box`);
+          if (plan.w !== plan.h)
+            bad.push(`${aw}x${ah} @${aspect}: the plan is not square`);
+        }
+    expect(bad.slice(0, 6), `${bad.length} boxes do not fit`).toEqual([]);
   });
 });
