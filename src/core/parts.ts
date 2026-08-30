@@ -2,6 +2,7 @@ import { NONE, expBits } from "./constants.js";
 import couplersData from "../data/couplers.json";
 import structureData from "../data/structure.json";
 import type { Excluded, Expansions, Roster } from "./constants.js";
+import type { Leg } from "./orbits.js";
 import type {
   Coupler,
   Engine,
@@ -342,13 +343,8 @@ const decouplerFor = (unlocked: Roster, d: number, excluded: Excluded) => {
    That does mean the 82% discount the route takes on an atmospheric descent is
    granted on trust: it assumes chutes are fitted, and if you leave them off the
    descent budget is wrong. Hence saying so plainly. */
-/* Only the three fields this reads. The whole leg is described in orbits.js,
-   which is still JavaScript; asking for no more than is used keeps the two from
-   having to be converted in one step. */
-type RouteLeg = { kind: string; atm?: boolean; free?: boolean };
-
 function missionHardware(
-  route: ReadonlyArray<RouteLeg>,
+  route: ReadonlyArray<Leg>,
   payload: number,
   origin: string,
   unlocked: Roster | null,

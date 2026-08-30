@@ -23,6 +23,9 @@ type TankSet = {
   dryMass: number;
   count: number;
   funds?: number;
+  /* Written as null where a stage's tankage is spread across columns and never
+     read. Recorded because it is on the object, not because anything wants it. */
+  columnLen?: number | null;
 };
 
 /* The adapters bridging an engine up to the stack above it. Stock adapters are
@@ -116,17 +119,21 @@ type Pack = {
 type Solution = {
   engine: Engine;
   n: number;
-  stacks: number;
   tanks: TankSet | null;
-  perStack: TankSet | null;
   adapters: AdapterChain | null;
   coupler: Coupler | null;
   shroud: Shroud | null;
   decoupler: DecouplerFit | null;
-  /* The coupler gathering a ring of columns back onto one node below. */
-  rejoin: Coupler | null;
-  joiner: Joiner | null;
   boosters: Boosters | null;
+  /* Absent on a boosted stage, which never runs parallel columns: it is built
+     from a single core with a ring bolted to the side of it, so there is no
+     second column to size, rejoin or hold on. Every reader already writes
+     `sol.stacks || 1` and tests the other three before use. */
+  stacks?: number;
+  perStack?: TankSet | null;
+  /* The coupler gathering a ring of columns back onto one node below. */
+  rejoin?: Coupler | null;
+  joiner?: Joiner | null;
   packed?: Pack | null;
   asparagus?: boolean;
   dropTank?: boolean;
@@ -139,9 +146,12 @@ type Solution = {
   twr: number;
   twrBurnout: number;
   burn: number;
-  /* Filled in after the fact, by the scoring pass rather than by the fit. */
-  cost?: number;
-  score?: number;
+  /* What the search ranks on. Not part of the fit — a stage does not price
+     itself — but every solution that leaves the solver carries all three, and
+     the comparison that picks between two of them depends on it. */
+  cost: number;
+  parts: number;
+  score: number;
 };
 
 export type {

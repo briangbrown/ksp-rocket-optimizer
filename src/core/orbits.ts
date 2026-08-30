@@ -1,11 +1,75 @@
 import bodiesData from "../data/bodies.json";
 import { G0 } from "./constants.js";
 
+/* ------------------------------ what a leg is ------------------------------
+
+   One line of the delta-v budget. `kind` is what the profile filters on and
+   what the solver reads to decide whether a leg can be flown, so it is a fixed
+   set rather than a string — a mistyped one would silently stop matching and
+   the leg would simply never be dropped or charged.
+
+   The optional half is per-kind rather than per-leg: `atm` is meaningful on an
+   ascent or a landing, `plane` only on a plane change, `chuted` only on a leg
+   the parachutes have already discounted. */
+type LegKind =
+  "ascent" | "ascentBack" | "transfer" | "capture" | "land" | "plane" | "aero";
+
+type PlaneChange = {
+  deg: number;
+  system: string;
+  cheap: number;
+  costly: number;
+};
+
+type Leg = {
+  label: string;
+  dv: number;
+  kind: LegKind;
+  body: string;
+  g?: number;
+  atm?: boolean;
+  free?: boolean;
+  chuted?: boolean;
+  note?: string;
+  planeNow?: boolean;
+  cheap?: number;
+  costly?: number;
+  plane?: PlaneChange;
+};
+
+/* A tabulated destination: the colour the route draws it in, its surface
+   gravity where it has one, and the legs from the Kerbin launchpad. */
+type Dest = {
+  color: string;
+  g?: number;
+  atm?: boolean;
+  legs: Array<Leg>;
+};
+
+/* A body in the stock system. Only the Sun has no parent and no orbit of its
+   own, which is why the orbital elements are optional and the physical ones
+   are not. `atm` is the atmosphere's depth in metres, absent where there is
+   none; `ascent` is the tabulated surface-to-orbit figure. */
+type SysBody = {
+  parent: string | null;
+  R: number;
+  gee: number;
+  rot?: number;
+  inc?: number;
+  lan?: number;
+  sma?: number;
+  ascent?: number;
+  atm?: number;
+  noLand?: boolean;
+};
+
+type Profile = { name: string; note: string };
+
 /* ------------------------------- destinations -------------------------------
    Each destination is an ordered list of legs from the Kerbin launchpad, matching
    the community delta-v map. kind drives what each mission profile keeps.
    g = local surface gravity used for landing/ascent TWR checks.               */
-const ASCENT = {
+const ASCENT: Leg = {
   label: "Launchpad → 80 km orbit",
   dv: 3400,
   kind: "ascent",
@@ -13,7 +77,7 @@ const ASCENT = {
   g: 9.81,
   atm: true,
 };
-const ESCAPE = {
+const ESCAPE: Leg = {
   label: "LKO → Kerbin escape",
   dv: 950,
   kind: "transfer",
@@ -25,7 +89,7 @@ const ESCAPE = {
    import from ui. The field is in fact dead — nothing reads DEST[x].color — so
    it can go entirely, but removing it is a shape change and this step only
    moves code. */
-const DEST = {
+const DEST: Readonly<Record<string, Dest>> = {
   "Low Kerbin Orbit": { color: "#4A9BE0", legs: [ASCENT] },
   "Keostationary orbit": {
     color: "#4A9BE0",
@@ -502,41 +566,53 @@ const DEST = {
   },
 };
 
-const PROFILES = bodiesData.PROFILES;
+const PROFILES: Readonly<Record<string, Profile>> = bodiesData.PROFILES;
 
 /* Build the leg list for a destination + profile, including return legs. */
 /* Stock system, from the Kopernicus dump. mu = geeASL*g0*R^2.
    ascent = surface <-> low orbit, the one figure worth keeping tabulated
    because it is dominated by drag and gravity losses, not orbital mechanics. */
-const SYS = bodiesData.SYS;
-const mu = (b) => SYS[b].gee * G0 * SYS[b].R ** 2;
-const lowAlt = (b) => (SYS[b].atm ? SYS[b].atm + 10000 : 10000);
-const lowR = (b) => SYS[b].R + lowAlt(b);
-const vCirc = (b) => Math.sqrt(mu(b) / lowR(b));
+const SYS: Readonly<Record<string, SysBody>> = bodiesData.SYS;
+
+/* The Sun orbits nothing, so it carries neither of these; every caller below
+   has already walked past it by the time it asks. Reading them through one
+   place says that once rather than at each of a dozen sites, and lets a genuine
+   gap arrive as NaN rather than being asserted out of existence. */
+const smaOf = (b: string) => SYS[b].sma ?? NaN;
+const rotOf = (b: string) => SYS[b].rot ?? NaN;
+const mu = (b: string) => SYS[b].gee * G0 * SYS[b].R ** 2;
+const lowAlt = (b: string) => (SYS[b].atm ? SYS[b].atm + 10000 : 10000);
+const lowR = (b: string) => SYS[b].R + lowAlt(b);
+const vCirc = (b: string) => Math.sqrt(mu(b) / lowR(b));
 /* Synchronous orbit: the radius whose period matches the body's own rotation.
    It only exists if it clears the atmosphere and still sits inside the sphere of
    influence — which is why no tidally locked moon has one, since its synchronous
    radius is its own orbit around the planet. */
-const syncR = (b) =>
-  Math.cbrt((mu(b) * SYS[b].rot * SYS[b].rot) / (4 * Math.PI * Math.PI));
-const soiR = (b) =>
-  (SYS[b].parent && SYS[SYS[b].parent].sma !== undefined) || SYS[b].parent
-    ? SYS[b].sma * Math.pow(mu(b) / mu(SYS[b].parent), 0.4)
-    : Infinity;
-function hasSync(b) {
+const syncR = (b: string) =>
+  Math.cbrt((mu(b) * rotOf(b) * rotOf(b)) / (4 * Math.PI * Math.PI));
+/* The test used to read `(parent && SYS[parent].sma !== undefined) || parent`,
+   whose second half makes the first dead: whenever there is a parent the whole
+   disjunction is true regardless. What is left is the parent alone, which is
+   the real question — a body with nothing to orbit has no sphere of influence
+   to be bounded by. */
+const soiR = (b: string) => {
+  const p = SYS[b].parent;
+  return p ? smaOf(b) * Math.pow(mu(b) / mu(p), 0.4) : Infinity;
+};
+function hasSync(b: string) {
   if (!SYS[b] || !SYS[b].rot) return false;
   const r = syncR(b);
   return r > SYS[b].R + (SYS[b].atm || 0) + 5000 && r < soiR(b) * 0.9;
 }
-const chainOf = (b) => {
-  const c = [];
-  for (let x = b; x; x = SYS[x].parent) c.push(x);
+const chainOf = (b: string) => {
+  const c: Array<string> = [];
+  for (let x: string | null = b; x; x = SYS[x].parent) c.push(x);
   return c;
 };
 
 /* Hohmann between two circular orbits around `centre`; returns the hyperbolic
    excess needed at each end. */
-function hohmann(centre, r1, r2) {
+function hohmann(centre: string, r1: number, r2: number) {
   const m = mu(centre),
     at = (r1 + r2) / 2;
   const v1 = Math.sqrt(m / r1),
@@ -547,19 +623,20 @@ function hohmann(centre, r1, r2) {
 }
 /* Burn from a circular orbit of speed v to leave with excess vinf (or the
    reverse, capturing from vinf into that circular orbit). */
-const inject = (v, vinf) => Math.sqrt(2 * v * v + vinf * vinf) - v;
+const inject = (v: number, vinf: number) =>
+  Math.sqrt(2 * v * v + vinf * vinf) - v;
 
 const RAD = Math.PI / 180;
 /* Destination labels are not always body names: DEST offers "Jool orbit",
    "Low Kerbin Orbit" and "Keostationary orbit". Resolve to a real body, or null
    when the target is just an orbit and no plane change applies. */
-function bodyKey(name) {
+function bodyKey(name: string) {
   if (SYS[name]) return name;
   return Object.keys(SYS).find((b) => name.startsWith(b + " ")) || null;
 }
 /* Relative inclination between two orbits about the same primary. With both
    inclinations and ascending nodes known this is exact rather than |i1-i2|. */
-function relInc(a, b) {
+function relInc(a: string, b: string) {
   const i1 = (SYS[a].inc || 0) * RAD,
     i2 = (SYS[b].inc || 0) * RAD;
   const dl = ((SYS[a].lan || 0) - (SYS[b].lan || 0)) * RAD;
@@ -584,17 +661,22 @@ function relInc(a, b) {
 
    A route can need one at every level it passes through: reaching Bop means
    matching Jool's 1.3° against Kerbol and then Bop's 15° against Jool. */
-function planeChanges(origin, dest) {
+function planeChanges(origin: string, dest: string) {
   const oB = bodyKey(origin),
     dB = bodyKey(dest);
   if (!oB || !dB || oB === dB) return [];
   const co = chainOf(oB),
     cd = chainOf(dB);
+  /* Every chain is walked up to the Sun, so two of them always meet. The guard
+     is for the type rather than for the data — but returning no plane changes
+     is a better answer to an impossible case than indexing the body table with
+     `undefined`, which is what happened before. */
   const common = co.find((b) => cd.includes(b));
+  if (!common) return [];
   const up = co.slice(0, co.indexOf(common));
   const down = cd.slice(0, cd.indexOf(common)).reverse();
-  const out = [];
-  const add = (deg, v, system, cheapV) => {
+  const out: Array<PlaneChange> = [];
+  const add = (deg: number, v: number, system: string, cheapV?: number) => {
     if (deg < 0.15) return;
     const half = Math.sin((deg / 2) * RAD);
     out.push({
@@ -608,15 +690,15 @@ function planeChanges(origin, dest) {
   // shedding the origin's own inclination on the way out
   up.forEach((b, k) => {
     if (k === up.length - 1) return;
-    add(SYS[b].inc || 0, Math.sqrt(mu(up[k + 1]) / SYS[b].sma), up[k + 1]);
+    add(SYS[b].inc || 0, Math.sqrt(mu(up[k + 1]) / smaOf(b)), up[k + 1]);
   });
 
   // the main one, at the level both bodies share
   const upEnd = up.length ? up[up.length - 1] : oB;
   const dnEnd = down.length ? down[0] : dB;
   if (upEnd !== dnEnd) {
-    const r1 = up.length ? SYS[upEnd].sma : lowR(oB);
-    const r2 = down.length ? SYS[dnEnd].sma : lowR(dB);
+    const r1 = up.length ? smaOf(upEnd) : lowR(oB);
+    const r2 = down.length ? smaOf(dnEnd) : lowR(dB);
     const m = mu(common),
       at = (r1 + r2) / 2;
     add(
@@ -631,21 +713,23 @@ function planeChanges(origin, dest) {
   down.forEach((b, k) => {
     const next = down[k + 1];
     if (!next) return;
-    add(SYS[next].inc || 0, Math.sqrt(mu(b) / SYS[next].sma), b);
+    add(SYS[next].inc || 0, Math.sqrt(mu(b) / smaOf(next)), b);
   });
   return out;
 }
 
-function transferDv(origin, dest) {
+function transferDv(origin: string, dest: string) {
   const co = chainOf(origin),
     cd = chainOf(dest);
+  /* As in planeChanges: the chains always meet at the Sun if nowhere sooner. */
   const common = co.find((b) => cd.includes(b));
+  if (!common) return [];
   const up = co.slice(0, co.indexOf(common));
   const down = cd.slice(0, cd.indexOf(common)).reverse();
-  const rO = up.length ? SYS[up[up.length - 1]].sma : lowR(origin);
-  const rD = down.length ? SYS[down[0]].sma : lowR(dest);
+  const rO = up.length ? smaOf(up[up.length - 1]) : lowR(origin);
+  const rD = down.length ? smaOf(down[0]) : lowR(dest);
   const h = hohmann(common, rO, rD);
-  const legs = [];
+  const legs: Array<Leg> = [];
   /* Staying inside one system means no SOI to climb out of, so the Hohmann burn
      is the whole cost — running it through inject() would charge escape velocity
      on top and inflate a Mun trip by a quarter. */
@@ -658,7 +742,7 @@ function transferDv(origin, dest) {
     });
   } else
     up.forEach((b, k) => {
-      const v = k === 0 ? vCirc(b) : Math.sqrt(mu(b) / SYS[up[k - 1]].sma);
+      const v = k === 0 ? vCirc(b) : Math.sqrt(mu(b) / smaOf(up[k - 1]));
       const vinf = k === up.length - 1 ? h.out : 0;
       legs.push({
         label: `Leave ${b}`,
@@ -675,7 +759,7 @@ function transferDv(origin, dest) {
       /* Passing through on the way to a moon: capture only just enough to be
          bound, with periapsis down at the moon's orbit. Circularising here and
          climbing back out again is what made a Jool trip look like 3 km/s. */
-      const rp = SYS[down[k + 1]].sma,
+      const rp = smaOf(down[k + 1]),
         m2 = mu(b);
       const dv =
         Math.sqrt(vinf * vinf + (2 * m2) / rp) - Math.sqrt((2 * m2) / rp);
@@ -715,16 +799,16 @@ function transferDv(origin, dest) {
   return legs;
 }
 
-const gOf = (b) => (SYS[b] ? SYS[b].gee * G0 : 9.81);
+const gOf = (b: string) => (SYS[b] ? SYS[b].gee * G0 : 9.81);
 
 /* Kerbin departures keep the tabulated map legs — they are what players check
    against and they have been validated end to end. Every other origin is built
    from Hohmann transfers through the body tree, which reproduces those same map
    figures to within about a percent. */
-function computedLegs(origin, destName) {
+function computedLegs(origin: string, destName: string) {
   const dB = bodyKey(destName);
   if (!SYS[origin] || !dB || origin === dB) return [];
-  const legs = [],
+  const legs: Array<Leg> = [],
     o = SYS[origin],
     d = SYS[dB];
   if (o.ascent)
@@ -750,16 +834,16 @@ function computedLegs(origin, destName) {
 }
 
 function buildRoute(
-  destName,
-  profile,
-  chutes,
+  destName: string,
+  profile: string,
+  chutes: boolean,
   origin = "Kerbin",
   returning = false,
   planeNow = false,
-) {
+): Array<Leg> {
   if (destName === "Low orbit" || destName === "Stationary orbit") {
     if (!SYS[origin] || !SYS[origin].ascent) return [];
-    const legs = [
+    const legs: Array<Leg> = [
       {
         label: `${origin} surface → low orbit`,
         dv: SYS[origin].ascent,
@@ -801,7 +885,7 @@ function buildRoute(
   const pcs = planeChanges(origin, destName);
   if (pcs.length) {
     const at = base.findIndex((l) => l.kind === "capture");
-    const rows = pcs.map((pc) => ({
+    const rows: Array<Leg> = pcs.map((pc) => ({
       label: `Plane change ${pc.deg.toFixed(1)}° in the ${pc.system} system`,
       /* "Burn it at apoapsis" was misleading: arrive uncorrected and you are
          thousands of kilometres off the target's plane, far outside its sphere of
@@ -863,7 +947,7 @@ function buildRoute(
   if (returning) {
     const landLeg = base.find((l) => l.kind === "land");
     const capLeg = base.find((l) => l.kind === "capture");
-    const back = [];
+    const back: Array<Leg> = [];
     if (profile === "land" && landLeg)
       back.push({
         label: `Ascent from ${landLeg.body} surface`,
@@ -910,7 +994,7 @@ function buildRoute(
    count is found automatically. Cuts are the user's tool for saying "this part
    flies on its own hardware", not something to presume. */
 function defaultCuts() {
-  return new Set();
+  return new Set<number>();
 }
 
 export {
@@ -939,3 +1023,4 @@ export {
   transferDv,
   vCirc,
 };
+export type { Dest, Leg, LegKind, PlaneChange, Profile, SysBody };

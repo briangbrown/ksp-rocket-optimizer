@@ -1,4 +1,4 @@
-import { TALLY, resetTally } from "./tally.js";
+import { TALLY } from "./tally.js";
 import { BODY, atmoFor } from "./atmosphere.js";
 import { G0 } from "./constants.js";
 import { heightOf, packFor, stackGeometry, stageSize } from "./geometry.js";
@@ -20,6 +20,11 @@ import {
   stageParts,
 } from "./performance.js";
 import { fitStructure, pickTanksMemo, poolsFor } from "./tanks.js";
+import type { Excluded, Expansions, Roster } from "./constants.js";
+import type { Engine, Tank } from "./catalogue.js";
+import type { Objective } from "./performance.js";
+import type { BoosterPart, Solution } from "./solution.js";
+import type { Pool, TankPool } from "./tanks.js";
 
 /* --------------------------------- solver ---------------------------------
    Rocket equation with tankage. For propellant mass mp and structural
@@ -29,6 +34,106 @@ import { fitStructure, pickTanksMemo, poolsFor } from "./tanks.js";
        mp = (R-1)(P+E) / (1 + k - R*k)
    Feasible only while R < (1+k)/k — for stock 9:1 tanks that caps a single
    stage at Isp*g0*ln(9).                                                   */
+/* ----------------------------- what the search takes -----------------------------
+
+   One options object per entry point rather than a positional list. Both of
+   these are called from two places apiece, and a positional list of twenty is
+   how `solveStage` and `boostedAscent` drifted apart five times over — see
+   `fitStructure` in "Where the bodies are buried". */
+type StageOpt = {
+  dv: number;
+  payload: number;
+  engines: ReadonlyArray<Engine>;
+  tanks: ReadonlyArray<Tank>;
+  unlocked: Roster;
+  excluded: Excluded;
+  twrMin: number;
+  g: number;
+  pRef?: number;
+  pSurf?: number;
+  extra: number;
+  maxBurn?: number;
+  objective?: Objective;
+  needGimbal?: boolean;
+  hasStageBelow?: boolean;
+  noPlate?: boolean;
+  expansions?: Expansions | null;
+  plateAbove?: boolean;
+  capCluster?: number;
+};
+
+type BoostOpt = {
+  dv: number;
+  payload: number;
+  engines: ReadonlyArray<Engine>;
+  tanks: ReadonlyArray<Tank>;
+  unlocked: Roster;
+  excluded: Excluded;
+  needGimbal: boolean;
+  twrMin: number;
+  g: number;
+  extra: number;
+  srbs: ReadonlyArray<Engine>;
+  pRef?: number;
+  pSurf?: number;
+  objective?: Objective;
+  noLiquid?: boolean;
+  noPlate?: boolean;
+  expansions?: Expansions | null;
+  asparagus?: boolean;
+};
+
+/* One stage of a chain, with what it was asked for and what it was carrying. */
+type StageInChain = {
+  sol: Solution;
+  want: number;
+  payloadIn: number;
+  twrMin: number;
+  g: number;
+};
+
+/* A whole stack, judged as one. `slim` is the slenderness constraint and is
+   compared before anything else: a pencil that is 10% lighter is not a better
+   rocket. */
+type ChainCandidate = {
+  chain: Array<StageInChain>;
+  total: number;
+  k: number;
+  chainScore: number;
+  ar: number;
+  slim: boolean;
+};
+
+/* The search's answer: the best chain, and the best at each stage count.
+   `byK` is what plan.js walks — `best` is not what the user gets. */
+type GroupResult = ChainCandidate & { byK: Array<ChainCandidate> };
+
+/* Everything a group is searched with. `prepare` turns it into the argument a
+   unit runs on; `minK` and `maxK` are read by `solveGroup` alone. */
+type GroupInput = {
+  dv: number;
+  payload: number;
+  payloadDia: number;
+  engines: ReadonlyArray<Engine>;
+  tanks: ReadonlyArray<Tank>;
+  unlocked: Roster;
+  excluded: Excluded;
+  needGimbal: boolean;
+  maxAspect?: number;
+  expansions?: Expansions | null;
+  asparagus?: boolean;
+  g: number;
+  kind: string;
+  boosters: boolean;
+  srbs: ReadonlyArray<Engine>;
+  /* Absent on a segment that flies nowhere near a body with air, which is what
+     `prepare` tests before asking for its surface pressure. */
+  bodyName?: string;
+  objective?: Objective;
+  minK: number;
+  maxK: number;
+};
+
 function solveStage({
   dv,
   payload,
@@ -49,7 +154,7 @@ function solveStage({
   expansions = null,
   plateAbove = false,
   capCluster = 0,
-}) {
+}: StageOpt): Solution | null {
   if (!isFinite(dv) || dv <= 0) return null; // refuse a nonsense requirement outright
   /* A stage that flies through air has to steer. Without a gimbal you are relying
      on fins and reaction wheels alone, which is how a launch ends up pinwheeling
@@ -57,19 +162,27 @@ function solveStage({
      Solids never gimbal, which is exactly why they are strap-ons rather than
      cores. */
   const gimbalNeeded = needGimbal && pSurf > 0.02;
-  let best = null;
+  let best: Solution | null = null;
   /* One scratch object, filled and re-filled. A stage design is built, scored,
      compared and thrown away tens of thousands of times per solve — only the few
      that become the new best need to outlive the iteration, so only those are
      copied. Everything the candidate points at (tanks, structure) is already a
      distinct object per candidate, so a shallow copy is enough. */
-  const scratch = {};
-  const keep = (c) => {
-    const o = {};
-    for (const k in c) o[k] = c[k];
-    return o;
-  };
-  const consider = (cand) => {
+  /* Asserted, and this is the one place in the conversion that is. Every field
+     is written before `consider` sees it, so the object is a complete solution
+     by the time anything reads one — but the compiler cannot be shown that
+     without either a blank initialiser allocated per solve or a partial type
+     that would make every read below ask whether the field is there. On the
+     hottest object in the solver, saying it once here is the cheapest of the
+     three. */
+  const scratch = {} as Solution;
+  /* A shallow copy, which is all a candidate needs: everything it points at
+     (tanks, structure) is already a distinct object per candidate. Spread
+     rather than the `for...in` this used to be — the scratch is a plain object
+     literal with nothing on its prototype, so the two copy exactly the same
+     properties. */
+  const keep = (c: Solution): Solution => ({ ...c });
+  const consider = (cand: Solution) => {
     if (!cand) return;
     TALLY.stages++;
     /* A part with impossible bookkeeping — negative dry mass, fuel heavier than
@@ -242,8 +355,7 @@ function solveStage({
             hasStageBelow,
           });
           if (!fit) continue;
-          const { coup, shroud, coupM, adapt, rejoin, dec, joiner } = fit;
-          const perEng = fit.perEng;
+          const { coup, shroud, adapt, rejoin, dec, joiner } = fit;
           const fixed = dryBase + fit.dry;
 
           const mp = propellantFor(dv, fixed, ispE, k);
@@ -314,7 +426,18 @@ function solveStage({
 
    Ten positional arguments rather than an options object: an object would
    reintroduce the allocation this exists to remove. */
-function boostDv(mp, burnA, fixed, k, nb, b, drop, aspHere, ispCore, ispEff) {
+function boostDv(
+  mp: number,
+  burnA: number,
+  fixed: number,
+  k: number,
+  nb: number,
+  b: BoosterPart,
+  drop: boolean,
+  aspHere: boolean,
+  ispCore: number,
+  ispEff: number,
+) {
   if (mp <= burnA * 1.02) return -1; // core has to outlast the boosters
   const m0 = fixed + k * mp + mp + nb * b.m;
   /* Solids cannot do this. Asparagus works by draining one stack's
@@ -397,17 +520,17 @@ function boostDv(mp, burnA, fixed, k, nb, b, drop, aspHere, ispCore, ispEff) {
    Eleven positional arguments is not pretty. An options object would be worse:
    it is the allocation this exists to avoid. */
 function offsetDv(
-  mp,
-  dv,
-  burnA,
-  fixed,
-  k,
-  nb,
-  b,
-  drop,
-  aspHere,
-  ispCore,
-  ispEff,
+  mp: number,
+  dv: number,
+  burnA: number,
+  fixed: number,
+  k: number,
+  nb: number,
+  b: BoosterPart,
+  drop: boolean,
+  aspHere: boolean,
+  ispCore: number,
+  ispEff: number,
 ) {
   const v = boostDv(mp, burnA, fixed, k, nb, b, drop, aspHere, ispCore, ispEff);
   return v < 0 ? v : v - dv;
@@ -434,18 +557,18 @@ function offsetDv(
    not a delta-v, and interpolating through it would aim the secant at nothing,
    so those steps fall back to bisection. */
 function solveCore(
-  lo,
-  hi,
-  dv,
-  burnA,
-  fixed,
-  k,
-  nb,
-  b,
-  drop,
-  aspHere,
-  ispCore,
-  ispEff,
+  lo: number,
+  hi: number,
+  dv: number,
+  burnA: number,
+  fixed: number,
+  k: number,
+  nb: number,
+  b: BoosterPart,
+  drop: boolean,
+  aspHere: boolean,
+  ispCore: number,
+  ispEff: number,
 ) {
   let flo = offsetDv(
       lo,
@@ -534,13 +657,19 @@ function boostedAscent({
   noPlate = false,
   expansions = null,
   asparagus = false,
-}) {
-  let best = null;
+}: BoostOpt): Solution | null {
+  let best: Solution | null = null;
 
   /* Tank pools depend only on the core engine, so build them once. This runs
      inside a split search now, and re-filtering 64 tanks per combination was
      the whole cost of the function. */
-  const cores = [];
+  const cores: Array<{
+    c: Engine;
+    k: number;
+    usable: TankPool;
+    grp: Pool;
+    cap: number;
+  }> = [];
   for (const c of engines) {
     /* A boosted core still flies through the whole atmosphere, so it needs to
        steer just as much as an unboosted one. This check was only in solveStage,
@@ -559,7 +688,11 @@ function boostedAscent({
   }
   if (!cores.length) return null;
 
-  const mounts = [];
+  /* A mount is whatever the ring is made of, with the two figures the two-phase
+     maths needs. A solid booster, a powered liquid column and a bare drop tank
+     all present the same fields. */
+  type Mount = { b: BoosterPart; mdotB: number; tB: number };
+  const mounts: Array<Mount> = [];
   for (const b of srbs) {
     if (!b.sz.includes("R")) continue; // must be radially mountable
     const mdotB = b.fv / (b.iv * G0);
@@ -587,8 +720,8 @@ function boostedAscent({
 
      What they do not give is thrust. Liftoff TWR is strictly worse than the same
      core without them, so they only work where the core has thrust to spare. */
-  const tankMounts = (coreEngine, grp) => {
-    const out = [];
+  const tankMounts = (coreEngine: Engine, grp: Pool | null) => {
+    const out: Array<Mount> = [];
     if (!grp || !grp.usable.length) return out;
     const mdot1 = coreEngine.fv / (coreEngine.iv * G0);
     /* Four sizes, not seven. A drop tank's value is a smooth function of how much
@@ -622,8 +755,8 @@ function boostedAscent({
     return out;
   };
 
-  const liquidMounts = (coreEngine, grp) => {
-    const out = [];
+  const liquidMounts = (coreEngine: Engine, grp: Pool | null) => {
+    const out: Array<Mount> = [];
     if (!grp || !grp.usable.length) return out;
     const mdot1 = coreEngine.fv / (coreEngine.iv * G0);
     /* A column is normally sized as a booster: a short burn strapped to the side
@@ -671,7 +804,7 @@ function boostedAscent({
      This is the whole cost of the function — the search was making 89 million
      dvOf calls across 2.7 million combinations. */
   const floor = 0.85 * g * (payload + extra);
-  const viable = [];
+  const viable: Array<{ core: (typeof cores)[number]; nc: number }> = [];
   for (const core of cores)
     for (let nc = isRadial(core.c) ? 2 : 1; nc <= core.cap; nc++)
       // a lone radial thrusts off-axis
@@ -714,21 +847,23 @@ function boostedAscent({
           : [2, 3, 4, 6, 8];
       for (const nb of counts) {
         {
-          const { c, k, usable, grp, cap } = core;
+          const { c, k, usable, grp } = core;
           const mdotC = (nc * c.fv) / (c.iv * G0);
           /* Pressure comes from the body being left, not from Kerbin. Eve's
              surface is 5 atm, where the real curves put a Terrier at zero — its
              cutoff is 3 atm — while a Kickback still makes 51 s. The ranking does
              not just shift, it inverts. */
           const pR = pRef;
-          const thr = (e, p) => e.fv * (ispAt(e, p) / e.iv); // thrust at pressure p
+          const thr = (
+            e: { n: string; fv: number; iv: number; ia: number },
+            p: number,
+          ) => e.fv * (ispAt(e, p) / e.iv); // thrust at pressure p
           const ispEff =
             (nb * b.fv * (ispAt(b, pR) / b.iv) +
               nc * c.fv * (ispAt(c, pR) / c.iv)) /
             ((nb * mdotB + mdotC) * G0);
           const ispCore = ispAt(c, pR);
           const stackD = grp.dia;
-          const coup = couplerFor(c, nc, unlocked, excluded);
           const fit = fitStructure({
             engine: c,
             n: nc,
@@ -743,7 +878,7 @@ function boostedAscent({
             hasStageBelow: false,
           });
           if (!fit) continue;
-          const { coupM, adapt, dec, shroud } = fit;
+          const { adapt, dec, shroud } = fit;
           const fixed =
             payload + extra + nc * c.m + nb * RADIAL_DECOUPLER + fit.dry;
 
@@ -860,7 +995,7 @@ function boostedAscent({
             /* Boosters that burn out in a handful of seconds are a crutch, not a stage. */
             if (dvA < dv * 0.08) continue;
 
-            const cand = {
+            const cand: Solution = {
               engine: c,
               n: nc,
               tanks: tk,
@@ -880,6 +1015,12 @@ function boostedAscent({
               twrBurnout: (nc * thr(c, pSurf)) / (coreDry * g),
               burn: tB + (mp - coreBurnA) / mdotC,
               boosters: { part: b, n: nb, burn: tB, dv: dvA, sepMass: mA },
+              /* Filled in on the next three lines. Named here so the object is
+                 built once with the shape it will keep, rather than growing
+                 three properties immediately afterwards. */
+              cost: 0,
+              parts: 0,
+              score: 0,
             };
             cand.cost = stageCost(cand);
             cand.parts = stageParts(cand);
@@ -904,9 +1045,9 @@ function boostedAscent({
    elements: a short one leaves shares[i] undefined, the stage's requirement becomes
    NaN, and because every comparison against NaN is false it then passes the "did
    this deliver enough dv" test and a junk stage lands in the design. */
-function splitShares(k) {
+function splitShares(k: number): Array<Array<number>> {
   if (k === 1) return [[1]];
-  const out = [];
+  const out: Array<Array<number>> = [];
   if (k === 2) {
     for (let a = 0.3; a <= 0.701; a += 0.1) out.push([a, 1 - a]);
   } else if (k === 3) {
@@ -955,7 +1096,7 @@ function prepare({
   srbs,
   bodyName,
   objective = "mass",
-}) {
+}: GroupInput) {
   /* Bottom stage carries the full TWR requirement. Upper stages are already
      moving and climbing, so they get a lower floor — but not on a coast burn,
      where thrust barely matters. */
@@ -994,33 +1135,41 @@ function prepare({
 /* Which `(k, shares)` pairs a group is searched over, in the order the serial
    search visited them. The order is not decorative: `better` keeps the first of
    equals, so reducing out of order picks a different rocket. */
-function unitsOf(minK, maxK) {
-  const out = [];
+function unitsOf(minK: number, maxK: number) {
+  const out: Array<{ k: number; shares: Array<number> }> = [];
   for (let k = minK; k <= maxK; k++)
     for (const shares of splitShares(k)) out.push({ k, shares });
   return out;
 }
 
-const better = (x, y) =>
+const better = (x: ChainCandidate, y: ChainCandidate | null | undefined) =>
   !y || (x.slim !== y.slim ? x.slim : x.chainScore < y.chainScore);
 
 /* Fold the units' candidates back into one answer. Fed the results in unit
    order, this is what the loop used to do inline. */
-function reduceUnits(results) {
-  let best = null;
-  const byK = [];
+function reduceUnits(
+  results: ReadonlyArray<ReadonlyArray<ChainCandidate> | null | undefined>,
+): GroupResult | null {
+  let best: ChainCandidate | null = null;
+  const byK: Array<ChainCandidate> = [];
   for (const cands of results)
     for (const cand of cands ?? []) {
       if (better(cand, best)) best = cand;
       if (better(cand, byK[cand.k])) byK[cand.k] = cand;
     }
-  return best && { ...best, byK: byK.filter(Boolean) };
+  return best && { ...best, byK: byK.filter((c) => c !== undefined) };
 }
 
 /* One `(k, shares)` unit: build every chain for that split and hand back the
    candidates. Touches nothing outside its arguments, which is what lets it run
    somewhere else — see #50. */
-function solveUnit(p, k, shares) {
+type Prepared = ReturnType<typeof prepare>;
+
+function solveUnit(
+  p: Prepared,
+  k: number,
+  shares: Array<number>,
+): Array<ChainCandidate> {
   const {
     dv,
     payload,
@@ -1042,7 +1191,7 @@ function solveUnit(p, k, shares) {
     twrBottom,
     twrUpper,
   } = p;
-  const out = [];
+  const out: Array<ChainCandidate> = [];
   {
     {
       /* The per-stage score is only a heuristic for picking within a stage; the
@@ -1098,16 +1247,18 @@ function solveUnit(p, k, shares) {
          The note above about the cap cutting both ways predates #18, which fixed
          the adapter direction and moved 21 of 66 designs. Re-measure it rather
          than extend it. */
-      const clustered = {};
+      const clustered: Record<string, boolean> = {};
       for (const variant of objective === "cost" ? [0, 1, 2, 3] : [0]) {
-        for (const pick of objective === "cost"
-          ? ["cost", "parts"]
-          : [objective]) {
+        /* Named rather than written inline, so the two arms agree on a
+           objective and not merely on a string. */
+        const picks: Array<Objective> =
+          objective === "cost" ? ["cost", "parts"] : [objective];
+        for (const pick of picks) {
           /* Nothing variant 0 clustered past the cap, so variant 3 would rebuild
              the same chain. See the note above for why that is exact. */
           if (variant === 3 && !clustered[pick]) continue;
-          const chain = new Array(k),
-            sub = [];
+          const chain: Array<StageInChain> = new Array(k),
+            sub: Array<Solution> = [];
           let carried = payload,
             ok = true;
           for (let i = k - 1; i >= 0; i--) {
@@ -1273,7 +1424,7 @@ function solveUnit(p, k, shares) {
 }
 
 /* The whole search for one group, on this thread. */
-function solveGroup(input) {
+function solveGroup(input: GroupInput) {
   const p = prepare(input);
   return reduceUnits(
     unitsOf(input.minK, input.maxK).map((u) => solveUnit(p, u.k, u.shares)),
@@ -1283,7 +1434,13 @@ function solveGroup(input) {
 /* The same search, with the units handed to someone who can run them at the
    same time. `fanOut(p, units)` must resolve to their candidate lists **in unit
    order** — see reduceUnits for why. */
-async function solveGroupWith(input, fanOut) {
+async function solveGroupWith(
+  input: GroupInput,
+  fanOut: (
+    p: Prepared,
+    units: Array<{ k: number; shares: Array<number> }>,
+  ) => Promise<ReadonlyArray<ReadonlyArray<ChainCandidate> | null>>,
+) {
   const p = prepare(input);
   const units = unitsOf(input.minK, input.maxK);
   return reduceUnits(await fanOut(p, units));
@@ -1300,4 +1457,13 @@ export {
   solveStage,
   solveUnit,
   splitShares,
+};
+export type {
+  BoostOpt,
+  ChainCandidate,
+  GroupInput,
+  GroupResult,
+  Prepared,
+  StageInChain,
+  StageOpt,
 };

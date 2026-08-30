@@ -1,10 +1,28 @@
 import curvesData from "../data/curves.json";
 import bodiesData from "../data/bodies.json";
 
-const BODY = bodiesData.BODY;
+/* A KSP FloatCurve as the game stores it: one key per row, each
+   [x, value, inTangent, outTangent]. The rows stay plain number arrays because
+   that is what the JSON is; a fixed-length tuple would have to be asserted into
+   place at the import and would check nothing. */
+type Curve = ReadonlyArray<ReadonlyArray<number>>;
+
+/* A body with air: radius, surface gravity, rotation period, the altitude the
+   atmosphere ends at, molar mass, and the pressure and temperature curves. */
+type AtmoBody = {
+  R: number;
+  g0: number;
+  rot: number;
+  top: number;
+  M: number;
+  P: Curve;
+  T: Curve;
+};
+
+const BODY: Readonly<Record<string, AtmoBody>> = bodiesData.BODY;
 
 /* ---------- Hermite / FloatCurve ---------- */
-function evalCurve(keys, x) {
+function evalCurve(keys: Curve, x: number) {
   const n = keys.length;
   if (x <= keys[0][0]) return keys[0][1];
   if (x >= keys[n - 1][0]) return keys[n - 1][1];
@@ -26,7 +44,7 @@ function evalCurve(keys, x) {
 const Rgas = 8.31446;
 
 /* Precomputed atmosphere: pressure (kPa), density (kg/m3), speed of sound (m/s) */
-function makeAtmo(b) {
+function makeAtmo(b: AtmoBody) {
   const step = 20,
     n = Math.ceil(b.top / step) + 2;
   const P = new Float64Array(n),
@@ -40,7 +58,7 @@ function makeAtmo(b) {
     D[i] = (p * 1000 * b.M) / (Rgas * T);
     A[i] = Math.sqrt((1.4 * Rgas * T) / b.M);
   }
-  const get = (arr, h) => {
+  const get = (arr: Float64Array, h: number) => {
     if (h <= 0) return arr[0];
     if (h >= b.top) return 0;
     const f = h / step,
@@ -48,9 +66,9 @@ function makeAtmo(b) {
     return arr[i] + (arr[i + 1] - arr[i]) * (f - i);
   };
   return {
-    p: (h) => get(P, h),
-    rho: (h) => get(D, h),
-    a: (h) => Math.max(1, get(A, Math.min(h, b.top - 1))),
+    p: (h: number) => get(P, h),
+    rho: (h: number) => get(D, h),
+    a: (h: number) => Math.max(1, get(A, Math.min(h, b.top - 1))),
     P0: P[0],
   };
 }
@@ -59,13 +77,13 @@ function makeAtmo(b) {
    KSP stores atmosphereCurve as key=<atm> <Isp>; with the value-only form the
    tangents are zero, giving an ease-in/out spline rather than a straight line.
    Third key is the pressure at which the engine quits (3-12 atm in stock).  */
-function ispCurve(ispVac, ispAsl, cutoff = 6) {
+function ispCurve(ispVac: number, ispAsl: number, cutoff = 6) {
   const k = [
     [0, ispVac, 0, 0],
     [1, ispAsl, 0, 0],
     [cutoff, 0.001, 0, 0],
   ];
-  return (patm) => Math.max(0, evalCurve(k, patm));
+  return (patm: number) => Math.max(0, evalCurve(k, patm));
 }
 
 /* ---------- drag ----------
@@ -85,23 +103,31 @@ function ispCurve(ispVac, ispAsl, cutoff = 6) {
    This replaced a hand-calibrated curve that ran about a third of the real value
    transonic. Cube Cd itself comes from PartDatabase: 0.85 for a cylindrical tank
    face, 0.94 for a booster. */
-const DRAG_TIP = curvesData.DRAG_TIP;
-const DRAG_MULT = curvesData.DRAG_MULT;
-const DRAG_CD = curvesData.DRAG_CD;
-const DRAG_CD_POWER = curvesData.DRAG_CD_POWER;
-const DRAG_REYNOLDS = curvesData.DRAG_REYNOLDS;
+const DRAG_TIP: Curve = curvesData.DRAG_TIP;
+const DRAG_MULT: Curve = curvesData.DRAG_MULT;
+const DRAG_CD: Curve = curvesData.DRAG_CD;
+const DRAG_CD_POWER: Curve = curvesData.DRAG_CD_POWER;
+const DRAG_REYNOLDS: Curve = curvesData.DRAG_REYNOLDS;
 const DRAG_GLOBAL = 8.0 * 0.1;
 const CUBE_CD_STACK = 0.85; // a cylindrical tank face, from PartDatabase
 
 /* Only the leading face counts: everything behind it is occluded and goes
    through DRAG_SURFACE, which tops out at 0.02. Radial boosters sit outside the
    core's shadow, so they add their own. */
+/* Only what this reads of a stage in flight. The whole thing is built in
+   ascent.js, which imports this module — asking for no more than the two fields
+   used keeps the dependency pointing one way. */
+type DragStage = {
+  area: number;
+  boosters?: { n: number; area: number } | null;
+};
+
 function frontalArea(
-  stages,
-  iStage,
-  boostersOn,
+  stages: ReadonlyArray<DragStage>,
+  iStage: number,
+  boostersOn: boolean,
   payloadArea = 0,
-  boostersLeft = null,
+  boostersLeft: number | null = null,
 ) {
   /* The payload counts. On a small rocket it is often the widest thing aboard —
      a 1.25 m probe on 0.625 m tanks presents four times the tankage's area — and
@@ -119,7 +145,7 @@ function frontalArea(
   return A;
 }
 
-function cdOf(mach, rhoV = 100, cubeCd = CUBE_CD_STACK) {
+function cdOf(mach: number, rhoV = 100, cubeCd = CUBE_CD_STACK) {
   const base = Math.pow(
     evalCurve(DRAG_CD, cubeCd),
     evalCurve(DRAG_CD_POWER, mach),
@@ -133,11 +159,13 @@ function cdOf(mach, rhoV = 100, cubeCd = CUBE_CD_STACK) {
   );
 }
 
-const _atmoCache = {};
-const atmoFor = (n) => (_atmoCache[n] ||= makeAtmo(BODY[n]));
+type Atmo = ReturnType<typeof makeAtmo>;
+
+const _atmoCache: Record<string, Atmo> = {};
+const atmoFor = (n: string) => (_atmoCache[n] ||= makeAtmo(BODY[n]));
 /* Low orbit sits just clear of the air: 80 km at Kerbin, 60 at Duna and Laythe,
    100 at Eve. atmosphereDepth + 10 km reproduces all four. */
-const orbitAlt = (n) => BODY[n].top + 10000;
+const orbitAlt = (n: string) => BODY[n].top + 10000;
 
 /* Masses in the solver include everything stacked above, so strip the payload
    back out to get each stage on its own. Used for both the pad ascent and the
@@ -161,3 +189,4 @@ export {
   makeAtmo,
   orbitAlt,
 };
+export type { Atmo, AtmoBody, Curve, DragStage };
