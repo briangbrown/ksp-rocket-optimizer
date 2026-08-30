@@ -1,6 +1,7 @@
 import { DATA } from "../src/core/catalogue.js";
 import { withDeps } from "../src/core/tech.js";
 import { buildRoute } from "../src/core/orbits.js";
+import type { PlanInput } from "../src/core/plan.js";
 
 /* Inputs for the benchmarks.
 
@@ -9,7 +10,7 @@ import { buildRoute } from "../src/core/orbits.js";
    drifted apart, a measured improvement would stop meaning the designs were
    unchanged, which is the only reason these numbers can be trusted. */
 
-export const tierUnlocks = (lvl) =>
+export const tierUnlocks = (lvl: number) =>
   withDeps(
     DATA.nodes,
     new Set(
@@ -19,7 +20,7 @@ export const tierUnlocks = (lvl) =>
     ),
   );
 
-const roster = (lvl) => {
+const roster = (lvl: number) => {
   const unlocked = tierUnlocks(lvl);
   return {
     unlocked,
@@ -34,7 +35,7 @@ const roster = (lvl) => {
    defaults from ui/app.jsx: 2.5 t payload, land and return, cost, 10% margin.
    This is the number a user actually waits for; the grid is a CI-shaped
    workload and is roughly an order of magnitude larger. */
-export function missionInput(dest, lvl) {
+export function missionInput(dest: string, lvl: number): PlanInput {
   const { unlocked, engines, tanks } = roster(lvl);
   return {
     route: buildRoute(dest, "land", true, "Kerbin", true, false),

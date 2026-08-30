@@ -1,3 +1,6 @@
+import type { PlanStage } from "../src/core/plan.js";
+import type { ChainCandidate, GroupResult } from "../src/core/solver.js";
+
 /* Reducing a solved design to a stable text signature.
 
    The point is to notice any change at all, so this serialises whatever the
@@ -16,7 +19,12 @@
    (Math.exp, Math.pow) may differ in the last ulp across V8 builds, which is
    around 1e-13 on a delta-v of 3600 — far below the fourth decimal, so a
    different Node build cannot move a signature on its own. */
-const round = (x) => {
+/* What a canonicalised value can be. Numbers survive as themselves only where
+   they were never rounded — a Map's key — since `round` returns a string. */
+type Canon =
+  string | number | boolean | null | Array<Canon> | { [k: string]: Canon };
+
+const round = (x: number) => {
   if (!Number.isFinite(x)) return String(x); // NaN and Infinity are signal, not noise
   const r = Math.round(x * 1e4) / 1e4;
   return Object.is(r, -0) ? "0" : r.toFixed(4);
@@ -26,7 +34,7 @@ const round = (x) => {
    signature about which parts were chosen and in what quantity, rather than
    restating the part database on every line. A change to a part's mass still
    shows up, through the stage masses it feeds. */
-const canon = (v) => {
+const canon = (v: unknown): Canon => {
   if (v === null || v === undefined) return String(v);
   if (typeof v === "number") return round(v);
   if (typeof v === "string" || typeof v === "boolean") return v;
@@ -35,9 +43,14 @@ const canon = (v) => {
     return [...v.entries()].map(([k, x]) => [k, canon(x)]).sort();
   if (Array.isArray(v)) return v.map(canon);
   if (typeof v === "object") {
-    if (typeof v.n === "string") return v.n;
-    const out = {};
-    for (const k of Object.keys(v).sort()) out[k] = canon(v[k]);
+    /* Read back as a plain record rather than asserted into one: `unknown`
+       narrowed by `typeof` is an object with no properties as far as the
+       compiler is concerned, and this is a walker over anything the solver
+       returns. */
+    const rec: Record<string, unknown> = Object.fromEntries(Object.entries(v));
+    if (typeof rec.n === "string") return rec.n;
+    const out: Record<string, Canon> = {};
+    for (const k of Object.keys(rec).sort()) out[k] = canon(rec[k]);
     return out;
   }
   return String(v);
@@ -47,7 +60,9 @@ const canon = (v) => {
    expanded: the app reads it when walking candidates for one the simulator can
    fly, so its ordering and scores matter, but expanding every candidate in full
    would triple the file for little added coverage. */
-const candidateSummary = (byK) =>
+const candidateSummary = (
+  byK: ReadonlyArray<ChainCandidate> | null | undefined,
+) =>
   (byK ?? []).map(
     (c) =>
       `k=${c.k} score=${round(c.chainScore)} ar=${round(c.ar)} slim=${c.slim}`,
@@ -56,9 +71,12 @@ const candidateSummary = (byK) =>
 /* The same reduction, for what planMission delivers rather than what solveGroup
    found. Its output is stages, not a chain, and the stage count is itself a
    result — the walk chooses it — so it leads. */
-export function missionSignature(name, stages) {
+export function missionSignature(
+  name: string,
+  stages: ReadonlyArray<PlanStage> | null | undefined,
+) {
   if (!stages || !stages.length) return `## ${name}\n  NO DESIGN\n`;
-  const lines = [`## ${name}`, `  stages=${stages.length}`];
+  const lines: Array<string> = [`## ${name}`, `  stages=${stages.length}`];
   stages.forEach((s, i) => {
     lines.push(
       `  stage ${i}: launch=${!!s.isLaunch} payloadIn=${round(s.payloadIn)}`,
@@ -68,10 +86,10 @@ export function missionSignature(name, stages) {
   return lines.join("\n") + "\n";
 }
 
-export function signature(name, res) {
+export function signature(name: string, res: GroupResult | null) {
   if (!res) return `## ${name}\n  NO SOLUTION\n`;
 
-  const lines = [`## ${name}`];
+  const lines: Array<string> = [`## ${name}`];
   lines.push(
     `  total=${round(res.total)} k=${res.k} score=${round(res.chainScore)}`,
   );

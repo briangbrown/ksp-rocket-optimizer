@@ -1,3 +1,5 @@
+import type { Page } from "puppeteer";
+
 /* ---------------------------- reading the drawing ----------------------------
 
    Everything here runs inside the page and comes back as numbers. Sending the
@@ -114,7 +116,12 @@ export const LEAN = `
    begins on its own line, and `return` followed by a newline is `return
    undefined` — the arrow function is then dead code and the call fails with
    "not a function", a long way from the cause. */
-export const forCanvas = (page, fn, index, ...rest) =>
+export const forCanvas = (
+  page: Page,
+  fn: string,
+  index: number,
+  ...rest: Array<unknown>
+) =>
   page.evaluate(
     (src, i, args) =>
       new Function(`return (${src})`)()(

@@ -28,7 +28,7 @@ const MASS_EPS = 1e-4;
 
 describe("the stage manifest", () => {
   it("accounts for every part's mass, cost and count", async () => {
-    const bad = [];
+    const bad: Array<string> = [];
     for (const c of cases()) {
       const res = solveGroup(c.input);
       if (!res) continue;

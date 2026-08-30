@@ -23,6 +23,7 @@ vi.mock("../src/ui/solver-client.js", () => ({
 const { render, cleanup } = await import("@testing-library/react");
 const { act } = await import("react");
 const { settle } = await import("./app-harness.js");
+const { must } = await import("./must.js");
 const { default: KSPMissionPlanner } = await import("../src/ui/app.jsx");
 
 /* The one fixed, full-width layer above everything else. */
@@ -32,15 +33,18 @@ const bar = () =>
   );
 
 function fakeViewport() {
-  const listeners = {};
+  const listeners: Record<string, Array<() => void>> = {};
   const vv = {
     offsetTop: 0,
-    addEventListener: (type, fn) => ((listeners[type] ??= []).push(fn), null),
-    removeEventListener: (type, fn) => {
+    addEventListener: (type: string, fn: () => void) => (
+      (listeners[type] ??= []).push(fn),
+      null
+    ),
+    removeEventListener: (type: string, fn: () => void) => {
       listeners[type] = (listeners[type] ?? []).filter((f) => f !== fn);
     },
     /* Move the visible area, the way opening a keyboard does. */
-    async moveTo(top) {
+    async moveTo(top: number) {
       this.offsetTop = top;
       await act(async () => {
         for (const fn of listeners.resize ?? []) fn();
@@ -48,13 +52,16 @@ function fakeViewport() {
     },
     listeners,
   };
-  window.visualViewport = vv;
+  /* Two members of a VisualViewport, which is all the app reads of one. jsdom
+     implements none of it, so a stand-in is the only way to drive this at all
+     — and standing in for an interface is what an assertion is for. */
+  window.visualViewport = vv as unknown as VisualViewport;
   return vv;
 }
 
 afterEach(() => {
   cleanup();
-  delete window.visualViewport;
+  delete (window as { visualViewport?: unknown }).visualViewport;
 });
 
 describe("the solving bar", () => {
@@ -65,16 +72,18 @@ describe("the solving bar", () => {
 
     const el = bar();
     expect(el, "no fixed solving bar rendered").toBeTruthy();
-    expect(el.style.transform).toBe("translateY(0px)");
+    expect(must(el, "the solving bar").style.transform).toBe("translateY(0px)");
 
     await vv.moveTo(240);
     expect(
-      bar().style.transform,
+      must(bar(), "the solving bar").style.transform,
       "the bar stayed at the top of the layout viewport, which is off screen",
     ).toBe("translateY(240px)");
 
     await vv.moveTo(0);
-    expect(bar().style.transform).toBe("translateY(0px)");
+    expect(must(bar(), "the solving bar").style.transform).toBe(
+      "translateY(0px)",
+    );
   }, 60_000);
 
   it("unsubscribes on unmount", async () => {

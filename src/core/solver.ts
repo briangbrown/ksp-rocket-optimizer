@@ -113,7 +113,9 @@ type GroupResult = ChainCandidate & { byK: Array<ChainCandidate> };
 type GroupInput = {
   dv: number;
   payload: number;
-  payloadDia: number;
+  /* Absent where the caller has a payload mass and nothing else, which is what
+     `payloadDiaOf` falls back for — the design grid is one such caller. */
+  payloadDia?: number;
   engines: ReadonlyArray<Engine>;
   tanks: ReadonlyArray<Tank>;
   unlocked: Roster;

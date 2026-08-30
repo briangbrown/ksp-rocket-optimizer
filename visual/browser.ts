@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import puppeteer from "puppeteer";
+import type { Page } from "puppeteer";
 
 /* ------------------------- driving a real WebGL context -------------------------
 
@@ -53,7 +54,7 @@ export function browserPath() {
   );
 }
 
-const TYPES = {
+const TYPES: Readonly<Record<string, string>> = {
   ".html": "text/html",
   ".js": "text/javascript",
   ".css": "text/css",
@@ -65,9 +66,9 @@ const TYPES = {
    module worker and a file:// origin is opaque, so the worker never starts and
    nothing is ever solved to draw. */
 export async function serve(root = "dist") {
-  const missed = [];
+  const missed: Array<string> = [];
   const server = createServer(async (req, res) => {
-    const url = new URL(req.url, "http://localhost");
+    const url = new URL(req.url ?? "/", "http://localhost");
     const rel = normalize(url.pathname).replace(/^(\.\.[/\\])+/, "");
     /* The browser asks for this unprompted and the build ships none, so
        without an answer every run logs a console error that has nothing to do
@@ -85,11 +86,17 @@ export async function serve(root = "dist") {
       res.writeHead(404).end("not found");
     }
   });
-  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  await new Promise<void>((r) => {
+    server.listen(0, "127.0.0.1", () => r());
+  });
+  const at = server.address();
+  /* A TCP listener always reports an object; the string form is a unix socket,
+     which this never asks for. */
+  const port = at && typeof at === "object" ? at.port : 0;
   return {
-    url: `http://127.0.0.1:${server.address().port}/`,
+    url: `http://127.0.0.1:${port}/`,
     missed,
-    close: () => new Promise((r) => server.close(r)),
+    close: () => new Promise<void>((r) => server.close(() => r())),
   };
 }
 
@@ -98,7 +105,7 @@ export async function serve(root = "dist") {
    to lay it out at — is invisible, because the two numbers agree. */
 export const SCALE = 2;
 
-export async function open(url) {
+export async function open(url: string) {
   const browser = await puppeteer.launch({
     executablePath: browserPath(),
     args: ARGS,
@@ -113,7 +120,7 @@ export async function open(url) {
   /* Anything the page complains about is a failure here. A shader that will not
      compile logs and draws nothing; there is no exception to catch and no
      element to inspect, so the console is the only witness. */
-  const problems = [];
+  const problems: Array<string> = [];
   page.on("console", (m) => {
     if (m.type() === "error") problems.push(m.text());
   });
@@ -126,7 +133,7 @@ export async function open(url) {
 /* The veil is always mounted and only changes opacity, so the pulse animation
    on the dot is the honest "still solving" signal — the same reading
    `test/app-harness.js` takes in jsdom, for the same reason. */
-export async function settle(page, timeout = 120_000) {
+export async function settle(page: Page, timeout = 120_000) {
   await page.waitForFunction(
     () => !document.querySelector('[style*="pulse"]'),
     { timeout, polling: 200 },

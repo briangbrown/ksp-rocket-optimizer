@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { act } from "react";
+import { must } from "./must.js";
 import KSPMissionPlanner from "../src/ui/app.jsx";
 import {
   settle,
@@ -35,8 +36,6 @@ import {
    researched. Both are gaps, listed here so the next person knows the sweep is
    not exhaustive rather than assuming it is. */
 
-let base;
-
 async function mount() {
   render(<KSPMissionPlanner />);
   await settle();
@@ -56,16 +55,16 @@ const numericFields = () =>
     (i) => i.type !== "range" && i.type !== "checkbox",
   );
 
-function typeInto(input, value) {
-  const setter = Object.getOwnPropertyDescriptor(
-    HTMLInputElement.prototype,
-    "value",
-  ).set;
+function typeInto(input: HTMLInputElement, value: number | string) {
+  const setter = must(
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set,
+    "the native value setter",
+  );
   setter.call(input, String(value));
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-async function setField(input, value) {
+async function setField(input: HTMLInputElement, value: number | string) {
   await act(async () => {
     typeInto(input, value);
     input.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
@@ -73,10 +72,6 @@ async function setField(input, value) {
 }
 
 describe("a control change re-solves", () => {
-  beforeAll(() => {
-    base = null;
-  });
-
   it("a stage cut changes the design", async () => {
     /* The one that broke. Cuts reach the solver through effCuts, which reaches
        planMission as an array of indices. */

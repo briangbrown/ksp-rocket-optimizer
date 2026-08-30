@@ -4,6 +4,7 @@ import { fitStructure } from "../src/core/tanks.js";
 import { ispAt } from "../src/core/performance.js";
 import { DATA } from "../src/core/catalogue.js";
 import { withDeps } from "../src/core/tech.js";
+import { must } from "./must.js";
 
 /* The solver caches results in several places. Every one of them is a chance to
    answer for the wrong roster, and the design snapshot cannot catch it — the
@@ -14,8 +15,14 @@ import { withDeps } from "../src/core/tech.js";
    because nothing exercised the code it broke. These tests exercise it. */
 
 const all = () => withDeps(DATA.nodes, new Set(Object.keys(DATA.nodes)));
-const spark = DATA.engines.find((e) => e.n.includes("Spark"));
-const thumper = DATA.engines.find((e) => e.n.includes("Thumper"));
+const spark = must(
+  DATA.engines.find((e) => e.n.includes("Spark")),
+  "the Spark",
+);
+const thumper = must(
+  DATA.engines.find((e) => e.n.includes("Thumper")),
+  "the Thumper",
+);
 
 describe("couplerFor cache", () => {
   it("answers per expansions, with the roster objects unchanged", () => {
@@ -23,59 +30,59 @@ describe("couplerFor cache", () => {
        but leaves the `unlocked` and `excluded` Sets alone. A cache keyed on
        those two identities alone serves the previous answer. */
     const unlocked = all();
-    const excluded = new Set();
+    const excluded = new Set<string>();
     const rs = { mh: false, rs: true };
     const noRs = { mh: false, rs: false };
 
-    expect(couplerFor(spark, 2, unlocked, excluded, false, rs).n).toBe(
+    expect(couplerFor(spark, 2, unlocked, excluded, false, rs)?.n).toBe(
       "EP-12 Engine Plate",
     );
     expect(couplerFor(spark, 2, unlocked, excluded, false, noRs)).toBeNull();
     /* and back, so a stale entry in either direction fails */
-    expect(couplerFor(spark, 2, unlocked, excluded, false, rs).n).toBe(
+    expect(couplerFor(spark, 2, unlocked, excluded, false, rs)?.n).toBe(
       "EP-12 Engine Plate",
     );
 
-    expect(couplerFor(thumper, 2, unlocked, excluded, false, rs).n).toBe(
+    expect(couplerFor(thumper, 2, unlocked, excluded, false, rs)?.n).toBe(
       "EP-18 Engine Plate",
     );
-    expect(couplerFor(thumper, 2, unlocked, excluded, false, noRs).n).toBe(
+    expect(couplerFor(thumper, 2, unlocked, excluded, false, noRs)?.n).toBe(
       "TVR-200 Stack Bi-Coupler",
     );
   });
 
   it("answers per excluded set", () => {
     const unlocked = all();
-    const none = new Set();
+    const none = new Set<string>();
     const banned = new Set(["TVR-200 Stack Bi-Coupler"]);
     const noRs = { mh: false, rs: false };
 
     const before = couplerFor(thumper, 2, unlocked, none, false, noRs);
-    expect(before.n).toBe("TVR-200 Stack Bi-Coupler");
+    expect(before?.n).toBe("TVR-200 Stack Bi-Coupler");
     const after = couplerFor(thumper, 2, unlocked, banned, false, noRs);
     expect(after && after.n).not.toBe("TVR-200 Stack Bi-Coupler");
   });
 
   it("answers per noPlate", () => {
     const unlocked = all();
-    const excluded = new Set();
+    const excluded = new Set<string>();
     const rs = { mh: false, rs: true };
-    expect(couplerFor(thumper, 2, unlocked, excluded, false, rs).n).toBe(
+    expect(couplerFor(thumper, 2, unlocked, excluded, false, rs)?.n).toBe(
       "EP-18 Engine Plate",
     );
     expect(
-      couplerFor(thumper, 2, unlocked, excluded, true, rs).n,
+      couplerFor(thumper, 2, unlocked, excluded, true, rs)?.n,
     ).not.toContain("Engine Plate");
   });
 });
 
 describe("fitStructure cache", () => {
-  const tanks = (unlocked) =>
+  const tanks = (unlocked: ReadonlySet<string>) =>
     DATA.tanks.filter((t) => (!t.t || unlocked.has(t.t)) && !t.mh && !t.rs);
 
   it("answers per expansions, with the roster objects unchanged", () => {
     const unlocked = all();
-    const excluded = new Set();
+    const excluded = new Set<string>();
     const tk = tanks(unlocked);
     const base = {
       engine: thumper,
@@ -119,7 +126,7 @@ describe("fitStructure cache", () => {
       stackD: 2.5,
       tanks: tanks(early),
       unlocked: early,
-      excluded: new Set(),
+      excluded: new Set<string>(),
       expansions: exp,
     });
     const b = fitStructure({
@@ -128,7 +135,7 @@ describe("fitStructure cache", () => {
       stackD: 2.5,
       tanks: tanks(late),
       unlocked: late,
-      excluded: new Set(),
+      excluded: new Set<string>(),
       expansions: exp,
     });
     expect(a && a.dec.n).not.toBe(b && b.dec.n);
@@ -143,13 +150,19 @@ describe("fitStructure cache", () => {
       stackD: 1.25,
       tanks: tk,
       unlocked,
-      excluded: new Set(),
+      excluded: new Set<string>(),
       expansions: { mh: false, rs: false },
     };
     /* plateAbove zeroes the decoupler count; if the flag were missing from the
        key the second call would return the first's answer. */
-    const normal = fitStructure({ ...base, plateAbove: false });
-    const plated = fitStructure({ ...base, plateAbove: true });
+    const normal = must(
+      fitStructure({ ...base, plateAbove: false }),
+      "a fit without a plate above",
+    );
+    const plated = must(
+      fitStructure({ ...base, plateAbove: true }),
+      "a fit with a plate above",
+    );
     expect(normal.dec.qty).toBeGreaterThan(0);
     expect(plated.dec.qty).toBe(0);
   });
@@ -157,7 +170,10 @@ describe("fitStructure cache", () => {
 
 describe("ispAt cache", () => {
   it("answers per pressure", () => {
-    const e = DATA.engines.find((x) => x.n.includes("Thumper"));
+    const e = must(
+      DATA.engines.find((x) => x.n.includes("Thumper")),
+      "the Thumper",
+    );
     const vac = ispAt(e, 0);
     const sea = ispAt(e, 1);
     expect(sea).toBeLessThan(vac);
@@ -166,8 +182,14 @@ describe("ispAt cache", () => {
   });
 
   it("answers per engine", () => {
-    const a = DATA.engines.find((x) => x.n.includes("Spark"));
-    const b = DATA.engines.find((x) => x.n.includes("Thumper"));
+    const a = must(
+      DATA.engines.find((x) => x.n.includes("Spark")),
+      "the Spark",
+    );
+    const b = must(
+      DATA.engines.find((x) => x.n.includes("Thumper")),
+      "the Thumper",
+    );
     expect(ispAt(a, 0.5)).not.toBe(ispAt(b, 0.5));
   });
 });

@@ -21,23 +21,10 @@ import type {
 /* One shape. A cylinder standing on the stack axis or on a ring around it:
    where its base sits, how wide, how tall, and what it is.
 
-   `part` is absent on a shape that stands for no single part — a level of a
-   packed ring is drawn as the column it belongs to. `rTop` is set only where
-   the shape tapers, which today is the payload alone. `stage` is stamped on by
-   `modelOf` as it walks, and the payload has none because it belongs to no
-   stage. */
-type ModelRole =
-  | "engine"
-  | "coupler"
-  | "adapter"
-  | "tank"
-  | "decoupler"
-  | "booster"
-  | "payload";
-
-type ModelPart = {
-  role: ModelRole;
-  part?: Tank | Engine | Coupler | Shroud | DecouplerFit | BoosterPart | null;
+   `rTop` is set only where the shape tapers, which today is the payload alone.
+   `stage` is stamped on by `modelOf` as it walks, and the payload has none
+   because it belongs to no stage. */
+type Shape = {
   x: number;
   z: number;
   y: number;
@@ -46,6 +33,26 @@ type ModelPart = {
   rTop?: number;
   stage?: number;
 };
+
+/* Discriminated on the role, because which part a shape stands for follows
+   from the job it is doing: a booster shape carries whatever the ring is made
+   of, and only that one knows about columns. Written as one wide `part` it was
+   a union every reader had to re-narrow by hand, and by the wrong question —
+   asking whether a part has a `column` field finds the liquid ones and misses
+   every solid booster in the game.
+
+   A tank has no part where it is a level of a packed ring, which is drawn as
+   the column it belongs to rather than as any one tank. */
+type ModelPart =
+  | (Shape & { role: "engine"; part: Engine })
+  | (Shape & { role: "coupler"; part: Coupler | Shroud | null })
+  | (Shape & { role: "adapter"; part: Tank })
+  | (Shape & { role: "tank"; part?: Tank })
+  | (Shape & { role: "decoupler"; part: DecouplerFit | null })
+  | (Shape & { role: "booster"; part: BoosterPart })
+  | (Shape & { role: "payload" });
+
+type ModelRole = ModelPart["role"];
 
 /* The rocket as solid shapes, in metres.
 

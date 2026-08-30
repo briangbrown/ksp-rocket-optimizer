@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { solveGroup, solveGroupWith } from "../src/core/solver.js";
 import { cases } from "./grid.js";
 import { signature } from "./signature.js";
+import { must } from "./must.js";
+import type { ChainCandidate, Prepared } from "../src/core/solver.js";
 
 /* Sharding the search must not change the answer.
 
@@ -15,14 +17,20 @@ import { signature } from "./signature.js";
    path and the sharded one is never executed. This runs it with a fake pool:
    real concurrency is not the point, the fold is. */
 
-const hot = cases().find((c) => c.name === "tier9-pay3.5-dv5400-cost").input;
+const hot = must(
+  cases().find((c) => c.name === "tier9-pay3.5-dv5400-cost"),
+  "the tier9-pay3.5-dv5400-cost case",
+).input;
 
 /* Resolves every unit before returning any of them, deliberately finishing
    them in reverse, and hands them back in unit order — which is what a real
    pool doing dynamic hand-out has to do. */
-const shuffled = async (p, units) => {
+const shuffled = async (
+  p: Prepared,
+  units: Array<{ k: number; shares: Array<number> }>,
+) => {
   const { solveUnit } = await import("../src/core/solver.js");
-  const out = new Array(units.length);
+  const out = new Array<Array<ChainCandidate>>(units.length);
   for (let i = units.length - 1; i >= 0; i--)
     out[i] = await Promise.resolve().then(() =>
       solveUnit(p, units[i].k, units[i].shares),
@@ -46,17 +54,23 @@ describe("the sharded search", () => {
        Tested on made-up candidates rather than by hunting for a tie in the
        grid: the heaviest case has none, so a real-data version of this passes
        whether or not the ordering is honoured, which is worse than no test. */
-    const twin = (total) => [
+    const twin = (total: number): Array<ChainCandidate> => [
       { chain: [], total, k: 2, chainScore: 100, ar: 5, slim: true },
     ];
-    const first = await solveGroupWith(hot, async () => [twin(1), twin(2)]);
-    const second = await solveGroupWith(hot, async () => [twin(2), twin(1)]);
+    const first = must(
+      await solveGroupWith(hot, async () => [twin(1), twin(2)]),
+      "a folded result",
+    );
+    const second = must(
+      await solveGroupWith(hot, async () => [twin(2), twin(1)]),
+      "a folded result",
+    );
     expect(first.total).toBe(1);
     expect(second.total).toBe(2);
   }, 120_000);
 
   it("passes every unit exactly once, and nothing else", async () => {
-    const seen = [];
+    const seen: Array<string> = [];
     await solveGroupWith({ ...hot, minK: 1, maxK: 4 }, async (p, units) => {
       const { solveUnit } = await import("../src/core/solver.js");
       for (const u of units) seen.push(`k=${u.k}:${u.shares.length}`);

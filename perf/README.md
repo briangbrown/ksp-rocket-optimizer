@@ -32,7 +32,7 @@ supposed to be behaviour-preserving, so `test/__snapshots__/designs.txt` must co
 out byte-identical. A faster solver that picks different rockets is not a faster
 solver — it is a different solver, and an unverified one.
 
-The grid imports its cases from `test/grid.js` rather than defining its own, so
+The grid imports its cases from `test/grid.ts` rather than defining its own, so
 the thing being timed is exactly the thing the snapshot pins. Do not fork it.
 
 ## Reading the numbers
@@ -64,7 +64,7 @@ recipe, when you need it:
 
 1. Add a module-level `export const PERF = { calls: 0, keys: new Set() }`.
 2. In the function, `PERF.calls++` and `PERF.keys.add(<the arguments>)`.
-3. Import `PERF` in `run.js` and print it at the end.
+3. Import `PERF` in `run.ts` and print it at the end.
 4. Revert before committing.
 
 The ratio of calls to distinct keys is what tells you whether something is a
@@ -82,7 +82,7 @@ node perf/profile.mjs <profile>          # self time per function
 node perf/profile.mjs <a> <b>            # two profiles side by side
 ```
 
-**A CPU profile will not find an allocation problem.** `simplify` in `tanks.js`
+**A CPU profile will not find an allocation problem.** `simplify` in `tanks.ts`
 is 84% of everything the solver allocates and 0.5% of its CPU time — cheap work
 and expensive garbage, invisible to sampling by time. `--heap-prof` attributes
 allocation by function instead. Read it with:
@@ -161,7 +161,7 @@ To measure a roster the tier chips do not describe:
 npm run perf:config          # prints a KSP-PLANNER string, tier 9, Mun
 ```
 
-Paste it into **Load configuration**. `test/perf-config.test.js` keeps that
+Paste it into **Load configuration**. `test/perf-config.test.ts` keeps that
 string honest — `parseConfig` counts unrecognised fields rather than failing, so
 a rename would leave you measuring the defaults and not knowing.
 

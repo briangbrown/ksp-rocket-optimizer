@@ -1,6 +1,9 @@
 import { DATA } from "../src/core/catalogue.js";
 import { withDeps } from "../src/core/tech.js";
 import { buildRoute } from "../src/core/orbits.js";
+import type { Objective } from "../src/core/performance.js";
+import type { PlanInput } from "../src/core/plan.js";
+import type { GroupInput } from "../src/core/solver.js";
 
 /* The grid the design snapshot solves.
 
@@ -12,7 +15,7 @@ import { buildRoute } from "../src/core/orbits.js";
 /* Tech tiers, as the tech-tree slider produces them: every node at or below a
    level, plus whatever those nodes depend on. Level 3 is roughly early career,
    5 mid, 9 most of the tree unlocked. */
-const tierUnlocks = (lvl) =>
+const tierUnlocks = (lvl: number) =>
   withDeps(
     DATA.nodes,
     new Set(
@@ -25,25 +28,25 @@ const tierUnlocks = (lvl) =>
 export const TIERS = [3, 5, 9];
 export const PAYLOADS = [0.8, 3.5, 12];
 export const DV_BUDGETS = [3600, 5400, 9000];
-export const OBJECTIVES = ["mass", "cost", "parts"];
+export const OBJECTIVES: ReadonlyArray<Objective> = ["mass", "cost", "parts"];
 
 /* Slenderness pairs with payload rather than multiplying out: a 14:1 limit is
    the interesting case on a light payload, where the solver wants a pencil, and
    uninteresting on a heavy one that is squat regardless. */
-const aspectFor = (payload) => (payload <= 1 ? 14 : Infinity);
+const aspectFor = (payload: number) => (payload <= 1 ? 14 : Infinity);
 
 /* Stock parts only. Making History is excluded from the app entirely and
    ReStock+ is a user toggle; pinning both off keeps the snapshot a statement
    about the solver rather than about the part roster. */
-const enginesFor = (unlocked) =>
+const enginesFor = (unlocked: ReadonlySet<string>) =>
   DATA.engines.filter((e) => unlocked.has(e.t) && !e.mh && !e.rs);
 
-const tanksFor = (unlocked) =>
+const tanksFor = (unlocked: ReadonlySet<string>) =>
   DATA.tanks.filter((t) => (!t.t || unlocked.has(t.t)) && !t.mh && !t.rs);
 
 /* One case per combination, named so a failure says which design moved. */
 export function cases() {
-  const out = [];
+  const out: Array<{ name: string; input: GroupInput }> = [];
   for (const tier of TIERS) {
     const unlocked = tierUnlocks(tier);
     const engines = enginesFor(unlocked);
@@ -60,7 +63,7 @@ export function cases() {
               engines,
               tanks,
               unlocked,
-              excluded: new Set(),
+              excluded: new Set<string>(),
               needGimbal: false,
               maxAspect: aspectFor(payload),
               expansions: null,
@@ -107,7 +110,7 @@ export const MISSION_PAYLOADS = [0.8, 3.5, 12];
    would see. ui/app.jsx is the authority for every one of these. */
 export function missionCases() {
   const unlocked = tierUnlocks(9);
-  const out = [];
+  const out: Array<{ name: string; input: PlanInput }> = [];
   for (const dest of MISSIONS)
     for (const payload of MISSION_PAYLOADS)
       out.push({

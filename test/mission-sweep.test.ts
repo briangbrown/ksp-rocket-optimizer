@@ -3,6 +3,7 @@ import { planMission } from "../src/core/plan.js";
 import { missionCases } from "./grid.js";
 import { missionSignature } from "./signature.js";
 import { stageGeom } from "../src/core/geometry.js";
+import type { PlanStage } from "../src/core/plan.js";
 
 /* The design the application actually delivers.
 
@@ -32,8 +33,8 @@ import { stageGeom } from "../src/core/geometry.js";
 
    Panel containment cannot see this. Every one of those parts was inside its
    panel; they were just inside it on top of one another. */
-function intersecting(stages) {
-  const bad = [];
+function intersecting(stages: ReadonlyArray<PlanStage>) {
+  const bad: Array<string> = [];
   stages.forEach((st, i) => {
     if (!st.sol) return;
     const S = st.sol.stacks || 1;

@@ -19,6 +19,9 @@ import type { Solution } from "../../core/solution.js";
    panel here works on what is left. */
 type SolvedStage = PlanStage & { sol: Solution };
 const isSolved = (s: PlanStage): s is SolvedStage => s.sol !== null;
+const hasSol = <S extends { sol: Solution | null }>(
+  s: S,
+): s is S & { sol: Solution } => s.sol !== null;
 
 /* One step of the stepper: what has been staged away, and whether what is left
    still has its boosters on. */
@@ -315,7 +318,10 @@ function StageStack({ stages, color, splitBy, onSetSplit }: StageStackProps) {
    collapse; closed, it shows what is selected and a way back in. The two pickers
    differ only in where they start — origin closed, destination open. */
 type PartsTableProps = {
-  stages: ReadonlyArray<PlanStage>;
+  /* Only the solved design of each: this table is a bill of parts and reads
+     nothing else off a stage. Asking for no more is what lets a test hand it a
+     stage without inventing a route for it. */
+  stages: ReadonlyArray<{ sol: Solution | null }>;
   payload: number;
   hardware?: Hardware | null;
   color: string;
@@ -350,7 +356,7 @@ function PartsTable({ stages, payload, hardware, color }: PartsTableProps) {
   const rows: Array<Row> = [];
   const solved = stages
     .map((s, i) => ({ s, n: i + 1 }))
-    .filter((x): x is { s: SolvedStage; n: number } => isSolved(x.s));
+    .filter((x): x is { s: { sol: Solution }; n: number } => hasSol(x.s));
   [...solved].reverse().forEach(({ s, n }) => {
     /* One list, from core, and the numbers below are read off it rather than
        worked out again beside it. That is the whole of #62: this table was the
@@ -1451,5 +1457,5 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
   );
 }
 
-export { AscentPanel, BuildView, PartsTable, StageStack };
+export { AscentPanel, BuildView, PartsTable, StageStack, isSolved };
 export type { Ascent, Hardware, SolvedStage, Step };

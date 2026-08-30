@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { planMission } from "../src/core/plan.js";
 import { DATA } from "../src/core/catalogue.js";
 import { withDeps } from "../src/core/tech.js";
+import { must } from "./must.js";
+import type { PlanInput } from "../src/core/plan.js";
 import { buildRoute } from "../src/core/orbits.js";
 
 /* The seam contract.
@@ -16,7 +18,7 @@ import { buildRoute } from "../src/core/orbits.js";
    stops being portable — with nothing failing until the day someone tries to
    move it. These tests are what makes it fail on the day it breaks instead. */
 
-const tierUnlocks = (lvl) =>
+const tierUnlocks = (lvl: number) =>
   withDeps(
     DATA.nodes,
     new Set(
@@ -26,7 +28,7 @@ const tierUnlocks = (lvl) =>
     ),
   );
 
-function sampleInput() {
+function sampleInput(): PlanInput {
   const unlocked = tierUnlocks(5);
   const engines = DATA.engines.filter(
     (e) => unlocked.has(e.t) && !e.mh && !e.rs,
@@ -65,8 +67,12 @@ function sampleInput() {
    several places; that is a shared reference, which JSON
    handles by duplicating it. Only an object containing itself is a cycle, and
    only that breaks serialisation. */
-function unserialisable(value, path = "input", ancestors = new Set()) {
-  const bad = [];
+function unserialisable(
+  value: unknown,
+  path = "input",
+  ancestors: ReadonlySet<unknown> = new Set(),
+): Array<string> {
+  const bad: Array<string> = [];
   if (value === null || typeof value !== "object") {
     if (typeof value === "function") bad.push(`${path}: function`);
     if (typeof value === "undefined") bad.push(`${path}: undefined`);
@@ -100,13 +106,13 @@ describe("seam contract", () => {
     /* Not just serialisable in principle — the same input must produce the same
        plan after a round trip, which is what a worker would actually deliver. */
     const viaJson = JSON.parse(JSON.stringify(input));
-    const a = await planMission(input);
-    const b = await planMission(viaJson);
+    const a = must(await planMission(input), "a plan");
+    const b = must(await planMission(viaJson), "a plan from the round trip");
     expect(JSON.stringify(b.stages)).toEqual(JSON.stringify(a.stages));
   }, 300_000);
 
   it("returns a result that survives JSON", async () => {
-    const result = await planMission(sampleInput());
+    const result = must(await planMission(sampleInput()), "a plan");
     expect(result.stages.length).toBeGreaterThan(0);
     expect(unserialisable(result, "result")).toEqual([]);
     expect(JSON.parse(JSON.stringify(result))).toEqual(result);
