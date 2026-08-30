@@ -216,16 +216,34 @@ function stageParts(sol, base, push) {
        both — nine carry boosters, five carry a ring, none carries both — so the
        clearance is reasoned rather than checked, and it is here because the
        placement is wrong without it, not because a test went red. */
+
     const hold = Math.max(g.td, g.pack ? g.pack.w : 0);
     const br = (S > 1 ? g.ringR : hold / 2) + bd / 2;
-    /* A booster bolts to the tank, so its foot goes where the tanks start —
-       unless the engine below carries its own propellant, in which case it is
-       a tank as much as an engine and the booster bolts straight to it. The
-       Twin-Boar is one part with 32 t of fuel in it; a solid booster used as
-       the core is another, and there are thirteen of those. Those stages align
-       at the base, which is also what a stage with no tanks at all has to do. */
-    const fuelled = (sol.engine.fuelM || 0) > 0;
-    const foot = g.tank > 0 && !fuelled ? tankBase : base;
+    /* Its foot goes as low as the stage still reaches out to meet it.
+
+       A booster bolts to whatever is beside it, and below the tanks a stage
+       may keep its width or lose it. Three Mammoths on an EP-50 plate are as
+       wide as the Kerbodyne tanks above them, so a Clydesdale runs right down
+       past them and its nozzle lines up with theirs. A 0.29 m engine under a
+       1.25 m tank does not, and a booster standing on the base beside it hangs
+       against nothing — which is what #86 was.
+
+       So walk down from the tanks through the adapters, the coupler and the
+       engines, and stop at the first section too narrow to touch. That is one
+       rule for both, and it takes in the fuelled engines as well without
+       naming them: a Twin-Boar carries 32 t of propellant and is 2.75 m across
+       against a 2.5 m stack, so it is wide enough on its own terms. */
+    const sections = [
+      { h: g.engine, reach: clusterSpan(g.perEng, g.ed) / 2 },
+      { h: g.coupler, reach: sol.coupler ? sol.coupler.top / 2 : 0 },
+      ...g.adapters.map((a2) => ({ h: a2.h, reach: a2.w / 2 })),
+    ];
+    let foot = tankBase;
+    for (let k = sections.length - 1; k >= 0; k--) {
+      if (sections[k].h <= 0) continue;
+      if (sections[k].reach < hold / 2) break;
+      foot -= sections[k].h;
+    }
     /* Its real length, uncapped. It was truncated to the run it is bolted to,
        which is a part drawn at a size it is not — and it never needed to be:
        every booster the mission grid picks is shorter than the tanks it hangs
