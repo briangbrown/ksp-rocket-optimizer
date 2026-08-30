@@ -27,7 +27,7 @@ import { BodyPicker, RouteMap } from "./components/route.jsx";
 import { parseConfig } from "./config.js";
 import { craftName, fmt } from "./format.js";
 import { loadRoster, saveRoster } from "./storage.js";
-import { BODY_HUE, C, edgeOf } from "./tokens.js";
+import { BODY_HUE, C, FONT, edgeOf } from "./tokens.js";
 import type { Objective } from "../core/performance.js";
 import type { PlanStage } from "../core/plan.js";
 import type { Tally } from "../core/tally.js";
@@ -600,7 +600,7 @@ export default function KSPMissionPlanner() {
         background: C.ink,
         color: C.paper,
         minHeight: "100vh",
-        fontFamily: "'Inter',system-ui,-apple-system,sans-serif",
+        fontFamily: FONT,
         padding: "0 0 60px",
       }}
     >
@@ -1504,11 +1504,10 @@ export default function KSPMissionPlanner() {
             </section>
           )}
 
+          {/* The heading lives in BuildView now, with the full-screen button
+              beside it, so the overlay carries its own title. #99 */}
           {stages.some((x) => x.sol) && (
             <section className="card" style={{ padding: 16 }}>
-              <div className="eyebrow" style={{ marginBottom: 12 }}>
-                Build · step through the staging
-              </div>
               <BuildView
                 stages={stages}
                 payload={payload}

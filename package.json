@@ -29,6 +29,7 @@
     "perf:heap": "npm run perf:build && node --heap-prof --heap-prof-dir=perf/.prof perf/.out/run.js grid"
   },
   "dependencies": {
+    "lucide-react": "^1.37.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "three": "^0.185.1"

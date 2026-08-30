@@ -33,6 +33,13 @@ const C = {
   onDark: "#F2EFE9",
 };
 
+/* The type stack, here with the palette because it is the same kind of
+   decision — and because the build view's full-screen overlay is rendered
+   through a portal to `document.body`. That is a second root, outside the one
+   that sets this, and `button { font-family: inherit }` in the style block
+   inherits the browser's default there rather than Inter. #99 */
+const FONT = "'Inter',system-ui,-apple-system,sans-serif";
+
 const BODY_HUE: Readonly<Record<string, string>> = {
   Moho: "#EEB688",
   Eve: "#6C20E4",
@@ -80,4 +87,4 @@ const SYSTEMS: ReadonlyArray<[string, Array<string>]> = [
   ["Eeloo", []],
 ];
 
-export { BODY_HUE, C, SYSTEMS, edgeOf, hueFor, inkOn, lift, lumOf, rgbOf };
+export { BODY_HUE, C, FONT, SYSTEMS, edgeOf, hueFor, inkOn, lift, lumOf, rgbOf };

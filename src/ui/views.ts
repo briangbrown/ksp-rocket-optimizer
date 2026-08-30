@@ -148,4 +148,67 @@ export function cameraFor(view: string, extent: Extent, aspect: number) {
   };
 }
 
+/* ------------------------------ how big the box is ------------------------------
+
+   `framing` above says how much of the model a view has to cover. This is the
+   same question from the other side: how much room there is to cover it in.
+
+   The elevation is the drawing — it is the rocket — so it takes the height it
+   is offered, and the plan is a square beside it no wider than the elevation.
+   Where the two do not fit across, both shrink by the same factor.
+
+   Worth knowing why the height is not always filled. The plan is square,
+   because what it shows is a disc: a taller panel would draw the same disc at
+   the same size with empty space above and below it. It is drawn at the foot
+   of its column so that its base and the elevation's line up, which is what
+   the row's own bottom edge is.
+
+   No DOM and no three.js, so `test/three-view.test.ts` can pin it the way it
+   already pins `fitOrtho`. #99 */
+
+/* A pencil seen edge-on is a few pixels wide at any sensible height, and a
+   panel that narrow is not a drawing.
+
+   The floor is what it is because a column is never narrower than its own
+   label: "Elevation" and the Iso chip beside it run to about 110 px, and a
+   panel narrower than that widens the column anyway — the arithmetic here then
+   describes a row that does not fit, and the drawings spill past the card.
+   Below the floor the model is drawn at full height with air either side of
+   it, which is what `fitOrtho` does with a panel wider than the shape in it. */
+const MIN_PANEL = 120;
+
+export function panelSizes(
+  { aw, ah }: { aw: number; ah: number },
+  /* The elevation's own width over its height, in metres. */
+  aspect: number,
+  gap: number,
+) {
+  const across = Math.max(1, aw - gap);
+  const tall = Math.max(1, ah);
+
+  /* The elevation takes the height it is offered: the drawing it holds is the
+     rocket. Its width follows from the model's own proportions. */
+  let eh = tall;
+  let ew = Math.max(MIN_PANEL, eh * aspect);
+
+  /* The plan is square, and never wider than the elevation. It is the
+     supporting view — what is bolted where, seen from underneath — and given
+     the width it could take, a pencil's plan came out two and a half times the
+     width of the elevation beside it and read as the main drawing. */
+  let ps = Math.min(ew, tall);
+
+  /* Where the two do not fit across, both shrink by the same factor, so the
+     row keeps its proportions rather than one view eating the other. A squat
+     stage is the case that needs it: at full height its elevation alone would
+     be wider than the window. */
+  const over = (ew + ps) / across;
+  if (over > 1) {
+    ew /= over;
+    eh /= over;
+    ps /= over;
+  }
+  return { elev: { w: ew, h: eh }, plan: { w: ps, h: ps } };
+}
+
+export { MIN_PANEL };
 export type { Extent, Vec3, View };
