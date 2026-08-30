@@ -386,6 +386,17 @@ implying CI covered it.
   `cameraFor` now returns the position, the frustum and the depth window
   together, so the axis that places the camera is the axis its depth is measured
   along.
+- **A line exists only where the model has two parts.** Surface ids find the
+  seam between two tanks of the same diameter, which nothing else can — but only
+  if there are two of them to have ids. The drawing put a whole tank run down as
+  a single cylinder, so a stage of five identical tanks came out as one tube
+  with no seams, while a packed ring beside it was drawn level by level and had
+  them. `stageGeom.run` is the run as the tanks it is made of; `tankStackLen`
+  sums the same per-tank length, so the drawing and the slenderness limit cannot
+  disagree about how long it is.
+- **The id buffer is two bytes wide.** One capped the model at 254 parts and
+  failed silently — the 255th clamps onto the first and its outlines stop being
+  drawn. The largest model in the mission grid is 78.
 - **Creases are geometry, silhouettes are screen space.** `EdgesGeometry` knows
   where a cap meets a tube — 90 degrees, in the model, the same from every
   angle. It cannot know a cylinder's side outline, which is an occluding contour

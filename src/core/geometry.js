@@ -88,19 +88,34 @@ const widthOf = (part, fallback) =>
 
 const heightOf = (part, fallback) =>
   PART_H[part.n] !== undefined ? PART_H[part.n] : fallback;
+/* How tall one tank stands. Named because two things need it and they must not
+   drift: the run's total length, which the slenderness limit is measured on,
+   and the run drawn tank by tank. */
+const tankLen = (t) =>
+  heightOf(t, (1.15 * t.prop) / ((Math.PI / 4) * Math.pow(diaOf(t), 2)));
+
 const tankStackLen = (tk) =>
+  tk ? tk.list.reduce((a, x) => a + x.c * tankLen(x.t), 0) : 0;
+
+/* The run as the tanks it is actually made of, bottom first — one entry per
+   tank placed, not per line in the parts list.
+
+   The drawing used to put the whole run down as a single cylinder, so a stage
+   of five identical tanks came out as one tube with no seams in it, while a
+   packed ring beside it was drawn level by level and did have them. That is
+   what "lines missing between the tanks, in some places" was.
+
+   Largest at the bottom, which is what the parts table has always claimed:
+   "smallest at the top of the run, largest at the bottom — the order you would
+   actually assemble them in, and the order a rocket wants structurally". */
+const tankRun = (tk) =>
   tk
-    ? tk.list.reduce(
-        (a, x) =>
-          a +
-          x.c *
-            heightOf(
-              x.t,
-              (1.15 * x.t.prop) / ((Math.PI / 4) * Math.pow(diaOf(x.t), 2)),
-            ),
-        0,
-      )
-    : 0;
+    ? tk.list
+        .flatMap((x) =>
+          Array.from({ length: x.c }, () => ({ t: x.t, h: tankLen(x.t) })),
+        )
+        .sort((a, b) => b.h - a.h)
+    : [];
 
 /* One definition of the stack's proportions, used by the summary, the drawing
    and the solver's slenderness limit alike. They disagreed before: the summary
@@ -303,6 +318,7 @@ function stageGeom(sol) {
     ringR,
     engineSpan,
     tank,
+    run: tankRun(S > 1 ? sol.perStack : sol.tanks),
     engine,
     coupler,
     decoupler,

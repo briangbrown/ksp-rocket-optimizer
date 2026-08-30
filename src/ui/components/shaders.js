@@ -120,8 +120,14 @@ export function goochMaterial(baseHex) {
    back with a nearest filter — anything that interpolates ids invents parts
    that are not there along every boundary. */
 export function idMaterial(index) {
+  /* Two channels, not one. A single byte caps the model at 254 parts, and the
+     way it fails is silent: the 255th clamps onto the first and its outlines
+     simply stop being drawn. The biggest model in the mission grid is 78 parts
+     now that a tank run is drawn tank by tank, which is comfortable and not
+     comfortable enough to leave a cliff in. */
+  const n = index + 1;
   return new ShaderMaterial({
-    uniforms: { id: { value: (index + 1) / 255 } },
+    uniforms: { id: { value: new Vector2((n & 255) / 255, (n >> 8) / 255) } },
     blending: NoBlending,
     vertexShader: /* glsl */ `
       void main() {
@@ -129,8 +135,8 @@ export function idMaterial(index) {
       }
     `,
     fragmentShader: /* glsl */ `
-      uniform float id;
-      void main() { gl_FragColor = vec4(id, 0.0, 0.0, 1.0); }
+      uniform vec2 id;
+      void main() { gl_FragColor = vec4(id, 0.0, 1.0); }
     `,
   });
 }
@@ -193,9 +199,13 @@ export function compositeMaterial() {
       uniform float camNear, camFar, cueNear, cueSpan;
       varying vec2 vUv;
 
-      /* Ids start at 1, so anything below half a step is the background the id
-         pass cleared to. */
-      #define BG (0.5 / 255.0)
+      /* The id back as the integer it went in as, from the two bytes it was
+         written across. Ids start at 1, so zero is the background the id pass
+         cleared to. */
+      float idAt(vec2 uv) {
+        vec4 t = texture2D(tId, uv);
+        return floor(t.r * 255.0 + 0.5) + floor(t.g * 255.0 + 0.5) * 256.0;
+      }
 
       /* Orthographic depth is linear in view distance, so no reciprocal games:
          a metre at the front of the rocket is a metre at the back. */
@@ -206,7 +216,7 @@ export function compositeMaterial() {
       void main() {
         vec4 c = texture2D(tColor, vUv);
         float d0 = dist(vUv);
-        float i0 = texture2D(tId, vUv).x;
+        float i0 = idAt(vUv);
 
         /* Two weights, which is how a drawing is inked: the outline of the
            whole object heavier than the lines inside it. The outer silhouette
@@ -220,11 +230,10 @@ export function compositeMaterial() {
           vec2 off = k < 2
             ? vec2(k == 0 ? texel.x : -texel.x, 0.0)
             : vec2(0.0, k == 2 ? texel.y : -texel.y);
-          float i1 = texture2D(tId, vUv + off).x;
           /* A different part next door — or the background, which is zero. */
-          if (i1 - i0 > 0.001) e = 1.0;
+          if (idAt(vUv + off) - i0 > 0.5) e = 1.0;
           /* One further out, but only where this is the outside edge. */
-          if (i0 < BG && texture2D(tId, vUv + off * 2.0).x > BG) e = 1.0;
+          if (i0 < 0.5 && idAt(vUv + off * 2.0) > 0.5) e = 1.0;
         }
 
         float cue = clamp((d0 - cueNear) / cueSpan, 0.0, 1.0);
