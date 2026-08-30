@@ -4,6 +4,7 @@ import {
   manifestCost,
   manifestCount,
   manifestMass,
+  manifestProp,
 } from "../src/core/manifest.js";
 import { stageCost, stageParts } from "../src/core/performance.js";
 import { cases } from "./grid.js";
@@ -58,6 +59,19 @@ describe("the stage manifest", () => {
         const mn = manifestCount(sol);
         if (mn !== parts)
           bad.push(`${where}: ${parts} parts counted but ${mn} listed`);
+
+        /* And the propellant, which is the axis that used to keep the parts
+           table and the solver apart: the solver reasons on dry mass because
+           the rocket equation needs burnout and ignition separately, while a
+           tank you place in the VAB is full. It attributes to the parts holding
+           it — tanks, an adapter's dead volume, a solid booster's own grain, a
+           radial column's fuel — so one enumeration serves both readings and
+           `wet` is just `dry + prop`. #62 */
+        const mp = manifestProp(sol);
+        if (Math.abs(mp - sol.prop) > MASS_EPS)
+          bad.push(
+            `${where}: ${sol.prop.toFixed(4)} t of propellant but its parts hold ${mp.toFixed(4)}`,
+          );
       });
     }
     expect(bad).toEqual([]);
