@@ -18,9 +18,19 @@
    browser blocks workers. The fallback keeps its yields, because there it is
    sharing a thread with the UI again. */
 
-let worker = null;
+import type { Plan, PlanInput, PlanOpts } from "../core/plan.js";
+
+/* What comes back, with what the worker did to get it. `threads` is the pool
+   size it settled on, which is worth reporting on a device. */
+type SolveResult = Plan & { threads?: number };
+
+/* One reply from the solver worker: an answer or the reason there is none. */
+type SolveReply = { id: number; result?: SolveResult; error?: string };
+
+let worker: Worker | null = null;
 let seq = 0;
-let live = null;
+let live: { id: number; resolve: (v: SolveResult | null) => void } | null =
+  null;
 
 const supported = () => typeof Worker !== "undefined";
 
@@ -56,7 +66,10 @@ export function cancelSolve() {
   }
 }
 
-export async function solve(input, { signal, onYield } = {}) {
+export async function solve(
+  input: PlanInput,
+  { signal, onYield }: PlanOpts = {},
+): Promise<SolveResult | null> {
   if (!supported()) {
     /* Imported lazily so the solver is not in the main bundle at all. With a
        static import it shipped twice — once in the worker chunk and once
@@ -72,23 +85,24 @@ export async function solve(input, { signal, onYield } = {}) {
   });
   const w = worker;
 
-  return new Promise((resolve) => {
+  return new Promise<SolveResult | null>((resolve) => {
     live = { id, resolve };
-    const finish = (value) => {
+    const finish = (value: SolveResult | null) => {
       if (!live || live.id !== id) return;
       live = null;
       resolve(value);
     };
-    w.onmessage = (e) => {
-      if (e.data.id !== id) return;
-      if (e.data.error) {
-        console.error("solver worker:", e.data.error);
+    w.onmessage = (e: MessageEvent) => {
+      const m: SolveReply = e.data;
+      if (m.id !== id) return;
+      if (m.error) {
+        console.error("solver worker:", m.error);
         finish(null);
-      } else finish(e.data.result);
+      } else finish(m.result ?? null);
     };
     /* A worker that fails to start — a blocked module import, an OOM kill —
        must not leave the veil up forever. */
-    w.onerror = (err) => {
+    w.onerror = (err: ErrorEvent) => {
       console.error("solver worker failed:", err.message || err);
       finish(null);
     };
@@ -96,3 +110,5 @@ export async function solve(input, { signal, onYield } = {}) {
     w.postMessage({ id, input, threads: wantedThreads() });
   });
 }
+
+export type { SolveReply, SolveResult };

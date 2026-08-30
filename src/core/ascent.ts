@@ -691,19 +691,17 @@ function simCached(veh: Vehicle, target: number) {
    plan.js, and `payloadIn` is what that stage is carrying above it. */
 type PlannedStage = { sol: Solution | null; payloadIn: number };
 
-/* One that has been solved. The filter below tests exactly what it always
-   tested, in the same order; saying so as a predicate is what lets the map
-   read `sol.engine` without asking again. */
-type FlownStage = PlannedStage & { sol: Solution };
-
-function buildVehicleFor(
-  stages: ReadonlyArray<PlannedStage>,
-  pick: (s: PlannedStage) => boolean,
+/* Generic in the stage, because the caller's is richer than this needs: the
+   application hands whole plan stages and asks its question of those. Fixing
+   the parameter to `PlannedStage` would make every such predicate unusable. */
+function buildVehicleFor<S extends PlannedStage>(
+  stages: ReadonlyArray<S>,
+  pick: (s: S) => boolean,
   bodyName: string,
   payloadDia = 0,
 ): Vehicle | null {
   if (!BODY[bodyName]) return null; // airless, or no atmosphere data
-  const keep = (s: PlannedStage): s is FlownStage => pick(s) && s.sol !== null;
+  const keep = (s: S): s is S & { sol: Solution } => pick(s) && s.sol !== null;
   const sel = stages.filter(keep);
   if (!sel.length) return null;
   const simStages: Array<FlightStage> = sel.map((s) => {

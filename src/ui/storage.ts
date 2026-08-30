@@ -14,9 +14,33 @@
    private browsing throws on `setItem`, and a browser set to block site data
    throws on the `localStorage` getter itself, before any method is called. */
 
+/* The Claude artifact host's store, which is not a browser API and is
+   therefore not in anyone's lib. Declared as optional because on the deployed
+   site it genuinely is not there — see above. */
+type ArtifactStorage = {
+  get: (key: string) => Promise<{ value?: string | null } | null | undefined>;
+  set: (key: string, value: string) => unknown;
+};
+
+declare global {
+  interface Window {
+    storage?: ArtifactStorage;
+  }
+}
+
+/* What is kept between sessions: the tech tree, the parts held back, the
+   expansions, and whether a stage has to be able to steer. Not the mission —
+   that is what the pasted configuration is for. */
+type Roster = {
+  unlocked: Array<string>;
+  excluded: Array<string>;
+  expansions: { mh: boolean; rs: boolean };
+  needGimbal: boolean;
+};
+
 const KEY = "ksp-planner:roster";
 
-export async function loadRoster() {
+export async function loadRoster(): Promise<Partial<Roster> | null> {
   try {
     const api = window.storage;
     const raw = api ? (await api.get(KEY))?.value : localStorage.getItem(KEY);
@@ -27,7 +51,7 @@ export async function loadRoster() {
   }
 }
 
-export function saveRoster(roster) {
+export function saveRoster(roster: Roster) {
   try {
     const raw = JSON.stringify(roster);
     const api = window.storage;
@@ -39,3 +63,5 @@ export function saveRoster(roster) {
     /* storage unavailable — the session still works, it just will not persist */
   }
 }
+
+export type { Roster };

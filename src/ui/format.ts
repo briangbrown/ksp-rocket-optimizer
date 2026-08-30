@@ -1,4 +1,4 @@
-const NAME_WORDS = {
+const NAME_WORDS: Readonly<Record<string, ReadonlyArray<string>>> = {
   flyby: ["Drive-By", "Wave", "Peek", "Flyby", "Glance", "Sightsee"],
   orbit: ["Circuit", "Loiter", "Lap", "Orbiter", "Vigil", "Holding Pattern"],
   land: ["Descent", "Touchdown", "Boots", "Lander", "Arrival", "Faceplant"],
@@ -51,6 +51,19 @@ const NAME_JOKE = [
   "Wernher Signed Off",
 ];
 
+/* Everything the name is hashed from. Deterministic in all of it: the same
+   mission always gets the same name, and it changes when the mission does. */
+type CraftIn = {
+  origin: string;
+  dest: string;
+  profile: string;
+  returning: boolean;
+  payload: number;
+  objective: string;
+  k: number;
+  mass?: number;
+};
+
 function craftName({
   origin,
   dest,
@@ -60,7 +73,7 @@ function craftName({
   objective,
   k,
   mass,
-}) {
+}: CraftIn) {
   const seed = [
     origin,
     dest,
@@ -76,7 +89,7 @@ function craftName({
     h ^= seed.charCodeAt(i);
     h = Math.imul(h, 16777619);
   }
-  const pick = (arr, salt) =>
+  const pick = (arr: ReadonlyArray<string>, salt: number) =>
     arr[Math.abs((h ^ Math.imul(salt, 2654435761)) >>> 0) % arr.length];
   const where = String(dest)
     .replace(/ orbit$/i, "")
@@ -97,7 +110,7 @@ function craftName({
 /* Defensive: a row can legitimately carry no number — the parallel-stacks note
    has no mass of its own — and a formatter that throws on null takes the whole
    page down with it. */
-const fmt = (x, d = 0) =>
+const fmt = (x: number | null | undefined, d = 0) =>
   x === null || x === undefined || !isFinite(x)
     ? "—"
     : x.toLocaleString(undefined, {
@@ -109,14 +122,16 @@ const fmt = (x, d = 0) =>
    read straight off the game clock beats one you have to convert in your head.
    A Kerbin day is six hours, and days only appear when something actually runs
    that long. */
-function hms(sec) {
+function hms(sec: number) {
   const x = Math.max(0, Math.round(sec));
   const d = Math.floor(x / 21600);
   const h = Math.floor((x % 21600) / 3600),
     m = Math.floor((x % 3600) / 60),
     s2 = x % 60;
-  const pad = (n) => String(n).padStart(2, "0");
+  const pad = (n: number) => String(n).padStart(2, "0");
   return (d ? `${d}d ` : "") + `${pad(h)}:${pad(m)}:${pad(s2)}`;
 }
 
 export { NAME_ADJ, NAME_JOKE, NAME_TAIL, NAME_WORDS, craftName, fmt, hms };
+
+export type { CraftIn };

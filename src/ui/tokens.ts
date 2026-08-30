@@ -33,7 +33,7 @@ const C = {
   onDark: "#F2EFE9",
 };
 
-const BODY_HUE = {
+const BODY_HUE: Readonly<Record<string, string>> = {
   Moho: "#EEB688",
   Eve: "#6C20E4",
   Gilly: "#A27E6E",
@@ -51,12 +51,13 @@ const BODY_HUE = {
   Pol: "#DCE4AC",
   Eeloo: "#686A6A",
 };
-const rgbOf = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-const lumOf = (h) => {
+const rgbOf = (h: string) =>
+  [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const lumOf = (h: string) => {
   const [r, g, b] = rgbOf(h).map((v) => v / 255);
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
-const lift = (h, t) =>
+const lift = (h: string, t: number) =>
   "#" +
   rgbOf(h)
     .map((v) =>
@@ -65,11 +66,11 @@ const lift = (h, t) =>
         .padStart(2, "0"),
     )
     .join("");
-const hueFor = (b) => BODY_HUE[b] || C.sky;
-const inkOn = (h) => (lumOf(h) > 0.45 ? C.onLight : C.onDark);
-const edgeOf = (h) => (lumOf(h) < 0.35 ? lift(h, 0.35) : h);
+const hueFor = (b: string) => BODY_HUE[b] || C.sky;
+const inkOn = (h: string) => (lumOf(h) > 0.45 ? C.onLight : C.onDark);
+const edgeOf = (h: string) => (lumOf(h) < 0.35 ? lift(h, 0.35) : h);
 
-const SYSTEMS = [
+const SYSTEMS: ReadonlyArray<[string, Array<string>]> = [
   ["Moho", []],
   ["Eve", ["Gilly"]],
   ["Kerbin", ["Mun", "Minmus"]],

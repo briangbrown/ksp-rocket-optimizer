@@ -16,6 +16,7 @@ import {
   WebGLRenderTarget,
   WebGLRenderer,
 } from "three";
+import type { ShaderMaterial } from "three";
 import { extentOf } from "../../core/model.js";
 import { cameraFor, viewOf } from "../views.js";
 import { C } from "../tokens.js";
@@ -27,6 +28,7 @@ import {
   idMaterial,
   panelClear,
 } from "./shaders.js";
+import type { ModelPart } from "../../core/model.js";
 
 /* The build model, drawn.
 
@@ -42,7 +44,7 @@ import {
    Nothing animates. A frame is drawn when the rocket or the view changes and
    never on a loop, because the cameras do not move. */
 
-const FILL = {
+const FILL: Readonly<Record<string, string>> = {
   tank: C.tank,
   engine: C.engine,
   coupler: C.violet,
@@ -73,7 +75,7 @@ const CREASE_ANGLE = 30;
    between consecutive points. #82 */
 const SHOULDER = 9;
 
-function taperedProfile(rBase, rTop, h) {
+function taperedProfile(rBase: number, rTop: number, h: number) {
   /* Small enough that the shoulders never meet in the middle of a squat pod,
      and small against the top face in particular: a fillet of much more than a
      third of the top radius closes it over and the pod reads as a bullet
@@ -81,7 +83,7 @@ function taperedProfile(rBase, rTop, h) {
   const f = Math.min(rBase * 0.16, h * 0.1, rTop * 0.34);
   const y0 = -h / 2;
   const y1 = h / 2;
-  const arc = (cr, cy, from, to) =>
+  const arc = (cr: number, cy: number, from: number, to: number) =>
     Array.from({ length: SHOULDER + 1 }, (_, i) => {
       const a = from + ((to - from) * i) / SHOULDER;
       return new Vector2(cr + Math.cos(a) * f, cy + Math.sin(a) * f);
@@ -99,9 +101,24 @@ function taperedProfile(rBase, rTop, h) {
    phone would otherwise get dashes half the size. */
 const DASH_PERIOD = 7;
 
-export default function ThreeView({ parts, view, width, height, color }) {
-  const host = useRef(null);
-  const gl = useRef(null);
+/* `color` is the destination's own hue, which the boosters are drawn in. */
+type ThreeViewProps = {
+  parts: ReadonlyArray<ModelPart>;
+  view: string;
+  width: number;
+  height: number;
+  color: string;
+};
+
+export default function ThreeView({
+  parts,
+  view,
+  width,
+  height,
+  color,
+}: ThreeViewProps) {
+  const host = useRef<HTMLDivElement | null>(null);
+  const gl = useRef<WebGLRenderer | null>(null);
 
   /* The renderer outlives the rocket. A browser allows a small number of live
      WebGL contexts — around sixteen — and building one per staging step would
@@ -109,7 +126,7 @@ export default function ThreeView({ parts, view, width, height, color }) {
   useEffect(() => {
     const el = host.current;
     if (!el) return;
-    let renderer;
+    let renderer: WebGLRenderer;
     try {
       /* Drawn once and left standing, so the buffer has to survive being
          composited. Without this the schematic is correct on the frame that
@@ -155,7 +172,8 @@ export default function ThreeView({ parts, view, width, height, color }) {
 
     /* three.js allocates GPU buffers a garbage collector cannot see, so every
        one is kept and handed back when the rocket changes. */
-    const owned = [];
+    /* Everything with GPU memory behind it, kept so it can be handed back. */
+    const owned: Array<{ dispose: () => void }> = [];
 
     /* Each part is its own mesh already, so each can carry its own id. That is
        the whole cost of the surface-id outline: two materials per part instead
@@ -163,8 +181,12 @@ export default function ThreeView({ parts, view, width, height, color }) {
        Depth and normals cannot find the seam between two tanks of the same
        diameter — same plane, same normal — and that is the commonest join in
        the rocket. #70 */
-    const idMats = [];
-    const fillMats = [];
+    const idMats: Array<ShaderMaterial> = [];
+    const fillMats: Array<ShaderMaterial> = [];
+    /* Kept alongside the group rather than read back out of `group.children`,
+       which is a list of plain objects as far as anything can tell. The two are
+       the same meshes in the same order. */
+    const meshes: Array<Mesh> = [];
     /* Drawn only where the opaque pass was hidden, so this is the far side of
        the rocket and nothing else. Not built for the plan: looking up from
        underneath, the engines hide the tanks above them by design, and that is
@@ -197,6 +219,7 @@ export default function ThreeView({ parts, view, width, height, color }) {
       fill.polygonOffsetFactor = 1;
       fill.polygonOffsetUnits = 1;
       const mesh = new Mesh(geo, fill);
+      meshes.push(mesh);
       /* The model puts a part's base at y; three.js centres a cylinder. */
       mesh.position.set(p.x, p.y + p.h / 2, p.z);
       group.add(mesh);
@@ -255,13 +278,14 @@ export default function ThreeView({ parts, view, width, height, color }) {
        multisampled id buffer averages two parts into a third that does not
        exist, and a linear filter does the same along every boundary. The fill
        is multisampled, because that one wants a smooth silhouette. */
+    const depth = new DepthTexture(bw, bh);
     const idTarget = new WebGLRenderTarget(bw, bh, {
       minFilter: NearestFilter,
       magFilter: NearestFilter,
-      depthTexture: new DepthTexture(bw, bh),
+      depthTexture: depth,
     });
     const fillTarget = new WebGLRenderTarget(bw, bh, { samples: 4 });
-    owned.push(idTarget, fillTarget, idTarget.depthTexture);
+    owned.push(idTarget, fillTarget, depth);
 
     const quadMat = compositeMaterial();
     const quadGeo = new PlaneGeometry(2, 2);
@@ -281,8 +305,7 @@ export default function ThreeView({ parts, view, width, height, color }) {
          and every one of them would come back as an outline of its own. */
       creases.visible = false;
       if (ghost) ghost.visible = false;
-      for (let i = 0; i < parts.length; i++)
-        group.children[i].material = idMats[i];
+      for (let i = 0; i < parts.length; i++) meshes[i].material = idMats[i];
       renderer.setRenderTarget(idTarget);
       renderer.setClearColor(0x000000, 1);
       renderer.clear();
@@ -291,8 +314,7 @@ export default function ThreeView({ parts, view, width, height, color }) {
       /* Then the shading and the creases, on the panel colour the composite
          fades towards. */
       creases.visible = true;
-      for (let i = 0; i < parts.length; i++)
-        group.children[i].material = fillMats[i];
+      for (let i = 0; i < parts.length; i++) meshes[i].material = fillMats[i];
       renderer.setRenderTarget(fillTarget);
       renderer.setClearColor(panelClear(), 1);
       renderer.clear();
@@ -316,7 +338,7 @@ export default function ThreeView({ parts, view, width, height, color }) {
       /* And the lines, over the top, straight to the canvas. */
       quadMat.uniforms.tColor.value = fillTarget.texture;
       quadMat.uniforms.tId.value = idTarget.texture;
-      quadMat.uniforms.tDepth.value = idTarget.depthTexture;
+      quadMat.uniforms.tDepth.value = depth;
       quadMat.uniforms.texel.value.set(1 / bw, 1 / bh);
       quadMat.uniforms.camNear.value = cam.near;
       quadMat.uniforms.camFar.value = cam.far;

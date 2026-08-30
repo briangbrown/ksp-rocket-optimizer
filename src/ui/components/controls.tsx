@@ -1,8 +1,19 @@
 import { useState } from "react";
 import { C } from "../tokens.js";
+import type { ReactNode } from "react";
 
 /* ------------------------------- small pieces ------------------------------- */
-function Stat({ label, value, unit, color, small }) {
+/* `value` is already formatted — `fmt` has turned every non-finite number into
+   an em-dash by the time it arrives here. */
+type StatProps = {
+  label: ReactNode;
+  value: ReactNode;
+  unit?: ReactNode;
+  color?: string;
+  small?: boolean;
+};
+
+function Stat({ label, value, unit, color, small }: StatProps) {
   return (
     <div>
       <div className="eyebrow">{label}</div>
@@ -30,6 +41,19 @@ function Stat({ label, value, unit, color, small }) {
    half-typed values like "1." are not fought, and commits on blur or Enter.
    Typing above the slider's range is allowed up to a hard cap rather than being
    silently clamped; the slider just pins at its maximum. */
+type SliderProps = {
+  label: ReactNode;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  unit?: ReactNode;
+  onChange: (v: number) => void;
+  hint?: ReactNode;
+  /* How far a typed value may go past the slider's own maximum. */
+  hardMax?: number;
+};
+
 function Slider({
   label,
   value,
@@ -40,10 +64,12 @@ function Slider({
   onChange,
   hint,
   hardMax,
-}) {
-  const [draft, setDraft] = useState(null);
+}: SliderProps) {
+  /* Null while the field is not being edited, which is what makes the input
+     render the committed value rather than a draft of it. */
+  const [draft, setDraft] = useState<string | null>(null);
   const cap = hardMax ?? max;
-  const commit = (raw) => {
+  const commit = (raw: string) => {
     const v = parseFloat(raw);
     if (isFinite(v)) onChange(Math.min(cap, Math.max(min, v)));
     setDraft(null);
@@ -130,7 +156,14 @@ function Slider({
 }
 
 /* The signature element: the mission as a transit line you cut into stages. */
-const PickerHead = ({ label, value, open, onToggle }) => (
+type PickerHeadProps = {
+  label: ReactNode;
+  value: ReactNode;
+  open: boolean;
+  onToggle: () => void;
+};
+
+const PickerHead = ({ label, value, open, onToggle }: PickerHeadProps) => (
   <div
     onClick={onToggle}
     title={open ? "Fold this away" : "Open the picker"}
@@ -168,7 +201,16 @@ const PickerHead = ({ label, value, open, onToggle }) => (
   </div>
 );
 
-const Mini = ({ label, v, good, note }) => (
+/* `good` is three-valued on purpose: false is a figure out of bounds, and
+   undefined is one with no opinion attached. */
+type MiniProps = {
+  label: ReactNode;
+  v: ReactNode;
+  good?: boolean;
+  note?: string | null;
+};
+
+const Mini = ({ label, v, good, note }: MiniProps) => (
   <span style={{ fontSize: 11.5 }} title={note || undefined}>
     <span className="eyebrow" style={{ marginRight: 5 }}>
       {label}
@@ -182,7 +224,9 @@ const Mini = ({ label, v, good, note }) => (
   </span>
 );
 
-function Solving({ busy, children, label }) {
+type SolvingProps = { busy: boolean; children: ReactNode; label: ReactNode };
+
+function Solving({ busy, children, label }: SolvingProps) {
   /* Both layers stay mounted and animate opacity, so the veil can fade out slowly
      instead of blinking away. Dimming is quick — you want to see it react — while
      coming back is gentle, which stops a fast recalculation from flashing. */
