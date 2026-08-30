@@ -194,7 +194,7 @@ const SYNTHETIC = new Set([
 ]);
 
 const warned = new Set();
-function selfTime(p, map) {
+function selfTime(p, pick) {
   const byId = new Map(p.nodes.map((n) => [n.id, n]));
   const self = new Map();
   /* Keyed on the bare function name. The source file is carried alongside for
@@ -209,21 +209,24 @@ function selfTime(p, map) {
     if (!node) continue;
     const cf = node.callFrame || {};
     let name = cf.functionName || "(anonymous)";
-    if (map && cf.url && cf.lineNumber >= 0) {
+    if (pick && cf.url && cf.lineNumber >= 0) {
       /* A map for a different build resolves every frame to a plausible-looking
-         wrong name, which is worse than not resolving at all. The bundle is
-         content-hashed, so the filenames agreeing is a real check. */
-      if (map.file && cf.url.includes(".js") && !cf.url.includes(map.file)) {
+         wrong name, which is worse than not resolving at all. The bundles are
+         content-hashed, so a URL matching none of the maps means the profile
+         and the build are different commits. */
+      const m = pick(cf.url);
+      if (!m && cf.url.includes(".js")) {
         if (!warned.has(cf.url)) {
           warned.add(cf.url);
           console.error(
-            `warning: the profile ran ${cf.url.split("/").pop()} but the map ` +
-              `describes ${map.file}. Names below are not trustworthy — rebuild ` +
-              `the commit that was deployed when the profile was taken.`,
+            `warning: the profile ran ${cf.url.split("/").pop()}, which none of ` +
+              `the ${maps.length} maps describe. Names from it are not ` +
+              `trustworthy — rebuild the commit that was deployed when the ` +
+              `profile was taken.`,
           );
         }
-      } else {
-        const orig = originalName(map, cf.lineNumber, cf.columnNumber ?? 0);
+      } else if (m) {
+        const orig = originalName(m, cf.lineNumber, cf.columnNumber ?? 0);
         if (orig) {
           name = orig.name;
           if (orig.file) where.set(name, orig.file);
@@ -240,25 +243,46 @@ function selfTime(p, map) {
 const args = process.argv.slice(2);
 const mapAt = args.indexOf("--map");
 const mapPath = mapAt === -1 ? null : args[mapAt + 1];
-function findMap(p) {
+/* Every map in the directory, not one.
+
+   It used to insist on exactly one and stop, which was true when the
+   application was a single bundle and stopped being true the moment anything
+   was split out of it: there are five now — the app, the route chunk, the lazy
+   three.js view and the two workers. Naming one by hand is the wrong answer as
+   well as an annoying one, because a device trace spans several. The solve runs
+   in `solver.worker` and the interface that starts it is in `index`, so a
+   profile of a real solve needs both to read. */
+function findMaps(p) {
   const c = p.replace(ANSI, "");
   let st;
   try {
     st = statSync(c);
   } catch {
-    return c;
+    return [c];
   }
-  if (!st.isDirectory()) return c;
-  const maps = readdirSync(c).filter((f) => f.endsWith(".js.map"));
-  if (maps.length !== 1) {
-    console.error(
-      `${c}: expected exactly one .js.map, found ${maps.length}. Name the file.`,
-    );
+  if (!st.isDirectory()) return [c];
+  const maps = readdirSync(c)
+    .filter((f) => f.endsWith(".js.map"))
+    .map((f) => join(c, f));
+  if (!maps.length) {
+    console.error(`${c}: no .js.map here. Run \`npm run perf:map\` first.`);
     process.exit(2);
   }
-  return join(c, maps[0]);
+  return maps;
 }
-const map = mapPath ? loadMap(findMap(mapPath)) : null;
+
+/* Which map describes a given frame, by the bundle it came from. The names are
+   content-hashed, so a URL matching a map's `file` is a real check that the two
+   are the same build and not merely the same shape. */
+function mapPicker(maps) {
+  return (url) => {
+    if (!url) return null;
+    for (const m of maps) if (m.file && url.includes(m.file)) return m;
+    return null;
+  };
+}
+const maps = mapPath ? findMaps(mapPath).map(loadMap) : null;
+const pick = maps ? mapPicker(maps) : null;
 const files =
   mapAt === -1 ? args : args.filter((_, i) => i !== mapAt && i !== mapAt + 1);
 if (!files.length) {
@@ -286,7 +310,7 @@ if (files.length > 2) {
    the last file given — and never to a container profile, which is not minified. */
 const runs = files.map(resolve).map((f, i) => ({
   file: f,
-  ...selfTime(parse(f), map && i === files.length - 1 ? map : null),
+  ...selfTime(parse(f), pick && i === files.length - 1 ? pick : null),
 }));
 const share = (r, k) => (100 * (r.self.get(k) || 0)) / r.total;
 
