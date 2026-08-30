@@ -59,6 +59,11 @@ const FILL = {
 const SEGMENTS = 40;
 const CREASE_ANGLE = 30;
 
+/* The dash period of a hidden edge, in CSS pixels — scaled to device pixels
+   where it is used, since the shader measures in the buffer's own grid and a
+   phone would otherwise get dashes half the size. */
+const DASH_PERIOD = 7;
+
 export default function ThreeView({ parts, view, width, height, color }) {
   const host = useRef(null);
   const gl = useRef(null);
@@ -166,6 +171,7 @@ export default function ThreeView({ parts, view, width, height, color }) {
       if (ghost) {
         const gm = ghostMaterial(
           p.role === "booster" ? color : FILL[p.role] || C.dim,
+          DASH_PERIOD * renderer.getPixelRatio(),
         );
         const back = new Mesh(geo, gm);
         back.position.copy(mesh.position);

@@ -245,18 +245,35 @@ export function compositeMaterial() {
    a transparency problem: only fragments that *failed* the opaque pass draw, so
    this paints exactly the hidden part of the model and nothing else, over the
    top of what hid it. #71 */
-const GHOST_MIN = 0.04;
-const GHOST_MAX = 0.42;
+/* How see-through the thing in front becomes. The fill underneath is opaque;
+   this is painted over it, so raising these is what makes the foreground read
+   as translucent. */
+const GHOST_MIN = 0.13;
+const GHOST_MAX = 0.46;
 const GHOST_TURN = 3.0;
 
-export function ghostMaterial(baseHex) {
+/* Where the ghost stops being a wash and becomes a line. A cylinder turning
+   away from the viewer runs out of facing surface quickly, so the band that
+   counts as its silhouette is narrow. */
+const EDGE_LO = 0.45;
+const EDGE_HI = 0.85;
+/* Dashes, in CSS pixels: on for a bit over half of each period. Drawn on the
+   screen diagonal so an edge of any orientation crosses them. */
+const DASH = 7.0;
+const DASH_DUTY = 0.55;
+const LINE_ALPHA = 0.85;
+
+export function ghostMaterial(baseHex, dashPeriod) {
   const m = goochMaterial(baseHex);
   m.transparent = true;
   m.depthFunc = GreaterDepth;
   m.depthWrite = false;
   m.polygonOffset = false;
+  m.uniforms.edgeColor = { value: vec3(C.edge) };
+  m.uniforms.dash = { value: dashPeriod };
   m.fragmentShader = /* glsl */ `
-      uniform vec3 base, cool, warm;
+      uniform vec3 base, cool, warm, edgeColor;
+      uniform float dash;
       varying vec3 vN;
       void main() {
         vec3 n = normalize(vN);
@@ -265,7 +282,22 @@ export function ghostMaterial(baseHex) {
         vec3 lit  = mix(base, warm, ${f(WARM_MIX)});
         /* Facing the viewer is see-through; turned away is nearly solid. */
         float edge = pow(1.0 - abs(n.z), ${f(GHOST_TURN)});
-        gl_FragColor = vec4(mix(dark, lit, t), mix(${f(GHOST_MIN)}, ${f(GHOST_MAX)}, edge));
+
+        /* A hidden edge is drawn dashed, which is what a technical drawing has
+           always done with a line you cannot see. The silhouette of a cylinder
+           is where it turns away from you, so the same term that fades the fill
+           finds the line — no second pass and nothing to detect. */
+        float along = (gl_FragCoord.x + gl_FragCoord.y) / dash;
+        float on = step(fract(along), ${f(DASH_DUTY)});
+
+        /* The silhouette band belongs to the line, not to the wash. Painting
+           the wash under it too was what stopped it reading as dashed: the
+           gaps came out at nearly the alpha of the dashes, so it alternated
+           strong and less strong rather than line and nothing. */
+        float sil = smoothstep(${f(EDGE_LO)}, ${f(EDGE_HI)}, edge);
+        float wash = mix(${f(GHOST_MIN)}, ${f(GHOST_MAX)}, edge) * (1.0 - sil);
+        vec3 col = mix(mix(dark, lit, t), edgeColor, sil * on);
+        gl_FragColor = vec4(col, wash + sil * on * ${f(LINE_ALPHA)});
       }
     `;
   return m;
