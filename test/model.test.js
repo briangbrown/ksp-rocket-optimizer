@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { planMission } from "../src/core/plan.js";
 import { extentOf, modelOf } from "../src/core/model.js";
 import {
+  PART_H,
   PAYLOAD_ASPECT,
   stackGeometry,
   stageSize,
@@ -88,7 +89,18 @@ describe("the build model", () => {
     for (const { name, parts } of MODELS)
       for (let i = 0; i < parts.length; i++)
         for (let j = i + 1; j < parts.length; j++) {
-          const gap = overlaps(parts[i], parts[j]);
+          /* A radial booster drawn at its real length can be longer than the
+             run it hangs from, and then it genuinely reaches into the stage
+             above — a 3.99 m Shrimp on a 2.29 m tank run, against a stage that
+             is wider than the one it is bolted to. That is not the drawing
+             being wrong. It is the solver never costing a booster's length, so
+             it can pick a combination nobody could assemble, and the drawing is
+             the only thing that says so. Within one stage an overlap is still a
+             fault and still caught. #86 */
+          const across =
+            parts[i].stage !== parts[j].stage &&
+            (parts[i].role === "booster" || parts[j].role === "booster");
+          const gap = across ? 0 : overlaps(parts[i], parts[j]);
           if (gap)
             bad.push(
               `${name}: ${parts[i].role} and ${parts[j].role} overlap by ${gap.toFixed(3)} m`,
@@ -208,6 +220,33 @@ describe("the build model", () => {
       }
     }
     expect(bad.slice(0, 6), `${bad.length} views clip in depth`).toEqual([]);
+  }, 300_000);
+
+  it("draws a booster at the length the part table gives it", () => {
+    /* Against the data, not against the expression that produced it — the
+       drawn height has to be the measured one.
+
+       It was neither. The length came from a volume estimate that runs 40 to
+       135% short — a Shrimp is 3.99 m and was drawn at 1.69, a Mite 1.77
+       against 0.75 — and then it was truncated to the tank run on top of that.
+       A part drawn at a size it is not. #86 */
+    const bad = [];
+    let checked = 0;
+    for (const { name, parts } of MODELS)
+      for (const b of parts.filter((p) => p.role === "booster")) {
+        /* A liquid radial is a stack of tanks with an engine under it, so the
+           part's own height is not its length. */
+        if (!b.part || b.part.column) continue;
+        const measured = PART_H[b.part.n];
+        if (measured === undefined) continue;
+        checked++;
+        if (Math.abs(b.h - measured) > EPS)
+          bad.push(
+            `${name}: ${b.part.n} drawn ${b.h.toFixed(2)} m, part table says ${measured.toFixed(2)}`,
+          );
+      }
+    expect(checked, "no measured booster in the grid").toBeGreaterThan(3);
+    expect(bad.slice(0, 6), `${bad.length} at the wrong length`).toEqual([]);
   }, 300_000);
 
   it("stands a radial booster against what it is bolted to", () => {

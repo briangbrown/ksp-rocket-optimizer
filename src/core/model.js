@@ -1,9 +1,12 @@
 import {
   PAYLOAD_ASPECT,
   clusterSpan,
+  engineLen,
+  heightOf,
   payloadDiaOf,
   ringPositions,
   stageGeom,
+  tankStackLen,
   widthOf,
 } from "./geometry.js";
 import { diaOf } from "./parts.js";
@@ -199,17 +202,35 @@ function stageParts(sol, base, push) {
     /* The same width stageSize charges for it, so the shapes cannot reach
        further than the stage was sized at. */
     const bd = widthOf(b.part, diaOf(b.part));
-    const br = (S > 1 ? g.ringR : g.td / 2) + bd / 2;
-    /* A stage with no tanks has nothing to hang them from, so they keep the
-       engine for company — the case where the core is itself a solid booster. */
-    const run = g.tank > 0 ? g.tank : g.engine;
-    const foot = g.tank > 0 ? tankBase : base;
-    /* Capped at the run it is bolted to, so it never rises past the stage top.
-       A long booster on a short core is therefore drawn shorter than it is;
-       letting it stand full height would grow the model's extent instead, and
-       the panel is sized from that — the whole rocket would shrink to make room
-       for a booster sticking out of the top of it. */
-    const bh = Math.min(run, boosterLength(b, bd));
+    /* Against the outermost tank, because that is what it is bolted to. For a
+       plain run that is the core's own diameter; where the run is a packed ring
+       the outer tanks reach `packed.width / 2` and the booster has to clear
+       them — measuring off the core alone put it 0.31 m inside the ring, which
+       only showed once the boosters were drawn at their real length and reached
+       up into it.
+
+       Not `span`, which is the widest thing the stage has: a wide engine
+       cluster would push the booster off the tank it is supposed to touch.
+
+       Nothing exercises the ring half of this. No stage in the mission grid has
+       both — nine carry boosters, five carry a ring, none carries both — so the
+       clearance is reasoned rather than checked, and it is here because the
+       placement is wrong without it, not because a test went red. */
+    const hold = Math.max(g.td, g.pack ? g.pack.w : 0);
+    const br = (S > 1 ? g.ringR : hold / 2) + bd / 2;
+    /* A booster bolts to the tank, so its foot goes where the tanks start —
+       unless the engine below carries its own propellant, in which case it is
+       a tank as much as an engine and the booster bolts straight to it. The
+       Twin-Boar is one part with 32 t of fuel in it; a solid booster used as
+       the core is another, and there are thirteen of those. Those stages align
+       at the base, which is also what a stage with no tanks at all has to do. */
+    const fuelled = (sol.engine.fuelM || 0) > 0;
+    const foot = g.tank > 0 && !fuelled ? tankBase : base;
+    /* Its real length, uncapped. It was truncated to the run it is bolted to,
+       which is a part drawn at a size it is not — and it never needed to be:
+       every booster the mission grid picks is shorter than the tanks it hangs
+       from, so the cap only ever hid how wrong the length underneath it was. */
+    const bh = boosterLength(b, bd);
     for (let i = 0; i < b.n; i++) {
       const a = (i / b.n) * 2 * Math.PI;
       push({
@@ -227,10 +248,27 @@ function stageParts(sol, base, push) {
   return y - base;
 }
 
-/* A booster's own length, from its volume where the part table has no height
-   for it. Kept here rather than in the loop so the estimate has a name. */
+/* How long a booster actually is.
+
+   Measured, where the part table has a height for it, which is nearly always.
+   The volume estimate below it was drawing every one of them far too short —
+   a Shrimp is 3.99 m and came out 1.69, a Mite 1.77 against 0.75, a
+   Thoroughbred 12.23 against 7.37. It is 40 to 135% out.
+
+   A liquid radial is not one part but a stack, so it is its column plus the
+   engine on the bottom of it: a Mainsail column is 14.46 m where the estimate
+   said 8.70.
+
+   The estimate survives only for a part with no measured height at all. Solid
+   fuel is 7.5 kg per 5 litre unit, so 1.5 t per cubic metre; the grain alone
+   left the small boosters far too stubby, so it adds a nozzle and closure
+   allowance that scales with bore. */
 function boosterLength(b, bd) {
-  const vol = (b.part.fuelM || 0) / 1.15 || 1;
+  const p = b.part;
+  if (p.column) return tankStackLen(p.column) + engineLen(p);
+  const measured = heightOf(p, 0);
+  if (measured > 0) return measured;
+  const vol = (p.fuelM || 0) / 1.15 || 1;
   return Math.max(bd, vol / ((Math.PI / 4) * bd * bd));
 }
 
@@ -239,11 +277,18 @@ function boosterLength(b, bd) {
    staging step being shown. */
 export function modelOf(stages, payload = 0, payloadDia = 0) {
   const parts = [];
-  const push = (p) => parts.push(p);
+  /* Which stage a part came from. Nothing in the drawing needs it — every view
+     is a projection of the whole rocket — but a check does: a booster longer
+     than the run it hangs from genuinely reaches into the stage above, and
+     telling that apart from a part overlapping its own stage takes knowing
+     which stage each one is. */
+  let stage = 0;
+  const push = (p) => parts.push({ ...p, stage });
   let y = 0;
   for (const st of stages) {
     if (!st.sol) continue;
     y += stageParts(st.sol, y, push);
+    stage++;
   }
   const payD = payloadDiaOf(payload, payloadDia);
   if (payD > 0)
