@@ -13,6 +13,7 @@ import {
   PlaneGeometry,
   Scene,
   Vector2,
+  Vector3,
   WebGLRenderTarget,
   WebGLRenderer,
 } from "three";
@@ -29,6 +30,8 @@ import {
   panelClear,
 } from "./shaders.js";
 import type { ModelPart } from "../../core/model.js";
+import type { Extent } from "../views.js";
+import type { Offset } from "../separation.js";
 
 /* The build model, drawn.
 
@@ -101,13 +104,55 @@ function taperedProfile(rBase: number, rTop: number, h: number) {
    phone would otherwise get dashes half the size. */
 const DASH_PERIOD = 7;
 
-/* `color` is the destination's own hue, which the boosters are drawn in. */
+/* `color` is the destination's own hue, which the boosters are drawn in.
+
+   `width` and `height` are the visible box. `buffer` is the drawing buffer,
+   which is the same thing in every still frame and larger during a staging
+   transition: the panel changes size as it runs, and reallocating two render
+   targets and a depth texture sixty times a second is tens of megabytes a
+   frame. Instead the buffer is allocated once at the largest box the
+   transition passes through, the visible box is clipped out of its top-left
+   corner by the caller, and the frustum below is made asymmetric so that
+   corner shows exactly what a panel of that size should. #105
+
+   `extent` and `midY` say what to frame and what to look at, which is the
+   parts' own extent in a still frame and an interpolation between two of them
+   during a transition. `offsets` moves each part from where the model put it,
+   index-aligned, and is what a separation actually looks like. */
 type ThreeViewProps = {
   parts: ReadonlyArray<ModelPart>;
   view: string;
   width: number;
   height: number;
   color: string;
+  buffer?: { w: number; h: number };
+  extent?: Extent;
+  midY?: number;
+  offsets?: ReadonlyArray<Offset> | null;
+};
+
+/* Reused rather than allocated per part per frame. */
+const AXIS = new Vector3();
+
+/* Everything the paint step needs, built once per rocket. */
+type Built = {
+  scene: Scene;
+  group: Group;
+  ghost: Group | null;
+  creases: Group;
+  meshes: Array<Mesh>;
+  lines: Array<LineSegments>;
+  ghosts: Array<Mesh>;
+  idMats: Array<ShaderMaterial>;
+  fillMats: Array<ShaderMaterial>;
+  quadScene: Scene;
+  quadMat: ShaderMaterial;
+  quad: OrthographicCamera;
+  idTarget: WebGLRenderTarget;
+  fillTarget: WebGLRenderTarget;
+  depth: DepthTexture;
+  bw: number;
+  bh: number;
 };
 
 export default function ThreeView({
@@ -116,9 +161,17 @@ export default function ThreeView({
   width,
   height,
   color,
+  buffer,
+  extent,
+  midY,
+  offsets,
 }: ThreeViewProps) {
   const host = useRef<HTMLDivElement | null>(null);
   const gl = useRef<WebGLRenderer | null>(null);
+  const built = useRef<Built | null>(null);
+
+  const bufW = buffer ? buffer.w : width;
+  const bufH = buffer ? buffer.h : height;
 
   /* The renderer outlives the rocket. A browser allows a small number of live
      WebGL contexts — around sixteen — and building one per staging step would
@@ -150,18 +203,25 @@ export default function ThreeView({
     };
   }, []);
 
+  /* ---------------------------- built once ----------------------------
+
+     The scene, the meshes and the render targets. A transition repaints this
+     sixty times a second and must not rebuild any of it — that was one effect
+     keyed on everything, and moving a part would have thrown away every buffer
+     on the card to draw it a metre lower. */
   useEffect(() => {
     const renderer = gl.current;
     if (!renderer) return;
     /* Sized in CSS pixels, and the style left to three.js to set: the canvas
        is devicePixelRatio times bigger in device pixels, and without a style
        it would lay out at that size — twice the panel on a phone. */
-    renderer.setSize(width, height);
+    renderer.setSize(bufW, bufH);
     /* Clear rather than return. A canvas holds the last frame drawn into it
        until something else is drawn — the more so with preserveDrawingBuffer —
        so bailing out on an empty model leaves the previous rocket on screen
        and it reads as a rocket that did not change. */
     if (!parts.length) {
+      built.current = null;
       renderer.clear();
       return;
     }
@@ -172,7 +232,6 @@ export default function ThreeView({
 
     /* three.js allocates GPU buffers a garbage collector cannot see, so every
        one is kept and handed back when the rocket changes. */
-    /* Everything with GPU memory behind it, kept so it can be handed back. */
     const owned: Array<{ dispose: () => void }> = [];
 
     /* Each part is its own mesh already, so each can carry its own id. That is
@@ -184,9 +243,12 @@ export default function ThreeView({
     const idMats: Array<ShaderMaterial> = [];
     const fillMats: Array<ShaderMaterial> = [];
     /* Kept alongside the group rather than read back out of `group.children`,
-       which is a list of plain objects as far as anything can tell. The two are
-       the same meshes in the same order. */
+       which is a list of plain objects as far as anything can tell. The three
+       are the same parts in the same order, which is what lets a separation
+       move all three of a part's pieces together. */
     const meshes: Array<Mesh> = [];
+    const lines: Array<LineSegments> = [];
+    const ghosts: Array<Mesh> = [];
     /* Drawn only where the opaque pass was hidden, so this is the far side of
        the rocket and nothing else. Not built for the plan: looking up from
        underneath, the engines hide the tanks above them by design, and that is
@@ -220,14 +282,12 @@ export default function ThreeView({
       fill.polygonOffsetUnits = 1;
       const mesh = new Mesh(geo, fill);
       meshes.push(mesh);
-      /* The model puts a part's base at y; three.js centres a cylinder. */
-      mesh.position.set(p.x, p.y + p.h / 2, p.z);
       group.add(mesh);
       const line = new LineSegments(
         new EdgesGeometry(geo, CREASE_ANGLE),
         creaseMat,
       );
-      line.position.copy(mesh.position);
+      lines.push(line);
       creases.add(line);
       if (ghost) {
         const gm = ghostMaterial(
@@ -235,7 +295,7 @@ export default function ThreeView({
           DASH_PERIOD * renderer.getPixelRatio(),
         );
         const back = new Mesh(geo, gm);
-        back.position.copy(mesh.position);
+        ghosts.push(back);
         ghost.add(back);
         owned.push(gm);
       }
@@ -245,34 +305,11 @@ export default function ThreeView({
       owned.push(geo, fill, id, line.geometry);
     }
 
-    const extent = extentOf(parts);
-    const mid = extent.height / 2;
-    const { up } = viewOf(view);
-    /* Where it stands, what it can see and how deep it can see, all from one
-       place — the axis that positions the camera is the axis its near and far
-       planes are measured along, which is what stops the two disagreeing. */
-    const cam = cameraFor(view, extent, width / height);
-    const camera = new OrthographicCamera(
-      -cam.halfW,
-      cam.halfW,
-      cam.halfH,
-      -cam.halfH,
-      cam.near,
-      cam.far,
-    );
-    camera.position.set(
-      cam.axis.x * cam.dist,
-      mid + cam.axis.y * cam.dist,
-      cam.axis.z * cam.dist,
-    );
-    camera.up.set(up[0], up[1], up[2]);
-    camera.lookAt(0, mid, 0);
-
     /* Buffers at device resolution, not CSS pixels, or the outline is found at
        half the resolution it is drawn at and comes out soft on a phone. */
     const dpr = renderer.getPixelRatio();
-    const bw = Math.max(1, Math.round(width * dpr));
-    const bh = Math.max(1, Math.round(height * dpr));
+    const bw = Math.max(1, Math.round(bufW * dpr));
+    const bh = Math.max(1, Math.round(bufH * dpr));
 
     /* Ids and depth come off the same pass, unfiltered and unresolved: a
        multisampled id buffer averages two parts into a third that does not
@@ -299,64 +336,149 @@ export default function ThreeView({
     const quad = new OrthographicCamera(-1, 1, 1, -1, 0, 1);
     owned.push(quadMat, quadGeo);
 
-    const paint = () => {
-      /* Ids first, on black so the background reads as no part at all, and
-         without the creases: a line drawn into the id buffer is a false part,
-         and every one of them would come back as an outline of its own. */
-      creases.visible = false;
-      if (ghost) ghost.visible = false;
-      for (let i = 0; i < parts.length; i++) meshes[i].material = idMats[i];
-      renderer.setRenderTarget(idTarget);
-      renderer.setClearColor(0x000000, 1);
-      renderer.clear();
-      renderer.render(scene, camera);
-
-      /* Then the shading and the creases, on the panel colour the composite
-         fades towards. */
-      creases.visible = true;
-      for (let i = 0; i < parts.length; i++) meshes[i].material = fillMats[i];
-      renderer.setRenderTarget(fillTarget);
-      renderer.setClearColor(panelClear(), 1);
-      renderer.clear();
-      renderer.render(scene, camera);
-
-      /* Then what is behind it, over the top. A separate render rather than a
-         group in the one above, because three sorts transparent objects after
-         opaque ones but still writes them into the same depth pass — and this
-         wants the finished depth buffer to test against, not a partial one. */
-      if (ghost) {
-        ghost.visible = true;
-        group.visible = false;
-        creases.visible = false;
-        renderer.autoClear = false;
-        renderer.render(scene, camera);
-        renderer.autoClear = true;
-        group.visible = true;
-        ghost.visible = false;
-      }
-
-      /* And the lines, over the top, straight to the canvas. */
-      quadMat.uniforms.tColor.value = fillTarget.texture;
-      quadMat.uniforms.tId.value = idTarget.texture;
-      quadMat.uniforms.tDepth.value = depth;
-      quadMat.uniforms.texel.value.set(1 / bw, 1 / bh);
-      quadMat.uniforms.camNear.value = cam.near;
-      quadMat.uniforms.camFar.value = cam.far;
-      /* Cue across the model's own depth, so a long rocket seen end-on fades
-         over the same range as a short one rather than by its absolute size. */
-      quadMat.uniforms.cueNear.value = cam.cueNear;
-      quadMat.uniforms.cueSpan.value = cam.cueSpan;
-      renderer.setRenderTarget(null);
-      renderer.render(quadScene, quad);
+    built.current = {
+      scene,
+      group,
+      ghost,
+      creases,
+      meshes,
+      lines,
+      ghosts,
+      idMats,
+      fillMats,
+      quadScene,
+      quadMat,
+      quad,
+      idTarget,
+      fillTarget,
+      depth,
+      bw,
+      bh,
     };
 
-    paint();
-
     return () => {
+      built.current = null;
       renderer.setRenderTarget(null);
       for (const o of owned) o.dispose();
     };
-  }, [parts, view, width, height, color]);
+  }, [parts, view, color, bufW, bufH]);
 
-  return <div ref={host} style={{ width, height, lineHeight: 0 }} />;
+  /* ---------------------------- painted often ----------------------------
+
+     Where every part is and where the camera stands. Cheap enough to run on
+     every frame of a transition: it moves objects that already exist and
+     renders four passes over a few thousand triangles. */
+  useEffect(() => {
+    const renderer = gl.current;
+    const b = built.current;
+    if (!renderer || !b) return;
+
+    const box = extent ?? extentOf(parts);
+    const mid = midY ?? box.height / 2;
+    const { up } = viewOf(view);
+    /* Where it stands, what it can see and how deep it can see, all from one
+       place — the axis that positions the camera is the axis its near and far
+       planes are measured along, which is what stops the two disagreeing. */
+    const cam = cameraFor(view, box, width / height);
+    /* Asymmetric, so the visible box in the buffer's top-left corner frames
+       exactly what a panel of that size would. Both ratios are 1 in a still
+       frame and this is the ordinary symmetric frustum. */
+    const wide = bufW / width;
+    const tall = bufH / height;
+    const camera = new OrthographicCamera(
+      -cam.halfW,
+      -cam.halfW + 2 * cam.halfW * wide,
+      cam.halfH,
+      cam.halfH - 2 * cam.halfH * tall,
+      cam.near,
+      cam.far,
+    );
+    camera.position.set(
+      cam.axis.x * cam.dist,
+      mid + cam.axis.y * cam.dist,
+      cam.axis.z * cam.dist,
+    );
+    camera.up.set(up[0], up[1], up[2]);
+    camera.lookAt(0, mid, 0);
+
+    /* Every part where the separation has got it to. All three of a part's
+       pieces — its surface, its creases and its ghost — move together, which
+       is what the parallel arrays above are for. */
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      const o = offsets?.[i];
+      const x = p.x + (o ? o.x : 0);
+      const y = p.y + p.h / 2 + (o ? o.y : 0);
+      const z = p.z + (o ? o.z : 0);
+      const tilt = o ? o.tilt : 0;
+      /* About the tangent, so the top swings away from the stack rather than
+         around it. A part on the axis has no direction to lean in. */
+      const r = Math.hypot(p.x, p.z);
+      if (tilt && r > 1e-9) AXIS.set(p.z / r, 0, -p.x / r);
+      for (const obj of [b.meshes[i], b.lines[i], b.ghosts[i]]) {
+        if (!obj) continue;
+        obj.position.set(x, y, z);
+        if (tilt && r > 1e-9) obj.quaternion.setFromAxisAngle(AXIS, tilt);
+        else obj.quaternion.identity();
+      }
+    }
+
+    /* Ids first, on black so the background reads as no part at all, and
+       without the creases: a line drawn into the id buffer is a false part,
+       and every one of them would come back as an outline of its own. */
+    b.creases.visible = false;
+    if (b.ghost) b.ghost.visible = false;
+    for (let i = 0; i < parts.length; i++) b.meshes[i].material = b.idMats[i];
+    renderer.setRenderTarget(b.idTarget);
+    renderer.setClearColor(0x000000, 1);
+    renderer.clear();
+    renderer.render(b.scene, camera);
+
+    /* Then the shading and the creases, on the panel colour the composite
+       fades towards. */
+    b.creases.visible = true;
+    for (let i = 0; i < parts.length; i++) b.meshes[i].material = b.fillMats[i];
+    renderer.setRenderTarget(b.fillTarget);
+    renderer.setClearColor(panelClear(), 1);
+    renderer.clear();
+    renderer.render(b.scene, camera);
+
+    /* Then what is behind it, over the top. A separate render rather than a
+       group in the one above, because three sorts transparent objects after
+       opaque ones but still writes them into the same depth pass — and this
+       wants the finished depth buffer to test against, not a partial one. */
+    if (b.ghost) {
+      b.ghost.visible = true;
+      b.group.visible = false;
+      b.creases.visible = false;
+      renderer.autoClear = false;
+      renderer.render(b.scene, camera);
+      renderer.autoClear = true;
+      b.group.visible = true;
+      b.ghost.visible = false;
+    }
+
+    /* And the lines, over the top, straight to the canvas. */
+    b.quadMat.uniforms.tColor.value = b.fillTarget.texture;
+    b.quadMat.uniforms.tId.value = b.idTarget.texture;
+    b.quadMat.uniforms.tDepth.value = b.depth;
+    b.quadMat.uniforms.texel.value.set(1 / b.bw, 1 / b.bh);
+    b.quadMat.uniforms.camNear.value = cam.near;
+    b.quadMat.uniforms.camFar.value = cam.far;
+    /* Cue across the model's own depth, so a long rocket seen end-on fades
+       over the same range as a short one rather than by its absolute size. */
+    b.quadMat.uniforms.cueNear.value = cam.cueNear;
+    b.quadMat.uniforms.cueSpan.value = cam.cueSpan;
+    renderer.setRenderTarget(null);
+    renderer.render(b.quadScene, b.quad);
+  }, [parts, view, color, bufW, bufH, width, height, extent, midY, offsets]);
+
+  /* The visible box, clipping the buffer's top-left corner. They are the same
+     size in a still frame and the clip does nothing. */
+  return (
+    <div
+      style={{ width, height, overflow: "hidden", lineHeight: 0 }}
+      ref={host}
+    />
+  );
 }

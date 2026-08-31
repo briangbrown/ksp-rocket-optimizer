@@ -79,7 +79,16 @@ async function press(label: string) {
   await settle(page);
 }
 
-const step = press;
+/* Long enough for one separation to run and settle. The transition is 800 ms
+   — `STAGE_MS` in build.tsx — and `settle` only waits for the solver, which
+   has nothing to do with it. Sampling a panel before it has stopped moving
+   reads a frame of the animation as though it were the step. */
+const SEPARATION = 1000;
+
+async function step(label: string) {
+  await press(label);
+  await new Promise((r) => setTimeout(r, SEPARATION));
+}
 
 /* Where the three column labels sit. They have to sit on one line: the row
    used to bottom-align its columns, and the elevation's header is taller than
@@ -302,6 +311,61 @@ describe("the build view, in a browser", () => {
       small.css,
     );
   });
+
+  it("animates a separation, and settles where a cut would have", async () => {
+    /* Stepping used to cut from one rocket to the next. It now plays the
+       separation: the spent stage falls, radial boosters are thrown out and
+       down, the camera eases between the two framings and the panel resizes
+       with them. None of it is visible to jsdom, which has no WebGL to draw in
+       and nothing to animate. #105 */
+    await step("On the pad");
+    const before = await read(ELEVATION);
+
+    /* Mid-flight. The transition runs 800 ms, so a sample a third of the way
+       in is neither end of it. */
+    await press("Stage 1 spent");
+    await new Promise((r) => setTimeout(r, 260));
+    const mid = await read(ELEVATION);
+    expect(mid.hash, "the drawing did not move").not.toBe(before.hash);
+
+    /* And it stops. Two samples a good way apart, after it should be over. */
+    await new Promise((r) => setTimeout(r, 1200));
+    const done = await read(ELEVATION);
+    await new Promise((r) => setTimeout(r, 300));
+    const still = await read(ELEVATION);
+    expect(still.hash, "it never settled").toBe(done.hash);
+    expect(done.hash, "it settled where it started").not.toBe(before.hash);
+
+    /* The panel is its own size again, not the larger buffer the transition
+       was allocated in. A canvas left at the transition's size would draw the
+       rocket in a box with room at the side of it for a rocket that has
+       gone. */
+    const box = await page.evaluate(() => {
+      const c = document.querySelectorAll("canvas")[0];
+      const p = c.parentElement;
+      return [
+        Math.round(c.getBoundingClientRect().width),
+        p ? Math.round(p.getBoundingClientRect().width) : 0,
+      ];
+    });
+    expect(box[0], "the buffer outlived the transition").toBe(box[1]);
+  });
+
+  it("plays the whole staging through", async () => {
+    await step("On the pad");
+    await press("Play the staging");
+    /* Six steps at 800 ms, and the control stops itself at the end. */
+    await new Promise((r) => setTimeout(r, 7000));
+    const lit = await page.$$eval("button.chip", (bs) =>
+      bs
+        .filter((b) => b.getAttribute("data-on") === "1")
+        .map((b) => b.textContent),
+    );
+    expect(lit, "the play control did not reach the end").toContain(
+      "Payload alone",
+    );
+    await step("On the pad");
+  }, 60_000);
 
   it("says nothing to the console", async () => {
     /* Last, so it reports what the whole walk above provoked. A shader that

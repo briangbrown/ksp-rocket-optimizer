@@ -3,17 +3,19 @@ import {
   lazy,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { Maximize, Minimize } from "lucide-react";
+import { Maximize, Minimize, Pause, Play } from "lucide-react";
 
 import { payloadDiaOf, stackGeometry } from "../../core/geometry.js";
 import { manifest } from "../../core/manifest.js";
 import type { ManifestRow } from "../../core/manifest.js";
 import { extentOf, modelOf } from "../../core/model.js";
 import { framing, panelSizes } from "../views.js";
+import { pose, separation } from "../separation.js";
 import { PLATE_SHROUD } from "../../core/parts.js";
 import { fmt, hms } from "../format.js";
 import { C, FONT } from "../tokens.js";
@@ -863,6 +865,22 @@ const HEAD = 22;
 /* How tall the drawings stand when this is not full screen: what they have
    always been. Full screen is where the space is. */
 const INLINE_H = 300;
+/* How long one stage separation takes. Long enough to watch the boosters
+   tumble out and the stage fall away, short enough that stepping through the
+   list to read a number is not a wait. #105 */
+const STAGE_MS = 800;
+
+/* Motion is a preference. The stylesheet already honours it for every
+   transition in the application; a separation is the same question asked of a
+   render loop. Read once, because it is a property of the person and not of
+   the frame. */
+let still: boolean | null = null;
+const reducedMotion = () => {
+  if (still === null)
+    still = !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  return still;
+};
+
 /* The container width at which the staging chips move to a rail down the left.
    Width rather than aspect ratio, because what a rail needs is horizontal room
    for itself and a phone held either way has none. #99 */
@@ -921,14 +939,63 @@ function BuildView({
   color,
   maxAspect = 14,
 }: BuildViewProps) {
-  const solved = stages.filter(isSolved);
+  const solved = useMemo(() => stages.filter(isSolved), [stages]);
+  const steps = useMemo(() => stagingSteps(solved), [solved]);
+  /* Where the stepper has settled, and where it is going. They differ only
+     while a separation is running. */
   const [step, setStep] = useState(0);
+  const [goal, setGoal] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  /* The transition in flight: which pair of steps, and how far through. Null
+     between them, which is every frame that is not animating. */
+  const [anim, setAnim] = useState<{ a: number; t: number } | null>(null);
   /* Locked cameras, not an orbit: a schematic that moves stops being a
      drawing. The three-quarter is the one angle that shows a ring of columns
      as a ring while still reading as an elevation. #63 step 5. */
   const [angle, setAngle] = useState("side");
   const [full, setFull] = useState(false);
   const box = useBox();
+
+  const drawn = canRender3D();
+  /* Nothing to animate where nothing is drawn — jsdom takes this path, and so
+     does a browser with no WebGL and anyone who has asked for less motion.
+     Steps are then instant, which is what they have always been. */
+  const animates = drawn && !reducedMotion();
+
+  const last = Math.max(0, steps.length - 1);
+  const from = Math.min(step, last);
+  const want = Math.min(goal, last);
+  const moving = from !== want;
+  const back = want < from;
+  /* A transition is always between neighbours; `lo` is the lower of the pair,
+     and a backward step is the same one played from the far end. */
+  const lo = back ? from - 1 : from;
+
+  /* One at a time, and the next begins where the last committed — so a jump of
+     several steps plays each separation in turn, which is what a launch does.
+     #105 */
+  useEffect(() => {
+    if (!moving) {
+      setPlaying(false);
+      return;
+    }
+    if (!animates) {
+      setStep(back ? from - 1 : from + 1);
+      return;
+    }
+    setAnim({ a: lo, t: back ? 1 : 0 });
+    const t0 = performance.now();
+    let id = requestAnimationFrame(function tick(now: number) {
+      const u = Math.min(1, (now - t0) / STAGE_MS);
+      setAnim({ a: lo, t: back ? 1 - u : u });
+      if (u < 1) id = requestAnimationFrame(tick);
+      else {
+        setAnim(null);
+        setStep(back ? from - 1 : from + 1);
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [moving, back, lo, from, animates]);
 
   /* Escape leaves, and the page behind does not scroll while it is covered. */
   useEffect(() => {
@@ -945,17 +1012,43 @@ function BuildView({
     };
   }, [full]);
 
+  /* The two models a transition runs between, and the choreography joining
+     them — built once for the transition, not once a frame. `stepModels`
+     returns fresh arrays every call, and handing ThreeView a new one every
+     frame would have it throw away every buffer on the card to move a part a
+     metre. */
+  const base = anim ? anim.a : from;
+  const shot = useMemo(() => {
+    const A = stepModels(solved, steps[base], payload, payloadDia);
+    if (!anim || base + 1 > last) return { A, B: null, sep: null };
+    const B = stepModels(solved, steps[base + 1], payload, payloadDia);
+    return {
+      A,
+      B,
+      sep: separation(A.model, B.model, steps[base], steps[base + 1]),
+    };
+  }, [solved, steps, base, anim !== null, last, payload, payloadDia]);
+
   if (!solved.length) return null;
 
-  const steps = stagingSteps(solved);
-  const at = Math.min(step, steps.length - 1);
-  const cur = steps[at];
-  const { live, model, planModel } = stepModels(
-    solved,
-    cur,
-    payload,
-    payloadDia,
-  );
+  const frame = anim && shot.sep ? pose(shot.sep, anim.t) : null;
+  /* The step being entered: what the figures report and which chip is lit. The
+     drawing is between two of them, and the numbers may as well lead. */
+  const at = moving ? (back ? lo : lo + 1) : from;
+  const model = shot.A.model;
+  const live =
+    frame && shot.B ? (back ? shot.A.live : shot.B.live) : shot.A.live;
+  /* The plan shows the bottom live stage alone, so between two steps it is a
+     different shape with nothing in common. It fades through rather than
+     moving: out over the first half, swapped where nothing is on screen, back
+     in over the second. */
+  const planModel =
+    frame && shot.B && anim
+      ? anim.t < 0.5
+        ? shot.A.planModel
+        : shot.B.planModel
+      : shot.A.planModel;
+  const planFade = anim ? Math.abs(2 * anim.t - 1) : 1;
 
   /* Twice, over two chains. `pad` is the vehicle that leaves the pad and `now`
      is what is left at this step — the same function and the same authority,
@@ -986,12 +1079,11 @@ function BuildView({
      shorter and wider than its elevation, and a panel cut for the elevation
      would leave it drawn small in the middle of it. `framing` carries no
      three.js, so asking it costs the bundle nothing. */
-  const need = framing(angle, extentOf(model));
+  const need = framing(angle, frame ? frame.extent : extentOf(model));
   const H = Math.max(0.1, need.h * 2);
   /* A floor so a very small rocket still gets a panel with room in it. */
   const wMax = Math.max(1, need.w * 2);
 
-  const drawn = canRender3D();
   /* Before the observer has reported, and in jsdom where it never will. */
   const outerW = box.w || 320;
   const railed = drawn && outerW >= WIDE;
@@ -1014,7 +1106,10 @@ function BuildView({
       key={i}
       className="chip"
       data-on={i === at ? 1 : 0}
-      onClick={() => setStep(i)}
+      onClick={() => {
+        setPlaying(false);
+        setGoal(i);
+      }}
       style={railed ? { textAlign: "left", width: "100%" } : undefined}
     >
       {st.label}
@@ -1036,6 +1131,29 @@ function BuildView({
     >
       {heading}
       <span style={{ flex: 1 }} />
+      {animates && steps.length > 1 && (
+        <button
+          className="chip"
+          aria-label={playing ? "Stop" : "Play the staging"}
+          onClick={() => {
+            if (playing) {
+              /* Let the separation in flight finish rather than snapping out
+                 of it halfway. */
+              setPlaying(false);
+              setGoal(at);
+            } else {
+              /* From the top again if it is already at the end. */
+              if (from === last) setStep(0);
+              setGoal(last);
+              setPlaying(true);
+            }
+          }}
+          title={playing ? "Stop where it gets to" : "Play the staging through"}
+          style={{ display: "flex", alignItems: "center", padding: "4px 8px" }}
+        >
+          {playing ? <Pause size={14} /> : <Play size={14} />}
+        </button>
+      )}
       {drawn && (
         <button
           className="chip"
@@ -1057,19 +1175,48 @@ function BuildView({
     </div>
   );
 
+  /* The largest box the transition passes through. The buffer is allocated
+     once for it and the visible box is clipped out of the corner, so the panel
+     can change size every frame without reallocating two render targets and a
+     depth texture sixty times a second. Sampled rather than solved for:
+     `panelSizes` is not monotone in the extent, and nine points cost nothing
+     once a transition. #105 */
+  const buffers = useMemo(() => {
+    if (!shot.sep) return null;
+    let ew = 0,
+      eh = 0,
+      pw = 0;
+    for (let i = 0; i <= 8; i++) {
+      const f = pose(shot.sep, i / 8);
+      const n = framing(angle, f.extent);
+      const sz = panelSizes(
+        { aw, ah },
+        Math.max(1, n.w * 2) / Math.max(0.1, n.h * 2),
+        GAP,
+      );
+      ew = Math.max(ew, sz.elev.w);
+      eh = Math.max(eh, sz.elev.h);
+      pw = Math.max(pw, sz.plan.w);
+    }
+    return { elev: { w: ew, h: eh }, plan: { w: pw, h: pw } };
+  }, [shot.sep, angle, aw, ah]);
+
   const panel = (
     label: string,
     parts: typeof model,
     view: string,
     size: { w: number; h: number },
+    buffer: { w: number; h: number } | undefined,
     extra?: ReactNode,
+    fade?: number,
+    moves?: ReturnType<typeof pose> | null,
   ) => (
     <div style={{ flexShrink: 0, display: "flex", flexDirection: "column" }}>
       {head(label, extra)}
       {/* At the foot of its column, so the base of the plan and the base of
           the elevation are the same line — which is the bottom of the section.
           The elevation is the taller of the two and never moves. */}
-      <div style={{ marginTop: "auto" }}>
+      <div style={{ marginTop: "auto", opacity: fade ?? 1 }}>
         <Suspense fallback={<Loading w={size.w} h={size.h} />}>
           <ThreeView
             parts={parts}
@@ -1077,6 +1224,10 @@ function BuildView({
             width={size.w}
             height={size.h}
             color={color}
+            buffer={buffer}
+            extent={moves ? moves.extent : undefined}
+            midY={moves ? moves.midY : undefined}
+            offsets={moves ? moves.offsets : undefined}
           />
         </Suspense>
       </div>
@@ -1126,6 +1277,7 @@ function BuildView({
         model,
         angle,
         elev,
+        buffers?.elev,
         <button
           className="chip"
           data-on={angle === "iso" ? 1 : 0}
@@ -1135,8 +1287,18 @@ function BuildView({
         >
           Iso
         </button>,
+        1,
+        frame,
       )}
-      {panel("Plan", planModel, "plan", plan)}
+      {panel(
+        "Plan",
+        planModel,
+        "plan",
+        plan,
+        buffers?.plan,
+        undefined,
+        planFade,
+      )}
     </div>
   );
 
