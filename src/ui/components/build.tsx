@@ -393,8 +393,9 @@ function PartsTable({ stages, payload, hardware, color }: PartsTableProps) {
     const S = s.sol.stacks || 1;
     const per = (r: ManifestRow) => r.qty / S;
     const dec = one("decoupler");
-    /* The manifest still lists a decoupler a stage did not buy, with no part
-       on it, so the mass check has something to account for. Nothing to show. */
+    /* A stage whose joint is made by the plate above it buys none, and the
+       manifest no longer lists one — it used to, with no part on it and no
+       mass, and this drew it as an empty row with 0.000 against it. #107 */
     if (dec && dec.part)
       rows.push({
         stage: n,

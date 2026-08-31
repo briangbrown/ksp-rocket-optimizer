@@ -128,7 +128,9 @@ const stageParts = (c: Solution) =>
   (c.rejoin ? 1 : 0) +
   (c.packed ? c.packed.cols * 2 * (c.stacks || 1) : 0) +
   ((c.stacks || 1) - 1) * 2 +
-  (c.decoupler && c.decoupler.qty ? c.decoupler.qty : 1) +
+  /* Zero where the plate above makes the joint. The `&&` here read that as
+     "no decoupler recorded" and charged one anyway. #107 */
+  (c.decoupler ? c.decoupler.qty : 1) +
   (c.boosters
     ? c.boosters.n *
       (2 + (c.boosters.part.column ? c.boosters.part.column.count : 0))

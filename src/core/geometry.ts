@@ -369,7 +369,13 @@ function stageGeom(sol: Solution) {
   const ringR = stackRing(S, span);
   const engine = engineLen(sol.engine);
   const coupler = sol.coupler ? heightOf({ n: sol.coupler.n }, 0.3) : 0;
-  const decoupler = sol.decoupler ? heightOf({ n: sol.decoupler.n }, 0.15) : 0;
+  /* The one it bought. A stage whose joint is made by the engine plate above
+     it carries a fit with a quantity of zero and no part in it, and was given
+     0.15 m of height for it anyway — structure in the drawing, in the stack's
+     length and in the slenderness limit, for a part nobody places. #107 */
+  const decoupler = sol.decoupler?.qty
+    ? heightOf({ n: sol.decoupler.n }, 0.15)
+    : 0;
   const adapters = sol.adapters
     ? sol.adapters.parts.map((t) => ({
         t,

@@ -90,15 +90,21 @@ export function eachRow(sol: Solution | null | undefined, add: AddRow) {
   if (!sol) return;
   const S = sol.stacks || 1;
 
-  /* The decoupler's mass and cost already cover its quantity. */
+  /* The decoupler's mass and cost already cover its quantity.
+
+     A stage whose joint is made by the engine plate above it buys none, and
+     says so with a quantity of zero — which is the number to hand on. It used
+     to be `qty || 1`, guarding the division below, and that turned "none" into
+     "one": a row with no part and no mass in the parts table, and a part
+     counted in both `stageParts` and `manifestCount` that nobody places. #107 */
   if (sol.decoupler) {
-    const q = sol.decoupler.qty || 1;
+    const q = sol.decoupler.qty;
     add(
       "decoupler",
       sol.decoupler,
       q,
-      sol.decoupler.m / q,
-      (sol.decoupler.cost ?? DECOUPLER_FUNDS) / q,
+      q ? sol.decoupler.m / q : 0,
+      q ? (sol.decoupler.cost ?? DECOUPLER_FUNDS) / q : 0,
     );
   } else add("decoupler", null, 1, 0, DECOUPLER_FUNDS);
 
