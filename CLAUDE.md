@@ -192,14 +192,20 @@ out of memory when the mission models were built twice.
 
 It still says nothing about a real GPU, about performance, or about a phone.
 
-**The mission sweep** solves twelve whole missions through `planMission` — four
+**The mission sweep** solves thirteen whole missions through `planMission` — four
 destinations by three payloads at tier 9 — and pins the delivered stages against
 a baseline. It exists because the design snapshot reads `best` and the
 application does not: for an auto-stage-count launch, `planMission` walks `byK`
 cheapest-first through the ascent simulator, delivers the first candidate that
 flies, and then re-solves against the flown cost. Dropping the cluster-cap
 variant left every one of the 81 grid _designs_ untouched and moved three of
-these twelve. Re-bless it exactly as deliberately as the design snapshot.
+these. Re-bless it exactly as deliberately as the design snapshot.
+
+The thirteenth is the odd one out and is there on purpose: it is cut into
+segments, which none of the other twelve are. Cuts are how a user says "this
+part flies on its own hardware", and until #102 they were also the only way to
+reach a whole branch of the slenderness constraint — so a change to it was
+invisible to every baseline here.
 
     test/grid.ts                          the configuration grid and its axes
     test/signature.ts                     reducing a design to stable text
@@ -213,6 +219,7 @@ these twelve. Re-bless it exactly as deliberately as the design snapshot.
     test/render-sweep.test.tsx            the render sweep
     test/model.test.ts                    the rocket as shapes, checked as shapes
     test/parts-order.test.tsx             the parts list reads as a build order
+    test/slenderness.test.ts              the limit is on the whole rocket
     test/staging-figures.test.tsx         the figures follow the staging step
     test/three-view.test.ts               the orthographic framing, on numbers
     test/seam-contract.test.ts            planMission stays serialisable
@@ -362,6 +369,17 @@ implying CI covered it.
   empty for the life of the module.
 - **Slenderness is a constraint, not a tie-break.** The simulation walk once fell
   through every compliant design and returned a 30.6:1 stack under a 14:1 limit.
+- **And it is a constraint on the whole rocket, which is not what a group
+  sees.** A mission cut into segments is solved a segment at a time, and each
+  one was judged as though it were the whole vehicle with a pod on its nose:
+  four segments reading 6.2, 4.6, 2.3 and 1.7 against a limit of 8, for a stack
+  that is 9.5:1. It cut both ways — a segment over the limit was rejected on a
+  vehicle that was under it, and a vehicle over the limit was delivered on
+  segments that were all under. Groups are solved from the top of the stack
+  downwards, so what stands above one is known when it is sized; `stackOf`
+  carries that down, and the group that reaches the pad therefore judges the
+  vehicle. A mission with no cuts is one group, which is why neither baseline
+  could see any of it. #102
 - **`best` is not what the user gets.** For an auto-stage-count launch,
   `planMission` walks `byK` cheapest-first through the ascent simulator and
   delivers the first candidate that flies. A change that leaves `best`
@@ -369,7 +387,7 @@ implying CI covered it.
   drives `solveGroup` directly — it never enters the walk. Dropping the
   cluster-cap variant looked free by that measure and moved 11 of 128 real
   missions, nine of them dearer on the objective asked for. `npm test` now
-  covers twelve of those through the mission sweep — but twelve, not 128, so a
+  covers thirteen of those through the mission sweep — but thirteen, not 128, so a
   solver change you cannot explain still deserves a wider sweep before you
   believe it is invisible.
 - **A variant that improves `best` can degrade what is delivered.** Same sweep:

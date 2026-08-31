@@ -128,6 +128,12 @@ type GroupInput = {
   kind: string;
   boosters: boolean;
   srbs: ReadonlyArray<Engine>;
+  /* What is already standing above this group: the stages of every group
+     solved before it, as `stackOf` measures them. Slenderness is a property of
+     the vehicle that leaves the pad, and a segment judged on its own chain is
+     judged as though it were the whole rocket. Absent for the topmost group
+     and for every mission with no cuts in it. #102 */
+  above?: { h: number; w: number };
   /* Absent on a segment that flies nowhere near a body with air, which is what
      `prepare` tests before asking for its surface pressure. */
   bodyName?: string;
@@ -1104,6 +1110,7 @@ function prepare({
   kind,
   boosters,
   srbs,
+  above = { h: 0, w: 0 },
   bodyName,
   objective = "mass",
 }: GroupInput) {
@@ -1135,6 +1142,7 @@ function prepare({
     kind,
     boosters,
     srbs,
+    above,
     objective,
     pSurf,
     twrBottom,
@@ -1196,6 +1204,7 @@ function solveUnit(
     kind,
     boosters,
     srbs,
+    above,
     objective,
     pSurf,
     twrBottom,
@@ -1415,7 +1424,12 @@ function solveUnit(
             };
             chain[q] = { ...chain[q], sol: packedSol };
           }
-          const ar = stackGeometry(chain, payload, payloadDia).ar;
+          /* The whole stack, not this segment of it: everything already
+             solved above, plus this chain, plus one payload on the nose. For
+             the group that reaches the pad — the last one solved — that is
+             exactly the vehicle, so the constraint that gates delivery is the
+             one the drawing reports. #102 */
+          const ar = stackGeometry(chain, payload, payloadDia, above).ar;
           TALLY.chains++;
           const cand = {
             chain,
