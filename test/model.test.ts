@@ -14,7 +14,10 @@ import {
 } from "../src/ui/components/build.jsx";
 import type { SolvedStage, Step } from "../src/ui/components/build.jsx";
 import type { ModelPart } from "../src/core/model.js";
+import { DATA } from "../src/core/catalogue.js";
 import { missionCases } from "./grid.js";
+import { must } from "./must.js";
+import type { Solution } from "../src/core/solution.js";
 import { PANELS, escapes, escapesDepth } from "./framing.js";
 
 /* The rocket as shapes, checked as shapes.
@@ -38,6 +41,22 @@ import { PANELS, escapes, escapesDepth } from "./framing.js";
    parts are meant to touch. Real failures here run to metres — the column
    overlap in #58 was 1.28 m. */
 const EPS = 1e-3;
+
+/* How much of a gap is a booster standing beside something rather than
+   floating past nothing.
+
+   Zero was the bar, and it held only because the foot stopped at the first
+   section narrower than the tank by any amount at all. An engine's drawn width
+   is its measured face, which runs a little under its node — the grid's stack
+   engines leave 5 to 14 mm — and a Mammoth, mounting on 3.75 m and measuring
+   3.27, leaves 0.24 m. Every one of those is a gap the game shows.
+
+   A fifth of the way in is the bar, and the stack size ladder sets it:
+   adjacent sizes differ by at least a quarter — 1.875 to 2.5, 3.75 to 5 — so a
+   section within a fifth is the same class measured a little smaller, and one
+   a class down is not. The 0.29 m Twitch under a 1.25 m tank that #86 was
+   about stands 77% clear. #109 */
+const CLEAR = 0.2;
 
 /* Two cylinders share space when they overlap along the stack *and* their
    footprints overlap in plan. Touching is not overlapping. */
@@ -279,19 +298,24 @@ describe("the build model", () => {
     for (const { name, parts } of MODELS) {
       for (const b of parts.filter((p) => p.role === "booster")) {
         checked++;
-        /* How far in the booster's near side reaches. Something has to be
-           there, at the height its foot is at. */
+        /* How far in the booster's near side reaches, and how far out the
+           stack does at the height its foot is at. */
         const inner = Math.hypot(b.x, b.z) - b.r;
-        const touching = parts.some(
-          (p) =>
-            p.role !== "booster" &&
-            p.y <= b.y + EPS &&
-            p.y + p.h >= b.y + EPS &&
-            Math.hypot(p.x, p.z) + p.r >= inner - EPS,
+        const widest = Math.max(
+          0,
+          ...parts
+            .filter(
+              (p) =>
+                p.role !== "booster" &&
+                p.y <= b.y + EPS &&
+                p.y + p.h >= b.y + EPS,
+            )
+            .map((p) => Math.hypot(p.x, p.z) + p.r),
         );
-        if (!touching)
+        const gap = inner > 0 ? (inner - widest) / inner : 0;
+        if (gap > CLEAR)
           bad.push(
-            `${name}: a ${b.part.n} stands against nothing at y=${b.y.toFixed(2)}`,
+            `${name}: a ${b.part.n} stands ${(gap * 100).toFixed(0)}% clear of anything at y=${b.y.toFixed(2)}`,
           );
       }
     }
@@ -392,5 +416,75 @@ describe("the build model", () => {
             p.rTop,
             `${name}: ${p.role} flares outwards`,
           ).toBeLessThanOrEqual(p.r);
+  });
+});
+
+/* A booster beside an engine that is narrower than the node it mounts on.
+
+   The mission grid cannot reach this: engine plates and the ReStock+ roster
+   are off there, and every stack engine in it measures within a centimetre of
+   its own node. A Mammoth mounts on 3.75 m and measures 3.27 across the bells,
+   which is enough for a rule comparing the measurement against the tank to
+   decide there was nothing to bolt to — and it left six Castors strapped to
+   the tanks 25 m up the stack. #109 */
+const named = <T extends { n: string }>(list: ReadonlyArray<T>, part: string) =>
+  must(
+    list.find((x) => x.n.includes(part)),
+    part,
+  );
+
+const MAMMOTH = named(DATA.engines, "Mammoth");
+const CASTOR = named(DATA.engines, "Castor");
+const S3 = named(DATA.tanks, "Kerbodyne S3-3600");
+
+const PLAIN = {
+  adapters: null,
+  coupler: null,
+  shroud: null,
+  total: 300,
+  wet: 300,
+  dry: 100,
+  prop: 200,
+  isp: 300,
+  dv: 2000,
+  twr: 1.4,
+  twrBurnout: 2,
+  burn: 100,
+  cost: 0,
+  parts: 0,
+  score: 0,
+};
+
+const STRAPPED: Solution = {
+  ...PLAIN,
+  engine: MAMMOTH,
+  n: 1,
+  tanks: { list: [{ c: 2, t: S3 }], count: 2, dryMass: 4.5, prop: 36 },
+  decoupler: { n: "TD-37 Decoupler", m: 0.4, cost: 800, d: 3.75, qty: 1 },
+  boosters: { part: CASTOR, n: 4, burn: 60, dv: 500, sepMass: 100 },
+};
+
+describe("a booster beside a wide engine", () => {
+  it("stands on the engine's base, not on the tanks above it", () => {
+    const parts = modelOf([{ sol: STRAPPED }], 5, 2.5);
+    const engine = must(
+      parts.find((p) => p.role === "engine"),
+      "the engine",
+    );
+    const boosters = parts.filter((p) => p.role === "booster");
+    expect(boosters.length, "no boosters drawn").toBe(4);
+    /* `modelOf` stands the bottom live stage on zero and the engine goes on
+       first, so the engine's base is the floor and the tanks start above it. */
+    expect(engine.y).toBeCloseTo(0, 9);
+    for (const b of boosters)
+      expect(
+        b.y,
+        `a ${b.part.n} starts ${b.y.toFixed(2)} m up, at the tanks`,
+      ).toBeCloseTo(0, 9);
+    /* And it is standing against the engine rather than past it: the gap is
+       the difference between a 3.75 m node and a 3.27 m measurement. */
+    const b = boosters[0];
+    const inner = Math.hypot(b.x, b.z) - b.r;
+    expect((inner - (engine.r + 0)) / inner).toBeLessThan(CLEAR);
   });
 });

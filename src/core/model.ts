@@ -9,7 +9,7 @@ import {
   tankStackLen,
   widthOf,
 } from "./geometry.js";
-import { diaOf } from "./parts.js";
+import { diaOf, isRadial } from "./parts.js";
 import type { Coupler, Engine, Shroud, Tank } from "./catalogue.js";
 import type {
   BoosterPart,
@@ -279,8 +279,26 @@ function stageParts(sol: Solution, base: number, push: (p: ModelPart) => void) {
        rule for both, and it takes in the fuelled engines as well without
        naming them: a Twin-Boar carries 32 t of propellant and is 2.75 m across
        against a 2.5 m stack, so it is wide enough on its own terms. */
+    /* What the engine occupies, which is not what it measures.
+
+       `g.ed` is the engine's measured face, off its drag cube, and that is the
+       right width to draw it at. It is the wrong width to ask whether a
+       booster can stand beside it: a Mammoth mounts on a 3.75 m node and
+       measures 3.27 m across the bells, so comparing the measurement against
+       the tank it hangs under said there was nothing there to bolt to and left
+       six Castors strapped to the tanks 25 m up the stack.
+
+       A stack engine occupies its node — that is what a node is, and a booster
+       beside one runs past it with a small gap, which is what the game shows.
+       A radial engine occupies only what it measures, because it is bolted to
+       the side of something rather than sitting under it. That is the
+       distinction, and it is `isRadial` rather than a tolerance: it keeps the
+       0.29 m Twitch under a 1.25 m tank that #86 was about. #109 */
+    const engineHold = isRadial(sol.engine)
+      ? g.ed
+      : Math.max(g.ed, diaOf(sol.engine));
     const sections = [
-      { h: g.engine, reach: clusterSpan(g.perEng, g.ed) / 2 },
+      { h: g.engine, reach: clusterSpan(g.perEng, engineHold) / 2 },
       { h: g.coupler, reach: sol.coupler ? sol.coupler.top / 2 : 0 },
       ...g.adapters.map((a2) => ({ h: a2.h, reach: a2.w / 2 })),
     ];
