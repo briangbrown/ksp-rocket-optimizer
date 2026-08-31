@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import { manifest } from "../src/core/manifest.js";
+import { manifest, manifestCount } from "../src/core/manifest.js";
+import { modelOf } from "../src/core/model.js";
+import { stageParts } from "../src/core/performance.js";
 import { PartsTable } from "../src/ui/components/build.jsx";
 import type { Coupler, Engine, Tank } from "../src/core/catalogue.js";
 import type { Role } from "../src/core/manifest.js";
@@ -174,5 +176,50 @@ describe("the parts list, as a build order", () => {
       "the plate is listed above the adapter it hangs from",
     ).toBeLessThan(at(PLATE.n));
     expect(at(PLATE.n)).toBeLessThan(at(ENGINE.n));
+  });
+});
+
+/* A stage that buys no decoupler has none.
+
+   An engine plate decouples at its own node, so the stage below it buys
+   nothing for that joint — `fitStructure` says so with a quantity of zero and
+   no part in the fit. Three descriptions then have to agree that there is
+   nothing there, and none of them did: the manifest turned the zero into a one
+   to guard a division, the parts table drew the result as a row with no name
+   and 0.000 against it, `stageParts` counted a part nobody places, and the
+   drawing stood 0.15 m of decoupler on top of the stage. #107
+
+   It survived because the two counts agreed with each other. That is what
+   `test/manifest.test.ts` checks, and it cannot see a rule that is wrong in
+   both readings of it. */
+const PLATED = stage({
+  ...SOL,
+  decoupler: { n: null, m: 0, cost: 0, d: 1.25, qty: 0, viaPlateAbove: true },
+});
+
+describe("a stage whose joint the plate above it makes", () => {
+  it("lists no decoupler, counts none, and draws none", () => {
+    expect(
+      manifest(PLATED).filter((r) => r.role === "decoupler"),
+      "a decoupler is listed",
+    ).toEqual([]);
+    /* One fewer part than the same stage buying one, and the two counts still
+       agree — which they did before as well, both of them one too high. */
+    expect(stageParts(PLATED)).toBe(stageParts(SOL) - 1);
+    expect(manifestCount(PLATED)).toBe(stageParts(PLATED));
+    expect(
+      modelOf([{ sol: PLATED }], 1, 1.25).filter((p) => p.role === "decoupler"),
+      "a decoupler is drawn",
+    ).toEqual([]);
+  });
+
+  it("draws no empty row", () => {
+    render(
+      <PartsTable stages={[{ sol: PLATED }]} payload={1} color="#8ACAC2" />,
+    );
+    const blank = [...document.querySelectorAll("tbody tr")].filter(
+      (r) => !(r.children[1]?.textContent ?? "").trim(),
+    );
+    expect(blank.length, "a row with no part in it").toBe(0);
   });
 });
