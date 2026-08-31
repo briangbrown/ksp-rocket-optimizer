@@ -213,6 +213,7 @@ these twelve. Re-bless it exactly as deliberately as the design snapshot.
     test/render-sweep.test.tsx            the render sweep
     test/model.test.ts                    the rocket as shapes, checked as shapes
     test/parts-order.test.tsx             the parts list reads as a build order
+    test/staging-figures.test.tsx         the figures follow the staging step
     test/three-view.test.ts               the orthographic framing, on numbers
     test/seam-contract.test.ts            planMission stays serialisable
     test/seam-input.test.tsx              what the app actually hands the seam
