@@ -283,10 +283,10 @@ function stageParts(sol: Solution, base: number, push: (p: ModelPart) => void) {
 
        `g.ed` is the engine's measured face, off its drag cube, and that is the
        right width to draw it at. It is the wrong width to ask whether a
-       booster can stand beside it: a Mammoth mounts on a 3.75 m node and
-       measures 3.27 m across the bells, so comparing the measurement against
-       the tank it hangs under said there was nothing there to bolt to and left
-       six Castors strapped to the tanks 25 m up the stack.
+       booster can stand beside it: a Poodle mounts on a 2.5 m node and measures
+       1.92 m across the bells, so comparing the measurement against the tank it
+       hangs under says there is nothing there to bolt to, and the walk below
+       stops at the tanks with the boosters left hanging partway up the stack.
 
        A stack engine occupies its node — that is what a node is, and a booster
        beside one runs past it with a small gap, which is what the game shows.
