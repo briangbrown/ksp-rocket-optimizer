@@ -54,16 +54,36 @@ afterAll(async () => {
 
 const read = (i: number) => forCanvas(page, READ, i) as Promise<Read>;
 
-/* The stage stepper, by the labels it generates. */
+/* The stage stepper, by the labels it generates. The pattern is shared with
+   `current` below, which has to tell a staging chip from every other lit chip
+   in the application — the profile and the objective are chips too. */
+const STEP_LABEL =
+  "^(On the pad|Boosters away · core burns on|Stage \\d+ spent|Payload alone)$";
+
 const steps = () =>
-  page.$$eval("button", (bs) =>
-    bs
-      .map((b) => (b.textContent ?? "").trim())
-      .filter((t) =>
-        /^(On the pad|Boosters away · core burns on|Stage \d+ spent|Payload alone)$/.test(
-          t,
-        ),
-      ),
+  page.$$eval(
+    "button",
+    (bs, pat) =>
+      bs
+        .map((b) => (b.textContent ?? "").trim())
+        .filter((t) => new RegExp(pat).test(t)),
+    STEP_LABEL,
+  );
+
+/* Which step the stepper is showing. During a transition that is the one being
+   entered, so it lights before the motion has finished. */
+const current = () =>
+  page.$$eval(
+    "button.chip",
+    (bs, pat) =>
+      bs
+        .map((b) => ({
+          text: (b.textContent ?? "").trim(),
+          on: b.getAttribute("data-on") === "1",
+        }))
+        .filter((x) => x.on && new RegExp(pat).test(x.text))
+        .map((x) => x.text)[0] ?? null,
+    STEP_LABEL,
   );
 
 async function press(label: string) {
@@ -85,8 +105,17 @@ async function press(label: string) {
    moving reads a frame of the animation as though it were the step. */
 const SEPARATION = 1000;
 
+/* Ask for a step and wait until it is actually being shown.
+
+   A jump of several steps plays each separation in turn, so asking for the pad
+   from the payload is five of them and several seconds — waiting one
+   transition leaves the next test driving a stepper that is still walking. */
 async function step(label: string) {
   await press(label);
+  for (let i = 0; i < 200; i++) {
+    if ((await current()) === label) break;
+    await new Promise((r) => setTimeout(r, 100));
+  }
   await new Promise((r) => setTimeout(r, SEPARATION));
 }
 
@@ -358,12 +387,7 @@ describe("the build view, in a browser", () => {
        the two paces, because it is asking to watch rather than to arrive. The
        control stops itself at the end. */
     await new Promise((r) => setTimeout(r, 10_000));
-    const lit = await page.$$eval("button.chip", (bs) =>
-      bs
-        .filter((b) => b.getAttribute("data-on") === "1")
-        .map((b) => b.textContent),
-    );
-    expect(lit, "the play control did not reach the end").toContain(
+    expect(await current(), "the play control did not reach the end").toBe(
       "Payload alone",
     );
     await step("On the pad");
@@ -379,13 +403,9 @@ describe("the build view, in a browser", () => {
     await new Promise((r) => setTimeout(r, 2600));
     await press("Stop");
     await new Promise((r) => setTimeout(r, 2200));
-    const lit = await page.$$eval("button.chip", (bs) =>
-      bs
-        .filter((b) => b.getAttribute("data-on") === "1")
-        .map((b) => (b.textContent ?? "").trim()),
-    );
-    expect(lit, "it did not stop part-way").not.toContain("On the pad");
-    expect(lit, "it ran to the end anyway").not.toContain("Payload alone");
+    const where = await current();
+    expect(where, "it did not stop part-way").not.toBe("On the pad");
+    expect(where, "it ran to the end anyway").not.toBe("Payload alone");
     await step("On the pad");
   }, 60_000);
 
