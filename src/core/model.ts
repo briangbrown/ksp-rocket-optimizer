@@ -255,8 +255,10 @@ function stageParts(sol: Solution, base: number, push: (p: ModelPart) => void) {
        only showed once the boosters were drawn at their real length and reached
        up into it.
 
-       Not `span`, which is the widest thing the stage has: a wide engine
-       cluster would push the booster off the tank it is supposed to touch.
+       Not `span`, which is the widest thing the stage has whether or not the
+       booster ever comes near it: a wide engine cluster it stops above would
+       push it off the tank it is supposed to touch. What it does have to clear
+       is whatever it ends up running alongside, which the walk below knows.
 
        Nothing exercises the ring half of this. No stage in the mission grid has
        both — nine carry boosters, five carry a ring, none carries both — so the
@@ -264,7 +266,6 @@ function stageParts(sol: Solution, base: number, push: (p: ModelPart) => void) {
        placement is wrong without it, not because a test went red. */
 
     const hold = Math.max(g.td, g.pack ? g.pack.w : 0);
-    const br = (S > 1 ? g.ringR : hold / 2) + bd / 2;
     /* Its foot goes as low as the stage still reaches out to meet it.
 
        A booster bolts to whatever is beside it, and below the tanks a stage
@@ -298,16 +299,38 @@ function stageParts(sol: Solution, base: number, push: (p: ModelPart) => void) {
       ? g.ed
       : Math.max(g.ed, diaOf(sol.engine));
     const sections = [
-      { h: g.engine, reach: clusterSpan(g.perEng, engineHold) / 2 },
-      { h: g.coupler, reach: sol.coupler ? sol.coupler.top / 2 : 0 },
-      ...g.adapters.map((a2) => ({ h: a2.h, reach: a2.w / 2 })),
+      {
+        h: g.engine,
+        reach: clusterSpan(g.perEng, engineHold) / 2,
+        draw: clusterSpan(g.perEng, g.ed) / 2,
+      },
+      {
+        h: g.coupler,
+        reach: sol.coupler ? sol.coupler.top / 2 : 0,
+        draw: sol.coupler ? sol.coupler.top / 2 : 0,
+      },
+      ...g.adapters.map((a2) => ({ h: a2.h, reach: a2.w / 2, draw: a2.w / 2 })),
     ];
+    /* Two questions, two widths. `reach` is what a section occupies, which
+       decides how far down the booster goes; `draw` is the shape that is
+       actually there, which decides how far out it stands. They differ on a
+       stack engine, where the node is the occupancy and the bells are the
+       shape, and taking the node for both would push the ring off a tank it is
+       bolted to to clear something nothing draws.
+
+       The tanks are the stand-off on nearly every stage. A section below them
+       can still be drawn wider: a Mammoth measures 3.98 m across the bells
+       under a 3.75 m stack, so a ring held at the tank's radius and run down
+       past the engine sat 0.117 m inside it. */
     let foot = tankBase;
+    let ring = hold / 2;
     for (let k = sections.length - 1; k >= 0; k--) {
       if (sections[k].h <= 0) continue;
       if (sections[k].reach < hold / 2) break;
       foot -= sections[k].h;
+      if (sections[k].draw > ring) ring = sections[k].draw;
     }
+    const br = (S > 1 ? g.ringR : ring) + bd / 2;
     /* Its real length, uncapped. It was truncated to the run it is bolted to,
        which is a part drawn at a size it is not — and it never needed to be:
        every booster the mission grid picks is shorter than the tanks it hangs
