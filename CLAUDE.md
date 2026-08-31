@@ -301,6 +301,17 @@ implying CI covered it.
   anywhere; `dy` in `src/ui/separation.ts` carries the difference and the
   camera absorbs it, which is why what stays has an offset of exactly zero at
   both ends.
+- **What an engine measures is not what it occupies.** `widthOf` reads a
+  part's face off its drag cube, which for an engine is the bells and not the
+  node it mounts on: a Poodle mounts on 2.5 m and measures 1.92 across, an Ant
+  on 0.625 m and measures 0.37. That is the right width to draw it at and the
+  wrong one to ask whether a booster can stand beside it — comparing it against
+  the tank above says there is nothing there to bolt to, so the ring stops at
+  the tanks rather than running down past the engine to stand on its base, and
+  the boosters hang partway up the stack. A stack engine occupies its node; a
+  radial one occupies only what it measures, because it is bolted to the side
+  of something rather than sitting under it. `isRadial` is the distinction, not
+  a tolerance. #109
 - **A panel is never narrower than the label above it.** The elevation's header
   — the word and the `Iso` chip beside it — runs to about 110 px, and a column
   is as wide as the widest thing in it. Sizing the drawing below 110 widened

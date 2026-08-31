@@ -87,4 +87,15 @@ const SYSTEMS: ReadonlyArray<[string, Array<string>]> = [
   ["Eeloo", []],
 ];
 
-export { BODY_HUE, C, FONT, SYSTEMS, edgeOf, hueFor, inkOn, lift, lumOf, rgbOf };
+export {
+  BODY_HUE,
+  C,
+  FONT,
+  SYSTEMS,
+  edgeOf,
+  hueFor,
+  inkOn,
+  lift,
+  lumOf,
+  rgbOf,
+};
