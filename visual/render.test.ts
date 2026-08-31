@@ -54,16 +54,36 @@ afterAll(async () => {
 
 const read = (i: number) => forCanvas(page, READ, i) as Promise<Read>;
 
-/* The stage stepper, by the labels it generates. */
+/* The stage stepper, by the labels it generates. The pattern is shared with
+   `current` below, which has to tell a staging chip from every other lit chip
+   in the application — the profile and the objective are chips too. */
+const STEP_LABEL =
+  "^(On the pad|Boosters away · core burns on|Stage \\d+ spent|Payload alone)$";
+
 const steps = () =>
-  page.$$eval("button", (bs) =>
-    bs
-      .map((b) => (b.textContent ?? "").trim())
-      .filter((t) =>
-        /^(On the pad|Boosters away · core burns on|Stage \d+ spent|Payload alone)$/.test(
-          t,
-        ),
-      ),
+  page.$$eval(
+    "button",
+    (bs, pat) =>
+      bs
+        .map((b) => (b.textContent ?? "").trim())
+        .filter((t) => new RegExp(pat).test(t)),
+    STEP_LABEL,
+  );
+
+/* Which step the stepper is showing. During a transition that is the one being
+   entered, so it lights before the motion has finished. */
+const current = () =>
+  page.$$eval(
+    "button.chip",
+    (bs, pat) =>
+      bs
+        .map((b) => ({
+          text: (b.textContent ?? "").trim(),
+          on: b.getAttribute("data-on") === "1",
+        }))
+        .filter((x) => x.on && new RegExp(pat).test(x.text))
+        .map((x) => x.text)[0] ?? null,
+    STEP_LABEL,
   );
 
 async function press(label: string) {
@@ -79,7 +99,25 @@ async function press(label: string) {
   await settle(page);
 }
 
-const step = press;
+/* Long enough for one separation to run and settle. A step taken by clicking
+   is `STEP_MS` in build.tsx, 800 ms — `settle` only waits for the solver,
+   which has nothing to do with it, so sampling a panel before it has stopped
+   moving reads a frame of the animation as though it were the step. */
+const SEPARATION = 1000;
+
+/* Ask for a step and wait until it is actually being shown.
+
+   A jump of several steps plays each separation in turn, so asking for the pad
+   from the payload is five of them and several seconds — waiting one
+   transition leaves the next test driving a stepper that is still walking. */
+async function step(label: string) {
+  await press(label);
+  for (let i = 0; i < 200; i++) {
+    if ((await current()) === label) break;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  await new Promise((r) => setTimeout(r, SEPARATION));
+}
 
 /* Where the three column labels sit. They have to sit on one line: the row
    used to bottom-align its columns, and the elevation's header is taller than
@@ -302,6 +340,74 @@ describe("the build view, in a browser", () => {
       small.css,
     );
   });
+
+  it("animates a separation, and settles where a cut would have", async () => {
+    /* Stepping used to cut from one rocket to the next. It now plays the
+       separation: the spent stage falls, radial boosters are thrown out and
+       down, the camera eases between the two framings and the panel resizes
+       with them. None of it is visible to jsdom, which has no WebGL to draw in
+       and nothing to animate. #105 */
+    await step("On the pad");
+    const before = await read(ELEVATION);
+
+    /* Mid-flight. The transition runs 800 ms, so a sample a third of the way
+       in is neither end of it. */
+    await press("Stage 1 spent");
+    await new Promise((r) => setTimeout(r, 260));
+    const mid = await read(ELEVATION);
+    expect(mid.hash, "the drawing did not move").not.toBe(before.hash);
+
+    /* And it stops. Two samples a good way apart, after it should be over. */
+    await new Promise((r) => setTimeout(r, 1200));
+    const done = await read(ELEVATION);
+    await new Promise((r) => setTimeout(r, 300));
+    const still = await read(ELEVATION);
+    expect(still.hash, "it never settled").toBe(done.hash);
+    expect(done.hash, "it settled where it started").not.toBe(before.hash);
+
+    /* The panel is its own size again, not the larger buffer the transition
+       was allocated in. A canvas left at the transition's size would draw the
+       rocket in a box with room at the side of it for a rocket that has
+       gone. */
+    const box = await page.evaluate(() => {
+      const c = document.querySelectorAll("canvas")[0];
+      const p = c.parentElement;
+      return [
+        Math.round(c.getBoundingClientRect().width),
+        p ? Math.round(p.getBoundingClientRect().width) : 0,
+      ];
+    });
+    expect(box[0], "the buffer outlived the transition").toBe(box[1]);
+  });
+
+  it("plays the whole staging through", async () => {
+    await step("On the pad");
+    await press("Play the staging");
+    /* Five separations at `PLAY_MS`, which is 1.6 s — play is the slower of
+       the two paces, because it is asking to watch rather than to arrive. The
+       control stops itself at the end. */
+    await new Promise((r) => setTimeout(r, 10_000));
+    expect(await current(), "the play control did not reach the end").toBe(
+      "Payload alone",
+    );
+    await step("On the pad");
+  }, 60_000);
+
+  it("stops where it has got to", async () => {
+    /* Stopping changes which step is wanted without changing which pair is in
+       flight, so the separation running finishes at the pace it began and the
+       stepper settles on the one it was heading for — rather than snapping out
+       of a half-played transition. */
+    await step("On the pad");
+    await press("Play the staging");
+    await new Promise((r) => setTimeout(r, 2600));
+    await press("Stop");
+    await new Promise((r) => setTimeout(r, 2200));
+    const where = await current();
+    expect(where, "it did not stop part-way").not.toBe("On the pad");
+    expect(where, "it ran to the end anyway").not.toBe("Payload alone");
+    await step("On the pad");
+  }, 60_000);
 
   it("says nothing to the console", async () => {
     /* Last, so it reports what the whole walk above provoked. A shader that

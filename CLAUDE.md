@@ -190,6 +190,12 @@ repository has already priced. It is a separate script and a separate CI job —
 the main suite is minutes long and `test/model.test.ts` records a worker running
 out of memory when the mission models were built twice.
 
+One thing it has to be told: `settle` waits for the solver, and a staging
+transition has nothing to do with the solver. Sampling a panel before the
+separation has finished reads a frame of the animation as though it were the
+step, which is how the plan check started failing on steps that were perfectly
+fine.
+
 It still says nothing about a real GPU, about performance, or about a phone.
 
 **The mission sweep** solves thirteen whole missions through `planMission` — four
@@ -219,6 +225,7 @@ invisible to every baseline here.
     test/render-sweep.test.tsx            the render sweep
     test/model.test.ts                    the rocket as shapes, checked as shapes
     test/parts-order.test.tsx             the parts list reads as a build order
+    test/separation.test.ts               what a staging animation does, on numbers
     test/slenderness.test.ts              the limit is on the whole rocket
     test/staging-figures.test.tsx         the figures follow the staging step
     test/three-view.test.ts               the orthographic framing, on numbers
@@ -268,6 +275,32 @@ implying CI covered it.
   changes, and no extensionless-import sweep across the repository. The
   alternative was rewriting every specifier in `src/` and `test/`, which would
   have buried the conversion diff in churn that proves nothing.
+- **A view that paints every frame must not rebuild every frame.** `ThreeView`
+  drew one frame when the rocket changed, from a single effect keyed on
+  everything it was handed — which is right until a staging transition paints
+  sixty times a second, at which point moving a part a metre throws away every
+  buffer on the card and builds them again. It is two effects now: one that
+  builds the scene, the meshes and the render targets, and one that moves them
+  and renders. The caller has to hold the model still for the transition too —
+  `stepModels` returns fresh arrays on every call, and a new array is a new
+  rocket as far as the build effect can tell.
+- **Resizing a canvas per frame reallocates every render target behind it.**
+  The panel changes size across a transition — full screen, one rocket goes
+  from 278x1284 to 531x425 — and following that with `setSize` means two render
+  targets and a depth texture rebuilt sixty times a second, tens of megabytes a
+  frame. Instead the buffer is allocated once at the largest box the transition
+  passes through, the visible box is a wrapper with `overflow: hidden` around
+  its top-left corner, and the frustum is made asymmetric so that corner frames
+  exactly what a panel of that size would. Two allocations instead of sixty,
+  and it costs only the fill rate of pixels nobody sees.
+- **A separation happens in the outgoing model's frame.** `modelOf` stands the
+  bottom live stage on zero, so the same physical part sits at a different
+  height in the two models a transition runs between — the surviving stack is
+  four metres up in the frame it starts in and on the floor in the frame it
+  ends in. Moving the geometry to match would move parts that are not going
+  anywhere; `dy` in `src/ui/separation.ts` carries the difference and the
+  camera absorbs it, which is why what stays has an offset of exactly zero at
+  both ends.
 - **A panel is never narrower than the label above it.** The elevation's header
   — the word and the `Iso` chip beside it — runs to about 110 px, and a column
   is as wide as the widest thing in it. Sizing the drawing below 110 widened
