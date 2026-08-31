@@ -957,7 +957,25 @@ function BuildView({
     payloadDia,
   );
 
-  const geo = stackGeometry(stages, payload, payloadDia);
+  /* Twice, over two chains. `pad` is the vehicle that leaves the pad and `now`
+     is what is left at this step — the same function and the same authority,
+     asked about a shorter stack. `test/model.test.ts` already asks it the
+     second way and holds the drawing to the answer, so the figures under the
+     panels were the only place still reporting the whole vehicle at every
+     step: a 1.1 m pod read as 23.2 m tall. #101 */
+  const pad = stackGeometry(stages, payload, payloadDia);
+  const now = stackGeometry(live, payload, payloadDia);
+  /* Nothing has staged away yet, so the two are the same chain and the same
+     numbers. Boosters do not enter it either way: `stackGeometry` reports the
+     core width, because boosters are gone by about 18 km and the limit judges
+     what is left. */
+  const whole = live.length === solved.length;
+  /* Slenderness is a constraint on the stack that leaves the pad, not on a
+     step of it — at "Payload alone" a per-step aspect is about 0.8:1, and a
+     warning keyed to that would come off a design that breaks the limit. So
+     the colour belongs to the pad's figure, and where that is not the figure
+     on the line, the pad's is named beside it and takes the colour. */
+  const limit = pad.ar > maxAspect ? C.amber : C.muted;
   /* Both numbers come from the model, not from a second pass over shapes this
      file pushed. They used to be reasoned back from a parts array that carried
      at most two of a stage's side columns — a side elevation cannot show a ring
@@ -1152,13 +1170,19 @@ function BuildView({
         <span>
           {live.length} stage{live.length === 1 ? "" : "s"} attached
         </span>
-        {/* Report the shared figure, not the drawing's own bounds — the sketch
-            shows only the stages still attached at this step, so its extent
-            changes as you page through the staging and is not the vehicle's. */}
-        <span>{geo.h.toFixed(1)} m tall</span>
-        <span>{geo.w.toFixed(2)} m across</span>
-        <span style={{ color: geo.ar > maxAspect ? C.amber : C.muted }}>
-          {geo.ar.toFixed(1)}:1 aspect
+        {/* From `stackGeometry`, not from the drawing's own bounds. The two
+            agree — `test/model.test.ts` holds them to a millimetre — and there
+            is one of them, which is the point. */}
+        <span>{now.h.toFixed(1)} m tall</span>
+        <span>{now.w.toFixed(2)} m across</span>
+        <span style={{ color: whole ? limit : undefined }}>
+          {now.ar.toFixed(1)}:1 aspect
+          {!whole && (
+            <span style={{ color: limit }}>
+              {" · "}
+              {pad.ar.toFixed(1)} on the pad
+            </span>
+          )}
         </span>
       </div>
     </>
