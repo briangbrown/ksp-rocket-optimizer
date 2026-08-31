@@ -865,10 +865,16 @@ const HEAD = 22;
 /* How tall the drawings stand when this is not full screen: what they have
    always been. Full screen is where the space is. */
 const INLINE_H = 300;
-/* How long one stage separation takes. Long enough to watch the boosters
-   tumble out and the stage fall away, short enough that stepping through the
-   list to read a number is not a wait. #105 */
-const STAGE_MS = 800;
+/* How long one stage separation takes.
+
+   Two paces, because the two ways of asking for one are different questions.
+   Clicking a step is a way of getting to it, and the motion is there to say
+   what changed — long enough to read, short enough not to be in the way.
+   Pressing play is asking to watch the thing, and at twice the length the
+   boosters have time to tumble clear before the camera has finished closing
+   in. #105 */
+const STEP_MS = 800;
+const PLAY_MS = 1600;
 
 /* Motion is a preference. The stylesheet already honours it for every
    transition in the application; a separation is the same question asked of a
@@ -984,9 +990,15 @@ function BuildView({
       return;
     }
     setAnim({ a: lo, t: back ? 1 : 0 });
+    /* Read here and deliberately not a dependency: the pace belongs to the
+       transition that is running, not to the state of the button. Stopping
+       mid-play changes `playing` and `goal` without changing which pair of
+       steps is in flight, so this effect is not rebuilt and the separation
+       finishes at the speed it began. */
+    const ms = playing ? PLAY_MS : STEP_MS;
     const t0 = performance.now();
     let id = requestAnimationFrame(function tick(now: number) {
-      const u = Math.min(1, (now - t0) / STAGE_MS);
+      const u = Math.min(1, (now - t0) / ms);
       setAnim({ a: lo, t: back ? 1 - u : u });
       if (u < 1) id = requestAnimationFrame(tick);
       else {

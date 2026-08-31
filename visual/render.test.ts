@@ -79,10 +79,10 @@ async function press(label: string) {
   await settle(page);
 }
 
-/* Long enough for one separation to run and settle. The transition is 800 ms
-   — `STAGE_MS` in build.tsx — and `settle` only waits for the solver, which
-   has nothing to do with it. Sampling a panel before it has stopped moving
-   reads a frame of the animation as though it were the step. */
+/* Long enough for one separation to run and settle. A step taken by clicking
+   is `STEP_MS` in build.tsx, 800 ms — `settle` only waits for the solver,
+   which has nothing to do with it, so sampling a panel before it has stopped
+   moving reads a frame of the animation as though it were the step. */
 const SEPARATION = 1000;
 
 async function step(label: string) {
@@ -354,8 +354,10 @@ describe("the build view, in a browser", () => {
   it("plays the whole staging through", async () => {
     await step("On the pad");
     await press("Play the staging");
-    /* Six steps at 800 ms, and the control stops itself at the end. */
-    await new Promise((r) => setTimeout(r, 7000));
+    /* Five separations at `PLAY_MS`, which is 1.6 s — play is the slower of
+       the two paces, because it is asking to watch rather than to arrive. The
+       control stops itself at the end. */
+    await new Promise((r) => setTimeout(r, 10_000));
     const lit = await page.$$eval("button.chip", (bs) =>
       bs
         .filter((b) => b.getAttribute("data-on") === "1")
@@ -364,6 +366,26 @@ describe("the build view, in a browser", () => {
     expect(lit, "the play control did not reach the end").toContain(
       "Payload alone",
     );
+    await step("On the pad");
+  }, 60_000);
+
+  it("stops where it has got to", async () => {
+    /* Stopping changes which step is wanted without changing which pair is in
+       flight, so the separation running finishes at the pace it began and the
+       stepper settles on the one it was heading for — rather than snapping out
+       of a half-played transition. */
+    await step("On the pad");
+    await press("Play the staging");
+    await new Promise((r) => setTimeout(r, 2600));
+    await press("Stop");
+    await new Promise((r) => setTimeout(r, 2200));
+    const lit = await page.$$eval("button.chip", (bs) =>
+      bs
+        .filter((b) => b.getAttribute("data-on") === "1")
+        .map((b) => (b.textContent ?? "").trim()),
+    );
+    expect(lit, "it did not stop part-way").not.toContain("On the pad");
+    expect(lit, "it ran to the end anyway").not.toContain("Payload alone");
     await step("On the pad");
   }, 60_000);
 
