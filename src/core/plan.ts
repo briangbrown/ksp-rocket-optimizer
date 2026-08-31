@@ -1,6 +1,7 @@
 import { TALLY, resetTally } from "./tally.js";
 import { BODY, orbitAlt } from "./atmosphere.js";
 import { buildVehicleFor, simCached } from "./ascent.js";
+import { stackOf } from "./geometry.js";
 import { missionHardware } from "./parts.js";
 import { solveGroup, solveGroupWith } from "./solver.js";
 import type { Expansions } from "./constants.js";
@@ -179,6 +180,11 @@ export async function planMission(
          even, and never more than six: past that nothing improved. */
     const autoK = Math.min(6, Math.max(2, Math.ceil(dv / 2200) + 1));
     const bodyName = isLaunch ? origin : legs.find((l) => l.body)?.body;
+    /* What is already standing above this group. Groups are solved from the
+       top of the stack downwards, so `out` holds exactly the stages over this
+       one — and the group that reaches the pad therefore judges its
+       slenderness on the whole vehicle. #102 */
+    const above = stackOf(out);
     /* `solved` and `res` start as the same object and part company the moment
        the candidate walk picks a different one. Only `solved` carries `byK` —
        what the search found at every stage count — and only the walk below
@@ -199,6 +205,7 @@ export async function planMission(
       kind,
       boosters,
       srbs,
+      above,
       bodyName,
       objective,
       minK: forced || 1,
@@ -306,6 +313,7 @@ export async function planMission(
           kind,
           boosters,
           srbs,
+          above,
           bodyName,
           objective,
           minK: forced || 1,

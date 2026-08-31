@@ -136,6 +136,37 @@ export function missionCases() {
           boosters: true,
         },
       });
+  /* One of them cut into segments, which none of the twelve above are.
+
+     Cuts are how a user says "this part flies on its own hardware", and until
+     #102 they were also the only way to reach a whole branch of the
+     slenderness constraint: a segment was judged as though it were the whole
+     rocket with a pod on its nose, so four segments reading 6.2, 4.6, 2.3 and
+     1.7 against a limit of 8 came back as a vehicle that is 9.5:1. Eeloo has
+     enough legs to cut three times and a budget that makes the limit bind. */
+  out.push({
+    name: "Eeloo-pay2.5-cut",
+    input: {
+      route: buildRoute("Eeloo", "land", true, "Kerbin", true, false),
+      cuts: [0, 1, 2],
+      payload: 2.5,
+      payloadDia: 1.25,
+      margin: 10,
+      extraDv: 0,
+      engines: enginesFor(unlocked),
+      tanks: tanksFor(unlocked),
+      unlocked: [...unlocked],
+      excluded: [],
+      needGimbal: true,
+      maxAspect: 8,
+      expansions: { mh: false, rs: false },
+      asparagus: false,
+      objective: "cost",
+      origin: "Kerbin",
+      splitBy: [],
+      boosters: true,
+    },
+  });
   return out;
 }
 

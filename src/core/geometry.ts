@@ -162,11 +162,13 @@ const PAYLOAD_ASPECT = 0.8;
    summary calls this with one and the drawing with the other. */
 type StageLike = Solution | { sol: Solution | null };
 
-function stackGeometry(
-  chain: ReadonlyArray<StageLike | null | undefined>,
-  payload: number,
-  payloadDia: number | null | undefined,
-) {
+/* The stages alone: how tall they stand and how wide the core is, with no
+   payload on top of them.
+
+   Its own function because the solver has to carry what is already above a
+   group without counting a second nose. `stackGeometry` below puts the payload
+   back exactly once, wherever the stages came from. */
+function stackOf(chain: ReadonlyArray<StageLike | null | undefined>) {
   let h = 0,
     w = 0;
   chain.forEach((x) => {
@@ -176,9 +178,30 @@ function stackGeometry(
     h += g.len;
     w = Math.max(w, g.coreWidth); // boosters excluded: they stage away
   });
+  return { h, w };
+}
+
+/* The proportions of a stack, with the payload on top.
+
+   `above` is everything already standing over `chain` — the stages of the
+   groups solved before this one. Slenderness is a property of the vehicle that
+   leaves the pad, and a mission cut into segments is solved a segment at a
+   time, so without it each segment was judged as though it were the whole
+   rocket with a pod on its nose. On a four-segment Eeloo mission that read
+   6.2, 4.6, 2.3 and 1.7 against a limit of 8, for a rocket that is 9.5:1. #102
+
+   Empty for the topmost group, and for every mission with no cuts in it, where
+   this collapses to exactly what it always was. */
+function stackGeometry(
+  chain: ReadonlyArray<StageLike | null | undefined>,
+  payload: number,
+  payloadDia: number | null | undefined,
+  above: { h: number; w: number } = { h: 0, w: 0 },
+) {
+  const own = stackOf(chain);
   const payD = payloadDiaOf(payload, payloadDia);
-  h += payD * PAYLOAD_ASPECT;
-  w = Math.max(w, payD);
+  const h = above.h + own.h + payD * PAYLOAD_ASPECT;
+  const w = Math.max(above.w, own.w, payD);
   return { h, w, payD, ar: w ? h / w : 0 };
 }
 
@@ -448,6 +471,7 @@ export {
   packShapes,
   ringPositions,
   stackGeometry,
+  stackOf,
   stageGeom,
   stageSize,
   PAYLOAD_ASPECT,
