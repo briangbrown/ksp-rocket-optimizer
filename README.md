@@ -73,6 +73,7 @@ simulator cannot fly to orbit at all, so their ascent goes unverified.
     test/           the checks — see How it is verified
     perf/           solver benchmarks, deliberately outside CI
     docs/optimiser-flow.mermaid    how the search works, and where simulation enters
+    .claude/rules/  the traps, split by the code they apply to
 
 `src/core/plan.ts` is the seam: `planMission()` takes a destination and a payload
 and returns solved stages. Everything crossing it is plain data, so the solver
@@ -93,10 +94,12 @@ and objective, solved and compared against a committed baseline part by part,
 mass to four decimals and delta-v to three. 66 build; the other 15 are
 legitimately unbuildable at that tech level.
 
-Around it, a **mission sweep** solves twelve whole missions the way the
+Around it, a **mission sweep** solves thirteen whole missions the way the
 application asks for them and pins the design each one delivers — which is not
 the same thing, because the app flies the candidates through the ascent
-simulator and takes the first that works; a **render sweep** drives the app
+simulator and takes the first that works, and one of the thirteen is cut into
+segments, which is the only way to reach a whole branch of the slenderness
+constraint; a **render sweep** drives the app
 across every destination, objective and profile and fails on a bad number
 reaching the text or a destination quietly ceasing to produce a design; and a
 set of **model checks** asks of the shapes the build view draws — at every

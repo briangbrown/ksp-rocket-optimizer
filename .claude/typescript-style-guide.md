@@ -626,3 +626,25 @@ it('should return parsed date as YYYY-MM when input is ISO format');
 ### Snapshot Tests
 
 Discourage snapshot testing. Exception: design system components with critical, stable output.
+
+---
+
+# Traps this project has hit
+
+Two facts about TypeScript that cost this repository real time. They live here
+rather than in `CLAUDE.md` because they are language facts, read when the
+language is what you are working on.
+
+- **A `.js` import specifier resolves to a `.ts` file, everywhere it matters.**
+  Vite, vitest and `tsc` all map `./foo.js` onto `foo.ts` when that is what is
+  on disk, so converting a module is a rename and nothing else — no caller
+  changes, and no extensionless-import sweep across the repository. The
+  alternative was rewriting every specifier in `src/` and `test/`, which would
+  have buried the conversion diff in churn that proves nothing.
+
+- **Flow analysis cannot see an assignment made inside a callback.** Two locals
+  set only by a nested `scan` still read as their initialiser everywhere below
+  it, which is how `optimiseTurn` ended up holding its two running bests on an
+  object instead. The same shape appears wherever a helper mutates a local of
+  its enclosing function: give the function an explicit return type, or hold
+  the state somewhere the compiler has to re-read.
