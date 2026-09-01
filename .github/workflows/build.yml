@@ -29,6 +29,14 @@ jobs:
         env:
           PUPPETEER_SKIP_DOWNLOAD: "true"
 
+      # First because it is the cheapest and the least interesting: prettier
+      # owns formatting here, and a diff that argues with it is noise in every
+      # review after it. CLAUDE.md said this ran in CI before it did, and the
+      # export list in src/ui/tokens.ts went eight characters over and reached
+      # a pull request unnoticed. #111
+      - name: Format
+        run: npm run format:check
+
       # Before the tests: no-undef finds in a second what the suite can only
       # find if its grid happens to reach the branch. esbuild resolves no
       # cross-scope names, so the build is no help at all here.
