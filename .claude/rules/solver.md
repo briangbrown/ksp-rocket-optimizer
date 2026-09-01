@@ -11,8 +11,8 @@ before changing the thing it names.
 
 - **What an engine measures is not what it occupies.** `widthOf` reads a
   part's face off its drag cube, which for an engine is the bells and not the
-  node it mounts on: a Poodle mounts on 2.5 m and measures 1.92 across, an Ant
-  on 0.625 m and measures 0.37. That is the right width to draw it at and the
+  node it mounts on: an Ant mounts on 0.625 m and measures 0.37 across. That is
+  the right width to draw it at and the
   wrong one to ask whether a booster can stand beside it — comparing it against
   the tank above says there is nothing there to bolt to, so the ring stops at
   the tanks rather than running down past the engine to stand on its base, and
@@ -20,6 +20,14 @@ before changing the thing it names.
   radial one occupies only what it measures, because it is bolted to the side
   of something rather than sitting under it. `isRadial` is the distinction, not
   a tolerance. #109
+
+  Pick the example carefully: the Ant is narrower than its node in a stock
+  install and in a ReStock one, and it is the only stack engine that is. The
+  Mammoth was the original illustration and turned out to be reading a corrupt
+  cube; the Poodle replaced it and is ReStock-specific — ReStock draws it 1.92 m
+  across a 2.5 m node, stock draws it 2.49, which is not narrower at all. A
+  worked example here has to hold in whichever install the tables were measured
+  from.
 
 - **A stand-in part has to be a whole one.** The booster pools dress a liquid
   column and a drop tank up as engines so the two-phase maths can fly them
