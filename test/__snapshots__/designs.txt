@@ -1,13 +1,13 @@
 ## tier3-pay0.8-dv3600-mass
   total=11.8175 k=2 score=11.8175
-  ar=11.1071 slim=true
+  ar=11.1067 slim=true
   stage 0: want=1080.0000 payloadIn=6.0275
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"50.6639","cost":"2400.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"7.8175","dv":"1133.2218","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"280.0000","joiner":"null","n":"1.0000","parts":"6.0000","perStack":{"count":"4.0000","dryMass":"0.5000","list":[{"c":"4.0000","t":"FL-T200 Fuel Tank"}],"prop":"4.0000"},"prop":"4.0000","rejoin":"null","score":"12.1720","shroud":"null","stacks":"1.0000","tanks":{"count":"4.0000","dryMass":"0.5000","list":[{"c":"4.0000","t":"FL-T200 Fuel Tank"}],"prop":"4.0000"},"total":"11.8175","twr":"1.7704","twrBurnout":"2.6763","wet":"11.8175"}
   stage 1: want=2520.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"44.3309","cost":"2275.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"2.5275","dv":"2640.2435","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","parts":"6.0000","perStack":{"count":"4.0000","dryMass":"0.4375","list":[{"c":"3.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"3.5000"},"prop":"3.5000","rejoin":"null","score":"6.2083","shroud":"null","stacks":"1.0000","tanks":{"count":"4.0000","dryMass":"0.4375","list":[{"c":"3.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"3.5000"},"total":"6.0275","twr":"4.0563","twrBurnout":"9.6733","wet":"6.0275"}
   candidate k=1 score=12.2150 ar=10.7223 slim=true
-  candidate k=2 score=11.8175 ar=11.1071 slim=true
-  candidate k=3 score=14.2325 ar=13.7327 slim=true
+  candidate k=2 score=11.8175 ar=11.1067 slim=true
+  candidate k=3 score=14.2325 ar=13.7323 slim=true
 
 ## tier3-pay0.8-dv3600-cost
   total=12.4430 k=2 score=3550.0000
@@ -22,44 +22,44 @@
 
 ## tier3-pay0.8-dv3600-parts
   total=15.9675 k=2 score=10.0000
-  ar=12.9743 slim=true
+  ar=12.9739 slim=true
   stage 0: want=1080.0000 payloadIn=8.4900
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"69.6628","cost":"2825.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"10.4675","dv":"1158.0779","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"280.0000","joiner":"null","n":"1.0000","parts":"8.0000","perStack":{"count":"6.0000","dryMass":"0.6875","list":[{"c":"5.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"5.5000"},"prop":"5.5000","rejoin":"null","score":"8.7984","shroud":"null","stacks":"1.0000","tanks":{"count":"6.0000","dryMass":"0.6875","list":[{"c":"5.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"5.5000"},"total":"15.9675","twr":"1.3103","twrBurnout":"1.9988","wet":"15.9675"}
   stage 1: want=2520.0000 payloadIn=0.8000
     {"adapters":"null","boosters":"null","burn":"42.2180","cost":"1050.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"2.3400","dv":"2651.7213","engine":"BACC \"Thumper\" Solid Fuel Booster","isp":"210.0000","joiner":"null","n":"1.0000","parts":"2.0000","perStack":"null","prop":"6.1500","rejoin":"null","score":"2.4245","shroud":"null","stacks":"1.0000","tanks":"null","total":"8.4900","twr":"3.5989","twrBurnout":"13.0574","wet":"8.4900"}
   candidate k=1 score=11.0000 ar=10.7223 slim=true
-  candidate k=2 score=10.0000 ar=12.9743 slim=true
+  candidate k=2 score=10.0000 ar=12.9739 slim=true
   candidate k=3 score=11.0000 ar=11.7227 slim=true
 
 ## tier3-pay0.8-dv5400-mass
   total=27.3550 k=2 score=27.3550
-  ar=17.2399 slim=false
+  ar=17.2391 slim=false
   stage 0: want=1620.0000 payloadIn=10.5275
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"31.6649","dv":"878.7969","n":"2.0000","part":"LV-T30 \"Reliant\" Liquid Fuel Engine","sepMass":"19.8550"},"burn":"82.3288","cost":"6850.0000","coupler":"null","decoupler":"TD-12 Decoupler","dropTank":false,"dry":"12.7300","dv":"1628.1468","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"280.0000","n":"1.0000","parts":"19.0000","prop":"11.5000","score":"28.6680","shroud":"null","tanks":{"count":"7.0000","dryMass":"0.8125","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"6.5000"},"total":"27.3550","twr":"2.2945","twrBurnout":"1.6435","wet":"27.3550"}
   stage 1: want=3780.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"94.9948","cost":"3375.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"3.0275","dv":"3785.9934","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","parts":"10.0000","perStack":{"count":"8.0000","dryMass":"0.9375","list":[{"c":"7.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"7.5000"},"prop":"7.5000","rejoin":"null","score":"11.0960","shroud":"null","stacks":"1.0000","tanks":{"count":"8.0000","dryMass":"0.9375","list":[{"c":"7.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"7.5000"},"total":"10.5275","twr":"2.3224","twrBurnout":"8.0757","wet":"10.5275"}
-  candidate k=2 score=27.3550 ar=17.2399 slim=false
-  candidate k=3 score=29.2075 ar=19.4855 slim=false
+  candidate k=2 score=27.3550 ar=17.2391 slim=false
+  candidate k=3 score=29.2075 ar=19.4843 slim=false
 
 ## tier3-pay0.8-dv5400-cost
   total=27.4810 k=2 score=7700.0000
-  ar=4.1960 slim=true
+  ar=4.1957 slim=true
   stage 0: want=1620.0000 payloadIn=10.5275
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"23.6950","dv":"635.6442","n":"2.0000","part":"RT-10 \"Hammer\" Solid Fuel Booster","sepMass":"19.9842"},"burn":"94.9948","cost":"4325.0000","coupler":"null","decoupler":"TD-12 Decoupler","dropTank":false,"dry":"12.8550","dv":"1631.6592","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"203.0000","n":"1.0000","parts":"14.0000","prop":"13.1260","score":"45546.5000","shroud":"null","tanks":{"count":"8.0000","dryMass":"0.9375","list":[{"c":"7.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"7.5000"},"total":"27.4810","twr":"2.2301","twrBurnout":"1.6276","wet":"27.4810"}
   stage 1: want=3780.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"94.9948","cost":"3375.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"3.1835","dv":"3785.9934","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","packed":{"cols":"6.0000","cost":"3696.0000","levels":"1.0000","mass":"0.1560","packedCount":"7.0000","r":"6.0000","spare":"0.0000","tank":"FL-T200 Fuel Tank","width":"3.7500"},"parts":"10.0000","perStack":{"count":"8.0000","dryMass":"0.9375","list":[{"c":"7.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"7.5000"},"prop":"7.5000","rejoin":"null","score":"19166.2500","shroud":"null","stacks":"1.0000","tanks":{"count":"8.0000","dryMass":"0.9375","list":[{"c":"7.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"7.5000"},"total":"10.6835","twr":"2.3224","twrBurnout":"8.0757","wet":"10.5275"}
-  candidate k=2 score=7700.0000 ar=4.1960 slim=true
-  candidate k=3 score=8675.0000 ar=6.1525 slim=true
+  candidate k=2 score=7700.0000 ar=4.1957 slim=true
+  candidate k=3 score=8675.0000 ar=6.1524 slim=true
 
 ## tier3-pay0.8-dv5400-parts
   total=32.8425 k=2 score=21.0000
-  ar=3.3922 slim=true
+  ar=3.3921 slim=true
   stage 0: want=1620.0000 payloadIn=10.5275
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"42.2180","dv":"1307.2919","n":"2.0000","part":"BACC \"Thumper\" Solid Fuel Booster","sepMass":"17.2093"},"burn":"63.3299","cost":"4525.0000","coupler":"null","decoupler":"TD-12 Decoupler","dropTank":false,"dry":"12.5425","dv":"1649.4802","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"206.0000","n":"1.0000","parts":"11.0000","prop":"17.3000","score":"12.6421","shroud":"null","tanks":{"count":"5.0000","dryMass":"0.6250","list":[{"c":"5.0000","t":"FL-T200 Fuel Tank"}],"prop":"5.0000"},"total":"32.8425","twr":"2.1895","twrBurnout":"1.6681","wet":"32.8425"}
   stage 1: want=3780.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"94.9948","cost":"3375.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"3.1835","dv":"3785.9934","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","packed":{"cols":"6.0000","cost":"3696.0000","levels":"1.0000","mass":"0.1560","packedCount":"7.0000","r":"6.0000","spare":"0.0000","tank":"FL-T200 Fuel Tank","width":"3.7500"},"parts":"10.0000","perStack":{"count":"8.0000","dryMass":"0.9375","list":[{"c":"7.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"7.5000"},"prop":"7.5000","rejoin":"null","score":"10.5264","shroud":"null","stacks":"1.0000","tanks":{"count":"8.0000","dryMass":"0.9375","list":[{"c":"7.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"7.5000"},"total":"10.6835","twr":"2.3224","twrBurnout":"8.0757","wet":"10.5275"}
-  candidate k=2 score=21.0000 ar=3.3922 slim=true
-  candidate k=3 score=22.0000 ar=6.1525 slim=true
+  candidate k=2 score=21.0000 ar=3.3921 slim=true
+  candidate k=3 score=22.0000 ar=6.1524 slim=true
 
 ## tier3-pay0.8-dv9000-mass
   NO SOLUTION
@@ -72,14 +72,14 @@
 
 ## tier3-pay3.5-dv3600-mass
   total=26.6800 k=2 score=26.6800
-  ar=11.1250 slim=true
+  ar=11.1244 slim=true
   stage 0: want=1080.0000 payloadIn=13.2275
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"31.6649","dv":"905.1317","n":"2.0000","part":"LV-T30 \"Reliant\" Liquid Fuel Engine","sepMass":"19.1800"},"burn":"44.3309","cost":"6025.0000","coupler":"null","decoupler":"TD-12 Decoupler","dropTank":false,"dry":"15.0550","dv":"1081.4984","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"280.0000","n":"1.0000","parts":"16.0000","prop":"8.5000","score":"27.4804","shroud":"null","tanks":{"count":"4.0000","dryMass":"0.4375","list":[{"c":"3.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"3.5000"},"total":"26.6800","twr":"2.3526","twrBurnout":"1.3897","wet":"26.6800"}
   stage 1: want=2520.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"94.9948","cost":"3375.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"5.7275","dv":"2542.7792","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","parts":"10.0000","perStack":{"count":"8.0000","dryMass":"0.9375","list":[{"c":"7.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"7.5000"},"prop":"7.5000","rejoin":"null","score":"13.9418","shroud":"null","stacks":"1.0000","tanks":{"count":"8.0000","dryMass":"0.9375","list":[{"c":"7.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"7.5000"},"total":"13.2275","twr":"1.8484","twrBurnout":"4.2688","wet":"13.2275"}
   candidate k=1 score=33.4400 ar=9.0323 slim=true
-  candidate k=2 score=26.6800 ar=11.1250 slim=true
-  candidate k=3 score=28.9085 ar=3.7174 slim=true
+  candidate k=2 score=26.6800 ar=11.1244 slim=true
+  candidate k=3 score=28.9085 ar=3.7172 slim=true
 
 ## tier3-pay3.5-dv3600-cost
   total=39.1400 k=1 score=6825.0000
@@ -87,7 +87,7 @@
   stage 0: want=3600.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"42.2180","dv":"1600.1044","n":"3.0000","part":"BACC \"Thumper\" Solid Fuel Booster","sepMass":"17.3568"},"burn":"126.6597","cost":"6825.0000","coupler":"null","decoupler":"TD-12 Decoupler","dropTank":false,"dry":"6.1900","dv":"3604.6612","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"201.0000","n":"1.0000","parts":"18.0000","prop":"28.4500","score":"19.9570","shroud":"null","tanks":{"count":"10.0000","dryMass":"1.2500","list":[{"c":"10.0000","t":"FL-T200 Fuel Tank"}],"prop":"10.0000"},"total":"39.1400","twr":"2.4885","twrBurnout":"3.3800","wet":"39.1400"}
   candidate k=1 score=6825.0000 ar=9.0323 slim=true
-  candidate k=2 score=6875.0000 ar=3.4040 slim=true
+  candidate k=2 score=6875.0000 ar=3.4038 slim=true
   candidate k=3 score=7550.0000 ar=15.6450 slim=true
 
 ## tier3-pay3.5-dv3600-parts
@@ -108,7 +108,7 @@
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"75.9958","cost":"2950.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"13.5800","dv":"1111.5994","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","parts":"8.0000","perStack":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"prop":"6.0000","rejoin":"null","score":"20.4024","shroud":"null","stacks":"1.0000","tanks":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"total":"19.5800","twr":"1.2487","twrBurnout":"1.8004","wet":"19.5800"}
   stage 2: want=2160.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"75.9958","cost":"2950.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"5.5400","dv":"2231.6345","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","parts":"8.0000","perStack":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"prop":"6.0000","rejoin":"null","score":"12.0247","shroud":"null","stacks":"1.0000","tanks":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"total":"11.5400","twr":"2.1209","twrBurnout":"4.4179","wet":"11.5400"}
-  candidate k=2 score=68.0925 ar=16.2839 slim=true
+  candidate k=2 score=68.0925 ar=16.2836 slim=true
   candidate k=3 score=63.0200 ar=19.9261 slim=true
 
 ## tier3-pay3.5-dv5400-cost
@@ -120,7 +120,7 @@
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"75.9958","cost":"2950.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"13.5800","dv":"1111.5994","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","parts":"8.0000","perStack":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"prop":"6.0000","rejoin":"null","score":"32320.0000","shroud":"null","stacks":"1.0000","tanks":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"total":"19.5800","twr":"1.2487","twrBurnout":"1.8004","wet":"19.5800"}
   stage 2: want=2160.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"75.9958","cost":"2950.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"5.5400","dv":"2231.6345","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","parts":"8.0000","perStack":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"prop":"6.0000","rejoin":"null","score":"20260.0000","shroud":"null","stacks":"1.0000","tanks":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"total":"11.5400","twr":"2.1209","twrBurnout":"4.4179","wet":"11.5400"}
-  candidate k=2 score=21200.0000 ar=16.2839 slim=true
+  candidate k=2 score=21200.0000 ar=16.2836 slim=true
   candidate k=3 score=20075.0000 ar=19.9261 slim=true
 
 ## tier3-pay3.5-dv5400-parts
@@ -132,7 +132,7 @@
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"75.9958","cost":"2950.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"13.5800","dv":"1111.5994","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","parts":"8.0000","perStack":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"prop":"6.0000","rejoin":"null","score":"8.9790","shroud":"null","stacks":"1.0000","tanks":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"total":"19.5800","twr":"1.2487","twrBurnout":"1.8004","wet":"19.5800"}
   stage 2: want=2160.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"75.9958","cost":"2950.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"5.5400","dv":"2231.6345","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","parts":"8.0000","perStack":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"prop":"6.0000","rejoin":"null","score":"8.5770","shroud":"null","stacks":"1.0000","tanks":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"total":"11.5400","twr":"2.1209","twrBurnout":"4.4179","wet":"11.5400"}
-  candidate k=2 score=63.0000 ar=16.2839 slim=true
+  candidate k=2 score=63.0000 ar=16.2836 slim=true
   candidate k=3 score=58.0000 ar=19.9261 slim=true
 
 ## tier3-pay3.5-dv9000-mass
@@ -146,30 +146,30 @@
 
 ## tier3-pay12-dv3600-mass
   total=89.3175 k=2 score=89.3175
-  ar=9.2213 slim=true
+  ar=9.2211 slim=true
   stage 0: want=2520.0000 payloadIn=20.0400
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"94.9948","dv":"2430.4163","n":"6.0000","part":"LV-T30 \"Reliant\" Liquid Fuel Engine","sepMass":"36.8175"},"burn":"107.6608","cost":"23150.0000","coupler":"null","decoupler":"TD-12 Decoupler","dropTank":false,"dry":"22.6925","dv":"2548.6814","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"280.0000","n":"1.0000","parts":"71.0000","prop":"53.5000","score":"94.6766","shroud":"null","tanks":{"count":"9.0000","dryMass":"1.0625","list":[{"c":"8.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"8.5000"},"total":"89.3175","twr":"1.6397","twrBurnout":"0.9220","wet":"89.3175"}
   stage 1: want=1080.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"75.9958","cost":"2950.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"14.0400","dv":"1080.9450","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","parts":"8.0000","perStack":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"prop":"6.0000","rejoin":"null","score":"20.8817","shroud":"null","stacks":"1.0000","tanks":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"total":"20.0400","twr":"1.2200","twrBurnout":"1.7414","wet":"20.0400"}
-  candidate k=2 score=89.3175 ar=9.2213 slim=true
+  candidate k=2 score=89.3175 ar=9.2211 slim=true
 
 ## tier3-pay12-dv3600-cost
   total=89.3175 k=2 score=26100.0000
-  ar=9.2213 slim=true
+  ar=9.2211 slim=true
   stage 0: want=2520.0000 payloadIn=20.0400
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"94.9948","dv":"2430.4163","n":"6.0000","part":"LV-T30 \"Reliant\" Liquid Fuel Engine","sepMass":"36.8175"},"burn":"107.6608","cost":"23150.0000","coupler":"null","decoupler":"TD-12 Decoupler","dropTank":false,"dry":"22.6925","dv":"2548.6814","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"280.0000","n":"1.0000","parts":"71.0000","prop":"53.5000","score":"157126.2500","shroud":"null","tanks":{"count":"9.0000","dryMass":"1.0625","list":[{"c":"8.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"8.5000"},"total":"89.3175","twr":"1.6397","twrBurnout":"0.9220","wet":"89.3175"}
   stage 1: want=1080.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"75.9958","cost":"2950.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"14.0400","dv":"1080.9450","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","parts":"8.0000","perStack":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"prop":"6.0000","rejoin":"null","score":"33010.0000","shroud":"null","stacks":"1.0000","tanks":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"total":"20.0400","twr":"1.2200","twrBurnout":"1.7414","wet":"20.0400"}
-  candidate k=2 score=26100.0000 ar=9.2213 slim=true
+  candidate k=2 score=26100.0000 ar=9.2211 slim=true
 
 ## tier3-pay12-dv3600-parts
   total=89.3175 k=2 score=79.0000
-  ar=9.2213 slim=true
+  ar=9.2211 slim=true
   stage 0: want=2520.0000 payloadIn=20.0400
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"94.9948","dv":"2430.4163","n":"6.0000","part":"LV-T30 \"Reliant\" Liquid Fuel Engine","sepMass":"36.8175"},"burn":"107.6608","cost":"23150.0000","coupler":"null","decoupler":"TD-12 Decoupler","dropTank":false,"dry":"22.6925","dv":"2548.6814","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"280.0000","n":"1.0000","parts":"71.0000","prop":"53.5000","score":"75.4659","shroud":"null","tanks":{"count":"9.0000","dryMass":"1.0625","list":[{"c":"8.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"8.5000"},"total":"89.3175","twr":"1.6397","twrBurnout":"0.9220","wet":"89.3175"}
   stage 1: want=1080.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"75.9958","cost":"2950.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"14.0400","dv":"1080.9450","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","parts":"8.0000","perStack":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"prop":"6.0000","rejoin":"null","score":"9.0020","shroud":"null","stacks":"1.0000","tanks":{"count":"6.0000","dryMass":"0.7500","list":[{"c":"6.0000","t":"FL-T200 Fuel Tank"}],"prop":"6.0000"},"total":"20.0400","twr":"1.2200","twrBurnout":"1.7414","wet":"20.0400"}
-  candidate k=2 score=79.0000 ar=9.2213 slim=true
+  candidate k=2 score=79.0000 ar=9.2211 slim=true
 
 ## tier3-pay12-dv5400-mass
   NO SOLUTION
@@ -191,25 +191,25 @@
 
 ## tier5-pay0.8-dv3600-mass
   total=5.2670 k=2 score=5.2670
-  ar=2.0384 slim=true
+  ar=2.0388 slim=true
   stage 0: want=1080.0000 payloadIn=2.5150
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"49.4424","dv":"774.3902","n":"3.0000","part":"FM1 \"Mite\" Solid Fuel Booster","sepMass":"3.7370"},"burn":"78.4800","cost":"1605.0000","coupler":"EP-12 Engine Plate","decoupler":"TD-12 Decoupler","dropTank":false,"dry":"3.1420","dv":"1083.2279","engine":"48-7S \"Spark\" Liquid Fuel Engine","isp":"230.0000","n":"2.0000","parts":"11.0000","prop":"1.9000","score":"5.3618","shroud":{"len":"0.6250","m":"0.0520","v":"Short"},"tanks":{"count":"1.0000","dryMass":"0.1250","list":[{"c":"1.0000","t":"FL-T200 Fuel Tank"}],"prop":"1.0000"},"total":"5.2670","twr":"1.2805","twrBurnout":"1.0747","wet":"5.2670"}
   stage 1: want=2520.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"219.7440","cost":"945.0000","coupler":"null","decoupler":"TS-06 Stack Separator","dry":"1.2710","dv":"2550.3012","engine":"48-7S \"Spark\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"1.0000","packed":{"cols":"6.0000","cost":"3696.0000","levels":"1.0000","mass":"0.1560","packedCount":"7.0000","r":"6.0000","spare":"0.0000","tank":"Oscar-B Fuel Tank","width":"1.8750"},"parts":"9.0000","perStack":{"count":"7.0000","dryMass":"0.1750","list":[{"c":"7.0000","t":"Oscar-B Fuel Tank"}],"prop":"1.4000"},"prop":"1.4000","rejoin":"null","score":"2.6357","shroud":"null","stacks":"1.0000","tanks":{"count":"7.0000","dryMass":"0.1750","list":[{"c":"7.0000","t":"Oscar-B Fuel Tank"}],"prop":"1.4000"},"total":"2.6710","twr":"0.8096","twrBurnout":"1.8262","wet":"2.5150"}
-  candidate k=1 score=8.0095 ar=4.4311 slim=true
-  candidate k=2 score=5.2670 ar=2.0384 slim=true
-  candidate k=3 score=5.9020 ar=4.6975 slim=true
+  candidate k=1 score=8.0095 ar=4.4312 slim=true
+  candidate k=2 score=5.2670 ar=2.0388 slim=true
+  candidate k=3 score=5.9020 ar=4.6980 slim=true
 
 ## tier5-pay0.8-dv3600-cost
   total=6.1180 k=2 score=1545.0000
-  ar=5.5922 slim=true
+  ar=5.5946 slim=true
   stage 0: want=1080.0000 payloadIn=2.5150
     {"adapters":"null","boosters":"null","burn":"23.6950","cost":"600.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"3.3050","dv":"1075.8174","engine":"RT-10 \"Hammer\" Solid Fuel Booster","isp":"178.0000","joiner":"null","n":"1.0000","parts":"2.0000","perStack":"null","prop":"2.8130","rejoin":"null","score":"9777.0000","shroud":"null","stacks":"1.0000","tanks":"null","total":"6.1180","twr":"3.2988","twrBurnout":"6.1065","wet":"6.1180"}
   stage 1: want=2520.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"219.7440","cost":"945.0000","coupler":"null","decoupler":"TS-06 Stack Separator","dry":"1.1150","dv":"2550.3012","engine":"48-7S \"Spark\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"1.0000","parts":"9.0000","perStack":{"count":"7.0000","dryMass":"0.1750","list":[{"c":"7.0000","t":"Oscar-B Fuel Tank"}],"prop":"1.4000"},"prop":"1.4000","rejoin":"null","score":"4717.5000","shroud":"null","stacks":"1.0000","tanks":{"count":"7.0000","dryMass":"0.1750","list":[{"c":"7.0000","t":"Oscar-B Fuel Tank"}],"prop":"1.4000"},"total":"2.5150","twr":"0.8096","twrBurnout":"1.8262","wet":"2.5150"}
   candidate k=1 score=3175.0000 ar=9.3799 slim=true
-  candidate k=2 score=1545.0000 ar=5.5922 slim=true
-  candidate k=3 score=2280.0000 ar=6.7374 slim=true
+  candidate k=2 score=1545.0000 ar=5.5946 slim=true
+  candidate k=3 score=2280.0000 ar=6.7384 slim=true
 
 ## tier5-pay0.8-dv3600-parts
   total=21.9600 k=1 score=3.0000
@@ -222,37 +222,37 @@
 
 ## tier5-pay0.8-dv5400-mass
   total=11.9950 k=3 score=11.9950
-  ar=10.9502 slim=true
+  ar=10.9525 slim=true
   stage 0: want=1080.0000 payloadIn=6.2050
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"50.6639","cost":"2100.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"7.9950","dv":"1112.5352","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"280.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"prop":"4.0000","rejoin":"null","score":"12.1389","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"total":"11.9950","twr":"1.7442","twrBurnout":"2.6169","wet":"11.9950"}
   stage 1: want=2160.0000 payloadIn=2.2900
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"169.2225","cost":"1365.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"3.2050","dv":"2223.6978","engine":"LV-909 \"Terrier\" Liquid Fuel Engine","isp":"343.0000","joiner":"null","n":"1.0000","parts":"4.0000","perStack":{"count":"2.0000","dryMass":"0.3750","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"}],"prop":"3.0000"},"prop":"3.0000","rejoin":"null","score":"6.3167","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"0.3750","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"}],"prop":"3.0000"},"total":"6.2050","twr":"0.9803","twrBurnout":"1.8979","wet":"6.2050"}
   stage 2: want=2160.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"188.3520","cost":"875.0000","coupler":"null","decoupler":"TS-06 Stack Separator","dry":"1.0900","dv":"2330.4608","engine":"48-7S \"Spark\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"1.0000","parts":"8.0000","perStack":{"count":"6.0000","dryMass":"0.1500","list":[{"c":"6.0000","t":"Oscar-B Fuel Tank"}],"prop":"1.2000"},"prop":"1.2000","rejoin":"null","score":"2.3862","shroud":"null","stacks":"1.0000","tanks":{"count":"6.0000","dryMass":"0.1500","list":[{"c":"6.0000","t":"Oscar-B Fuel Tank"}],"prop":"1.2000"},"total":"2.2900","twr":"0.8903","twrBurnout":"1.8704","wet":"2.2900"}
-  candidate k=1 score=41.2525 ar=16.0311 slim=false
-  candidate k=2 score=14.4425 ar=11.3460 slim=true
-  candidate k=3 score=11.9950 ar=10.9502 slim=true
+  candidate k=1 score=41.2525 ar=16.0307 slim=false
+  candidate k=2 score=14.4425 ar=11.3458 slim=true
+  candidate k=3 score=11.9950 ar=10.9525 slim=true
 
 ## tier5-pay0.8-dv5400-cost
   total=14.4425 k=2 score=4140.0000
-  ar=11.3460 slim=true
+  ar=11.3458 slim=true
   stage 0: want=1620.0000 payloadIn=5.8400
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"82.3288","cost":"2750.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"7.9425","dv":"1639.8340","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"280.0000","joiner":"null","n":"1.0000","parts":"5.0000","perStack":{"count":"3.0000","dryMass":"0.8125","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"6.5000"},"prop":"6.5000","rejoin":"null","score":"24413.7500","shroud":"null","stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"0.8125","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"6.5000"},"total":"14.4425","twr":"1.4487","twrBurnout":"2.6342","wet":"14.4425"}
   stage 1: want=3780.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"225.6300","cost":"1390.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"1.8400","dv":"3887.5646","engine":"LV-909 \"Terrier\" Liquid Fuel Engine","isp":"343.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"prop":"4.0000","rejoin":"null","score":"10150.0000","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"total":"5.8400","twr":"1.0416","twrBurnout":"3.3059","wet":"5.8400"}
   candidate k=1 score=9950.0000 ar=2.7584 slim=true
-  candidate k=2 score=4140.0000 ar=11.3460 slim=true
-  candidate k=3 score=4340.0000 ar=10.9502 slim=true
+  candidate k=2 score=4140.0000 ar=11.3458 slim=true
+  candidate k=3 score=4340.0000 ar=10.9525 slim=true
 
 ## tier5-pay0.8-dv5400-parts
   total=29.8800 k=2 score=5.0000
-  ar=13.0317 slim=true
+  ar=13.0319 slim=true
   stage 0: want=1620.0000 payloadIn=5.8400
     {"adapters":"null","boosters":"null","burn":"62.7945","cost":"2900.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"10.3800","dv":"2106.4520","engine":"S1 SRB-KD25k \"Kickback\" Solid Fuel Booster","isp":"203.0000","joiner":"null","n":"1.0000","parts":"2.0000","perStack":"null","prop":"19.5000","rejoin":"null","score":"3.4940","shroud":"null","stacks":"1.0000","tanks":"null","total":"29.8800","twr":"2.0266","twrBurnout":"5.8338","wet":"29.8800"}
   stage 1: want=3780.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"225.6300","cost":"1390.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"1.8400","dv":"3887.5646","engine":"LV-909 \"Terrier\" Liquid Fuel Engine","isp":"343.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"prop":"4.0000","rejoin":"null","score":"3.2920","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"total":"5.8400","twr":"1.0416","twrBurnout":"3.3059","wet":"5.8400"}
   candidate k=1 score=7.0000 ar=2.7584 slim=true
-  candidate k=2 score=5.0000 ar=13.0317 slim=true
+  candidate k=2 score=5.0000 ar=13.0319 slim=true
   candidate k=3 score=8.0000 ar=6.6264 slim=true
 
 ## tier5-pay0.8-dv9000-mass
@@ -264,20 +264,20 @@
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"224.2286","cost":"3980.0000","coupler":"EP-12 Engine Plate","decoupler":{"cost":"0.0000","d":"1.2500","m":"0.0000","n":"null","qty":"0.0000","viaPlateAbove":true},"dry":"7.3015","dv":"2704.8552","engine":"48-7S \"Spark\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"7.0000","parts":"11.0000","perStack":{"count":"3.0000","dryMass":"1.2500","list":[{"c":"2.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"}],"prop":"10.0000"},"prop":"10.0000","rejoin":"null","score":"18.3396","shroud":{"len":"0.6250","m":"0.0520","v":"Short"},"stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"1.2500","list":[{"c":"2.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"}],"prop":"10.0000"},"total":"17.3015","twr":"0.8238","twrBurnout":"1.9521","wet":"17.3015"}
   stage 2: want=3600.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"274.6800","cost":"1805.0000","coupler":"EP-12 Engine Plate","decoupler":"TD-12 Decoupler","dry":"1.5895","dv":"3653.2757","engine":"48-7S \"Spark\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"2.0000","parts":"7.0000","perStack":{"count":"3.0000","dryMass":"0.4375","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"3.5000"},"prop":"3.5000","rejoin":"null","score":"5.2422","shroud":{"len":"0.6250","m":"0.0520","v":"Short"},"stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"0.4375","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"3.5000"},"total":"5.0895","twr":"0.8012","twrBurnout":"2.5653","wet":"5.0895"}
-  candidate k=2 score=119.3645 ar=10.4844 slim=true
+  candidate k=2 score=119.3645 ar=10.4842 slim=true
   candidate k=3 score=71.8005 ar=10.9196 slim=true
 
 ## tier5-pay0.8-dv9000-cost
   total=75.7490 k=3 score=19165.0000
-  ar=8.8556 slim=true
+  ar=8.8560 slim=true
   stage 0: want=1800.0000 payloadIn=30.2500
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"23.6950","dv":"418.9177","n":"3.0000","part":"RT-10 \"Hammer\" Solid Fuel Booster","sepMass":"62.4022"},"burn":"135.1855","cost":"12375.0000","coupler":"null","decoupler":"TD-25 Decoupler","dropTank":false,"dry":"37.0600","dv":"1810.7781","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"220.0000","n":"1.0000","parts":"11.0000","prop":"36.4390","score":"125998.5000","shroud":"null","tanks":{"count":"3.0000","dryMass":"3.5000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"28.0000"},"total":"75.7490","twr":"1.5649","twrBurnout":"1.5649","wet":"75.7490"}
   stage 1: want=3600.0000 payloadIn=5.8400
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"274.5702","cost":"5400.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"10.2500","dv":"3695.7849","engine":"RE-L10 \"Poodle\" Liquid Fuel Engine","isp":"348.0000","joiner":"null","n":"1.0000","parts":"4.0000","perStack":{"count":"2.0000","dryMass":"2.5000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"20.0000"},"prop":"20.0000","rejoin":"null","score":"50775.0000","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"2.5000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"20.0000"},"total":"30.2500","twr":"0.8383","twrBurnout":"2.4739","wet":"30.2500"}
   stage 2: want=3600.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"225.6300","cost":"1390.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"1.8400","dv":"3908.9221","engine":"LV-909 \"Terrier\" Liquid Fuel Engine","isp":"345.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"prop":"4.0000","rejoin":"null","score":"10150.0000","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"total":"5.8400","twr":"1.0473","twrBurnout":"3.3240","wet":"5.8400"}
-  candidate k=2 score=27825.0000 ar=10.4844 slim=true
-  candidate k=3 score=19165.0000 ar=8.8556 slim=true
+  candidate k=2 score=27825.0000 ar=10.4842 slim=true
+  candidate k=3 score=19165.0000 ar=8.8560 slim=true
 
 ## tier5-pay0.8-dv9000-parts
   total=110.2600 k=3 score=14.0000
@@ -293,16 +293,16 @@
 
 ## tier5-pay3.5-dv3600-mass
   total=21.8045 k=3 score=21.8045
-  ar=9.3648 slim=true
+  ar=9.3647 slim=true
   stage 0: want=720.0000 payloadIn=13.4795
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"41.5563","cost":"3535.0000","coupler":"null","decoupler":{"cost":"0.0000","d":"1.2500","m":"0.0000","n":"null","qty":"0.0000","viaPlateAbove":true},"dry":"16.8045","dv":"727.4769","engine":"Mk-55 \"Thud\" Liquid Fuel Engine","isp":"285.0000","joiner":"null","n":"3.0000","parts":"5.0000","perStack":{"count":"2.0000","dryMass":"0.6250","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"}],"prop":"5.0000"},"prop":"5.0000","rejoin":"null","score":"22.4586","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"0.6250","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"}],"prop":"5.0000"},"total":"21.8045","twr":"1.5175","twrBurnout":"1.9690","wet":"21.8045"}
   stage 1: want=1440.0000 payloadIn=6.8525
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"112.1143","cost":"3155.0000","coupler":"EP-12 Engine Plate","decoupler":"TD-12 Decoupler","dry":"8.4795","dv":"1453.2642","engine":"48-7S \"Spark\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"7.0000","parts":"11.0000","perStack":{"count":"2.0000","dryMass":"0.6250","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"}],"prop":"5.0000"},"prop":"5.0000","rejoin":"null","score":"14.2074","shroud":{"len":"0.6250","m":"0.0520","v":"Short"},"stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"0.6250","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"}],"prop":"5.0000"},"total":"13.4795","twr":"1.0574","twrBurnout":"1.6809","wet":"13.4795"}
   stage 2: want=1440.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"141.0188","cost":"1240.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"4.3525","dv":"1536.0772","engine":"LV-909 \"Terrier\" Liquid Fuel Engine","isp":"345.0000","joiner":"null","n":"1.0000","parts":"4.0000","perStack":{"count":"2.0000","dryMass":"0.3125","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"2.5000"},"prop":"2.5000","rejoin":"null","score":"6.9758","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"0.3125","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"2.5000"},"total":"6.8525","twr":"0.8926","twrBurnout":"1.4052","wet":"6.8525"}
-  candidate k=1 score=29.3275 ar=10.4993 slim=true
-  candidate k=2 score=22.0145 ar=10.1532 slim=true
-  candidate k=3 score=21.8045 ar=9.3648 slim=true
+  candidate k=1 score=29.3275 ar=10.4990 slim=true
+  candidate k=2 score=22.0145 ar=10.1530 slim=true
+  candidate k=3 score=21.8045 ar=9.3647 slim=true
 
 ## tier5-pay3.5-dv3600-cost
   total=30.0160 k=1 score=5450.0000
@@ -310,8 +310,8 @@
   stage 0: want=3600.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"23.6950","dv":"573.4062","n":"2.0000","part":"RT-10 \"Hammer\" Solid Fuel Booster","sepMass":"22.5192"},"burn":"202.6556","cost":"5450.0000","coupler":"null","decoupler":"TD-12 Decoupler","dropTank":false,"dry":"6.8900","dv":"3632.2335","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"203.0000","n":"1.0000","parts":"10.0000","prop":"21.6260","score":"50474.0000","shroud":"null","tanks":{"count":"4.0000","dryMass":"2.0000","list":[{"c":"4.0000","t":"FL-T800 Fuel Tank"}],"prop":"16.0000"},"total":"30.0160","twr":"2.0418","twrBurnout":"3.0366","wet":"30.0160"}
   candidate k=1 score=5450.0000 ar=11.2010 slim=true
-  candidate k=2 score=5740.0000 ar=10.7627 slim=true
-  candidate k=3 score=6800.0000 ar=10.1933 slim=true
+  candidate k=2 score=5740.0000 ar=10.7629 slim=true
+  candidate k=3 score=6800.0000 ar=10.1935 slim=true
 
 ## tier5-pay3.5-dv3600-parts
   total=42.6600 k=1 score=4.0000
@@ -324,7 +324,7 @@
 
 ## tier5-pay3.5-dv5400-mass
   total=46.0270 k=3 score=46.0270
-  ar=9.7136 slim=true
+  ar=9.7138 slim=true
   stage 0: want=1620.0000 payloadIn=20.3670
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"96.5611","cost":"9400.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"26.0270","dv":"1638.2921","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"293.0000","joiner":"null","n":"1.0000","parts":"4.0000","perStack":{"count":"2.0000","dryMass":"2.5000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"20.0000"},"prop":"20.0000","rejoin":"null","score":"46.8555","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"2.5000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"20.0000"},"total":"46.0270","twr":"1.2600","twrBurnout":"2.2282","wet":"46.0270"}
   stage 1: want=1080.0000 payloadIn=12.1170
@@ -332,19 +332,19 @@
   stage 2: want=2700.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"219.7440","cost":"3175.0000","coupler":"EP-12 Engine Plate","decoupler":"TD-12 Decoupler","dry":"5.1170","dv":"2706.1194","engine":"48-7S \"Spark\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"5.0000","parts":"10.0000","perStack":{"count":"3.0000","dryMass":"0.8750","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"}],"prop":"7.0000"},"prop":"7.0000","rejoin":"null","score":"12.6986","shroud":{"len":"0.6250","m":"0.0520","v":"Short"},"stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"0.8750","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"}],"prop":"7.0000"},"total":"12.1170","twr":"0.8413","twrBurnout":"1.9921","wet":"12.1170"}
   candidate k=1 score=89.0900 ar=15.3498 slim=true
-  candidate k=2 score=49.1945 ar=15.1923 slim=true
-  candidate k=3 score=46.0270 ar=9.7136 slim=true
+  candidate k=2 score=49.1945 ar=15.1921 slim=true
+  candidate k=3 score=46.0270 ar=9.7138 slim=true
 
 ## tier5-pay3.5-dv5400-cost
   total=55.9310 k=2 score=12100.0000
-  ar=5.8140 slim=true
+  ar=5.8142 slim=true
   stage 0: want=1620.0000 payloadIn=23.4100
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"23.6950","dv":"393.1115","n":"2.0000","part":"RT-10 \"Hammer\" Solid Fuel Booster","sepMass":"46.5635"},"burn":"126.6597","cost":"7500.0000","coupler":"EP-18 Engine Plate","decoupler":"TD-25 Decoupler","dropTank":false,"dry":"28.8050","dv":"1620.4170","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"219.0000","n":"2.0000","parts":"10.0000","prop":"25.6260","score":"91396.5000","shroud":{"len":"2.5500","m":"0.1350","v":"Medium-Long"},"tanks":{"count":"2.0000","dryMass":"2.5000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"20.0000"},"total":"55.9310","twr":"1.4698","twrBurnout":"1.4527","wet":"55.9310"}
   stage 1: want=3780.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"219.6561","cost":"4600.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"7.4100","dv":"3928.3960","engine":"RE-L10 \"Poodle\" Liquid Fuel Engine","isp":"348.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"2.0000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"}],"prop":"16.0000"},"prop":"16.0000","rejoin":"null","score":"39715.0000","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"2.0000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"}],"prop":"16.0000"},"total":"23.4100","twr":"1.0832","twrBurnout":"3.4220","wet":"23.4100"}
   candidate k=1 score=22450.0000 ar=14.6535 slim=true
-  candidate k=2 score=12100.0000 ar=5.8140 slim=true
-  candidate k=3 score=12715.0000 ar=11.0108 slim=true
+  candidate k=2 score=12100.0000 ar=5.8142 slim=true
+  candidate k=3 score=12715.0000 ar=11.0109 slim=true
 
 ## tier5-pay3.5-dv5400-parts
   total=95.5900 k=2 score=8.0000
@@ -359,42 +359,42 @@
 
 ## tier5-pay3.5-dv9000-mass
   total=296.0770 k=3 score=296.0770
-  ar=11.6112 slim=true
+  ar=11.6116 slim=true
   stage 0: want=4500.0000 payloadIn=27.1170
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"135.1855","dv":"3117.0701","n":"6.0000","part":"RE-I5 \"Skipper\" Liquid Fuel Engine","sepMass":"100.0770"},"burn":"251.0588","cost":"79750.0000","coupler":"null","decoupler":"TD-25 Decoupler","dropTank":false,"dry":"37.0770","dv":"4551.4566","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"293.0000","n":"1.0000","parts":"36.0000","prop":"220.0000","score":"304.9593","shroud":"null","tanks":{"count":"4.0000","dryMass":"6.5000","list":[{"c":"3.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"52.0000"},"total":"296.0770","twr":"1.3711","twrBurnout":"1.5642","wet":"296.0770"}
   stage 1: want=1800.0000 payloadIn=12.1170
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"175.1297","cost":"3550.0000","coupler":"null","decoupler":{"cost":"0.0000","d":"2.5000","m":"0.0000","n":"null","qty":"0.0000","viaPlateAbove":true},"dry":"15.1170","dv":"1831.4538","engine":"LV-T45 \"Swivel\" Liquid Fuel Engine","isp":"319.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"2.0000","dryMass":"1.5000","list":[{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"12.0000"},"prop":"12.0000","rejoin":"null","score":"27.6051","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"1.5000","list":[{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"12.0000"},"total":"27.1170","twr":"0.8073","twrBurnout":"1.4482","wet":"27.1170"}
   stage 2: want=2700.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"219.7440","cost":"3175.0000","coupler":"EP-12 Engine Plate","decoupler":"TD-12 Decoupler","dry":"5.1170","dv":"2706.1194","engine":"48-7S \"Spark\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"5.0000","parts":"10.0000","perStack":{"count":"3.0000","dryMass":"0.8750","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"}],"prop":"7.0000"},"prop":"7.0000","rejoin":"null","score":"12.6986","shroud":{"len":"0.6250","m":"0.0520","v":"Short"},"stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"0.8750","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"}],"prop":"7.0000"},"total":"12.1170","twr":"0.8413","twrBurnout":"1.9921","wet":"12.1170"}
-  candidate k=2 score=371.9875 ar=6.6019 slim=true
-  candidate k=3 score=296.0770 ar=11.6112 slim=true
+  candidate k=2 score=371.9875 ar=6.6018 slim=true
+  candidate k=3 score=296.0770 ar=11.6116 slim=true
 
 ## tier5-pay3.5-dv9000-cost
   total=301.8220 k=3 score=86960.0000
-  ar=11.0956 slim=true
+  ar=11.0957 slim=true
   stage 0: want=4500.0000 payloadIn=28.3620
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"135.1855","dv":"3011.8899","n":"6.0000","part":"RE-I5 \"Skipper\" Liquid Fuel Engine","sepMass":"105.8220"},"burn":"270.3710","cost":"80500.0000","coupler":"null","decoupler":"TD-25 Decoupler","dropTank":false,"dry":"38.8220","dv":"4572.4522","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"293.0000","n":"1.0000","parts":"36.0000","prop":"224.0000","score":"533233.0000","shroud":"null","tanks":{"count":"4.0000","dryMass":"7.0000","list":[{"c":"3.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"}],"prop":"56.0000"},"total":"301.8220","twr":"1.3450","twrBurnout":"1.4939","wet":"301.8220"}
   stage 1: want=2700.0000 payloadIn=8.6120
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"219.6561","cost":"4300.0000","coupler":"null","decoupler":{"cost":"0.0000","d":"2.5000","m":"0.0000","n":"null","qty":"0.0000","viaPlateAbove":true},"dry":"12.3620","dv":"2835.9012","engine":"RE-L10 \"Poodle\" Liquid Fuel Engine","isp":"348.0000","joiner":"null","n":"1.0000","parts":"2.0000","perStack":{"count":"1.0000","dryMass":"2.0000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"}],"prop":"16.0000"},"prop":"16.0000","rejoin":"null","score":"46843.0000","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"2.0000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"}],"prop":"16.0000"},"total":"28.3620","twr":"0.8941","twrBurnout":"2.0512","wet":"28.3620"}
   stage 2: want=1800.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"156.9600","cost":"2160.0000","coupler":"EP-12 Engine Plate","decoupler":"TD-12 Decoupler","dry":"4.6120","dv":"1960.4146","engine":"48-7S \"Spark\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"4.0000","parts":"7.0000","perStack":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"prop":"4.0000","rejoin":"null","score":"15078.0000","shroud":{"len":"0.6250","m":"0.0520","v":"Short"},"stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"total":"8.6120","twr":"0.9469","twrBurnout":"1.7682","wet":"8.6120"}
-  candidate k=2 score=108955.0000 ar=7.2630 slim=true
-  candidate k=3 score=86960.0000 ar=11.0956 slim=true
+  candidate k=2 score=108955.0000 ar=7.2629 slim=true
+  candidate k=3 score=86960.0000 ar=11.0957 slim=true
 
 ## tier5-pay3.5-dv9000-parts
   total=409.1300 k=3 score=44.0000
-  ar=10.9708 slim=true
+  ar=10.9710 slim=true
   stage 0: want=3600.0000 payloadIn=53.0700
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"154.4977","dv":"3497.8068","n":"8.0000","part":"RE-I5 \"Skipper\" Liquid Fuel Engine","sepMass":"121.1300"},"burn":"173.8099","cost":"103400.0000","coupler":"null","decoupler":"TD-25 Decoupler","dropTank":false,"dry":"61.1300","dv":"3679.9507","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"293.0000","n":"1.0000","parts":"37.0000","prop":"292.0000","score":"57.4565","shroud":"null","tanks":{"count":"3.0000","dryMass":"4.5000","list":[{"c":"2.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"36.0000"},"total":"409.1300","twr":"1.2758","twrBurnout":"0.9487","wet":"409.1300"}
   stage 1: want=1800.0000 payloadIn=22.9100
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"115.8733","cost":"10150.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"29.0700","dv":"1887.7881","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"1.0000","parts":"4.0000","perStack":{"count":"2.0000","dryMass":"3.0000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"}],"prop":"24.0000"},"prop":"24.0000","rejoin":"null","score":"6.6535","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"3.0000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"}],"prop":"24.0000"},"total":"53.0700","twr":"1.2478","twrBurnout":"2.2779","wet":"53.0700"}
   stage 2: want=3600.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"202.6556","cost":"4400.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"6.9100","dv":"3645.0742","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"2.0000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"}],"prop":"16.0000"},"prop":"16.0000","rejoin":"null","score":"4.1455","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"2.0000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"}],"prop":"16.0000"},"total":"22.9100","twr":"1.0683","twrBurnout":"3.5420","wet":"22.9100"}
-  candidate k=3 score=44.0000 ar=10.9708 slim=true
+  candidate k=3 score=44.0000 ar=10.9710 slim=true
 
 ## tier5-pay12-dv3600-mass
   total=68.5810 k=3 score=68.5810
-  ar=4.5164 slim=true
+  ar=4.5166 slim=true
   stage 0: want=720.0000 payloadIn=44.6950
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"23.6950","dv":"378.8695","n":"2.0000","part":"RT-10 \"Hammer\" Solid Fuel Booster","sepMass":"58.0472"},"burn":"57.9366","cost":"8900.0000","coupler":"null","decoupler":"TD-25 Decoupler","dropTank":false,"dry":"49.4550","dv":"763.9861","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"232.0000","n":"1.0000","parts":"8.0000","prop":"17.6260","score":"69.8155","shroud":"null","tanks":{"count":"2.0000","dryMass":"1.5000","list":[{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"12.0000"},"total":"68.5810","twr":"1.4342","twrBurnout":"1.1727","wet":"68.5810"}
   stage 1: want=1440.0000 payloadIn=22.9100
@@ -402,19 +402,19 @@
   stage 2: want=1440.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"109.8281","cost":"3150.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"14.9100","dv":"1474.8303","engine":"RE-L10 \"Poodle\" Liquid Fuel Engine","isp":"350.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"1.0000","list":[{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"}],"prop":"8.0000"},"prop":"8.0000","rejoin":"null","score":"23.1849","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"1.0000","list":[{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"}],"prop":"8.0000"},"total":"22.9100","twr":"1.1128","twrBurnout":"1.7099","wet":"22.9100"}
   candidate k=1 score=83.6120 ar=6.4588 slim=true
-  candidate k=2 score=68.6760 ar=4.6687 slim=true
-  candidate k=3 score=68.5810 ar=4.5164 slim=true
+  candidate k=2 score=68.6760 ar=4.6688 slim=true
+  candidate k=3 score=68.5810 ar=4.5166 slim=true
 
 ## tier5-pay12-dv3600-cost
   total=68.6760 k=2 score=15600.0000
-  ar=4.6687 slim=true
+  ar=4.6688 slim=true
   stage 0: want=1800.0000 payloadIn=26.7900
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"23.6950","dv":"378.2993","n":"2.0000","part":"RT-10 \"Hammer\" Solid Fuel Booster","sepMass":"58.1422"},"burn":"135.1855","cost":"11900.0000","coupler":"null","decoupler":"TD-25 Decoupler","dropTank":false,"dry":"33.5500","dv":"1883.3202","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"232.0000","n":"1.0000","parts":"9.0000","prop":"33.6260","score":"114914.0000","shroud":"null","tanks":{"count":"3.0000","dryMass":"3.5000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"28.0000"},"total":"68.6760","twr":"1.4322","twrBurnout":"1.7286","wet":"68.6760"}
   stage 1: want=1800.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"151.9917","cost":"3700.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"14.8420","dv":"1804.7474","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","packed":{"cols":"2.0000","cost":"1232.0000","levels":"1.0000","mass":"0.0520","packedCount":"3.0000","r":"2.0000","spare":"0.0000","tank":"FL-T800 Fuel Tank","width":"3.7500"},"parts":"5.0000","perStack":{"count":"3.0000","dryMass":"1.5000","list":[{"c":"3.0000","t":"FL-T800 Fuel Tank"}],"prop":"12.0000"},"prop":"12.0000","rejoin":"null","score":"43885.0000","shroud":"null","stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"1.5000","list":[{"c":"3.0000","t":"FL-T800 Fuel Tank"}],"prop":"12.0000"},"total":"26.8420","twr":"0.9126","twrBurnout":"1.6531","wet":"26.7900"}
   candidate k=1 score=16500.0000 ar=6.4588 slim=true
-  candidate k=2 score=15600.0000 ar=4.6687 slim=true
-  candidate k=3 score=16300.0000 ar=10.3342 slim=true
+  candidate k=2 score=15600.0000 ar=4.6688 slim=true
+  candidate k=3 score=16300.0000 ar=10.3343 slim=true
 
 ## tier5-pay12-dv3600-parts
   total=99.2600 k=1 score=8.0000
@@ -434,33 +434,33 @@
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"231.7465","cost":"14600.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"34.0020","dv":"2763.8203","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"1.0000","packed":{"cols":"2.0000","cost":"1232.0000","levels":"1.0000","mass":"0.0520","packedCount":"3.0000","r":"2.0000","spare":"0.0000","tank":"Rockomax X200-32 Fuel Tank","width":"7.5000"},"parts":"5.0000","perStack":{"count":"3.0000","dryMass":"6.0000","list":[{"c":"3.0000","t":"Rockomax X200-32 Fuel Tank"}],"prop":"48.0000"},"prop":"48.0000","rejoin":"null","score":"83.9168","shroud":"null","stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"6.0000","list":[{"c":"3.0000","t":"Rockomax X200-32 Fuel Tank"}],"prop":"48.0000"},"total":"82.0020","twr":"0.8080","twrBurnout":"1.9505","wet":"81.9500"}
   stage 2: want=1620.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"145.9414","cost":"3500.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"14.7900","dv":"1621.3625","engine":"LV-T45 \"Swivel\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"1.0000","parts":"5.0000","perStack":{"count":"3.0000","dryMass":"1.2500","list":[{"c":"2.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"}],"prop":"10.0000"},"prop":"10.0000","rejoin":"null","score":"25.3850","shroud":"null","stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"1.2500","list":[{"c":"2.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"}],"prop":"10.0000"},"total":"24.7900","twr":"0.8845","twrBurnout":"1.4825","wet":"24.7900"}
-  candidate k=1 score=220.8600 ar=7.6143 slim=true
-  candidate k=2 score=162.0950 ar=6.0862 slim=true
+  candidate k=1 score=220.8600 ar=7.6145 slim=true
+  candidate k=2 score=162.0950 ar=6.0864 slim=true
   candidate k=3 score=148.4100 ar=3.4492 slim=true
 
 ## tier5-pay12-dv5400-cost
   total=178.0200 k=3 score=32205.0000
-  ar=8.6887 slim=true
+  ar=8.6890 slim=true
   stage 0: want=2160.0000 payloadIn=51.0750
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"62.7945","dv":"1265.3240","n":"3.0000","part":"S1 SRB-KD25k \"Kickback\" Solid Fuel Booster","sepMass":"99.6891"},"burn":"139.3257","cost":"21625.0000","coupler":"EP-18 Engine Plate","decoupler":"TD-25 Decoupler","dropTank":false,"dry":"62.0200","dv":"2167.8234","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"222.0000","n":"4.0000","parts":"16.0000","prop":"102.5000","score":"288655.0000","shroud":{"len":"2.5500","m":"0.1350","v":"Medium-Long"},"tanks":{"count":"4.0000","dryMass":"5.5000","list":[{"c":"2.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"44.0000"},"total":"178.0200","twr":"1.4906","twrBurnout":"1.3494","wet":"178.0200"}
   stage 1: want=1620.0000 payloadIn=24.7900
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"161.1643","cost":"7080.0000","coupler":"EP-18 Engine Plate","decoupler":"TD-25 Decoupler","dry":"31.0750","dv":"1672.5160","engine":"LV-909 \"Terrier\" Liquid Fuel Engine","isp":"343.0000","joiner":"null","n":"7.0000","parts":"11.0000","perStack":{"count":"2.0000","dryMass":"2.5000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"20.0000"},"prop":"20.0000","rejoin":"null","score":"83692.5000","shroud":{"len":"1.3000","m":"0.1250","v":"Medium-Short"},"stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"2.5000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"20.0000"},"total":"51.0750","twr":"0.8337","twrBurnout":"1.3702","wet":"51.0750"}
   stage 2: want=1620.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"145.9414","cost":"3500.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"14.7900","dv":"1621.3625","engine":"LV-T45 \"Swivel\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"1.0000","parts":"5.0000","perStack":{"count":"3.0000","dryMass":"1.2500","list":[{"c":"2.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"}],"prop":"10.0000"},"prop":"10.0000","rejoin":"null","score":"40685.0000","shroud":"null","stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"1.2500","list":[{"c":"2.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"}],"prop":"10.0000"},"total":"24.7900","twr":"0.8845","twrBurnout":"1.4825","wet":"24.7900"}
-  candidate k=1 score=59850.0000 ar=7.6143 slim=true
-  candidate k=2 score=34350.0000 ar=7.6714 slim=true
-  candidate k=3 score=32205.0000 ar=8.6887 slim=true
+  candidate k=1 score=59850.0000 ar=7.6145 slim=true
+  candidate k=2 score=34350.0000 ar=7.6716 slim=true
+  candidate k=3 score=32205.0000 ar=8.6890 slim=true
 
 ## tier5-pay12-dv5400-parts
   total=241.8400 k=2 score=15.0000
-  ar=6.8009 slim=true
+  ar=6.8010 slim=true
   stage 0: want=1620.0000 payloadIn=73.6600
     {"adapters":"null","boosters":"null","burn":"62.7945","cost":"19350.0000","coupler":"EP-18 Engine Plate","decoupler":"TD-12 Decoupler","dry":"105.3400","dv":"1655.7483","engine":"S1 SRB-KD25k \"Kickback\" Solid Fuel Booster","isp":"203.0000","joiner":"null","n":"7.0000","parts":"9.0000","perStack":"null","prop":"136.5000","rejoin":"null","score":"21.0920","shroud":{"len":"3.8000","m":"0.1400","v":"Long"},"stacks":"1.0000","tanks":"null","total":"241.8400","twr":"1.7527","twrBurnout":"4.0239","wet":"241.8400"}
   stage 1: want=3780.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"251.0588","cost":"15400.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"21.6600","dv":"3838.8757","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"1.0000","parts":"6.0000","perStack":{"count":"4.0000","dryMass":"6.5000","list":[{"c":"3.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"52.0000"},"prop":"52.0000","rejoin":"null","score":"9.6830","shroud":"null","stacks":"1.0000","tanks":{"count":"4.0000","dryMass":"6.5000","list":[{"c":"3.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"52.0000"},"total":"73.6600","twr":"0.8990","twrBurnout":"3.0572","wet":"73.6600"}
   candidate k=1 score=30.0000 ar=7.2212 slim=true
-  candidate k=2 score=15.0000 ar=6.8009 slim=true
-  candidate k=3 score=17.0000 ar=7.3947 slim=true
+  candidate k=2 score=15.0000 ar=6.8010 slim=true
+  candidate k=3 score=17.0000 ar=7.3948 slim=true
 
 ## tier5-pay12-dv9000-mass
   NO SOLUTION
@@ -473,27 +473,27 @@
 
 ## tier9-pay0.8-dv3600-mass
   total=4.5625 k=2 score=4.5625
-  ar=5.2807 slim=true
+  ar=5.2959 slim=true
   stage 0: want=1080.0000 payloadIn=2.5150
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"66.6773","cost":"1545.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"3.0625","dv":"1094.4026","engine":"24-77 \"Twitch\" Liquid Fuel Engine","isp":"280.0000","joiner":"null","n":"4.0000","parts":"7.0000","perStack":{"count":"2.0000","dryMass":"0.1875","list":[{"c":"1.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"1.5000"},"prop":"1.5000","rejoin":"null","score":"4.7268","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"0.1875","list":[{"c":"1.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"1.5000"},"total":"4.5625","twr":"1.3559","twrBurnout":"2.0201","wet":"4.5625"}
   stage 1: want=2520.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"219.7440","cost":"880.0000","coupler":"null","decoupler":"TD-06 Decoupler","dry":"1.1150","dv":"2550.3012","engine":"48-7S \"Spark\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"1.0000","parts":"9.0000","perStack":{"count":"7.0000","dryMass":"0.1750","list":[{"c":"7.0000","t":"Oscar-B Fuel Tank"}],"prop":"1.4000"},"prop":"1.4000","rejoin":"null","score":"2.6357","shroud":"null","stacks":"1.0000","tanks":{"count":"7.0000","dryMass":"0.1750","list":[{"c":"7.0000","t":"Oscar-B Fuel Tank"}],"prop":"1.4000"},"total":"2.5150","twr":"0.8096","twrBurnout":"1.8262","wet":"2.5150"}
-  candidate k=1 score=6.8700 ar=3.9839 slim=true
-  candidate k=2 score=4.5625 ar=5.2807 slim=true
-  candidate k=3 score=5.2920 ar=5.5735 slim=true
+  candidate k=1 score=6.8700 ar=3.9966 slim=true
+  candidate k=2 score=4.5625 ar=5.2959 slim=true
+  candidate k=3 score=5.2920 ar=5.5871 slim=true
 
 ## tier9-pay0.8-dv3600-cost
   total=12.9280 k=3 score=1950.0000
-  ar=11.8503 slim=true
+  ar=11.8504 slim=true
   stage 0: want=1080.0000 payloadIn=5.2380
     {"adapters":"null","boosters":"null","burn":"42.2180","cost":"1050.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"6.7780","dv":"1180.2406","engine":"BACC \"Thumper\" Solid Fuel Booster","isp":"186.0000","joiner":"null","n":"1.0000","parts":"2.0000","perStack":"null","prop":"6.1500","rejoin":"null","score":"2.6464","shroud":"null","stacks":"1.0000","tanks":"null","total":"12.9280","twr":"1.9719","twrBurnout":"3.7611","wet":"12.9280"}
   stage 1: want=1440.0000 payloadIn=1.6350
     {"adapters":"null","boosters":"null","burn":"23.6950","cost":"600.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"2.4250","dv":"1471.8092","engine":"RT-10 \"Hammer\" Solid Fuel Booster","isp":"195.0000","joiner":"null","n":"1.0000","parts":"2.0000","perStack":"null","prop":"2.8130","rejoin":"null","score":"2.2619","shroud":"null","stacks":"1.0000","tanks":"null","total":"5.2380","twr":"4.4155","twrBurnout":"9.5375","wet":"5.2380"}
   stage 2: want=1080.0000 payloadIn=0.8000
     {"adapters":"null","boosters":"null","burn":"47.4559","cost":"300.0000","coupler":"null","decoupler":"TD-06 Decoupler","dry":"0.9600","dv":"1123.0481","engine":"F3S0 \"Shrimp\" Solid Fuel Booster","isp":"215.0000","joiner":"null","n":"1.0000","parts":"2.0000","perStack":"null","prop":"0.6750","rejoin":"null","score":"2.0818","shroud":"null","stacks":"1.0000","tanks":"null","total":"1.6350","twr":"1.8704","twrBurnout":"3.1855","wet":"1.6350"}
-  candidate k=1 score=2140.0000 ar=4.2751 slim=true
-  candidate k=2 score=2210.0000 ar=2.3557 slim=true
-  candidate k=3 score=1950.0000 ar=11.8503 slim=true
+  candidate k=1 score=2140.0000 ar=4.2882 slim=true
+  candidate k=2 score=2210.0000 ar=2.3648 slim=true
+  candidate k=3 score=1950.0000 ar=11.8504 slim=true
 
 ## tier9-pay0.8-dv3600-parts
   total=10.9600 k=1 score=3.0000
@@ -506,62 +506,62 @@
 
 ## tier9-pay0.8-dv5400-mass
   total=11.2920 k=3 score=11.2920
-  ar=9.9567 slim=true
+  ar=9.9582 slim=true
   stage 0: want=1620.0000 payloadIn=4.8920
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"88.8946","cost":"4947.0000","coupler":"null","decoupler":{"cost":"0.0000","d":"1.2500","m":"0.0000","n":"null","qty":"0.0000","viaPlateAbove":true},"dry":"6.4920","dv":"1643.5472","engine":"T-1 Toroidal Aerospike \"Dart\" Liquid Fuel Engine","isp":"303.0000","joiner":"null","n":"1.0000","parts":"4.0000","perStack":{"count":"3.0000","dryMass":"0.6000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"4.8000"},"prop":"4.8000","rejoin":"null","score":"11.5630","shroud":"null","stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"0.6000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"4.8000"},"total":"11.2920","twr":"1.3867","twrBurnout":"2.4120","wet":"11.2920"}
   stage 1: want=1620.0000 payloadIn=2.2900
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"156.9600","cost":"1380.0000","coupler":"EP-12 Engine Plate","decoupler":"TD-12 Decoupler","dry":"2.8920","dv":"1648.0734","engine":"48-7S \"Spark\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"2.0000","parts":"5.0000","perStack":{"count":"1.0000","dryMass":"0.2500","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"}],"prop":"2.0000"},"prop":"2.0000","rejoin":"null","score":"4.9801","shroud":{"len":"0.6250","m":"0.0520","v":"Short"},"stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"0.2500","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"}],"prop":"2.0000"},"total":"4.8920","twr":"0.8325","twrBurnout":"1.4082","wet":"4.8920"}
   stage 2: want=2160.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"188.3520","cost":"810.0000","coupler":"null","decoupler":"TD-06 Decoupler","dry":"1.0900","dv":"2330.4608","engine":"48-7S \"Spark\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"1.0000","parts":"8.0000","perStack":{"count":"6.0000","dryMass":"0.1500","list":[{"c":"6.0000","t":"Oscar-B Fuel Tank"}],"prop":"1.2000"},"prop":"1.2000","rejoin":"null","score":"2.3862","shroud":"null","stacks":"1.0000","tanks":{"count":"6.0000","dryMass":"0.1500","list":[{"c":"6.0000","t":"Oscar-B Fuel Tank"}],"prop":"1.2000"},"total":"2.2900","twr":"0.8903","twrBurnout":"1.8704","wet":"2.2900"}
-  candidate k=1 score=27.4525 ar=12.6375 slim=true
-  candidate k=2 score=13.4675 ar=10.0120 slim=true
-  candidate k=3 score=11.2920 ar=9.9567 slim=true
+  candidate k=1 score=27.4525 ar=12.6371 slim=true
+  candidate k=2 score=13.4675 ar=10.0109 slim=true
+  candidate k=3 score=11.2920 ar=9.9582 slim=true
 
 ## tier9-pay0.8-dv5400-cost
   total=15.0050 k=2 score=4265.0000
-  ar=11.7221 slim=true
+  ar=11.7222 slim=true
   stage 0: want=1620.0000 payloadIn=5.8400
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"88.6618","cost":"2875.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"8.0050","dv":"1723.1218","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"280.0000","joiner":"null","n":"1.0000","parts":"5.0000","perStack":{"count":"3.0000","dryMass":"0.8750","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"}],"prop":"7.0000"},"prop":"7.0000","rejoin":"null","score":"25382.5000","shroud":"null","stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"0.8750","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"}],"prop":"7.0000"},"total":"15.0050","twr":"1.3943","twrBurnout":"2.6136","wet":"15.0050"}
   stage 1: want=3780.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"225.6300","cost":"1390.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"1.8400","dv":"3887.5646","engine":"LV-909 \"Terrier\" Liquid Fuel Engine","isp":"343.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"prop":"4.0000","rejoin":"null","score":"10150.0000","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"total":"5.8400","twr":"1.0416","twrBurnout":"3.3059","wet":"5.8400"}
   candidate k=1 score=8800.0000 ar=12.3711 slim=true
-  candidate k=2 score=4265.0000 ar=11.7221 slim=true
-  candidate k=3 score=4275.0000 ar=10.9502 slim=true
+  candidate k=2 score=4265.0000 ar=11.7222 slim=true
+  candidate k=3 score=4275.0000 ar=10.9525 slim=true
 
 ## tier9-pay0.8-dv5400-parts
   total=29.8800 k=2 score=5.0000
-  ar=13.0317 slim=true
+  ar=13.0319 slim=true
   stage 0: want=1620.0000 payloadIn=5.8400
     {"adapters":"null","boosters":"null","burn":"62.7945","cost":"2900.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"10.3800","dv":"2106.4520","engine":"S1 SRB-KD25k \"Kickback\" Solid Fuel Booster","isp":"203.0000","joiner":"null","n":"1.0000","parts":"2.0000","perStack":"null","prop":"19.5000","rejoin":"null","score":"3.4940","shroud":"null","stacks":"1.0000","tanks":"null","total":"29.8800","twr":"2.0266","twrBurnout":"5.8338","wet":"29.8800"}
   stage 1: want=3780.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"225.6300","cost":"1390.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"1.8400","dv":"3887.5646","engine":"LV-909 \"Terrier\" Liquid Fuel Engine","isp":"343.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"prop":"4.0000","rejoin":"null","score":"3.2920","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"total":"5.8400","twr":"1.0416","twrBurnout":"3.3059","wet":"5.8400"}
   candidate k=1 score=7.0000 ar=2.4128 slim=true
-  candidate k=2 score=5.0000 ar=13.0317 slim=true
-  candidate k=3 score=6.0000 ar=9.4727 slim=true
+  candidate k=2 score=5.0000 ar=13.0319 slim=true
+  candidate k=3 score=6.0000 ar=9.4730 slim=true
 
 ## tier9-pay0.8-dv9000-mass
   total=66.1625 k=3 score=66.1625
-  ar=11.1796 slim=true
+  ar=11.1859 slim=true
   stage 0: want=2700.0000 payloadIn=17.0025
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"123.5689","cost":"25600.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"26.1625","dv":"2743.8477","engine":"S3 KS-25 \"Vector\" Liquid Fuel Engine","isp":"301.0000","joiner":"null","n":"1.0000","parts":"4.0000","perStack":{"count":"2.0000","dryMass":"5.0000","list":[{"c":"1.0000","t":"Rockomax Jumbo-64 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"}],"prop":"40.0000"},"prop":"40.0000","rejoin":"null","score":"67.3534","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"5.0000","list":[{"c":"1.0000","t":"Rockomax Jumbo-64 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"}],"prop":"40.0000"},"total":"66.1625","twr":"1.4433","twrBurnout":"3.6500","wet":"66.1625"}
   stage 1: want=3600.0000 payloadIn=3.2500
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"209.2727","cost":"6572.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"5.7025","dv":"3604.7848","engine":"T-1 Toroidal Aerospike \"Dart\" Liquid Fuel Engine","isp":"336.0000","joiner":"null","n":"1.0000","parts":"7.0000","perStack":{"count":"5.0000","dryMass":"1.4125","list":[{"c":"2.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"11.3000"},"prop":"11.3000","rejoin":"null","score":"17.6146","shroud":"null","stacks":"1.0000","tanks":{"count":"5.0000","dryMass":"1.4125","list":[{"c":"2.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"11.3000"},"total":"17.0025","twr":"1.0682","twrBurnout":"3.1850","wet":"17.0025"}
   stage 2: want=2700.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"177.8063","cost":"1160.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"1.2500","dv":"2718.3345","engine":"24-77 \"Twitch\" Liquid Fuel Engine","isp":"290.0000","joiner":"null","n":"2.0000","parts":"4.0000","perStack":{"count":"1.0000","dryMass":"0.2500","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"}],"prop":"2.0000"},"prop":"2.0000","rejoin":"null","score":"3.3085","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"0.2500","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"}],"prop":"2.0000"},"total":"3.2500","twr":"1.0037","twrBurnout":"2.6096","wet":"3.2500"}
-  candidate k=2 score=118.8750 ar=6.4568 slim=true
-  candidate k=3 score=66.1625 ar=11.1796 slim=true
+  candidate k=2 score=118.8750 ar=6.4565 slim=true
+  candidate k=3 score=66.1625 ar=11.1859 slim=true
 
 ## tier9-pay0.8-dv9000-cost
   total=75.7490 k=3 score=19165.0000
-  ar=8.8556 slim=true
+  ar=8.8560 slim=true
   stage 0: want=1800.0000 payloadIn=30.2500
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"23.6950","dv":"418.9177","n":"3.0000","part":"RT-10 \"Hammer\" Solid Fuel Booster","sepMass":"62.4022"},"burn":"135.1855","cost":"12375.0000","coupler":"null","decoupler":"TD-25 Decoupler","dropTank":false,"dry":"37.0600","dv":"1810.7781","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"220.0000","n":"1.0000","parts":"11.0000","prop":"36.4390","score":"125998.5000","shroud":"null","tanks":{"count":"3.0000","dryMass":"3.5000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"28.0000"},"total":"75.7490","twr":"1.5649","twrBurnout":"1.5649","wet":"75.7490"}
   stage 1: want=3600.0000 payloadIn=5.8400
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"274.5702","cost":"5400.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"10.2500","dv":"3695.7849","engine":"RE-L10 \"Poodle\" Liquid Fuel Engine","isp":"348.0000","joiner":"null","n":"1.0000","parts":"4.0000","perStack":{"count":"2.0000","dryMass":"2.5000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"20.0000"},"prop":"20.0000","rejoin":"null","score":"50775.0000","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"2.5000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"20.0000"},"total":"30.2500","twr":"0.8383","twrBurnout":"2.4739","wet":"30.2500"}
   stage 2: want=3600.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"225.6300","cost":"1390.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"1.8400","dv":"3908.9221","engine":"LV-909 \"Terrier\" Liquid Fuel Engine","isp":"345.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"prop":"4.0000","rejoin":"null","score":"10150.0000","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"total":"5.8400","twr":"1.0473","twrBurnout":"3.3240","wet":"5.8400"}
-  candidate k=2 score=29190.0000 ar=9.1436 slim=true
-  candidate k=3 score=19165.0000 ar=8.8556 slim=true
+  candidate k=2 score=29190.0000 ar=9.1438 slim=true
+  candidate k=3 score=19165.0000 ar=8.8560 slim=true
 
 ## tier9-pay0.8-dv9000-parts
   total=208.2500 k=3 score=8.0000
@@ -577,27 +577,27 @@
 
 ## tier9-pay3.5-dv3600-mass
   total=20.4595 k=3 score=20.4595
-  ar=8.6874 slim=true
+  ar=8.6867 slim=true
   stage 0: want=1080.0000 payloadIn=11.0820
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"47.4559","dv":"726.3651","n":"4.0000","part":"F3S0 \"Shrimp\" Solid Fuel Booster","sepMass":"15.1970"},"burn":"79.6348","cost":"5897.0000","coupler":"null","decoupler":"TD-12 Decoupler","dropTank":false,"dry":"12.8595","dv":"1102.6766","engine":"T-1 Toroidal Aerospike \"Dart\" Liquid Fuel Engine","isp":"249.0000","n":"1.0000","parts":"12.0000","prop":"7.0000","score":"20.8278","shroud":"null","tanks":{"count":"2.0000","dryMass":"0.5375","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"4.3000"},"total":"20.4595","twr":"1.2937","twrBurnout":"1.2177","wet":"20.4595"}
   stage 1: want=1080.0000 payloadIn=6.6275
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"103.5936","cost":"2522.0000","coupler":"EP-12 Engine Plate","decoupler":"TD-12 Decoupler","dry":"7.7820","dv":"1108.3520","engine":"48-7S \"Spark\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"5.0000","parts":"10.0000","perStack":{"count":"3.0000","dryMass":"0.4125","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"3.3000"},"prop":"3.3000","rejoin":"null","score":"11.6139","shroud":{"len":"0.6250","m":"0.0520","v":"Short"},"stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"0.4125","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"3.3000"},"total":"11.0820","twr":"0.9187","twrBurnout":"1.3083","wet":"11.0820"}
   stage 2: want=1440.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"129.7373","cost":"1237.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"4.3275","dv":"1442.5800","engine":"LV-909 \"Terrier\" Liquid Fuel Engine","isp":"345.0000","joiner":"null","n":"1.0000","parts":"4.0000","perStack":{"count":"2.0000","dryMass":"0.2875","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"2.3000"},"prop":"2.3000","rejoin":"null","score":"6.7468","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"0.2875","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"2.3000"},"total":"6.6275","twr":"0.9229","twrBurnout":"1.4133","wet":"6.6275"}
-  candidate k=1 score=23.8525 ar=7.4863 slim=true
-  candidate k=2 score=20.6370 ar=4.1576 slim=true
-  candidate k=3 score=20.4595 ar=8.6874 slim=true
+  candidate k=1 score=23.8525 ar=7.4860 slim=true
+  candidate k=2 score=20.6370 ar=4.1573 slim=true
+  candidate k=3 score=20.4595 ar=8.6867 slim=true
 
 ## tier9-pay3.5-dv3600-cost
   total=22.3550 k=2 score=5462.0000
-  ar=10.2604 slim=true
+  ar=10.2599 slim=true
   stage 0: want=2160.0000 payloadIn=6.8525
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"47.4559","dv":"735.3001","n":"3.0000","part":"F3S0 \"Shrimp\" Solid Fuel Booster","sepMass":"16.5833"},"burn":"130.4595","cost":"4222.0000","coupler":"null","decoupler":"TD-12 Decoupler","dropTank":false,"dry":"9.5800","dv":"2164.6776","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"251.0000","n":"1.0000","parts":"12.0000","prop":"12.3250","score":"37754.5000","shroud":"null","tanks":{"count":"4.0000","dryMass":"1.2875","list":[{"c":"2.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"10.3000"},"total":"22.3550","twr":"1.2986","twrBurnout":"2.1839","wet":"22.3550"}
   stage 1: want=1440.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"141.0188","cost":"1240.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"4.3525","dv":"1527.6844","engine":"LV-909 \"Terrier\" Liquid Fuel Engine","isp":"343.0000","joiner":"null","n":"1.0000","parts":"4.0000","perStack":{"count":"2.0000","dryMass":"0.3125","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"2.5000"},"prop":"2.5000","rejoin":"null","score":"11518.7500","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"0.3125","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"}],"prop":"2.5000"},"total":"6.8525","twr":"0.8877","twrBurnout":"1.3975","wet":"6.8525"}
   candidate k=1 score=7400.0000 ar=8.4006 slim=true
-  candidate k=2 score=5462.0000 ar=10.2604 slim=true
-  candidate k=3 score=6612.0000 ar=11.1172 slim=true
+  candidate k=2 score=5462.0000 ar=10.2599 slim=true
+  candidate k=3 score=6612.0000 ar=11.1170 slim=true
 
 ## tier9-pay3.5-dv3600-parts
   total=42.6600 k=1 score=3.0000
@@ -605,12 +605,12 @@
   stage 0: want=3600.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"154.4977","cost":"11350.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"10.6600","dv":"3985.1751","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"293.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"4.0000","list":[{"c":"1.0000","t":"Rockomax Jumbo-64 Fuel Tank"}],"prop":"32.0000"},"prop":"32.0000","rejoin":"null","score":"5.1330","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"4.0000","list":[{"c":"1.0000","t":"Rockomax Jumbo-64 Fuel Tank"}],"prop":"32.0000"},"total":"42.6600","twr":"1.3595","twrBurnout":"5.4404","wet":"42.6600"}
   candidate k=1 score=3.0000 ar=4.6908 slim=true
-  candidate k=2 score=4.0000 ar=8.6258 slim=true
-  candidate k=3 score=6.0000 ar=13.7411 slim=true
+  candidate k=2 score=4.0000 ar=8.6264 slim=true
+  candidate k=3 score=6.0000 ar=13.7401 slim=true
 
 ## tier9-pay3.5-dv5400-mass
   total=40.2275 k=3 score=40.2275
-  ar=4.5214 slim=true
+  ar=4.5211 slim=true
   stage 0: want=1080.0000 payloadIn=22.2925
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"49.4424","dv":"906.1872","n":"3.0000","part":"FM1 \"Mite\" Solid Fuel Booster","sepMass":"29.0868"},"burn":"57.9366","cost":"8400.0000","coupler":"null","decoupler":"TD-25 Decoupler","dropTank":false,"dry":"27.1025","dv":"1086.9291","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"285.0000","n":"1.0000","parts":"10.0000","prop":"12.9000","score":"40.9516","shroud":"null","tanks":{"count":"2.0000","dryMass":"1.5000","list":[{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"12.0000"},"total":"40.2275","twr":"1.5254","twrBurnout":"2.1398","wet":"40.2275"}
   stage 1: want=2700.0000 payloadIn=7.1900
@@ -619,7 +619,7 @@
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"157.9410","cost":"1387.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"4.3900","dv":"1669.7588","engine":"LV-909 \"Terrier\" Liquid Fuel Engine","isp":"345.0000","joiner":"null","n":"1.0000","parts":"5.0000","perStack":{"count":"3.0000","dryMass":"0.3500","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"2.8000"},"prop":"2.8000","rejoin":"null","score":"7.3626","shroud":"null","stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"0.3500","list":[{"c":"1.0000","t":"FL-T400 Fuel Tank"},{"c":"1.0000","t":"FL-T100 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"2.8000"},"total":"7.1900","twr":"0.8507","twrBurnout":"1.3932","wet":"7.1900"}
   candidate k=1 score=61.8400 ar=11.8531 slim=true
   candidate k=2 score=45.1625 ar=9.2668 slim=true
-  candidate k=3 score=40.2275 ar=4.5214 slim=true
+  candidate k=3 score=40.2275 ar=4.5211 slim=true
 
 ## tier9-pay3.5-dv5400-cost
   total=59.8060 k=2 score=12330.0000
@@ -630,22 +630,22 @@
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"225.6300","cost":"2880.0000","coupler":"EP-18 Engine Plate","decoupler":"TD-25 Decoupler","dry":"5.7850","dv":"2922.7042","engine":"LV-909 \"Terrier\" Liquid Fuel Engine","isp":"343.0000","joiner":"null","n":"2.0000","parts":"5.0000","perStack":{"count":"1.0000","dryMass":"1.0000","list":[{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"}],"prop":"8.0000"},"prop":"8.0000","rejoin":"null","score":"23557.5000","shroud":{"len":"1.3000","m":"0.1250","v":"Medium-Short"},"stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"1.0000","list":[{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"}],"prop":"8.0000"},"total":"13.7850","twr":"0.8825","twrBurnout":"2.1030","wet":"13.7850"}
   candidate k=1 score=22325.0000 ar=4.2364 slim=true
   candidate k=2 score=12330.0000 ar=5.9233 slim=true
-  candidate k=3 score=12490.0000 ar=9.1708 slim=true
+  candidate k=3 score=12490.0000 ar=9.1709 slim=true
 
 ## tier9-pay3.5-dv5400-parts
   total=65.3200 k=2 score=5.0000
-  ar=5.2772 slim=true
+  ar=5.2787 slim=true
   stage 0: want=1620.0000 payloadIn=22.6600
     {"adapters":"null","boosters":"null","burn":"47.0715","cost":"17300.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"33.3200","dv":"1891.7011","engine":"LFB KR-1x2 \"Twin-Boar\" Liquid Fuel Engine","isp":"286.0000","joiner":"null","n":"1.0000","parts":"2.0000","perStack":"null","prop":"32.0000","rejoin":"null","score":"5.2660","shroud":"null","stacks":"1.0000","tanks":"null","total":"65.3200","twr":"2.9141","twrBurnout":"5.7127","wet":"65.3200"}
   stage 1: want=3780.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"296.3154","cost":"7150.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"6.6600","dv":"4040.4322","engine":"T-1 Toroidal Aerospike \"Dart\" Liquid Fuel Engine","isp":"336.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"2.0000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"}],"prop":"16.0000"},"prop":"16.0000","rejoin":"null","score":"4.1330","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"2.0000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"}],"prop":"16.0000"},"total":"22.6600","twr":"0.8015","twrBurnout":"2.7271","wet":"22.6600"}
   candidate k=1 score=7.0000 ar=3.1190 slim=true
-  candidate k=2 score=5.0000 ar=5.2772 slim=true
-  candidate k=3 score=7.0000 ar=7.0398 slim=true
+  candidate k=2 score=5.0000 ar=5.2787 slim=true
+  candidate k=3 score=7.0000 ar=7.0422 slim=true
 
 ## tier9-pay3.5-dv9000-mass
   total=209.9490 k=3 score=209.9490
-  ar=4.2028 slim=true
+  ar=4.2029 slim=true
   stage 0: want=1800.0000 payloadIn=89.9450
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"98.8551","cost":"71314.0000","coupler":"null","decoupler":{"cost":"0.0000","d":"2.5000","m":"0.0000","n":"null","qty":"0.0000","viaPlateAbove":true},"dry":"113.9490","dv":"1807.3149","engine":"S3 KS-25 \"Vector\" Liquid Fuel Engine","isp":"301.0000","joiner":"Cubic Octagonal Strut","n":"3.0000","parts":"10.0000","perStack":{"count":"1.0000","dryMass":"4.0000","list":[{"c":"1.0000","t":"Rockomax Jumbo-64 Fuel Tank"}],"prop":"32.0000"},"prop":"96.0000","rejoin":"null","score":"217.5072","shroud":"null","stacks":"3.0000","tanks":{"columnLen":"null","count":"3.0000","dryMass":"12.0000","list":[{"c":"3.0000","t":"Rockomax Jumbo-64 Fuel Tank"}],"prop":"96.0000"},"total":"209.9490","twr":"1.3645","twrBurnout":"2.5141","wet":"209.9490"}
   stage 1: want=3600.0000 payloadIn=18.1600
@@ -653,7 +653,7 @@
   stage 2: want=3600.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"222.2365","cost":"6500.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"6.1600","dv":"3606.0497","engine":"T-1 Toroidal Aerospike \"Dart\" Liquid Fuel Engine","isp":"340.0000","joiner":"null","n":"1.0000","parts":"4.0000","perStack":{"count":"2.0000","dryMass":"1.5000","list":[{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"12.0000"},"prop":"12.0000","rejoin":"null","score":"18.4869","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"1.5000","list":[{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"12.0000"},"total":"18.1600","twr":"1.0109","twrBurnout":"2.9803","wet":"18.1600"}
   candidate k=2 score=277.5500 ar=5.5139 slim=true
-  candidate k=3 score=209.9490 ar=4.2028 slim=true
+  candidate k=3 score=209.9490 ar=4.2029 slim=true
 
 ## tier9-pay3.5-dv9000-cost
   total=229.2960 k=3 score=56504.0000
@@ -664,7 +664,7 @@
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"234.0911","cost":"12404.0000","coupler":"TVR-200 Stack Bi-Coupler","decoupler":"TD-12 Decoupler","dry":"26.7360","dv":"2717.2248","engine":"LV-909 \"Terrier\" Liquid Fuel Engine","isp":"343.0000","joiner":"Cubic Octagonal Strut","n":"8.0000","parts":"32.0000","perStack":{"count":"3.0000","dryMass":"1.0375","list":[{"c":"2.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"8.3000"},"prop":"33.2000","rejoin":"TVR-200 Stack Bi-Coupler","score":"102308.0000","shroud":"null","stacks":"4.0000","tanks":{"columnLen":"null","count":"12.0000","dryMass":"4.1500","list":[{"c":"8.0000","t":"FL-T800 Fuel Tank"},{"c":"4.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"33.2000"},"total":"59.9360","twr":"0.8119","twrBurnout":"1.8201","wet":"59.9360"}
   stage 2: want=3600.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"222.2365","cost":"6450.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"6.0920","dv":"3649.5530","engine":"T-1 Toroidal Aerospike \"Dart\" Liquid Fuel Engine","isp":"340.0000","joiner":"null","n":"1.0000","packed":{"cols":"2.0000","cost":"1232.0000","levels":"1.0000","mass":"0.0520","packedCount":"3.0000","r":"2.0000","spare":"0.0000","tank":"FL-T800 Fuel Tank","width":"3.7500"},"parts":"5.0000","perStack":{"count":"3.0000","dryMass":"1.5000","list":[{"c":"3.0000","t":"FL-T800 Fuel Tank"}],"prop":"12.0000"},"prop":"12.0000","rejoin":"null","score":"33510.0000","shroud":"null","stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"1.5000","list":[{"c":"3.0000","t":"FL-T800 Fuel Tank"}],"prop":"12.0000"},"total":"18.0920","twr":"1.0177","twrBurnout":"3.0395","wet":"18.0400"}
-  candidate k=2 score=76350.0000 ar=7.7198 slim=true
+  candidate k=2 score=76350.0000 ar=7.7199 slim=true
   candidate k=3 score=56504.0000 ar=5.8372 slim=true
 
 ## tier9-pay3.5-dv9000-parts
@@ -675,31 +675,31 @@
   stage 1: want=2700.0000 payloadIn=3.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"148.1577","cost":"5700.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"5.6600","dv":"2907.2010","engine":"T-1 Toroidal Aerospike \"Dart\" Liquid Fuel Engine","isp":"336.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"1.0000","list":[{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"}],"prop":"8.0000"},"prop":"8.0000","rejoin":"null","score":"3.6830","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"1.0000","list":[{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"}],"prop":"8.0000"},"total":"13.6600","twr":"1.3296","twrBurnout":"3.2089","wet":"13.6600"}
   candidate k=2 score=13.0000 ar=5.0518 slim=true
-  candidate k=3 score=14.0000 ar=8.7097 slim=true
+  candidate k=3 score=14.0000 ar=8.7062 slim=true
 
 ## tier9-pay12-dv3600-mass
   total=60.7000 k=3 score=60.7000
-  ar=7.3909 slim=true
+  ar=7.3906 slim=true
   stage 0: want=720.0000 payloadIn=41.7375
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"41.0867","cost":"20822.0000","coupler":"null","decoupler":{"cost":"0.0000","d":"1.2500","m":"0.0000","n":"null","qty":"0.0000","viaPlateAbove":true},"dry":"47.4000","dv":"731.4315","engine":"S3 KS-25 \"Vector\" Liquid Fuel Engine","isp":"301.0000","joiner":"null","n":"1.0000","parts":"6.0000","perStack":{"count":"5.0000","dryMass":"1.6625","list":[{"c":"3.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"13.3000"},"prop":"13.3000","rejoin":"null","score":"62.8852","shroud":"null","stacks":"1.0000","tanks":{"count":"5.0000","dryMass":"1.6625","list":[{"c":"3.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"13.3000"},"total":"60.7000","twr":"1.5732","twrBurnout":"2.0146","wet":"60.7000"}
   stage 1: want=1800.0000 payloadIn=19.0025
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"166.6774","cost":"11575.0000","coupler":"EP-18 Engine Plate","decoupler":"TD-37 Decoupler","dry":"23.7375","dv":"1862.1701","engine":"T-1 Toroidal Aerospike \"Dart\" Liquid Fuel Engine","isp":"336.0000","joiner":"null","n":"2.0000","parts":"5.0000","perStack":{"count":"1.0000","dryMass":"2.2500","list":[{"c":"1.0000","t":"Kerbodyne S3-3600 Tank"}],"prop":"18.0000"},"prop":"18.0000","rejoin":"null","score":"42.4888","shroud":{"len":"1.3000","m":"0.1250","v":"Medium-Short"},"stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"2.2500","list":[{"c":"1.0000","t":"Kerbodyne S3-3600 Tank"}],"prop":"18.0000"},"total":"41.7375","twr":"0.8703","twrBurnout":"1.5303","wet":"41.7375"}
   stage 2: want=1080.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"98.1545","cost":"5272.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"13.7025","dv":"1090.6500","engine":"T-1 Toroidal Aerospike \"Dart\" Liquid Fuel Engine","isp":"340.0000","joiner":"null","n":"1.0000","parts":"5.0000","perStack":{"count":"3.0000","dryMass":"0.6625","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"5.3000"},"prop":"5.3000","rejoin":"null","score":"19.4586","shroud":"null","stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"0.6625","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"},{"c":"1.0000","t":"R-12 'Doughnut' External Tank"}],"prop":"5.3000"},"total":"19.0025","twr":"0.9661","twrBurnout":"1.3398","wet":"19.0025"}
-  candidate k=1 score=77.9850 ar=4.5777 slim=true
-  candidate k=2 score=63.2850 ar=6.2202 slim=true
-  candidate k=3 score=60.7000 ar=7.3909 slim=true
+  candidate k=1 score=77.9850 ar=4.5778 slim=true
+  candidate k=2 score=63.2850 ar=6.2205 slim=true
+  candidate k=3 score=60.7000 ar=7.3906 slim=true
 
 ## tier9-pay12-dv3600-cost
   total=68.7690 k=2 score=14403.0000
-  ar=3.0789 slim=true
+  ar=3.0790 slim=true
   stage 0: want=1080.0000 payloadIn=37.0480
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"23.6950","dv":"400.4281","n":"2.0000","part":"RT-10 \"Hammer\" Solid Fuel Booster","sepMass":"57.5307"},"burn":"75.9958","cost":"8125.0000","coupler":"EP-18 Engine Plate","decoupler":"TD-37 Decoupler","dropTank":false,"dry":"43.6430","dv":"1085.6467","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"229.0000","n":"3.0000","parts":"10.0000","prop":"23.6260","score":"111278.5000","shroud":{"len":"2.5500","m":"0.1350","v":"Medium-Long"},"tanks":{"count":"1.0000","dryMass":"2.2500","list":[{"c":"1.0000","t":"Kerbodyne S3-3600 Tank"}],"prop":"18.0000"},"total":"68.7690","twr":"1.4997","twrBurnout":"1.4382","wet":"68.7690"}
   stage 1: want=2520.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"225.6300","cost":"6278.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"17.0480","dv":"2612.5944","engine":"LV-909 \"Terrier\" Liquid Fuel Engine","isp":"343.0000","joiner":"Cubic Octagonal Strut","n":"5.0000","parts":"19.0000","perStack":{"count":"1.0000","dryMass":"0.5000","list":[{"c":"1.0000","t":"FL-T800 Fuel Tank"}],"prop":"4.0000"},"prop":"20.0000","rejoin":"null","score":"61850.0000","shroud":"null","stacks":"5.0000","tanks":{"columnLen":"null","count":"5.0000","dryMass":"2.5000","list":[{"c":"5.0000","t":"FL-T800 Fuel Tank"}],"prop":"20.0000"},"total":"37.0480","twr":"0.8209","twrBurnout":"1.7840","wet":"37.0480"}
   candidate k=1 score=16250.0000 ar=6.4350 slim=true
-  candidate k=2 score=14403.0000 ar=3.0789 slim=true
-  candidate k=3 score=16400.0000 ar=4.2435 slim=true
+  candidate k=2 score=14403.0000 ar=3.0790 slim=true
+  candidate k=3 score=16400.0000 ar=4.2437 slim=true
 
 ## tier9-pay12-dv3600-parts
   total=99.3600 k=1 score=3.0000
@@ -707,8 +707,8 @@
   stage 0: want=3600.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"145.9242","cost":"26375.0000","coupler":"null","decoupler":"TD-37 Decoupler","dry":"27.3600","dv":"3708.0232","engine":"RE-M3 \"Mainsail\" Liquid Fuel Engine","isp":"293.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"9.0000","list":[{"c":"1.0000","t":"Kerbodyne S3-14400 Tank"}],"prop":"72.0000"},"prop":"72.0000","rejoin":"null","score":"7.9680","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"9.0000","list":[{"c":"1.0000","t":"Kerbodyne S3-14400 Tank"}],"prop":"72.0000"},"total":"99.3600","twr":"1.4153","twrBurnout":"5.1397","wet":"99.3600"}
   candidate k=1 score=3.0000 ar=3.5047 slim=true
-  candidate k=2 score=4.0000 ar=6.7984 slim=true
-  candidate k=3 score=6.0000 ar=11.9137 slim=true
+  candidate k=2 score=4.0000 ar=6.8025 slim=true
+  candidate k=3 score=6.0000 ar=11.9163 slim=true
 
 ## tier9-pay12-dv5400-mass
   total=129.5370 k=3 score=129.5370
@@ -719,13 +719,13 @@
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"166.6774","cost":"22525.0000","coupler":"EP-18 Engine Plate","decoupler":"TD-37 Decoupler","dry":"38.9250","dv":"2160.8167","engine":"T-1 Toroidal Aerospike \"Dart\" Liquid Fuel Engine","isp":"336.0000","joiner":"null","n":"4.0000","parts":"7.0000","perStack":{"count":"1.0000","dryMass":"4.5000","list":[{"c":"1.0000","t":"Kerbodyne S3-7200 Tank"}],"prop":"36.0000"},"prop":"36.0000","rejoin":"null","score":"77.1727","shroud":{"len":"1.3000","m":"0.1250","v":"Medium-Short"},"stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"4.5000","list":[{"c":"1.0000","t":"Kerbodyne S3-7200 Tank"}],"prop":"36.0000"},"total":"74.9250","twr":"0.9696","twrBurnout":"1.8664","wet":"74.9250"}
   stage 2: want=2160.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"192.1991","cost":"6850.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"15.9400","dv":"2164.3538","engine":"RE-L10 \"Poodle\" Liquid Fuel Engine","isp":"350.0000","joiner":"null","n":"1.0000","parts":"9.0000","perStack":{"count":"7.0000","dryMass":"2.0300","list":[{"c":"7.0000","t":"Mk2 Rocket Fuel Fuselage Short"}],"prop":"14.0000"},"prop":"14.0000","rejoin":"null","score":"31.3771","shroud":"null","stacks":"1.0000","tanks":{"count":"7.0000","dryMass":"2.0300","list":[{"c":"7.0000","t":"Mk2 Rocket Fuel Fuselage Short"}],"prop":"14.0000"},"total":"29.9400","twr":"0.8515","twrBurnout":"1.5994","wet":"29.9400"}
-  candidate k=1 score=208.7600 ar=11.2373 slim=true
-  candidate k=2 score=148.0450 ar=9.7105 slim=true
+  candidate k=1 score=208.7600 ar=11.2375 slim=true
+  candidate k=2 score=148.0450 ar=9.7107 slim=true
   candidate k=3 score=129.5370 ar=8.8461 slim=true
 
 ## tier9-pay12-dv5400-cost
   total=148.1870 k=3 score=38080.0000
-  ar=10.3841 slim=true
+  ar=10.3843 slim=true
   stage 0: want=2160.0000 payloadIn=51.0750
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"23.6950","dv":"390.5748","n":"4.0000","part":"RT-10 \"Hammer\" Solid Fuel Booster","sepMass":"125.2437"},"burn":"137.8173","cost":"27500.0000","coupler":"null","decoupler":"TD-25 Decoupler","dropTank":false,"dry":"65.9350","dv":"2165.5584","engine":"RE-M3 \"Mainsail\" Liquid Fuel Engine","isp":"237.0000","n":"1.0000","parts":"13.0000","prop":"79.2520","score":"249780.5000","shroud":"null","tanks":{"count":"3.0000","dryMass":"8.5000","list":[{"c":"2.0000","t":"Rockomax Jumbo-64 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"68.0000"},"total":"148.1870","twr":"1.4937","twrBurnout":"2.1327","wet":"148.1870"}
   stage 1: want=1620.0000 payloadIn=24.7900
@@ -733,35 +733,35 @@
   stage 2: want=1620.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"145.9414","cost":"3500.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"14.7900","dv":"1621.3625","engine":"LV-T45 \"Swivel\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"1.0000","parts":"5.0000","perStack":{"count":"3.0000","dryMass":"1.2500","list":[{"c":"2.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"}],"prop":"10.0000"},"prop":"10.0000","rejoin":"null","score":"40685.0000","shroud":"null","stacks":"1.0000","tanks":{"count":"3.0000","dryMass":"1.2500","list":[{"c":"2.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T400 Fuel Tank"}],"prop":"10.0000"},"total":"24.7900","twr":"0.8845","twrBurnout":"1.4825","wet":"24.7900"}
   candidate k=1 score=52500.0000 ar=10.1215 slim=true
-  candidate k=2 score=39025.0000 ar=7.7686 slim=true
-  candidate k=3 score=38080.0000 ar=10.3841 slim=true
+  candidate k=2 score=39025.0000 ar=7.7687 slim=true
+  candidate k=3 score=38080.0000 ar=10.3843 slim=true
 
 ## tier9-pay12-dv5400-parts
   total=227.0000 k=2 score=7.0000
-  ar=9.2853 slim=true
+  ar=9.2816 slim=true
   stage 0: want=1620.0000 payloadIn=97.3600
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"77.2267","cost":"59375.0000","coupler":"null","decoupler":"TD-37 Decoupler","dry":"127.0000","dv":"1717.5553","engine":"S3 KS-25x4 \"Mammoth\" Liquid Fuel Engine","isp":"301.0000","joiner":"null","n":"1.0000","parts":"4.0000","perStack":{"count":"2.0000","dryMass":"14.2800","list":[{"c":"2.0000","t":"Mk3 Rocket Fuel Fuselage Long"}],"prop":"100.0000"},"prop":"100.0000","rejoin":"null","score":"15.3500","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"14.2800","list":[{"c":"2.0000","t":"Mk3 Rocket Fuel Fuselage Long"}],"prop":"100.0000"},"total":"227.0000","twr":"1.6828","twrBurnout":"3.0078","wet":"227.0000"}
   stage 1: want=3780.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"222.4241","cost":"31375.0000","coupler":"null","decoupler":"TD-37 Decoupler","dry":"25.3600","dv":"4155.0870","engine":"S3 KS-25 \"Vector\" Liquid Fuel Engine","isp":"315.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"9.0000","list":[{"c":"1.0000","t":"Kerbodyne S3-14400 Tank"}],"prop":"72.0000"},"prop":"72.0000","rejoin":"null","score":"7.8680","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"9.0000","list":[{"c":"1.0000","t":"Kerbodyne S3-14400 Tank"}],"prop":"72.0000"},"total":"97.3600","twr":"1.0468","twrBurnout":"4.0189","wet":"97.3600"}
   candidate k=1 score=8.0000 ar=3.8258 slim=true
-  candidate k=2 score=7.0000 ar=9.2853 slim=true
-  candidate k=3 score=8.0000 ar=9.9441 slim=true
+  candidate k=2 score=7.0000 ar=9.2816 slim=true
+  candidate k=3 score=8.0000 ar=9.9401 slim=true
 
 ## tier9-pay12-dv9000-mass
   total=661.4950 k=3 score=661.4950
-  ar=14.5270 slim=true
+  ar=14.5212 slim=true
   stage 0: want=2700.0000 payloadIn=190.7850
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"55.6032","dv":"1169.1135","n":"2.0000","part":"S3 KS-25x4 \"Mammoth\" Liquid Fuel Engine","sepMass":"445.4950"},"burn":"180.7105","cost":"185775.0000","coupler":"null","decoupler":"TD-37 Decoupler","dropTank":false,"dry":"235.4950","dv":"2717.2970","engine":"S3 KS-25x4 \"Mammoth\" Liquid Fuel Engine","isp":"301.0000","n":"1.0000","parts":"12.0000","prop":"378.0000","score":"681.3399","shroud":"null","tanks":{"count":"4.0000","dryMass":"29.2500","list":[{"c":"3.0000","t":"Kerbodyne S3-14400 Tank"},{"c":"1.0000","t":"Kerbodyne S3-3600 Tank"}],"prop":"234.0000"},"total":"661.4950","twr":"1.7324","twrBurnout":"1.6221","wet":"661.4950"}
   stage 1: want=2700.0000 payloadIn=60.2850
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"180.0486","cost":"44500.0000","coupler":"null","decoupler":{"cost":"0.0000","d":"3.7500","m":"0.0000","n":"null","qty":"0.0000","viaPlateAbove":true},"dry":"82.7850","dv":"2776.7100","engine":"Kerbodyne KR-2L+ \"Rhino\" Liquid Fuel Engine","isp":"339.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"2.0000","dryMass":"13.5000","list":[{"c":"1.0000","t":"Kerbodyne S3-14400 Tank"},{"c":"1.0000","t":"Kerbodyne S3-7200 Tank"}],"prop":"108.0000"},"prop":"108.0000","rejoin":"null","score":"194.2191","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"13.5000","list":[{"c":"1.0000","t":"Kerbodyne S3-14400 Tank"},{"c":"1.0000","t":"Kerbodyne S3-7200 Tank"}],"prop":"108.0000"},"total":"190.7850","twr":"1.0659","twrBurnout":"2.4565","wet":"190.7850"}
   stage 2: want=3600.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"246.9295","cost":"19400.0000","coupler":"EP-18 Engine Plate","decoupler":"TD-25 Decoupler","dry":"20.2850","dv":"3632.9231","engine":"T-1 Toroidal Aerospike \"Dart\" Liquid Fuel Engine","isp":"340.0000","joiner":"null","n":"3.0000","parts":"7.0000","perStack":{"count":"2.0000","dryMass":"5.0000","list":[{"c":"1.0000","t":"Rockomax Jumbo-64 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"}],"prop":"40.0000"},"prop":"40.0000","rejoin":"null","score":"62.0936","shroud":{"len":"1.3000","m":"0.1250","v":"Medium-Short"},"stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"5.0000","list":[{"c":"1.0000","t":"Rockomax Jumbo-64 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"}],"prop":"40.0000"},"total":"60.2850","twr":"0.9136","twrBurnout":"2.7151","wet":"60.2850"}
-  candidate k=2 score=937.2950 ar=14.8836 slim=true
-  candidate k=3 score=661.4950 ar=14.5270 slim=true
+  candidate k=2 score=937.2950 ar=14.8776 slim=true
+  candidate k=3 score=661.4950 ar=14.5212 slim=true
 
 ## tier9-pay12-dv9000-cost
   total=751.0190 k=3 score=166137.0000
-  ar=12.3991 slim=true
+  ar=12.3992 slim=true
   stage 0: want=2700.0000 payloadIn=192.2090
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"79.6060","dv":"1434.7810","n":"4.0000","part":"S2-17 \"Thoroughbred\" Solid Fuel Booster","sepMass":"407.9381"},"burn":"180.7105","cost":"117925.0000","coupler":"null","decoupler":"TD-37 Decoupler","dropTank":false,"dry":"237.0190","dv":"2735.3749","engine":"S3 KS-25x4 \"Mammoth\" Liquid Fuel Engine","isp":"240.0000","n":"1.0000","parts":"14.0000","prop":"474.0000","score":"1244453.5000","shroud":"null","tanks":{"count":"4.0000","dryMass":"29.2500","list":[{"c":"3.0000","t":"Kerbodyne S3-14400 Tank"},{"c":"1.0000","t":"Kerbodyne S3-3600 Tank"}],"prop":"234.0000"},"total":"751.0190","twr":"1.3316","twrBurnout":"1.6117","wet":"751.0190"}
   stage 1: want=2700.0000 payloadIn=58.9190
@@ -769,16 +769,16 @@
   stage 2: want=3600.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"240.7562","cost":"19839.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"19.9190","dv":"3617.2065","engine":"T-1 Toroidal Aerospike \"Dart\" Liquid Fuel Engine","isp":"340.0000","joiner":"Cubic Octagonal Strut","n":"3.0000","parts":"20.0000","perStack":{"count":"4.0000","dryMass":"1.6250","list":[{"c":"3.0000","t":"FL-T800 Fuel Tank"},{"c":"1.0000","t":"FL-T200 Fuel Tank"}],"prop":"13.0000"},"prop":"39.0000","rejoin":"null","score":"108217.5000","shroud":"null","stacks":"3.0000","tanks":{"columnLen":"null","count":"12.0000","dryMass":"4.8750","list":[{"c":"9.0000","t":"FL-T800 Fuel Tank"},{"c":"3.0000","t":"FL-T200 Fuel Tank"}],"prop":"39.0000"},"total":"58.9190","twr":"0.9348","twrBurnout":"2.7650","wet":"58.9190"}
   candidate k=2 score=202721.0000 ar=7.0741 slim=true
-  candidate k=3 score=166137.0000 ar=12.3991 slim=true
+  candidate k=3 score=166137.0000 ar=12.3992 slim=true
 
 ## tier9-pay12-dv9000-parts
   total=856.3200 k=3 score=20.0000
-  ar=15.5198 slim=true
+  ar=15.5136 slim=true
   stage 0: want=2700.0000 payloadIn=243.8600
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"111.2065","dv":"2076.5654","n":"2.0000","part":"S3 KS-25x4 \"Mammoth\" Liquid Fuel Engine","sepMass":"424.3200"},"burn":"166.8097","cost":"208525.0000","coupler":"null","decoupler":"TD-37 Decoupler","dropTank":false,"dry":"286.3200","dv":"2739.9613","engine":"S3 KS-25x4 \"Mammoth\" Liquid Fuel Engine","isp":"301.0000","n":"1.0000","parts":"13.0000","prop":"504.0000","score":"55.8160","shroud":"null","tanks":{"count":"3.0000","dryMass":"27.0000","list":[{"c":"3.0000","t":"Kerbodyne S3-14400 Tank"}],"prop":"216.0000"},"total":"856.3200","twr":"1.3383","twrBurnout":"1.3341","wet":"856.3200"}
   stage 1: want=2700.0000 payloadIn=72.5000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"240.0648","cost":"51375.0000","coupler":"null","decoupler":"TD-37 Decoupler","dry":"99.8600","dv":"2969.3563","engine":"Kerbodyne KR-2L+ \"Rhino\" Liquid Fuel Engine","isp":"339.0000","joiner":"null","n":"1.0000","parts":"4.0000","perStack":{"count":"2.0000","dryMass":"18.0000","list":[{"c":"2.0000","t":"Kerbodyne S3-14400 Tank"}],"prop":"144.0000"},"prop":"144.0000","rejoin":"null","score":"16.1930","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"18.0000","list":[{"c":"2.0000","t":"Kerbodyne S3-14400 Tank"}],"prop":"144.0000"},"total":"243.8600","twr":"0.8339","twrBurnout":"2.0364","wet":"243.8600"}
   stage 2: want=3600.0000 payloadIn=12.0000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"241.4026","cost":"15675.0000","coupler":"null","decoupler":"TD-37 Decoupler","dry":"22.5000","dv":"3673.0877","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"7.1400","list":[{"c":"1.0000","t":"Mk3 Rocket Fuel Fuselage Long"}],"prop":"50.0000"},"prop":"50.0000","rejoin":"null","score":"6.6250","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"7.1400","list":[{"c":"1.0000","t":"Mk3 Rocket Fuel Fuselage Long"}],"prop":"50.0000"},"total":"72.5000","twr":"0.9142","twrBurnout":"2.9457","wet":"72.5000"}
-  candidate k=2 score=23.0000 ar=16.2624 slim=true
-  candidate k=3 score=20.0000 ar=15.5198 slim=true
+  candidate k=2 score=23.0000 ar=16.2559 slim=true
+  candidate k=3 score=20.0000 ar=15.5136 slim=true

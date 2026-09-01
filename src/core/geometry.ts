@@ -1,6 +1,7 @@
 import geometryData from "../data/geometry.json";
 import { diaOf, isRadial } from "./parts.js";
 import type { PartBase, Tank } from "./catalogue.js";
+import type { Expansions } from "./constants.js";
 import type { Pack, Solution, TankLine, TankSet } from "./solution.js";
 
 /* ---------------------- vehicle -> simulator ---------------------- */
@@ -64,8 +65,8 @@ const ENGINE_LEN: Record<string, number> = {
   R: 0,
 };
 const engineLen = (e: PartBase) =>
-  PART_H[e.n] !== undefined
-    ? PART_H[e.n]
+  PART_H(e.n) !== undefined
+    ? (PART_H(e.n) as number)
     : Math.max(
         ...e.sz.map((z) => (ENGINE_LEN[z] !== undefined ? ENGINE_LEN[z] : 1.6)),
       );
@@ -74,34 +75,74 @@ const engineLen = (e: PartBase) =>
    Frontal area is the tank cross-section or the summed engine cross-sections,
    whichever is larger: engines wider than the tank are exposed on the annulus,
    engines narrower than it sit in its shadow. */
+/* Two sets of measurements, because ReStock replaces the models of parts that
+   already exist and a remodelled part is a different size. The Poodle presents
+   4.853 m2 to the airflow in a stock install and 2.899 in a ReStock one; the
+   Vector is 1.931 m tall against 2.355. Frontal area is drag and height is the
+   slenderness limit, so the same rocket is a different rocket depending on what
+   is installed, and reading one table whichever boxes are ticked was wrong for
+   whichever half of the users had the other one. #118
+
+   Making History needs no table of its own: it adds parts and remodels nothing,
+   which is 404 of 407 stock cubes byte-identical between a stock install and a
+   stock + Making History one. Its parts appear in both tables, drawn with
+   whichever art is installed, because ReStock remodels 38 of its 69 parts.
+
+   Which table is live is solve-scoped rather than threaded. `useArt` is called
+   from `prepare` and from `planMission`, the two ways into the solver, so it is
+   set before any geometry is asked for and stays set for the drawing that
+   follows. Threading it instead would touch thirty call sites across four
+   modules to say the same thing. */
+type ArtTables = {
+  PART_H: Readonly<Record<string, number>>;
+  PART_A: Readonly<Record<string, number>>;
+};
+const ART: Readonly<Record<"stock" | "restock", ArtTables>> = geometryData;
+
+/* ReStock's art, matching the application's own default. A caller that never
+   says otherwise gets the install both baselines were measured in. */
+let art: ArtTables = ART.restock;
+
+/* ReStock+ implies ReStock, because ReStock+ depends on it — so one flag picks
+   the art. Making History does not enter into it. */
+const useArt = (e: Expansions | null | undefined) => {
+  art = e && !e.rs ? ART.stock : ART.restock;
+};
+
 /* Real part heights, measured off the drag cube bounding boxes in PartDatabase.
    The modelled lengths were close for tanks but wrong for boosters — a Kickback
    holds 19.5 t of solid fuel and is genuinely about 15 m long, which no simple
-   volume formula was going to land on. Two parts have no cube; they fall back. */
-const PART_H: Readonly<Record<string, number>> = geometryData.PART_H;
+   volume formula was going to land on. Six parts have no cube in any install —
+   the Nerv and the five engine plates, which KSP computes at runtime because
+   the shroud varies with what is mounted inside — and they fall back. */
+const PART_H = (n: string) => art.PART_H[n];
 /* Real axial face areas, measured off the same drag cubes as the heights. It
    matters most for radial engines, where inferring an area from diameter is
    badly wrong — diaOf falls back to 1.25 m for anything with no stack profile,
    so a Twitch was being charged 1.23 m² of frontal area against a true 0.07. */
-const PART_A: Readonly<Record<string, number>> = geometryData.PART_A;
-const areaOf = (part: { n: string }, fallback: number) =>
-  PART_A[part.n] !== undefined ? PART_A[part.n] : fallback;
+const PART_A = (n: string) => art.PART_A[n];
+const areaOf = (part: { n: string }, fallback: number) => {
+  const a = PART_A(part.n);
+  return a !== undefined ? a : fallback;
+};
 
 /* The width a part actually presents, from its measured face area rather than
    its size class. It matters for anything without a stack profile: diaOf falls
    back to 1.25 m for a radial engine, so a Twitch drew as wide as the tank it
    bolts to when it is really 0.29 m across. */
-const widthOf = (part: { n: string }, fallback: number) =>
-  PART_A[part.n] !== undefined
-    ? 2 * Math.sqrt(PART_A[part.n] / Math.PI)
-    : fallback;
+const widthOf = (part: { n: string }, fallback: number) => {
+  const a = PART_A(part.n);
+  return a !== undefined ? 2 * Math.sqrt(a / Math.PI) : fallback;
+};
 
 /* The name is nullable because a stage whose joint is made by the plate above
    it carries a decoupler fit with no part in it, and the elevation still asks
    this for a height. A missing name was never in the table, so it takes the
    fallback exactly as an unmeasured part does. */
-const heightOf = (part: { n: string | null }, fallback: number) =>
-  part.n !== null && PART_H[part.n] !== undefined ? PART_H[part.n] : fallback;
+const heightOf = (part: { n: string | null }, fallback: number) => {
+  const h = part.n === null ? undefined : PART_H(part.n);
+  return h !== undefined ? h : fallback;
+};
 /* How tall one tank stands. Named because two things need it and they must not
    drift: the run's total length, which the slenderness limit is measured on,
    and the run drawn tank by tank. */
@@ -468,6 +509,7 @@ export {
   PACK_SYM,
   PART_A,
   PART_H,
+  useArt,
   SPAN,
   areaOf,
   clusterSpan,

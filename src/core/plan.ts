@@ -1,7 +1,7 @@
 import { TALLY, resetTally } from "./tally.js";
 import { BODY, orbitAlt } from "./atmosphere.js";
 import { buildVehicleFor, simCached } from "./ascent.js";
-import { stackOf } from "./geometry.js";
+import { stackOf, useArt } from "./geometry.js";
 import { missionHardware } from "./parts.js";
 import { solveGroup, solveGroupWith } from "./solver.js";
 import type { Expansions } from "./constants.js";
@@ -113,6 +113,11 @@ export async function planMission(
     origin,
     boosters,
   } = input;
+
+  /* Before anything else: the geometry tables the whole solve and the drawing
+     after it will read. `prepare` sets it too, but a mission can measure a
+     payload or size a fairing before the first group is prepared. #118 */
+  useArt(expansions);
 
   /* The boundary takes plain arrays and rebuilds the Set and Map the solver
      wants. Neither survives JSON, so accepting them here would make the seam

@@ -1,7 +1,13 @@
 import { TALLY } from "./tally.js";
 import { BODY, atmoFor } from "./atmosphere.js";
 import { G0 } from "./constants.js";
-import { heightOf, packFor, stackGeometry, stageSize } from "./geometry.js";
+import {
+  heightOf,
+  packFor,
+  stackGeometry,
+  stageSize,
+  useArt,
+} from "./geometry.js";
 import {
   RADIAL_DECOUPLER,
   couplerFor,
@@ -1114,6 +1120,11 @@ function prepare({
   bodyName,
   objective = "mass",
 }: GroupInput) {
+  /* Which art the geometry tables are read from, set before anything asks for a
+     height or a frontal area. Every way into the search comes through here —
+     solveGroup, solveGroupWith, and the design snapshot, which drives
+     solveGroup directly. #118 */
+  useArt(expansions);
   /* Bottom stage carries the full TWR requirement. Upper stages are already
      moving and climbing, so they get a lower floor — but not on a coast burn,
      where thrust barely matters. */

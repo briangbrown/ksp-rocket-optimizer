@@ -274,7 +274,7 @@ describe("the build model", () => {
         /* A liquid radial is a stack of tanks with an engine under it, so the
            part's own height is not its length. */
         if (b.part.column) continue;
-        const measured = PART_H[b.part.n];
+        const measured = PART_H(b.part.n);
         if (measured === undefined) continue;
         checked++;
         if (Math.abs(b.h - measured) > EPS)
