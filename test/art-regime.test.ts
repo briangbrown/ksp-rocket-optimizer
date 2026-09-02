@@ -78,10 +78,12 @@ describe("the geometry tables", () => {
   it("measures the Making History engines in both regimes", () => {
     for (const exp of [STOCK, RESTOCK]) {
       useArt(exp);
-      expect(PART_H('THK "Pollux"')).toBeGreaterThan(10);
+      expect(PART_H('THK "Pollux" Solid Fuel Booster')).toBeGreaterThan(10);
       /* The Cub is radial, which is the case diaOf gets badly wrong: it would
          be charged 1.25 m across on the fallback. */
-      expect(widthOf({ n: 'RV-1 "Cub"' }, 1.25)).toBeLessThan(0.6);
+      expect(widthOf({ n: 'RV-1 "Cub" Vernier Engine' }, 1.25)).toBeLessThan(
+        0.6,
+      );
     }
   });
 

@@ -107,7 +107,7 @@
     },
     {
       "mh": 1,
-      "n": "Kerbodyne KE-1 \"Mastodon\"",
+      "n": "Kerbodyne KE-1 \"Mastodon\" Liquid Fuel Engine",
       "m": 5,
       "dry": 5,
       "fuelM": 0,
@@ -243,7 +243,7 @@
     },
     {
       "mh": 1,
-      "n": "LV-T91 \"Cheetah\"",
+      "n": "LV-T91 \"Cheetah\" Liquid Fuel Engine",
       "m": 1,
       "dry": 1,
       "fuelM": 0,
@@ -259,7 +259,7 @@
     },
     {
       "mh": 1,
-      "n": "LV-TX87 \"Bobcat\"",
+      "n": "LV-TX87 \"Bobcat\" Liquid Fuel Engine",
       "m": 2,
       "dry": 2,
       "fuelM": 0,
@@ -305,7 +305,7 @@
     },
     {
       "mh": 1,
-      "n": "RE-I2 \"Skiff\"",
+      "n": "RE-I2 \"Skiff\" Liquid Fuel Engine",
       "m": 1,
       "dry": 1,
       "fuelM": 0,
@@ -336,7 +336,7 @@
     },
     {
       "mh": 1,
-      "n": "RE-J10 \"Wolfhound\"",
+      "n": "RE-J10 \"Wolfhound\" Liquid Fuel Engine",
       "m": 2.5,
       "dry": 2.5,
       "fuelM": 0,
@@ -382,7 +382,7 @@
     },
     {
       "mh": 1,
-      "n": "RK-7 \"Kodiak\"",
+      "n": "RK-7 \"Kodiak\" Liquid Fueled Engine",
       "m": 1.25,
       "dry": 1.25,
       "fuelM": 0,
@@ -428,7 +428,7 @@
     },
     {
       "mh": 1,
-      "n": "RV-1 \"Cub\"",
+      "n": "RV-1 \"Cub\" Vernier Engine",
       "m": 0.18,
       "dry": 0.18,
       "fuelM": 0,
@@ -548,7 +548,7 @@
       "t": "Hypersonic Flight"
     },
     {
-      "n": "THK \"Pollux\"",
+      "n": "THK \"Pollux\" Solid Fuel Booster",
       "m": 51.5,
       "dry": 8,
       "fuelM": 43.5,
@@ -946,7 +946,7 @@
     },
     {
       "mh": 1,
-      "n": "FL-R5 RCS Fuel Tank",
+      "n": "FL-R400 RCS Fuel Tank",
       "wet": 1.85,
       "dry": 0.25,
       "sz": ["1.5"],
@@ -1085,7 +1085,7 @@
       "cost": 1623
     },
     {
-      "n": "kerbodyne Engine Cluster Adapter Tank",
+      "n": "Kerbodyne Engine Cluster Adapter Tank",
       "wet": 50.625,
       "dry": 5.625,
       "sz": ["4", "1"],
