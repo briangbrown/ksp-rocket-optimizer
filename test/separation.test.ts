@@ -42,7 +42,7 @@ const model: Array<ModelPart> = [
   { role: "tank", x: 0, z: 0, y: 0, r: 1, h: 4, stage: 0 },
   {
     role: "booster",
-    ring: true,
+    ring: 1,
     x: 2,
     z: 0,
     y: 0,
@@ -157,4 +157,85 @@ describe("a stage separation", () => {
     }
     expect(bad).toEqual([]);
   }, 300_000);
+});
+
+/* A column separates as one body.
+
+   A liquid radial booster is an engine with a run of tanks above it, drawn part
+   by part since #123 so its seams have lines. It is held on by one radial
+   decoupler and comes off on it, so the pieces must keep their spacing all the
+   way out. They did not: the renderer turns every mesh about its own centre, so
+   each part pivoted where it sat and the column fanned open. #124 */
+const COLUMN: Array<ModelPart> = [
+  {
+    role: "engine",
+    ring: 1,
+    x: 3,
+    z: 0,
+    y: 0,
+    r: 0.5,
+    h: 2,
+    stage: 0,
+    part: BOOSTER,
+  },
+  { role: "tank", ring: 1, x: 3, z: 0, y: 2, r: 0.5, h: 3, stage: 0 },
+  { role: "tank", ring: 1, x: 3, z: 0, y: 5, r: 0.5, h: 3, stage: 0 },
+  { role: "tank", x: 0, z: 0, y: 0, r: 1, h: 8, stage: 0 },
+  { role: "payload", x: 0, z: 0, y: 8, r: 0.6, h: 1 },
+];
+
+describe("a column on its way out", () => {
+  const sep = separation(
+    COLUMN,
+    [COLUMN[4]],
+    { drop: 0, boost: true },
+    { drop: 0, boost: false },
+  );
+
+  it("keeps its joints closed the whole way out", () => {
+    /* Where a part's two ends are after the transform the renderer applies:
+       turned about its own centre by `tilt`, about the tangent, then put where
+       the offset says. A column is rigid exactly when the top of one part is
+       still the bottom of the next. */
+    const ends = (i: number, t: number) => {
+      const p = COLUMN[i];
+      const o = pose(sep, t).offsets[i];
+      const r = Math.hypot(p.x, p.z) || 1;
+      const dir = [p.x / r, 0, p.z / r] as const;
+      /* Turning (0,1,0) about (z/r, 0, -x/r) by `tilt`. */
+      const axis = [
+        Math.sin(o.tilt) * dir[0],
+        Math.cos(o.tilt),
+        Math.sin(o.tilt) * dir[2],
+      ] as const;
+      const c = [p.x + o.x, p.y + p.h / 2 + o.y, p.z + o.z] as const;
+      const half = p.h / 2;
+      return {
+        bottom: c.map((v, k) => v - half * axis[k]),
+        top: c.map((v, k) => v + half * axis[k]),
+      };
+    };
+    const bad: Array<string> = [];
+    for (const t of [0, 0.25, 0.5, 0.75, 1])
+      for (const [lower, upper] of [
+        [0, 1],
+        [1, 2],
+      ]) {
+        const a = ends(lower, t).top;
+        const b = ends(upper, t).bottom;
+        const gap = Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+        if (gap > 1e-9)
+          bad.push(
+            `at t=${t} parts ${lower} and ${upper} are ${gap.toFixed(3)} m apart at the joint`,
+          );
+      }
+    expect(bad).toEqual([]);
+  });
+
+  it("turns every part of the column by the same angle", () => {
+    const o = pose(sep, 0.6).offsets;
+    expect(o[1].tilt).toBeCloseTo(o[0].tilt, 12);
+    expect(o[2].tilt).toBeCloseTo(o[0].tilt, 12);
+    expect(o[0].tilt).toBeGreaterThan(0);
+  });
 });

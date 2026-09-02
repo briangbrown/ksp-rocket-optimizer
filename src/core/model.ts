@@ -33,12 +33,16 @@ type Shape = {
   h: number;
   rTop?: number;
   stage?: number;
-  /* On the ring of radial boosters rather than on the stack. What a shape *is*
-     is its role — a booster's tank is a tank, and is drawn like one — and where
-     it is bolted is this. The staging animation needs the second: a ring part
-     leaves at the boosters-away step and is thrown outward, while a part of the
-     same role on the axis stays and falls. #123 */
-  ring?: true;
+  /* Which radial booster this part is bolted to, counted from 1 across the
+     whole model. What a shape *is* is its role — a booster's tank is a tank,
+     and is drawn like one — and where it is bolted is this. #123
+
+     An identifier rather than a flag because a column separates as one body:
+     its tanks and its engine are held together by a radial decoupler and leave
+     on it, so the animation has to turn them about a shared pivot. Grouping
+     them by position would work today and would stop working the moment two
+     boosters shared a footprint. #124 */
+  ring?: number;
 };
 
 /* Discriminated on the role, because which part a shape stands for follows
@@ -103,7 +107,14 @@ const turn = (x: number, z: number, th: number) => [
 ];
 
 /* One stage's worth of shapes, standing on `base`, and how tall it came out. */
-function stageParts(sol: Solution, base: number, push: (p: ModelPart) => void) {
+function stageParts(
+  sol: Solution,
+  base: number,
+  push: (p: ModelPart) => void,
+  /* Held on an object rather than as a local the caller reassigns, because the
+     compiler cannot follow an assignment made inside the walk. */
+  ringNo: { n: number },
+) {
   const g = stageGeom(sol);
   const S = g.S;
   const columns = columnsOf(S, g.ringR);
@@ -347,6 +358,8 @@ function stageParts(sol: Solution, base: number, push: (p: ModelPart) => void) {
        from, so the cap only ever hid how wrong the length underneath it was. */
     const bh = boosterLength(b, bd);
     const col = b.part.column;
+    /* Numbered across the model, so two stages carrying boosters at the same
+       angle are still two rings. */
     /* A column's engine, where it has one. `nEng` is what the pools write to
        say so: a drop tank is tankage with nothing under it. */
     const eh = col && (b.part.nEng ?? 1) ? engineLen(b.part) : 0;
@@ -354,6 +367,7 @@ function stageParts(sol: Solution, base: number, push: (p: ModelPart) => void) {
       const a = (i / b.n) * 2 * Math.PI;
       const x = Math.cos(a) * br;
       const z = Math.sin(a) * br;
+      const ring = ++ringNo.n;
       /* A solid booster is one part and is drawn as one. A liquid column is an
          engine with a run of tanks above it, and a drop tank is the run on its
          own — five parts and four, drawn as one cylinder each until now, so
@@ -371,7 +385,7 @@ function stageParts(sol: Solution, base: number, push: (p: ModelPart) => void) {
         push({
           role: "booster",
           part: b.part,
-          ring: true,
+          ring,
           x,
           z,
           y: foot,
@@ -385,7 +399,7 @@ function stageParts(sol: Solution, base: number, push: (p: ModelPart) => void) {
         push({
           role: "engine",
           part: b.part,
-          ring: true,
+          ring,
           x,
           z,
           y,
@@ -400,7 +414,7 @@ function stageParts(sol: Solution, base: number, push: (p: ModelPart) => void) {
         push({
           role: "tank",
           part: t.t,
-          ring: true,
+          ring,
           x,
           z,
           y,
@@ -452,6 +466,7 @@ export function modelOf(
   payloadDia = 0,
 ) {
   const parts: Array<ModelPart> = [];
+  const ringNo = { n: 0 };
   /* Which stage a part came from. Nothing in the drawing needs it — every view
      is a projection of the whole rocket — but a check does: a booster longer
      than the run it hangs from genuinely reaches into the stage above, and
@@ -462,7 +477,7 @@ export function modelOf(
   let y = 0;
   for (const st of stages) {
     if (!st.sol) continue;
-    y += stageParts(st.sol, y, push);
+    y += stageParts(st.sol, y, push, ringNo);
     stage++;
   }
   const payD = payloadDiaOf(payload, payloadDia);

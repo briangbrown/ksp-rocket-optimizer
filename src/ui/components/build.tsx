@@ -844,7 +844,7 @@ export function stepModels(
 ) {
   const live = solved.slice(cur.drop);
   const payD = payloadDiaOf(payload, payloadDia);
-  const attached = (p: { ring?: true }) => cur.boost || !p.ring;
+  const attached = (p: { ring?: number }) => cur.boost || p.ring === undefined;
   return {
     live,
     model: modelOf(live, payload, payD).filter(attached),

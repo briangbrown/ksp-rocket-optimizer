@@ -136,7 +136,7 @@ describe("the build model", () => {
              fault and still caught. #86 */
           const across =
             parts[i].stage !== parts[j].stage &&
-            (parts[i].ring === true || parts[j].ring === true);
+            (parts[i].ring !== undefined || parts[j].ring !== undefined);
           const gap = across ? 0 : overlaps(parts[i], parts[j]);
           if (gap)
             bad.push(
@@ -296,7 +296,7 @@ describe("the build model", () => {
     const bad = [];
     let checked = 0;
     for (const { name, parts } of MODELS) {
-      for (const b of parts.filter((p) => p.ring === true)) {
+      for (const b of parts.filter((p) => p.ring !== undefined)) {
         checked++;
         /* How far in the booster's near side reaches, and how far out the
            stack does at the height its foot is at. */
@@ -473,7 +473,7 @@ describe("a booster beside a wide engine", () => {
       parts.find((p) => p.role === "engine" && !p.ring),
       "the engine",
     );
-    const boosters = parts.filter((p) => p.ring === true);
+    const boosters = parts.filter((p) => p.ring !== undefined);
     expect(boosters.length, "no boosters drawn").toBe(4);
     /* `modelOf` stands the bottom live stage on zero and the engine goes on
        first, so the engine's base is the floor and the tanks start above it. */
