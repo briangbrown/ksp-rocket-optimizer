@@ -141,6 +141,20 @@ type Turn = AscentOk & {
 };
 
 /* ---------- ascent integration ---------- */
+/* How many of a crossfed ring are still bolted on after `spent` tonnes have
+   gone through it.
+
+   A pair at a time, because that is the arrangement: every attached stack feeds
+   the ones still burning, so a pair empties long before it would alone, and it
+   is dropped when it does. Never below two — the last pair burns to the end
+   with the core, since there is nothing left to feed it from.
+
+   Its own function because it is the part of asparagus that is actually
+   distinctive, and it is four operations on three numbers where the walk it
+   lives in is a simulation. #125 */
+const boostersAfter = (n: number, pairProp: number, spent: number) =>
+  n - Math.min(Math.floor(spent / pairProp) * 2, n - 2);
+
 function flyAscent(veh: Vehicle, opt: AscentOpt): AscentResult {
   TALLY.flights++;
   const b = veh.body,
@@ -527,8 +541,7 @@ function flyAscent(veh: Vehicle, opt: AscentOpt): AscentResult {
         if (bo.asparagus && bLeft > 2) {
           /* Shed a pair each time one pair's worth has gone. */
           const spent = bo.n * bo.prop - bProp;
-          const shed = Math.min(Math.floor(spent / bo.pairProp) * 2, bo.n - 2);
-          const want = bo.n - shed;
+          const want = boostersAfter(bo.n, bo.pairProp, spent);
           while (bLeft > want) {
             mass -= bo.pairDry;
             bLeft -= 2;
@@ -761,7 +774,7 @@ function buildVehicleFor<S extends PlannedStage>(
    does. Built from where you are going and what you intend to do there, with the
    adjective and the suffix drawn from a hash of the rest of the settings. */
 
-export { buildVehicleFor, flyAscent, optimiseTurn, simCached };
+export { boostersAfter, buildVehicleFor, flyAscent, optimiseTurn, simCached };
 export type {
   AscentFail,
   AscentOk,

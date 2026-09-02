@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { planMission } from "../src/core/plan.js";
-import { missionCases } from "./grid.js";
+import { sweepCases } from "./grid.js";
 import { missionSignature } from "./signature.js";
 import { stageGeom } from "../src/core/geometry.js";
 import type { PlanStage } from "../src/core/plan.js";
@@ -56,14 +56,33 @@ describe("mission sweep", () => {
   it("delivers unchanged designs across destinations and payloads", async () => {
     const out = [];
     const overlaps = [];
-    for (const c of missionCases()) {
+    let dropTanks = 0;
+    for (const c of sweepCases()) {
       const res = await planMission(c.input, {
         onYield: () => Promise.resolve(),
       });
       out.push(missionSignature(c.name, res && res.stages));
-      if (res)
+      if (res) {
         overlaps.push(...intersecting(res.stages).map((x) => `${c.name} ${x}`));
+        if (c.input.asparagus)
+          dropTanks += res.stages.filter(
+            (st) => st.sol?.boosters?.part.dropTank,
+          ).length;
+      }
     }
+    /* The crossfed rows have to actually build one.
+
+       Three of them are in the sweep because this branch had produced three
+       defects before any check looked at it, and pinning a design that never
+       reaches the drop-tank pool would pin nothing about the pool. As it
+       stands only the mass row delivers one — the cost and parts rows solve the
+       same mission with crossfeed available and choose against it, which is
+       worth pinning too, but it is not this. If the last one stops, these rows
+       are decoration and this says so. #125 */
+    expect(
+      dropTanks,
+      "no asparagus row in the sweep delivered a drop tank",
+    ).toBeGreaterThan(0);
     /* Asserted before the snapshot: a design whose columns intersect is wrong
        whatever the baseline says about it. */
     expect(overlaps).toEqual([]);

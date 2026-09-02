@@ -170,13 +170,41 @@ export function missionCases() {
   return out;
 }
 
+/* What the mission sweep pins: every mission above, and the same one again with
+   crossfeed on, once per objective.
+
+   Its own list rather than three more rows in `missionCases`, because that is
+   read by `test/model.test.ts` too — which builds the model of every mission at
+   every staging step, and which carries a note about a worker running out of
+   memory when they were built twice. Three more missions there costs what the
+   note warns about; here it costs a second and a half.
+
+   One asparagus row would not do. Two of the three defects this branch has
+   produced were objective-specific: #93's NaN price could only be seen on cost,
+   because every comparison against NaN is false and the stage simply never won,
+   and #97's phantom part only on parts, because that is the only objective that
+   counts them. #125 */
+export function sweepCases() {
+  return [
+    ...missionCases(),
+    ...OBJECTIVES.map((objective) => ({
+      name: `Mun-pay20-asparagus-${objective}`,
+      input: asparagusInput(objective),
+    })),
+  ];
+}
+
 /* A mission the drop-tank pool actually builds for.
 
-   Asparagus is what turns that pool on, and nothing else here turns it on: the
-   grid above never sets it and the mission sweep pins it off. So a stage built
-   from drop tanks was solved by no check at all until #93, which is how the
-   stand-in part for one came to carry no price. Twelve tonnes was not enough to
-   reach for them; twenty is. */
+   Asparagus is what turns that pool on, and nothing else turned it on: the grid
+   above never sets it and the mission sweep pinned it off. So a stage built from
+   drop tanks was solved by no check at all until #93, which is how the stand-in
+   part for one came to carry no price. Twelve tonnes was not enough to reach for
+   them; twenty is.
+
+   The sweep carries three of these now — see `sweepCases` — because checking a
+   design against itself is not the same as pinning what the solver delivers, and
+   this branch had produced three defects before anything looked at it. #125 */
 export function asparagusInput(objective: Objective): PlanInput {
   const unlocked = tierUnlocks(9);
   return {
