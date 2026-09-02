@@ -182,10 +182,17 @@ export function eachRow(sol: Solution | null | undefined, add: AddRow) {
     const colProp = b.part.column
       ? b.part.column.list.reduce((a2, x) => a2 + x.c * x.t.prop, 0)
       : 0;
+    /* Zero for a drop tank, which is the same "buys none" the decoupler above
+       uses for a plated stage. The composite the pool synthesises stands for an
+       engine, and a drop tank has none: with its column's tanks taken back out
+       the row weighs nothing, costs nothing and holds nothing, so it described
+       a part that is not there and `manifest` drops it. What is genuinely on
+       the rocket — the tanks and the decoupler holding them — is listed below.
+       #97 */
     add(
       "booster",
       b.part,
-      b.n,
+      b.n * (b.part.nEng ?? 1),
       b.part.dry - colDry,
       b.part.cost,
       (b.part.fuelM || 0) - colProp,
