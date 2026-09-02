@@ -284,8 +284,8 @@ function stageParts(sol: Solution, base: number, push: (p: ModelPart) => void) {
 
        `g.ed` is the engine's measured face, off its drag cube, and that is the
        right width to draw it at. It is the wrong width to ask whether a
-       booster can stand beside it: a Poodle mounts on a 2.5 m node and measures
-       1.92 m across the bells, so comparing the measurement against the tank it
+       booster can stand beside it: an Ant mounts on a 0.625 m node and measures
+       0.37 m across the bells, so comparing the measurement against the tank it
        hangs under says there is nothing there to bolt to, and the walk below
        stops at the tanks with the boosters left hanging partway up the stack.
 
