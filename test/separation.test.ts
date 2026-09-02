@@ -40,7 +40,17 @@ const BOOSTER: BoosterPart = {
    Written out rather than solved for, so the assertions can be exact. */
 const model: Array<ModelPart> = [
   { role: "tank", x: 0, z: 0, y: 0, r: 1, h: 4, stage: 0 },
-  { role: "booster", x: 2, z: 0, y: 0, r: 0.5, h: 3, stage: 0, part: BOOSTER },
+  {
+    role: "booster",
+    ring: true,
+    x: 2,
+    z: 0,
+    y: 0,
+    r: 0.5,
+    h: 3,
+    stage: 0,
+    part: BOOSTER,
+  },
   { role: "tank", x: 0, z: 0, y: 4, r: 1, h: 3, stage: 1 },
   { role: "payload", x: 0, z: 0, y: 7, r: 0.6, h: 1 },
 ];

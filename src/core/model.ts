@@ -7,6 +7,7 @@ import {
   ringPositions,
   stageGeom,
   tankStackLen,
+  tankRun,
   widthOf,
 } from "./geometry.js";
 import { diaOf, isRadial } from "./parts.js";
@@ -32,6 +33,12 @@ type Shape = {
   h: number;
   rTop?: number;
   stage?: number;
+  /* On the ring of radial boosters rather than on the stack. What a shape *is*
+     is its role — a booster's tank is a tank, and is drawn like one — and where
+     it is bolted is this. The staging animation needs the second: a ring part
+     leaves at the boosters-away step and is thrown outward, while a part of the
+     same role on the axis stays and falls. #123 */
+  ring?: true;
 };
 
 /* Discriminated on the role, because which part a shape stands for follows
@@ -44,7 +51,10 @@ type Shape = {
    A tank has no part where it is a level of a packed ring, which is drawn as
    the column it belongs to rather than as any one tank. */
 type ModelPart =
-  | (Shape & { role: "engine"; part: Engine })
+  /* `BoosterPart` because a liquid column's engine is the pool's synthesised
+     part, which is the real engine with its mass and fuel rewritten — the same
+     engine doing the same job, on a ring. */
+  | (Shape & { role: "engine"; part: Engine | BoosterPart })
   | (Shape & { role: "coupler"; part: Coupler | Shroud | null })
   | (Shape & { role: "adapter"; part: Tank })
   | (Shape & { role: "tank"; part?: Tank })
@@ -336,17 +346,69 @@ function stageParts(sol: Solution, base: number, push: (p: ModelPart) => void) {
        every booster the mission grid picks is shorter than the tanks it hangs
        from, so the cap only ever hid how wrong the length underneath it was. */
     const bh = boosterLength(b, bd);
+    const col = b.part.column;
+    /* A column's engine, where it has one. `nEng` is what the pools write to
+       say so: a drop tank is tankage with nothing under it. */
+    const eh = col && (b.part.nEng ?? 1) ? engineLen(b.part) : 0;
     for (let i = 0; i < b.n; i++) {
       const a = (i / b.n) * 2 * Math.PI;
-      push({
-        role: "booster",
-        part: b.part,
-        x: Math.cos(a) * br,
-        z: Math.sin(a) * br,
-        y: foot,
-        r: bd / 2,
-        h: bh,
-      });
+      const x = Math.cos(a) * br;
+      const z = Math.sin(a) * br;
+      /* A solid booster is one part and is drawn as one. A liquid column is an
+         engine with a run of tanks above it, and a drop tank is the run on its
+         own — five parts and four, drawn as one cylinder each until now, so
+         there was no seam between the tanks and no line where the engine met
+         the tank above it. The outline pass cannot put them back: two tanks of
+         the same diameter are continuous in depth and in normals, so that seam
+         is found by surface id or not at all, and one shape carries one id.
+         The same fault #71 fixed on the stack, in the branch it did not reach.
+
+         Drawn part by part they are also drawn *as* what they are — the tanks
+         in the tank colour and the engine in the engine colour, like the parts
+         on the axis, rather than a featureless cylinder in a colour of its
+         own. #123 */
+      if (!col) {
+        push({
+          role: "booster",
+          part: b.part,
+          ring: true,
+          x,
+          z,
+          y: foot,
+          r: bd / 2,
+          h: bh,
+        });
+        continue;
+      }
+      let y = foot;
+      if (eh > 0) {
+        push({
+          role: "engine",
+          part: b.part,
+          ring: true,
+          x,
+          z,
+          y,
+          r: bd / 2,
+          h: eh,
+        });
+        y += eh;
+      }
+      /* The same walk the stack's own run is drawn by, so the two cannot
+         disagree about how long a run of tanks is. */
+      for (const t of tankRun(col)) {
+        push({
+          role: "tank",
+          part: t.t,
+          ring: true,
+          x,
+          z,
+          y,
+          r: bd / 2,
+          h: t.h,
+        });
+        y += t.h;
+      }
     }
   }
 
@@ -370,7 +432,11 @@ function stageParts(sol: Solution, base: number, push: (p: ModelPart) => void) {
    allowance that scales with bore. */
 function boosterLength(b: Boosters, bd: number) {
   const p = b.part;
-  if (p.column) return tankStackLen(p.column) + engineLen(p);
+  /* Its tanks, plus its engine where it has one. A drop tank has none, and was
+     drawn with a whole engine's length of nothing under it — the same part it
+     was charged for in #97, in the drawing. */
+  if (p.column)
+    return tankStackLen(p.column) + ((p.nEng ?? 1) ? engineLen(p) : 0);
   const measured = heightOf(p, 0);
   if (measured > 0) return measured;
   const vol = (p.fuelM || 0) / 1.15 || 1;

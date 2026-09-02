@@ -62,13 +62,17 @@ const smooth = (t: number) => t * t * (3 - 2 * t);
    `stage` is its index within the live stages of the step it was built for, so
    a part of the outgoing model survives exactly when its stage is still live
    in the incoming one. The payload has no stage and always survives; boosters
-   go the moment the step says they have. */
+   go the moment the step says they have.
+
+   `ring` rather than the role, since #123: a column is drawn as its tanks and
+   its engine, which are a tank and an engine doing their usual jobs on a ring.
+   What leaves at the boosters-away step is everything bolted to that ring. */
 function departing(parts: ReadonlyArray<ModelPart>, from: Phase, to: Phase) {
   const shed = to.drop - from.drop;
   return parts.map(
     (p) =>
       (p.stage !== undefined && p.stage < shed) ||
-      (from.boost && !to.boost && p.role === "booster"),
+      (from.boost && !to.boost && p.ring === true),
   );
 }
 
@@ -101,7 +105,7 @@ export function pose(sep: Separation, t: number) {
   const offsets: Array<Offset> = sep.parts.map((p, i) => {
     if (!sep.goes[i]) return { x: 0, y: 0, z: 0, tilt: 0 };
     const fall = -drop * falls(t);
-    if (p.role !== "booster") return { x: 0, y: fall, z: 0, tilt: 0 };
+    if (!p.ring) return { x: 0, y: fall, z: 0, tilt: 0 };
     /* Radially, away from the axis. A part standing on the axis has no
        direction to be thrown in, so it simply falls. */
     const r = Math.hypot(p.x, p.z);
