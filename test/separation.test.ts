@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { planMission } from "../src/core/plan.js";
 import { extentOf } from "../src/core/model.js";
 import { pose, separation } from "../src/ui/separation.js";
+import { cameraFor, viewAxis } from "../src/ui/views.js";
 import {
   isSolved,
   stagingSteps,
@@ -40,7 +41,17 @@ const BOOSTER: BoosterPart = {
    Written out rather than solved for, so the assertions can be exact. */
 const model: Array<ModelPart> = [
   { role: "tank", x: 0, z: 0, y: 0, r: 1, h: 4, stage: 0 },
-  { role: "booster", x: 2, z: 0, y: 0, r: 0.5, h: 3, stage: 0, part: BOOSTER },
+  {
+    role: "booster",
+    ring: 1,
+    x: 2,
+    z: 0,
+    y: 0,
+    r: 0.5,
+    h: 3,
+    stage: 0,
+    part: BOOSTER,
+  },
   { role: "tank", x: 0, z: 0, y: 4, r: 1, h: 3, stage: 1 },
   { role: "payload", x: 0, z: 0, y: 7, r: 0.6, h: 1 },
 ];
@@ -147,4 +158,144 @@ describe("a stage separation", () => {
     }
     expect(bad).toEqual([]);
   }, 300_000);
+});
+
+/* A column separates as one body.
+
+   A liquid radial booster is an engine with a run of tanks above it, drawn part
+   by part since #123 so its seams have lines. It is held on by one radial
+   decoupler and comes off on it, so the pieces must keep their spacing all the
+   way out. They did not: the renderer turns every mesh about its own centre, so
+   each part pivoted where it sat and the column fanned open. #124 */
+const COLUMN: Array<ModelPart> = [
+  {
+    role: "engine",
+    ring: 1,
+    x: 3,
+    z: 0,
+    y: 0,
+    r: 0.5,
+    h: 2,
+    stage: 0,
+    part: BOOSTER,
+  },
+  { role: "tank", ring: 1, x: 3, z: 0, y: 2, r: 0.5, h: 3, stage: 0 },
+  { role: "tank", ring: 1, x: 3, z: 0, y: 5, r: 0.5, h: 3, stage: 0 },
+  { role: "tank", x: 0, z: 0, y: 0, r: 1, h: 8, stage: 0 },
+  { role: "payload", x: 0, z: 0, y: 8, r: 0.6, h: 1 },
+];
+
+describe("a column on its way out", () => {
+  const sep = separation(
+    COLUMN,
+    [COLUMN[4]],
+    { drop: 0, boost: true },
+    { drop: 0, boost: false },
+  );
+
+  it("keeps its joints closed the whole way out", () => {
+    /* Where a part's two ends are after the transform the renderer applies:
+       turned about its own centre by `tilt`, about the tangent, then put where
+       the offset says. A column is rigid exactly when the top of one part is
+       still the bottom of the next. */
+    const ends = (i: number, t: number) => {
+      const p = COLUMN[i];
+      const o = pose(sep, t).offsets[i];
+      const r = Math.hypot(p.x, p.z) || 1;
+      const dir = [p.x / r, 0, p.z / r] as const;
+      /* Turning (0,1,0) about (z/r, 0, -x/r) by `tilt`. */
+      const axis = [
+        Math.sin(o.tilt) * dir[0],
+        Math.cos(o.tilt),
+        Math.sin(o.tilt) * dir[2],
+      ] as const;
+      const c = [p.x + o.x, p.y + p.h / 2 + o.y, p.z + o.z] as const;
+      const half = p.h / 2;
+      return {
+        bottom: c.map((v, k) => v - half * axis[k]),
+        top: c.map((v, k) => v + half * axis[k]),
+      };
+    };
+    const bad: Array<string> = [];
+    for (const t of [0, 0.25, 0.5, 0.75, 1])
+      for (const [lower, upper] of [
+        [0, 1],
+        [1, 2],
+      ]) {
+        const a = ends(lower, t).top;
+        const b = ends(upper, t).bottom;
+        const gap = Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+        if (gap > 1e-9)
+          bad.push(
+            `at t=${t} parts ${lower} and ${upper} are ${gap.toFixed(3)} m apart at the joint`,
+          );
+      }
+    expect(bad).toEqual([]);
+  });
+
+  it("turns every part of the column by the same angle", () => {
+    const o = pose(sep, 0.6).offsets;
+    expect(o[1].tilt).toBeCloseTo(o[0].tilt, 12);
+    expect(o[2].tilt).toBeCloseTo(o[0].tilt, 12);
+    expect(o[0].tilt).toBeGreaterThan(0);
+  });
+});
+
+/* The depth window has to reach round what the framing does not.
+
+   The framing eases to the rocket that is left, on purpose: chasing the parts
+   on their way out would push everything else off the panel. But they are still
+   drawn, and a far plane measured on what stays cuts them in half in mid-air —
+   which is what the isometric was doing to a booster as it went. Leaving the
+   panel at its edge is the intent; being sliced is not. #124 */
+describe("what the camera has to reach round", () => {
+  const sep = separation(
+    COLUMN,
+    [COLUMN[4]],
+    { drop: 0, boost: true },
+    { drop: 0, boost: false },
+  );
+
+  it("sweeps wider than it frames, once anything is moving", () => {
+    for (const t of [0.25, 0.5, 0.75, 1]) {
+      const f = pose(sep, t);
+      expect(
+        f.sweep.reach,
+        `at t=${t} the sweep is no wider than the framing`,
+      ).toBeGreaterThan(f.extent.reach);
+    }
+  });
+
+  it("puts every part inside the depth window it asks for", () => {
+    const bad: Array<string> = [];
+    for (const view of ["side", "plan", "iso"])
+      for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+        const f = pose(sep, t);
+        const cam = cameraFor(view, f.extent, 0.5, f.sweep);
+        const a = viewAxis(view);
+        for (const [i, p] of COLUMN.entries()) {
+          const o = f.offsets[i];
+          /* Depth along the axis the camera looks down, of the part's own
+             bounding sphere — generous, which is the safe direction here. */
+          const c = {
+            x: p.x + o.x,
+            y: p.y + p.h / 2 + o.y,
+            z: p.z + o.z,
+          };
+          /* The camera stands `dist` along the axis from what it looks at,
+             which is (0, midY, 0) — the same placement three-view makes. */
+          const along = a.x * c.x + a.y * (c.y - f.midY) + a.z * c.z;
+          const rad = Math.hypot(p.h / 2, p.r);
+          const depth = cam.dist - along;
+          if (depth - rad < cam.near || depth + rad > cam.far)
+            bad.push(
+              `${view} @t=${t}: part ${i} at depth ${depth.toFixed(2)} +/- ${rad.toFixed(2)}, window ${cam.near.toFixed(2)}..${cam.far.toFixed(2)}`,
+            );
+        }
+      }
+    expect(
+      bad.slice(0, 6),
+      `${bad.length} parts outside the depth window`,
+    ).toEqual([]);
+  });
 });

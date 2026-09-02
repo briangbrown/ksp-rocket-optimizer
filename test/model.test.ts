@@ -136,7 +136,7 @@ describe("the build model", () => {
              fault and still caught. #86 */
           const across =
             parts[i].stage !== parts[j].stage &&
-            (parts[i].role === "booster" || parts[j].role === "booster");
+            (parts[i].ring !== undefined || parts[j].ring !== undefined);
           const gap = across ? 0 : overlaps(parts[i], parts[j]);
           if (gap)
             bad.push(
@@ -296,7 +296,7 @@ describe("the build model", () => {
     const bad = [];
     let checked = 0;
     for (const { name, parts } of MODELS) {
-      for (const b of parts.filter((p) => p.role === "booster")) {
+      for (const b of parts.filter((p) => p.ring !== undefined)) {
         checked++;
         /* How far in the booster's near side reaches, and how far out the
            stack does at the height its foot is at. */
@@ -305,17 +305,14 @@ describe("the build model", () => {
           0,
           ...parts
             .filter(
-              (p) =>
-                p.role !== "booster" &&
-                p.y <= b.y + EPS &&
-                p.y + p.h >= b.y + EPS,
+              (p) => !p.ring && p.y <= b.y + EPS && p.y + p.h >= b.y + EPS,
             )
             .map((p) => Math.hypot(p.x, p.z) + p.r),
         );
         const gap = inner > 0 ? (inner - widest) / inner : 0;
         if (gap > CLEAR)
           bad.push(
-            `${name}: a ${b.part.n} stands ${(gap * 100).toFixed(0)}% clear of anything at y=${b.y.toFixed(2)}`,
+            `${name}: a ring part stands ${(gap * 100).toFixed(0)}% clear of anything at y=${b.y.toFixed(2)}`,
           );
       }
     }
@@ -332,7 +329,7 @@ describe("the build model", () => {
        level and did have them. #71 */
     const bad = [];
     let checked = 0;
-    for (const { name, live, parts } of MODELS) {
+    for (const { name, cur, live, parts } of MODELS) {
       let want = 0;
       let packed = false;
       for (const st of live) {
@@ -342,6 +339,11 @@ describe("the build model", () => {
         const S = st.sol.stacks || 1;
         const list = (S > 1 ? st.sol.perStack : st.sol.tanks)?.list || [];
         want += list.reduce((a, x) => a + x.c, 0) * S;
+        /* And the tanks on the ring. A liquid column and a drop tank are runs
+           of tanks like any other, and were drawn as one cylinder each until
+           #123 — the same fault this test was written for, one branch over. */
+        const b = st.sol.boosters;
+        if (cur.boost && b?.part.column) want += b.n * b.part.column.count;
       }
       if (packed || !want) continue;
       checked++;
@@ -468,10 +470,10 @@ describe("a booster beside a wide engine", () => {
   it("stands on the engine's base, not on the tanks above it", () => {
     const parts = modelOf([{ sol: STRAPPED }], 5, 2.5);
     const engine = must(
-      parts.find((p) => p.role === "engine"),
+      parts.find((p) => p.role === "engine" && !p.ring),
       "the engine",
     );
-    const boosters = parts.filter((p) => p.role === "booster");
+    const boosters = parts.filter((p) => p.ring !== undefined);
     expect(boosters.length, "no boosters drawn").toBe(4);
     /* `modelOf` stands the bottom live stage on zero and the engine goes on
        first, so the engine's base is the floor and the tanks start above it. */
@@ -479,7 +481,7 @@ describe("a booster beside a wide engine", () => {
     for (const b of boosters)
       expect(
         b.y,
-        `a ${b.part.n} starts ${b.y.toFixed(2)} m up, at the tanks`,
+        `a ring part starts ${b.y.toFixed(2)} m up, at the tanks`,
       ).toBeCloseTo(0, 9);
     /* And it is standing against the engine rather than past it: the gap is
        the difference between a 3.75 m node and a 3.27 m measurement. */

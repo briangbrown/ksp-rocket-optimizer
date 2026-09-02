@@ -524,6 +524,7 @@ export {
   stageSize,
   PAYLOAD_ASPECT,
   payloadDiaOf,
+  tankRun,
   tankStackLen,
   widthOf,
 };
