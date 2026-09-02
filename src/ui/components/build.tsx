@@ -1239,6 +1239,7 @@ function BuildView({
             color={color}
             buffer={buffer}
             extent={moves ? moves.extent : undefined}
+            sweep={moves ? moves.sweep : undefined}
             midY={moves ? moves.midY : undefined}
             offsets={moves ? moves.offsets : undefined}
           />

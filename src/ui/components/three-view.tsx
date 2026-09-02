@@ -127,6 +127,9 @@ type ThreeViewProps = {
   color: string;
   buffer?: { w: number; h: number };
   extent?: Extent;
+  /* What the depth window must reach round, where that is more than what is
+     framed — the parts on their way out of a staging transition. */
+  sweep?: Extent;
   midY?: number;
   offsets?: ReadonlyArray<Offset> | null;
 };
@@ -163,6 +166,7 @@ export default function ThreeView({
   color,
   buffer,
   extent,
+  sweep,
   midY,
   offsets,
 }: ThreeViewProps) {
@@ -379,7 +383,7 @@ export default function ThreeView({
     /* Where it stands, what it can see and how deep it can see, all from one
        place — the axis that positions the camera is the axis its near and far
        planes are measured along, which is what stops the two disagreeing. */
-    const cam = cameraFor(view, box, width / height);
+    const cam = cameraFor(view, box, width / height, sweep ?? box);
     /* Asymmetric, so the visible box in the buffer's top-left corner frames
        exactly what a panel of that size would. Both ratios are 1 in a still
        frame and this is the ordinary symmetric frustum. */

@@ -108,7 +108,16 @@ export function framing(view: string, { height: H, reach }: Extent) {
    little air. */
 export function fitOrtho(view: string, extent: Extent, aspect: number) {
   const need = framing(view, extent);
-  const halfH = Math.max(need.h, need.w / aspect) * 1.08;
+  /* More air across than up. The two are not the same problem: a drawing
+     limited by its height has whatever room the panel's shape leaves at the
+     sides, which is usually plenty, while one limited by its width has only
+     the margin — and that is the case a tall narrow elevation panel puts a
+     boostered rocket in. Eight percent of a ring that sits tight against the
+     core is a couple of pixels, and the outline is drawn outward from the
+     silhouette in screen space, so the strokes on the outermost booster were
+     being shaved. Widening only the binding term costs nothing when height is
+     the one that binds. */
+  const halfH = Math.max(need.h * 1.08, (need.w * 1.2) / aspect);
   return { halfW: halfH * aspect, halfH };
 }
 
@@ -127,10 +136,22 @@ const standOff = ({ height, reach }: Extent) =>
    what let the shortfall from the unnormalised direction above go unnoticed:
    it was generous enough to hide the error on a tall rocket and not on a short
    one, so the clipping appeared only at the last staging steps. */
-export function cameraFor(view: string, extent: Extent, aspect: number) {
+export function cameraFor(
+  view: string,
+  extent: Extent,
+  aspect: number,
+  /* What the depth window has to cover, where that is not what the frustum
+     frames. During a staging transition they differ on purpose: the framing
+     eases to the rocket that is left, because chasing the parts on their way
+     out would push everything else off the panel — but those parts are still
+     being drawn, and a near or far plane measured on what stays cuts them in
+     half in mid-air. Leaving the panel at the edge is the intent; being sliced
+     is not. #124 */
+  depth: Extent = extent,
+) {
   const axis = viewAxis(view);
-  const dist = standOff(extent);
-  const half = spanAlong(axis, extent.height, extent.reach);
+  const dist = standOff(depth);
+  const half = spanAlong(axis, depth.height, depth.reach);
   /* Enough that a rounding error at the silhouette does not shave it, and
      little enough that the depth buffer keeps its precision where the drawing
      is. */
@@ -141,9 +162,11 @@ export function cameraFor(view: string, extent: Extent, aspect: number) {
     near: Math.max(0.01, dist - half - slack),
     far: dist + half + slack,
     /* The model's own depth range, for cueing: the front of the rocket is
-       untouched and the back takes the full fade, whatever its size. */
-    cueNear: dist - half,
-    cueSpan: 2 * half || 1,
+       untouched and the back takes the full fade, whatever its size. Measured
+       on what is framed rather than on the depth window, so a booster on its
+       way out does not wash out the rocket it left. */
+    cueNear: dist - spanAlong(axis, extent.height, extent.reach),
+    cueSpan: 2 * spanAlong(axis, extent.height, extent.reach) || 1,
     ...fitOrtho(view, extent, aspect),
   };
 }

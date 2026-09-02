@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { planMission } from "../src/core/plan.js";
 import { extentOf } from "../src/core/model.js";
 import { pose, separation } from "../src/ui/separation.js";
+import { cameraFor, viewAxis } from "../src/ui/views.js";
 import {
   isSolved,
   stagingSteps,
@@ -237,5 +238,64 @@ describe("a column on its way out", () => {
     expect(o[1].tilt).toBeCloseTo(o[0].tilt, 12);
     expect(o[2].tilt).toBeCloseTo(o[0].tilt, 12);
     expect(o[0].tilt).toBeGreaterThan(0);
+  });
+});
+
+/* The depth window has to reach round what the framing does not.
+
+   The framing eases to the rocket that is left, on purpose: chasing the parts
+   on their way out would push everything else off the panel. But they are still
+   drawn, and a far plane measured on what stays cuts them in half in mid-air —
+   which is what the isometric was doing to a booster as it went. Leaving the
+   panel at its edge is the intent; being sliced is not. #124 */
+describe("what the camera has to reach round", () => {
+  const sep = separation(
+    COLUMN,
+    [COLUMN[4]],
+    { drop: 0, boost: true },
+    { drop: 0, boost: false },
+  );
+
+  it("sweeps wider than it frames, once anything is moving", () => {
+    for (const t of [0.25, 0.5, 0.75, 1]) {
+      const f = pose(sep, t);
+      expect(
+        f.sweep.reach,
+        `at t=${t} the sweep is no wider than the framing`,
+      ).toBeGreaterThan(f.extent.reach);
+    }
+  });
+
+  it("puts every part inside the depth window it asks for", () => {
+    const bad: Array<string> = [];
+    for (const view of ["side", "plan", "iso"])
+      for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+        const f = pose(sep, t);
+        const cam = cameraFor(view, f.extent, 0.5, f.sweep);
+        const a = viewAxis(view);
+        for (const [i, p] of COLUMN.entries()) {
+          const o = f.offsets[i];
+          /* Depth along the axis the camera looks down, of the part's own
+             bounding sphere — generous, which is the safe direction here. */
+          const c = {
+            x: p.x + o.x,
+            y: p.y + p.h / 2 + o.y,
+            z: p.z + o.z,
+          };
+          /* The camera stands `dist` along the axis from what it looks at,
+             which is (0, midY, 0) — the same placement three-view makes. */
+          const along = a.x * c.x + a.y * (c.y - f.midY) + a.z * c.z;
+          const rad = Math.hypot(p.h / 2, p.r);
+          const depth = cam.dist - along;
+          if (depth - rad < cam.near || depth + rad > cam.far)
+            bad.push(
+              `${view} @t=${t}: part ${i} at depth ${depth.toFixed(2)} +/- ${rad.toFixed(2)}, window ${cam.near.toFixed(2)}..${cam.far.toFixed(2)}`,
+            );
+        }
+      }
+    expect(
+      bad.slice(0, 6),
+      `${bad.length} parts outside the depth window`,
+    ).toEqual([]);
   });
 });

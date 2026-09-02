@@ -160,14 +160,41 @@ export function pose(sep: Separation, t: number) {
      either of them: included, the camera would chase them off the panel
      instead of closing in on what is left. */
   const s = smooth(t);
-  const height = sep.from.height + (sep.to.height - sep.from.height) * s;
-  const reach = sep.from.reach + (sep.to.reach - sep.from.reach) * s;
   const mid0 = sep.from.height / 2;
   const mid1 = sep.dy + sep.to.height / 2;
+  const midY = mid0 + (mid1 - mid0) * s;
+  /* Everything the frame contains, parts on their way out included. Not for
+     framing — see above — but for the depth window, which has to reach round
+     them or they are cut in half in mid-air.
+
+     Written about the point the camera looks at rather than about the floor,
+     because `Extent` is a model standing on zero and a part on its way out is
+     not: it falls below the pad, and in the plan view — which looks up from
+     underneath — that is *towards* the camera, through the near plane. So the
+     height reported here is twice the furthest any part gets from `midY`,
+     which is what `spanAlong` then halves back. Measured off the posed parts
+     rather than reasoned about, so a change to the choreography carries into
+     it without anyone having to remember. #124 */
+  let halfSpan = 0;
+  let reach = 0;
+  sep.parts.forEach((p, i) => {
+    const o = offsets[i];
+    /* `h/2 + r` rather than `h/2`: a part on its way out is turning, and a
+       tilted cylinder reaches further along the axis than its own half-length.
+       Generous is the safe direction for a clip plane. */
+    const arm = p.h / 2 + p.r;
+    halfSpan = Math.max(halfSpan, Math.abs(p.y + o.y + p.h / 2 - midY) + arm);
+    reach = Math.max(reach, Math.hypot(p.x + o.x, p.z + o.z) + p.r);
+  });
+
   return {
     offsets,
-    extent: { height, reach },
-    midY: mid0 + (mid1 - mid0) * s,
+    extent: {
+      height: sep.from.height + (sep.to.height - sep.from.height) * s,
+      reach: sep.from.reach + (sep.to.reach - sep.from.reach) * s,
+    },
+    sweep: { height: 2 * halfSpan, reach },
+    midY,
   };
 }
 
