@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { solveGroup } from "../src/core/solver.js";
 import {
+  manifest,
   manifestCost,
   manifestCount,
   manifestMass,
@@ -126,6 +127,43 @@ describe("a stage with drop tanks", () => {
     /* Not vacuous: without a drop tank in one of them this checks nothing the
        grid does not already. */
     expect(dropTanks, "no drop tank in either design").toBeGreaterThan(0);
+    expect(bad).toEqual([]);
+  }, 300_000);
+
+  /* And the count against the rocket, not against the other sum.
+
+     The test above ties `stageParts` to `manifestCount`, which is worth having
+     and could not have caught #97: both charged a drop tank for an engine, so
+     they agreed and were both one part per column too many. This pins one side
+     to what is actually bolted on — the tanks and the decoupler holding them —
+     so the parity check then forces the other. #97 */
+  it("lists a drop tank as its tanks and a decoupler, and nothing else", async () => {
+    const res = await planMission(asparagusInput("mass"), {
+      onYield: () => Promise.resolve(),
+    });
+    const drops = (res?.stages ?? [])
+      .map((s) => s.sol)
+      .filter((sol) => sol?.boosters?.part.dropTank);
+    expect(drops.length, "no drop tank in the design").toBeGreaterThan(0);
+
+    const bad: Array<string> = [];
+    for (const sol of drops) {
+      const b = sol!.boosters!;
+      const rows = manifest(sol);
+      const qty = (role: string) =>
+        rows.filter((r) => r.role === role).reduce((a, r) => a + r.qty, 0);
+      /* There is no engine on a drop tank, so there is no part standing for
+         one. The composite the pool synthesises is a fiction of the two-phase
+         maths, not something you place in the VAB. */
+      if (qty("booster") !== 0)
+        bad.push(`${qty("booster")} drop-tank parts listed, expected none`);
+      /* One decoupler each, and the column's tanks. */
+      if (qty("booster-decoupler") !== b.n)
+        bad.push(`${qty("booster-decoupler")} decouplers for ${b.n} columns`);
+      const tanks = b.part.column ? b.n * b.part.column.count : 0;
+      if (qty("booster-tank") !== tanks)
+        bad.push(`${qty("booster-tank")} tanks listed, expected ${tanks}`);
+    }
     expect(bad).toEqual([]);
   }, 300_000);
 });

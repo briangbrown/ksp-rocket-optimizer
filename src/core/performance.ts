@@ -131,9 +131,19 @@ const stageParts = (c: Solution) =>
   /* Zero where the plate above makes the joint. The `&&` here read that as
      "no decoupler recorded" and charged one anyway. #107 */
   (c.decoupler ? c.decoupler.qty : 1) +
+  /* What a ring is made of, which is not the same for all three kinds. The
+     decoupler is always one. Then a solid booster is itself an engine, a liquid
+     column is an engine with its tanks hanging under it, and a drop tank is
+     tankage with no engine at all — `nEng` is what the pools already write to
+     say which. The `2` here was the decoupler plus an engine, and charged the
+     drop tank for an engine it does not have: six columns, six parts that are
+     not on the rocket, which under-selected asparagus for the parts objective
+     the same way #93 did for cost. #97 */
   (c.boosters
     ? c.boosters.n *
-      (2 + (c.boosters.part.column ? c.boosters.part.column.count : 0))
+      (1 +
+        (c.boosters.part.nEng ?? 1) +
+        (c.boosters.part.column ? c.boosters.part.column.count : 0))
     : 0);
 
 /* Selection is greedy per stage: a cheap-but-heavy upper stage makes everything
