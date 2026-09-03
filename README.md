@@ -125,7 +125,7 @@ A green build still says nothing about a solver change that these cannot see.
     npm run preview    # serve the production build
 
     npm test           # the whole suite, about half a minute
-    npm run test:visual # the build view, drawn in a real browser
+    npm run test:visual # the build view drawn, and the layout measured, in a real browser
     npm run lint       # eslint, one rule: no-undef
     npm run format     # prettier
 

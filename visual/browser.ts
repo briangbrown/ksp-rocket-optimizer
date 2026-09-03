@@ -105,17 +105,35 @@ export async function serve(root = "dist") {
    to lay it out at — is invisible, because the two numbers agree. */
 export const SCALE = 2;
 
-export async function open(url: string) {
+/* The two screens the layout suite measures on. The phone is a 390-wide
+   device with touch, which is what the application is actually tested on; the
+   desktop is a laptop. `isMobile` matters beyond the width: it is what makes
+   Chrome honour the viewport meta and report touch, and changing it after the
+   page has loaded reloads the page — so it is set here, before `goto`, and
+   never again. */
+export const PHONE = {
+  width: 390,
+  height: 844,
+  isMobile: true,
+  hasTouch: true,
+};
+export const DESKTOP = { width: 1280, height: 900 };
+
+export type Viewport = Partial<typeof PHONE> & {
+  width: number;
+  height: number;
+};
+
+export async function open(
+  url: string,
+  viewport: Viewport = { width: 1200, height: 1400 },
+) {
   const browser = await puppeteer.launch({
     executablePath: browserPath(),
     args: ARGS,
   });
   const page = await browser.newPage();
-  await page.setViewport({
-    width: 1200,
-    height: 1400,
-    deviceScaleFactor: SCALE,
-  });
+  await page.setViewport({ deviceScaleFactor: SCALE, ...viewport });
 
   /* Anything the page complains about is a failure here. A shader that will not
      compile logs and draws nothing; there is no exception to catch and no

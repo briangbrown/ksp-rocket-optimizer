@@ -124,11 +124,20 @@ format` fixes it, and CI runs the former. Nothing in `src/` is excluded.
 
 ## Verification, and how to talk about it
 
-Five checks: the **design snapshot** (81 configurations against a baseline), the
+Six checks: the **design snapshot** (81 configurations against a baseline), the
 **render sweep** (the app in jsdom), the **model checks** (the rocket as shapes),
-the **visual suite** (`npm run test:visual`, real WebGL in headless Chrome), and
-the **mission sweep** (thirteen missions through `planMission`).
-`.claude/rules/verification.md` says what each does and where it lives.
+the **visual suite** (`npm run test:visual`, real WebGL in headless Chrome), the
+**layout suite** (the same browser, at a phone and a desktop, holding the UI's
+budgets — page height, words, target size, type floor, overflow, keyboard
+reach, axe), and the **mission sweep** (thirteen missions through
+`planMission`). `.claude/rules/verification.md` says what each does and where
+it lives.
+
+The layout suite's budgets are today's numbers, not targets, and a change to
+`src/ui/` says what it did to them. Lower the one you improved in the same
+commit; never raise one to make a red build green without saying why in the
+commit message — a taller page or a smaller target is a regression the suite
+exists to catch, and the number is the evidence.
 
 A snapshot diff means the physics moved. If that is what you intended, re-bless
 with `npm run test:bless` and put the before and after in the commit message.
@@ -153,9 +162,11 @@ Know what none of them reach:
   produce different shapes and are not swept.
 - The main suite runs in jsdom, which has no worker, no visual viewport, no
   on-screen keyboard and no IME. `npm run test:visual` covers the WebGL half in
-  a real browser; everything else on that list is still checked on the
-  Cloudflare preview, by a person, and the device is still the only place
-  mobile behaviour is decided.
+  a real browser and measures the layout at a phone's width; everything else
+  on that list is still checked on the Cloudflare preview, by a person, and
+  the device is still the only place mobile behaviour is decided. The layout
+  suite counts targets and words; it cannot tell whether they are the right
+  ones, and a screenshot in the CI artefact is for a person to look at.
 
 A green build on its own says nothing about solver output. When you change
 something these checks cannot see, say plainly that it is unverified rather than
