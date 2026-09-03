@@ -44,7 +44,14 @@ For the person building a component, in the order they should win an argument:
 ## 2. Information architecture
 
 The page as the reader meets it. Everything below the brief is a `Section`
-that folds to a one-line summary.
+that folds to a one-line summary (#134). The first three open; the route
+starts folded unless the mission has a cut, since a cut is the one thing on
+it that changes the rocket. Their lines: _Your rocket_ is the craft name and
+the liftoff mass; _How to build it_ is `4 stages · 22 parts · 70.6 t`; _How to
+fly it_ is `3,723 m/s · MECO T+00:05:17 · circularise 111 m/s`; _Where it
+goes_ is `7 legs · 7,216 m/s · one span`. The build section is two lists
+behind one `Choice` in its `aside`: _By stage_ is the design, with the
+stage-count picker; _Build order_ is the bill.
 
 ```
 BRIEF        where to · what kind · what it carries · how much margin
@@ -338,8 +345,10 @@ is for and what it is not for.
 **`Section`** — a card with a `heading`, an optional one-line summary, and an
 optional fold. Folded, it shows the heading and the summary; open, the
 children. The chevron is the fold's only control and the whole header is its
-target. An optional `aside` sits at the header's right in both states — the
-brief's Δv budget is the one there is. Sections are `<section
+target. An optional `aside` sits at the header's right in both states,
+beside the fold's button rather than inside it, so it may be a control: the
+brief's Δv budget, the build section's tabs. Beside a summary or an aside
+the heading holds its line and the rest wraps. Sections are `<section
 aria-labelledby>`. Not for: grouping fields inside the brief (that is a
 `Field` group with a `label`).
 

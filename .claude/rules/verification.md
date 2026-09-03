@@ -75,7 +75,12 @@ how many pressable things are under 44 px (phone) or 24 (desktop), how many a
 keyboard cannot reach, and what axe objects to at WCAG 2 A and AA. Each has a
 number at the top of the file that is what the application measured the day
 it was written, and the assertion is that it has not grown. A pull request
-that improves one lowers it in the same commit. The screenshots and the
+that improves one lowers it in the same commit. It also holds the order of
+the page's top-level sections — brief, rocket, build, fly, route — and the
+height of the page with every one of them folded, which is the brief, four
+lines and the footer (#134); that check runs last because it leaves the page
+folded, and it waits a beat after clicking because React commits the folds
+after the click returns, not during it. The screenshots and the
 numbers go to `visual/.out/`, gitignored and uploaded as the `layout`
 artefact, for a person — never compared.
 
@@ -151,6 +156,7 @@ invisible to every baseline here.
     test/resolve-wiring.test.tsx          does a control change re-solve
     test/brief.test.tsx                   the brief folds, sticks and stays put
     test/brief-line.test.ts               the set brief's one line
+    test/results-order.test.tsx           the build tabs, and the route folded until cut
     test/solver-client.test.ts            the worker message protocol
     test/mission-sweep.test.ts            what planMission actually delivers
     test/shard.test.ts                    the sharded search folds back in order

@@ -23,26 +23,38 @@ import type { Page } from "puppeteer";
    render.test.ts gives. */
 const BUDGET = {
   phone: {
-    height: 7370, // px, the whole page with the default mission solved and the brief set: 7219, with 2% for a different Chrome's fonts
-    words: 1418, // visible words on that page
+    height: 5660, // px, the whole page with the default mission solved and the brief set: 5541, with 2% for a different Chrome's fonts
+    words: 1119, // visible words on that page
     tinyText: 0, // text under 12 px
-    smallBody: 65, // text under 13 px: the labels, at 12
-    targets: 19, // pressable things under 44 × 44 — of 24
+    smallBody: 60, // text under 13 px: the labels, at 12
+    targets: 19, // pressable things under 44 × 44 — of 25
     sideways: 1, // things wider than their box: the parts table, by 136
     unreachable: 0, // targets a keyboard cannot reach
     axe: 0, // nodes axe objects to, wcag2a + wcag2aa
+    folded: 1130, // px, every section folded: the brief, four lines and the footer — 1102
   },
   desktop: {
-    height: 3960, // 3881
-    words: 1419,
-    tinyText: 66, // the labels, at 11
-    smallBody: 111, // labels and notes
-    targets: 14, // under 24 × 24 — of 24
+    height: 2960, // 2899
+    words: 1120,
+    tinyText: 61, // the labels, at 11
+    smallBody: 93, // labels and notes
+    targets: 13, // under 24 × 24 — of 25
     sideways: 0,
     unreachable: 0,
     axe: 0,
+    folded: 920, // 900
   },
 };
+
+/* The page's sections, in the order a reader uses them: the mission, the
+   rocket, how to build it, how to fly it, where it goes. #134 */
+const ORDER = [
+  "Brief",
+  "Your rocket",
+  "How to build it",
+  "How to fly it",
+  "Where it goes",
+];
 
 /* The bar a target has to clear on each screen: a thumb, and a pointer. */
 const TARGET_PX = { phone: 44, desktop: 24 };
@@ -261,6 +273,41 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
     ).toEqual([]);
     expect(new Set(labels).size, `duplicates in ${labels.join(", ")}`).toBe(
       labels.length,
+    );
+  });
+
+  it("puts the sections in reading order, and folds to a page of lines", async () => {
+    /* Top-level sections only — the brief's own folds and the build view's
+       are inside one. Then every fold closed, and the page measured again:
+       what is left is the brief, one line a section, and the footer. Last,
+       because it leaves the page folded. #134 */
+    const tops = () =>
+      [...document.querySelectorAll("section")].filter(
+        (s) => s.parentElement?.closest("section") === null,
+      );
+    const headings = await page.evaluate(
+      (f) =>
+        (0, eval)(f)().map(
+          (s: HTMLElement) =>
+            document.getElementById(s.getAttribute("aria-labelledby") ?? "")
+              ?.textContent ?? "",
+        ),
+      tops.toString(),
+    );
+    expect(headings).toEqual(ORDER);
+    await page.evaluate((f) => {
+      for (const s of (0, eval)(f)()) {
+        const b = s.querySelector('button[aria-expanded="true"]');
+        if (b instanceof HTMLElement) b.click();
+      }
+    }, tops.toString());
+    /* React commits the folds after the clicks return, not during them. */
+    await new Promise((r) => setTimeout(r, MOTION.quick * 3));
+    const folded = await page.evaluate(
+      () => document.documentElement.scrollHeight,
+    );
+    expect(folded, `folded page ${folded}px`).toBeLessThanOrEqual(
+      budget.folded,
     );
   });
 

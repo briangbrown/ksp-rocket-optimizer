@@ -17,12 +17,12 @@ import { missionHardware } from "../core/parts.js";
 import { stageCost, stageParts } from "../core/performance.js";
 import { withDeps } from "../core/tech.js";
 import { Brief } from "./components/brief.jsx";
-import { IconButton, Sheet, Stat } from "./components/primitives.jsx";
+import { IconButton, Sheet } from "./components/primitives.jsx";
 import { Results } from "./components/results.jsx";
 import { Setup } from "./components/setup.jsx";
 import { Solving } from "./components/solving.jsx";
 import { parseConfig } from "./config.js";
-import { briefLine, craftName, fmt } from "./format.js";
+import { briefLine, craftName } from "./format.js";
 import { STYLES } from "./styles.js";
 import { loadRoster, saveRoster } from "./storage.js";
 import {
@@ -795,61 +795,6 @@ export default function KSPMissionPlanner() {
         />
 
         <Solving busy={busy} label={`Solving ${origin} → ${dest}…`}>
-          {/* The name and the headline figures, off the header and onto the
-              result they describe. Step 7 (#134) puts them on the rocket. */}
-          <section
-            className="card"
-            style={{
-              padding: SPACE.xl,
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 26,
-              alignItems: "flex-end",
-              marginBottom: SPACE.xl,
-            }}
-          >
-            <div style={{ maxWidth: 340 }}>
-              <div className="label" style={{ marginBottom: 3 }}>
-                Save it as
-              </div>
-              <div
-                className="body"
-                style={{ color: C.paper, fontWeight: 600, lineHeight: 1.25 }}
-              >
-                {craft.name}
-              </div>
-              <div className="note" style={{ marginTop: 2 }}>
-                {craft.sub}
-              </div>
-            </div>
-            <Stat
-              label="Liftoff mass"
-              value={ok ? fmt(liftoff, 1) : "—"}
-              unit="t"
-            />
-            <Stat label="Stages" value={ok ? stages.length : "—"} unit="" />
-            <Stat
-              label="Height"
-              value={ok ? geom.h.toFixed(1) : "—"}
-              unit="m"
-              small
-            />
-            <Stat
-              label="Aspect"
-              value={ok ? geom.ar.toFixed(1) : "—"}
-              unit=":1"
-              color={ok && geom.ar > maxAspect ? C.amber : undefined}
-              small
-            />
-            <Stat
-              label="Cost"
-              value={ok ? fmt(totalCost) : "—"}
-              unit="funds"
-              small
-            />
-            <Stat label="Parts" value={ok ? totalParts : "—"} unit="" small />
-            <Stat label="Class" value={vehicleClass} unit="" small />
-          </section>
           <Results
             route={route}
             cuts={effCuts}
@@ -866,6 +811,12 @@ export default function KSPMissionPlanner() {
             payload={payload}
             payloadDia={payloadDia}
             hardware={hardware}
+            craft={craft}
+            liftoff={liftoff}
+            totalCost={totalCost}
+            totalParts={totalParts}
+            vehicleClass={vehicleClass}
+            budget={budget}
             color={dcolor}
             theme={theme}
           />
