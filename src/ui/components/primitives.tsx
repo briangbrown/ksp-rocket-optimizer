@@ -140,7 +140,21 @@ function Section({
       id={anchor}
       className={bare ? undefined : "card"}
       aria-labelledby={id}
-      style={bare ? style : { padding: SPACE.xl, ...style }}
+      /* Four longhands, not the shorthand: the brief's stuck style sets
+         `paddingTop`, and React clears a longhand it stops seeing without
+         re-applying a shorthand it still sees — the brief opened with no
+         padding above its heading. */
+      style={
+        bare
+          ? style
+          : {
+              paddingTop: SPACE.xl,
+              paddingRight: SPACE.xl,
+              paddingBottom: SPACE.xl,
+              paddingLeft: SPACE.xl,
+              ...style,
+            }
+      }
     >
       {/* The aside wraps under the heading where the two will not share a
           line — the build section's three tabs beside its heading, at 390. */}

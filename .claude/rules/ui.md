@@ -131,6 +131,15 @@ control shows and what it committed.
   is `contain: inline-size` inside that button, or its words would count
   towards the row and push the Δv aside under the heading. #136
 
+- **A shorthand and its longhand never share a `style={{}}`.** React
+  diffs inline styles property by property: a longhand that leaves the
+  object is cleared, and a shorthand that stayed is not re-applied, so
+  `{ padding: 16, paddingTop: X }` → `{ padding: 16 }` leaves `padding-top`
+  at 0. The brief opened flush to its top edge that way. `Section` sets its
+  four padding longhands for this reason, and `test/brief.test.tsx` holds
+  the open brief's `paddingTop`. Where a style overrides one side of a
+  shorthand, the base sets the longhands.
+
 - **The jump bar hides with `visibility`, not `aria-hidden`.** It is off
   screen until the reader scrolls past the header, and an `aria-hidden` nav
   with a focusable button in it is an axe failure (`aria-hidden-focus`).

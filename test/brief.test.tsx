@@ -111,9 +111,17 @@ describe("the brief", () => {
       "the set brief stayed at the top of the layout viewport",
     ).toBe("translateY(240px)");
 
-    /* Open, it is a card in the flow like any other. */
+    /* Open, it is a card in the flow like any other — with its padding
+       above the heading. Stuck, that padding is the safe area's as well,
+       and React clears a longhand it stops seeing without re-applying the
+       shorthand it still sees: the brief opened flush to its top edge until
+       the card's padding became four longhands (#152). */
     await openBrief();
     expect(briefCard().style.position).toBe("");
+    expect(
+      briefCard().style.paddingTop,
+      "the open brief lost the padding above its heading",
+    ).toBe("16px");
   }, 120_000);
 
   it("keeps setup in a sheet behind the header's gear", async () => {
