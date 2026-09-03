@@ -1,6 +1,7 @@
+import { Scissors, ScissorsLineDashed } from "lucide-react";
 import { fmt } from "../format.js";
 import { C, RADIUS, SYSTEMS, edgeOf, hueFor, inkOn } from "../tokens.js";
-import { Choice } from "./primitives.jsx";
+import { Choice, ICON, STROKE } from "./primitives.jsx";
 import type { CSSProperties } from "react";
 import type { Leg } from "../../core/orbits.js";
 import type { PlanStage } from "../../core/plan.js";
@@ -140,28 +141,35 @@ function RouteMap({
                   padding: "2px 0",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "center" }}>
-                  <div
-                    style={{
-                      width: isCut ? 22 : 3,
-                      height: isCut ? 3 : 12,
-                      background: isCut ? C.amber : color,
-                      transition: ".15s",
-                    }}
-                  />
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    color: isCut ? C.amber : C.dim,
+                  }}
+                >
+                  {isCut ? (
+                    <ScissorsLineDashed
+                      size={ICON.chip}
+                      strokeWidth={STROKE}
+                      aria-hidden
+                    />
+                  ) : (
+                    <Scissors
+                      size={ICON.chip}
+                      strokeWidth={STROKE}
+                      aria-hidden
+                    />
+                  )}
                 </div>
                 <div
                   className="label"
-                  style={{
-                    color: isCut ? C.amber : C.dim,
-                    textAlign: "left",
-                  }}
+                  style={{ color: C.amber, textAlign: "left" }}
                 >
-                  {isCut
-                    ? stagesThrough(i)
-                      ? `▲ stage ${stagesThrough(i)} separates`
-                      : "▲ separates here"
-                    : "cut here"}
+                  {isCut &&
+                    (stagesThrough(i)
+                      ? `stage ${stagesThrough(i)} separates`
+                      : "separates here")}
                 </div>
               </button>
             )}

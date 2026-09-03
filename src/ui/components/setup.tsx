@@ -1,7 +1,8 @@
+import { X } from "lucide-react";
 import { DATA } from "../../core/catalogue.js";
 import { NODE_PARTS, TIERS, withDeps } from "../../core/tech.js";
 import { C, SPACE } from "../tokens.js";
-import { Check, Choice, Section } from "./primitives.jsx";
+import { Check, Choice, ICON, STROKE, Section } from "./primitives.jsx";
 import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { ThemePref } from "../tokens.js";
@@ -175,10 +176,11 @@ function Setup({
             <button
               className="chip"
               style={{ marginLeft: SPACE.md }}
+              aria-label={`Clear ${excluded.size} exclusion${excluded.size === 1 ? "" : "s"}`}
               onClick={() => setExcluded(new Set())}
             >
-              clear {excluded.size} exclusion
-              {excluded.size === 1 ? "" : "s"}
+              <X size={ICON.chip} strokeWidth={STROKE} aria-hidden />
+              {excluded.size}
             </button>
           )}
         </div>

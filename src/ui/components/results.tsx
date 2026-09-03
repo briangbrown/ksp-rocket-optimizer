@@ -1,11 +1,12 @@
 import { useState } from "react";
+import { Check, ClipboardPaste, Copy, X } from "lucide-react";
 import { fmt } from "../format.js";
 import { C, RADIUS, SPACE } from "../tokens.js";
 import type { Theme } from "../tokens.js";
 import { BuildView } from "./build.jsx";
 import { AscentPanel } from "./flight.jsx";
 import { LEGEND, PartsTable } from "./parts.jsx";
-import { Callout, Section, SeverityMark } from "./primitives.jsx";
+import { Callout, IconButton, Section, SeverityMark } from "./primitives.jsx";
 import { RouteMap } from "./route.jsx";
 import { StageStack } from "./stages.jsx";
 import type { Leg } from "../../core/orbits.js";
@@ -282,19 +283,21 @@ function Config({ search, text, onLoad }: ConfigProps) {
             {search.threads > 1 && <> on {search.threads} threads</>}
           </span>
         )}
-        <button className="chip" data-on={copied ? 1 : 0} onClick={copy}>
-          {copied ? "copied" : "Copy configuration"}
-        </button>
-        <button
-          className="chip"
-          data-on={pasteOpen ? 1 : 0}
+        <IconButton
+          icon={copied ? Check : Copy}
+          label={copied ? "Copied" : "Copy configuration"}
+          on={copied}
+          onClick={copy}
+        />
+        <IconButton
+          icon={ClipboardPaste}
+          label="Load configuration"
+          on={pasteOpen}
           onClick={() => {
             setPasteOpen(!pasteOpen);
             setNote(null);
           }}
-        >
-          Load configuration
-        </button>
+        />
         {note && (
           <span className="note" style={{ color: note.bad ? C.rust : C.mint }}>
             <SeverityMark severity={note.bad ? "bad" : "good"} /> {note.msg}
@@ -318,15 +321,14 @@ function Config({ search, text, onLoad }: ConfigProps) {
             <button className="chip" data-on={1} onClick={load}>
               Load it
             </button>
-            <button
-              className="chip"
+            <IconButton
+              icon={X}
+              label="Cancel"
               onClick={() => {
                 setPasteOpen(false);
                 setPasteText("");
               }}
-            >
-              Cancel
-            </button>
+            />
           </div>
         </div>
       )}

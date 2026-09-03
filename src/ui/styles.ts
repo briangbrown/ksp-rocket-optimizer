@@ -70,7 +70,7 @@ input[type=range]{ accent-color:${C.amber}; width:100%; }
 /* A chip is a body-role button; data-on is how it shows it is selected, and
    the aria attribute beside it is how a reader hears the same thing. */
 .chip { ${face("body")}${size("body", 0)} border:1px solid ${C.edge}; border-radius:${RADIUS.sm}px;
-        line-height:1.2; padding:5px 10px; background:${C.panel2}; color:${C.muted}; transition:${MOTION.quick}ms; }
+        display:inline-flex; align-items:center; gap:${SPACE.xs}px; line-height:1.2; padding:5px 10px; background:${C.panel2}; color:${C.muted}; transition:${MOTION.quick}ms; }
 .chip:disabled { opacity:.4; }
 /* Hover only where there is a pointer to hover with: a tap leaves :hover set
    on a phone until the next tap lands somewhere else. And the selected rule is

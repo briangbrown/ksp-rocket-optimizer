@@ -7,7 +7,7 @@ import KSPMissionPlanner from "../src/ui/app.jsx";
 import {
   settle,
   byText,
-  allByText,
+  allByLabel,
   click,
   design,
   stat,
@@ -79,7 +79,7 @@ describe("a control change re-solves", () => {
     const before = design();
     expect(stat("Liftoff mass")).not.toBe("—");
 
-    const cuts = allByText("cut here");
+    const cuts = allByLabel("Add staging event");
     expect(cuts.length, "no cut controls rendered").toBeGreaterThan(0);
     await click(cuts[0]);
     await settle();

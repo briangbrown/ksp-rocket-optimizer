@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { Maximize, Minimize, Pause, Play } from "lucide-react";
+import { Box, Maximize, Minimize, Pause, Play } from "lucide-react";
 
 import { payloadDiaOf, stackGeometry } from "../../core/geometry.js";
 import { extentOf, modelOf } from "../../core/model.js";
@@ -16,7 +16,7 @@ import { framing, panelSizes } from "../views.js";
 import { pose, separation } from "../separation.js";
 import { C, FONT, RADIUS, SPACE, Z } from "../tokens.js";
 import type { Theme } from "../tokens.js";
-import { Choice, IconButton, Toggle } from "./primitives.jsx";
+import { Choice, IconButton } from "./primitives.jsx";
 import type { ReactNode } from "react";
 import type { PlanStage } from "../../core/plan.js";
 import type { Solution } from "../../core/solution.js";
@@ -567,11 +567,11 @@ function BuildView({
         angle,
         elev,
         buffers?.elev,
-        <Toggle
-          label="Iso"
+        <IconButton
+          icon={Box}
+          label="Isometric"
           on={angle === "iso"}
-          onChange={(iso) => setAngle(iso ? "iso" : "side")}
-          style={{ padding: "2px 7px" }}
+          onClick={() => setAngle(angle === "iso" ? "side" : "iso")}
         />,
         1,
         frame,
