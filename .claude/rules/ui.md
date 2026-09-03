@@ -146,6 +146,40 @@ control shows and what it committed.
   `visibility: hidden` takes it out of the Tab order and the accessibility
   tree together, and transitions with the slide.
 
+- **A sticky column taller than the viewport is pinned by its foot.** The
+  desktop's left column is `position: sticky` with `top` from `useStickyTop`:
+  the margin while the column fits, and `viewport − height − margin`,
+  negative, once the open brief makes it taller. Pinned at the top it would
+  hide the route and the brief's _Done_ under the fold for good; an inner
+  scroll container would clip the chips' `data-hint` tooltips, which are
+  absolutely positioned. The column's height comes from a `ResizeObserver`
+  on a callback ref, because the column mounts and unmounts as the viewport
+  crosses 1024. #137
+
+- **The route moves in the tree, not in the stylesheet.** `useWide` is the
+  one piece of layout state React holds: on the desktop `RouteSection` is
+  rendered under the brief in the left column, on the phone after the
+  results, so a screen reader and the Tab order agree with what is on
+  screen. A wrapper around the brief would constrain its own sticky
+  positioning to the wrapper's box, which is why the phone renders the brief
+  as a direct child of the shell grid and only the desktop wraps it. jsdom
+  has no `matchMedia`, so `useWide` answers "wide" there; a test of the
+  phone's brief stubs one, as `test/brief.test.tsx` does. #137
+
+- **`Veil` is the solving veil without the pill.** `Solving` is the veil
+  around the results with the fixed pill above them; the left column is
+  veiled too while a solve runs — its route is a result — but one pill is
+  enough, so it takes `Veil` alone. #137
+
+- **A margin that collapsed stops collapsing inside a grid.** The stage
+  cards' `marginBottom` used to fall through the segment's bottom edge and
+  merge with its margin; as grid items in `.stages` each kept its own, and
+  the page grew 10 px a segment. Room between grid items is the grid's
+  `gap`, not the items' margins. And an `::after` or `::before` that hangs
+  past its box — the timeline's rule, drawn across a grid gap — is
+  `scrollWidth` the layout suite reads as the page scrolling sideways; the
+  room between steps is padding so the rule ends inside its own box. #137
+
 - **The visual suite runs against `dist/`.** `npm run test:visual` builds
   first; running `vitest --config vitest.visual.config.js` by hand does not,
   and measures whatever was last built — a change that "had no effect" on a

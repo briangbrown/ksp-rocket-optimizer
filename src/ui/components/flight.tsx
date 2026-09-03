@@ -1,6 +1,7 @@
 import { fmt, hms } from "../format.js";
 import { C, RADIUS, SPACE } from "../tokens.js";
 import { Callout, Stat } from "./primitives.jsx";
+import type { CSSProperties } from "react";
 import type { Vehicle, Turn } from "../../core/ascent.js";
 
 /* A flown ascent as the panel needs it: what the simulator returned, the
@@ -162,38 +163,26 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
         : "circularised",
     ],
   ];
-  /* The number stands beside the words rather than over them: a step is a
-     line or two, and the phone stacks seven of them. */
-  const box = {
-    display: "grid",
-    gridTemplateColumns: "20px 1fr",
-    gap: SPACE.sm,
-    background: C.panel2,
-    border: `1px solid ${C.rule}`,
-    borderRadius: RADIUS.sm,
-    padding: "6px 12px 6px 10px",
-  };
+  /* The steps are the stylesheet's — `.steps` — since they are laid out
+     twice over. On the phone each is a box with its number beside the words:
+     a step is a line or two, and the phone stacks seven of them. On a wide
+     screen the seven are one row, a numbered timeline with a line joining
+     the numbers, which is what a sequence looks like when there is room to
+     show one; `--n` is how many across, and `--accent` lights the two steps
+     that are the launch. #137 */
   return (
     <div>
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
-          gap: SPACE.md,
-          marginBottom: 14,
-        }}
+        className="steps"
+        style={{ "--n": steps.length, "--accent": color } as CSSProperties}
       >
         {steps.map(([main, sub], i) => (
           <div
             key={i}
-            style={{
-              ...box,
-              borderLeft: `3px solid ${i === 1 || i === 2 ? color : C.rule}`,
-            }}
+            className="step"
+            data-hot={i === 1 || i === 2 ? "1" : undefined}
           >
-            <div className="label" style={{ paddingTop: 3 }}>
-              {i + 1}
-            </div>
+            <div className="label step-n">{i + 1}</div>
             <div>
               <div className="body" style={{ marginBottom: 2 }}>
                 {main}

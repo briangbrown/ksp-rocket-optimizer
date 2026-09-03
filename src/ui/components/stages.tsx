@@ -96,163 +96,174 @@ function StageStack({ stages, color, splitBy, onSetSplit }: StageStackProps) {
                 </span>
               </div>
 
-              {seg.items
-                .slice()
-                .reverse()
-                .map(({ s, n }, i) => {
-                  const sol = s.sol;
-                  const w = sol ? Math.max(14, (sol.total / max) * 100) : 20;
-                  return (
-                    <div key={i} style={{ marginBottom: 10 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "baseline",
-                          marginBottom: 5,
-                        }}
-                      >
-                        <span className="heading">
-                          Stage {n}
-                          {s.subCount > 1 && (
-                            <span
-                              className="note"
-                              style={{
-                                color: C.dim,
-                                marginLeft: 7,
-                                textTransform: "none",
-                              }}
-                            >
-                              {s.sub} of {s.subCount} in this segment
-                            </span>
-                          )}
-                        </span>
-                        <span className="figure" style={{ color: C.muted }}>
-                          need {fmt(s.want)} m/s
-                        </span>
-                      </div>
-                      {sol ? (
+              {/* One under another on the phone; two across on a wide
+                  screen, top of the rocket first — the stylesheet's
+                  `.stages`. The room between cards is its gap: a margin on
+                  the last card no longer collapses through the segment's
+                  once the card is a grid item, and the page grew 10 px a
+                  segment. #137 */}
+              <div className="stages">
+                {seg.items
+                  .slice()
+                  .reverse()
+                  .map(({ s, n }, i) => {
+                    const sol = s.sol;
+                    const w = sol ? Math.max(14, (sol.total / max) * 100) : 20;
+                    return (
+                      <div key={i}>
                         <div
-                          className="body"
                           style={{
-                            background: C.panel2,
-                            border: `1px solid ${C.rule}`,
-                            borderLeft: `3px solid ${color}`,
-                            borderRadius: RADIUS.sm,
-                            padding: "10px 12px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "baseline",
+                            marginBottom: 5,
                           }}
                         >
+                          <span className="heading">
+                            Stage {n}
+                            {s.subCount > 1 && (
+                              <span
+                                className="note"
+                                style={{
+                                  color: C.dim,
+                                  marginLeft: 7,
+                                  textTransform: "none",
+                                }}
+                              >
+                                {s.sub} of {s.subCount} in this segment
+                              </span>
+                            )}
+                          </span>
+                          <span className="figure" style={{ color: C.muted }}>
+                            need {fmt(s.want)} m/s
+                          </span>
+                        </div>
+                        {sol ? (
                           <div
+                            className="body"
                             style={{
-                              height: 6,
-                              background: C.rule,
+                              background: C.panel2,
+                              border: `1px solid ${C.rule}`,
+                              borderLeft: `3px solid ${color}`,
                               borderRadius: RADIUS.sm,
-                              marginBottom: 10,
+                              padding: "10px 12px",
                             }}
                           >
                             <div
                               style={{
-                                width: `${w}%`,
-                                height: "100%",
-                                background: color,
+                                height: 6,
+                                background: C.rule,
                                 borderRadius: RADIUS.sm,
+                                marginBottom: 10,
                               }}
-                            />
-                          </div>
-                          <div style={{ marginBottom: SPACE.md }}>
-                            <strong>{sol.n}×</strong> {sol.engine.n}
-                            {sol.tanks && (
-                              <span style={{ color: C.muted }}>
-                                {" + "}
-                                {sol.tanks.list
-                                  .map((x) => `${x.c}× ${x.t.n}`)
-                                  .join(" + ")}
-                              </span>
-                            )}
-                          </div>
-                          {sol.boosters && (
-                            <div
-                              style={{ marginBottom: SPACE.md, color: C.mint }}
                             >
-                              + <strong>{sol.boosters.n}×</strong>{" "}
-                              {partName(sol.boosters.part)}
-                              <span style={{ color: C.dim }}>
-                                {"  radial · "}
-                                {fmt(sol.boosters.dv)} m/s, separate at T+
-                                {hms(sol.boosters.burn)}
-                              </span>
+                              <div
+                                style={{
+                                  width: `${w}%`,
+                                  height: "100%",
+                                  background: color,
+                                  borderRadius: RADIUS.sm,
+                                }}
+                              />
                             </div>
-                          )}
-                          <div
-                            style={{
-                              display: "flex",
-                              flexWrap: "wrap",
-                              gap: "6px 18px",
-                            }}
-                          >
-                            {/* Match the solver's own tolerance. It accepts a stage at
+                            <div style={{ marginBottom: SPACE.md }}>
+                              <strong>{sol.n}×</strong> {sol.engine.n}
+                              {sol.tanks && (
+                                <span style={{ color: C.muted }}>
+                                  {" + "}
+                                  {sol.tanks.list
+                                    .map((x) => `${x.c}× ${x.t.n}`)
+                                    .join(" + ")}
+                                </span>
+                              )}
+                            </div>
+                            {sol.boosters && (
+                              <div
+                                style={{
+                                  marginBottom: SPACE.md,
+                                  color: C.mint,
+                                }}
+                              >
+                                + <strong>{sol.boosters.n}×</strong>{" "}
+                                {partName(sol.boosters.part)}
+                                <span style={{ color: C.dim }}>
+                                  {"  radial · "}
+                                  {fmt(sol.boosters.dv)} m/s, separate at T+
+                                  {hms(sol.boosters.burn)}
+                                </span>
+                              </div>
+                            )}
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: "6px 18px",
+                              }}
+                            >
+                              {/* Match the solver's own tolerance. It accepts a stage at
                             99.5% of its share — a solid cannot be tuned to hit a
                             number exactly — so flagging a strict shortfall painted
                             a stage red for being 0.1 m/s under. */}
-                            {columns(sol) > 1 && (
-                              <span
-                                className="note"
-                                style={{ color: C.mint, fontWeight: 600 }}
-                              >
-                                core + {columns(sol) - 1} radial
-                              </span>
-                            )}
-                            <Stat
-                              inline
-                              label="Δv"
-                              value={`${fmt(sol.dv)} m/s`}
-                              good={sol.dv >= s.want * 0.995}
-                              note={
-                                sol.dv < s.want
-                                  ? `${fmt(s.want - sol.dv)} m/s under its ${fmt(s.want)} m/s share`
-                                  : undefined
-                              }
-                            />
-                            <Stat
-                              inline
-                              label="TWR"
-                              value={`${sol.twr.toFixed(2)} → ${sol.twrBurnout.toFixed(2)}`}
-                              good={sol.twr >= s.twrMin}
-                            />
-                            <Stat inline label="Isp" value={`${sol.isp} s`} />
-                            <Stat
-                              inline
-                              label="Wet"
-                              value={`${fmt(sol.wet, 1)} t`}
-                            />
-                            <Stat
-                              inline
-                              label="Prop"
-                              value={`${fmt(sol.prop, 1)} t`}
-                            />
-                            <Stat inline label="Burn" value={hms(sol.burn)} />
+                              {columns(sol) > 1 && (
+                                <span
+                                  className="note"
+                                  style={{ color: C.mint, fontWeight: 600 }}
+                                >
+                                  core + {columns(sol) - 1} radial
+                                </span>
+                              )}
+                              <Stat
+                                inline
+                                label="Δv"
+                                value={`${fmt(sol.dv)} m/s`}
+                                good={sol.dv >= s.want * 0.995}
+                                note={
+                                  sol.dv < s.want
+                                    ? `${fmt(s.want - sol.dv)} m/s under its ${fmt(s.want)} m/s share`
+                                    : undefined
+                                }
+                              />
+                              <Stat
+                                inline
+                                label="TWR"
+                                value={`${sol.twr.toFixed(2)} → ${sol.twrBurnout.toFixed(2)}`}
+                                good={sol.twr >= s.twrMin}
+                              />
+                              <Stat inline label="Isp" value={`${sol.isp} s`} />
+                              <Stat
+                                inline
+                                label="Wet"
+                                value={`${fmt(sol.wet, 1)} t`}
+                              />
+                              <Stat
+                                inline
+                                label="Prop"
+                                value={`${fmt(sol.prop, 1)} t`}
+                              />
+                              <Stat inline label="Burn" value={hms(sol.burn)} />
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div
-                          className="body"
-                          style={{
-                            background: C.panel2,
-                            border: `1px dashed ${C.rust}`,
-                            borderRadius: RADIUS.sm,
-                            padding: SPACE.lg,
-                            color: C.muted,
-                          }}
-                        >
-                          No stack reaches {fmt(s.want)} m/s carrying{" "}
-                          {fmt(s.payloadIn, 1)} t. Raise the stage count above,
-                          or unlock a higher-Isp engine — one stage tops out at
-                          Isp·g₀·ln 9.
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                        ) : (
+                          <div
+                            className="body"
+                            style={{
+                              background: C.panel2,
+                              border: `1px dashed ${C.rust}`,
+                              borderRadius: RADIUS.sm,
+                              padding: SPACE.lg,
+                              color: C.muted,
+                            }}
+                          >
+                            No stack reaches {fmt(s.want)} m/s carrying{" "}
+                            {fmt(s.payloadIn, 1)} t. Raise the stage count
+                            above, or unlock a higher-Isp engine — one stage
+                            tops out at Isp·g₀·ln 9.
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
             </div>
           );
         })}

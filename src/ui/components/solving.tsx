@@ -67,20 +67,29 @@ function Solving({ busy, children, label, top }: SolvingProps) {
           </span>
         </div>
       </div>
-      <div
-        style={{
-          opacity: busy ? 0.22 : 1,
-          filter: busy ? "grayscale(1)" : "none",
-          transition: busy
-            ? "opacity .08s ease-out, filter .08s ease-out"
-            : "opacity .7s ease-in, filter .7s ease-in",
-          pointerEvents: busy ? "none" : "auto",
-        }}
-      >
-        {children}
-      </div>
+      <Veil busy={busy}>{children}</Veil>
     </div>
   );
 }
 
-export { Solving };
+/* The veil alone, for a result that stands away from the others: the desktop
+   shell puts the route in the column with the brief, and it greys out with
+   the rocket it is part of, under the one pill. #137 */
+function Veil({ busy, children }: { busy: boolean; children: ReactNode }) {
+  return (
+    <div
+      style={{
+        opacity: busy ? 0.22 : 1,
+        filter: busy ? "grayscale(1)" : "none",
+        transition: busy
+          ? "opacity .08s ease-out, filter .08s ease-out"
+          : "opacity .7s ease-in, filter .7s ease-in",
+        pointerEvents: busy ? "none" : "auto",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+export { Solving, Veil };

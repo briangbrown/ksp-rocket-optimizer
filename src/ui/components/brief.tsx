@@ -19,6 +19,9 @@ type BriefProps = {
   /* Open, the brief is the form. Set, it is one line under the solving bar,
      stuck to the top of the page so it is a tap away from anywhere. */
   open: boolean;
+  /* On a wide screen it is a card in a column that sticks as a whole, so
+     the set line stays in the flow. */
+  wide: boolean;
   onToggle: () => void;
   onDone: () => void;
   /* The set line — briefLine in format.ts — and the Δv budget beside it. */
@@ -79,23 +82,24 @@ function Brief(p: BriefProps) {
   /* Set: stuck under the solving bar, bled to the page edges so the results
      scroll under it rather than past it. `top` follows the visual viewport
      for the same reason the solving bar does. */
-  const stuck: CSSProperties | undefined = p.open
-    ? undefined
-    : {
-        position: "sticky",
-        top: 0,
-        zIndex: Z.brief,
-        transform: `translateY(${p.top}px)`,
-        /* Up as well as out: the grid's top padding would otherwise show
+  const stuck: CSSProperties | undefined =
+    p.open || p.wide
+      ? undefined
+      : {
+          position: "sticky",
+          top: 0,
+          zIndex: Z.brief,
+          transform: `translateY(${p.top}px)`,
+          /* Up as well as out: the grid's top padding would otherwise show
            as a strip of ink between the header and the bar. */
-        margin: `-${SPACE.xl}px -${SPACE.xl}px 0`,
-        /* Bled to the edges, so under the notch's strip as well: the page's
+          margin: `-${SPACE.xl}px -${SPACE.xl}px 0`,
+          /* Bled to the edges, so under the notch's strip as well: the page's
            own inset is inside the margin this undoes. */
-        paddingTop: `calc(${SPACE.xl}px + env(safe-area-inset-top))`,
-        borderRadius: RADIUS.none,
-        borderWidth: "0 0 1px",
-        boxShadow: SHADOW.bar,
-      };
+          paddingTop: `calc(${SPACE.xl}px + env(safe-area-inset-top))`,
+          borderRadius: RADIUS.none,
+          borderWidth: "0 0 1px",
+          boxShadow: SHADOW.bar,
+        };
   return (
     <Section
       id="brief"

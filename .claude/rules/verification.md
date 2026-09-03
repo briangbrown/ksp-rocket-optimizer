@@ -78,7 +78,8 @@ keyboard cannot reach, and what axe objects to at WCAG 2 A and AA. Each has a
 number at the top of the file that is what the application measured the day
 it was written, and the assertion is that it has not grown. A pull request
 that improves one lowers it in the same commit. It also holds the order of
-the page's top-level sections — brief, rocket, build, fly, route — and the
+the page's top-level sections — brief, rocket, build, fly, route on the phone,
+and the route second on the desktop, where it sits under the brief (#137) — and the
 height of the page with every one of them folded, which is the brief, four
 lines and the footer (#134) — on both screens that is less than the viewport,
 so what it measures is the viewport; that check runs last because it leaves
@@ -86,7 +87,11 @@ the page folded, and it waits a beat after clicking because React commits the fo
 after the click returns, not during it. Before that it opens every
 `Disclosure` on the page where it stands and asserts the disclosed box has
 an area, since jsdom cannot tell a popover that rendered from one that
-rendered off the page (#135). The screenshots and the
+rendered off the page (#135). On the desktop it also
+presses _Full screen_, screenshots the window as `desktop-full.png`, and
+asserts only that both drawings are inside it and the taller uses more than
+six tenths of its height; what size `panelSizes` gave the plan is for a person
+to read off the picture (#137). The screenshots and the
 numbers go to `visual/.out/`, gitignored and uploaded as the `layout`
 artefact, for a person — never compared.
 

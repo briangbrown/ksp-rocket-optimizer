@@ -34,8 +34,19 @@ const briefCard = () => must(brief().closest("section"), "the brief's card");
 /* The set line is the header's summary: the one bold body span in it. */
 const line = () => brief().querySelector(".body")?.textContent ?? null;
 
+/* A phone: its visual viewport, and a `matchMedia` that answers the phone's
+   width. jsdom has neither, and without the second the app lays out the
+   desktop shell, where the set brief is a card in a sticky column rather than
+   stuck on its own (#137). */
 function fakeViewport() {
   const listeners: Record<string, Array<() => void>> = {};
+  window.matchMedia = (q: string) =>
+    ({
+      matches: q.startsWith("(max-width"),
+      media: q,
+      addEventListener() {},
+      removeEventListener() {},
+    }) as unknown as MediaQueryList;
   const vv = {
     offsetTop: 0,
     addEventListener: (type: string, fn: () => void) => (
@@ -59,6 +70,7 @@ function fakeViewport() {
 afterEach(() => {
   cleanup();
   delete (window as { visualViewport?: unknown }).visualViewport;
+  delete (window as { matchMedia?: unknown }).matchMedia;
 });
 
 describe("the brief", () => {
