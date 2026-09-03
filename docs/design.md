@@ -68,7 +68,9 @@ footer       source and licence, one line
 
 Setup — which expansions are installed, the tech tree, the theme, copy and
 load — is the reader's install rather than their mission. It lives behind a
-`Settings` icon in the header, in a `Sheet`.
+`Settings` icon in the header, in a `Sheet`, and the data sources and the
+list of what is still approximate — the old footer's two paragraphs — are a
+`Disclosure` at its foot, _About the numbers_.
 
 ### Phone, 390 px
 
@@ -368,7 +370,9 @@ between two named things (that is a `Choice` of two).
 
 **`Choice`** — one of several. A row of chips with `role="radiogroup"`, arrow
 keys between them, the selected one inverted. Each chip may carry a one-sentence
-tooltip. Not for: more than five options (use a `Field` with a select) or
+`hint`, shown as a tooltip under the pointer where there is one; where there is
+not, the same sentences go in a `Disclosure` beside the group's label, as the
+objectives' do. Not for: more than five options (use a `Field` with a select) or
 booleans.
 
 **`IconButton`** — a `lucide` icon, an `aria-label`, and a tooltip that works
@@ -379,11 +383,17 @@ established icon — that is a text button.
 **`Disclosure`** — the _i_. An `Info` glyph beside a label or at the foot of a
 section; a popover anchored to it on desktop, a bottom `Sheet` on the phone;
 dismissed by tapping away or Escape. Its content is in the DOM whether open or
-not, hidden, so the render sweep's text scan still reaches it. Not for: a
-warning (that is a `Callout`) or a first-run explanation (that is copy).
+not, hidden, so the render sweep's text scan still reaches it. With a
+`caption` — _How this was computed_, _About the numbers_ — the words are part
+of the target; without one the glyph is an `IconButton` square, pulled into
+the row by its wrapper's negative margin, which needs room beside it
+(`.claude/rules/ui.md`). Not for: a warning (that is a `Callout`) or a
+first-run explanation (that is copy).
 
 **`Callout`** — a severity, its icon, a headline sentence, and optionally a
-`Disclosure` for the rest. Sits at the top of the section it is about. Not for:
+`Disclosure` for the rest, in the `more` slot, standing in a third column so
+its target overflows into the callout's padding rather than the text. Sits at
+the top of the section it is about. Not for:
 confirming a click (that is the `IconButton` swapping to `Check` for a beat) or
 a status (that is the solving pill).
 
@@ -528,4 +538,7 @@ step 2's budgets. See #127 for the method.
 - Radii: 3 ×16, 1 ×3, 2 ×2, 8 ×2 (dots), `50%` ×1.
 - Z: 40, 45, 50.
 - Media queries: one, `prefers-reduced-motion`.
-- `title=` attributes: 12; `aria-label`: 3.
+- `title=` attributes: 12; `aria-label`: 3. Since #135 there is no `title=`
+  on anything but a link — `test/disclosure.test.tsx` holds that — and the
+  solved default page is 663 visible words on the phone, from 1,119 at the
+  end of step 7 and 1,755 on `main` before the refresh.

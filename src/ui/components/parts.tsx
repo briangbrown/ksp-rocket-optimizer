@@ -1,7 +1,7 @@
 import { manifest } from "../../core/manifest.js";
 import { PLATE_SHROUD } from "../../core/parts.js";
 import { fmt } from "../format.js";
-import { C, KIND } from "../tokens.js";
+import { C, KIND, RADIUS } from "../tokens.js";
 import type { CSSProperties, ReactNode } from "react";
 import type { ManifestRow } from "../../core/manifest.js";
 import type { Solution } from "../../core/solution.js";
@@ -29,15 +29,15 @@ const ROW_INK: Readonly<Record<string, string>> = {
   tank: C.muted,
 };
 
-/* The legend over the table, in the table's own inks. */
-const LEGEND: ReadonlyArray<[string, string]> = [
-  ["Engine", ROW_INK.engine],
-  ["Tank", ROW_INK.tank],
-  ["Adapter", ROW_INK.adapter],
-  ["Decoupler", ROW_INK.struct],
-  ["Booster", ROW_INK.booster],
-  ["Mission hardware", C.sky],
-];
+/* What the swatch beside a part says about it, for the reader who cannot
+   hear the colour. A note has no swatch: it is words about the rows below. */
+const ROW_KIND: Readonly<Record<string, string>> = {
+  engine: "engine",
+  booster: "booster",
+  adapter: "adapter",
+  struct: "decoupler",
+  tank: "tank",
+};
 
 type PartsTableProps = {
   /* Only the solved design of each: this table is a bill of parts and reads
@@ -438,6 +438,23 @@ function PartsTable({ stages, payload, hardware, color }: PartsTableProps) {
                   fontStyle: r.kind === "note" ? "italic" : "normal",
                 }}
               >
+                {/* The kind, as the swatch the legend used to explain and as
+                    a word the row reads out. #135 */}
+                {ROW_KIND[r.kind] && (
+                  <span
+                    role="img"
+                    aria-label={ROW_KIND[r.kind]}
+                    style={{
+                      display: "inline-block",
+                      width: 7,
+                      height: 7,
+                      borderRadius: RADIUS.sm,
+                      background: ROW_INK[r.kind],
+                      marginRight: 7,
+                      verticalAlign: "middle",
+                    }}
+                  />
+                )}
                 {r.part}
               </td>
               <td style={{ ...td, textAlign: "right" }} className="figure">
@@ -460,5 +477,5 @@ function PartsTable({ stages, payload, hardware, color }: PartsTableProps) {
   );
 }
 
-export { LEGEND, PartsTable };
+export { PartsTable };
 export type { Hardware };

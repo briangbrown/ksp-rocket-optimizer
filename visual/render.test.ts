@@ -126,7 +126,7 @@ const labelTops = () =>
   page.$$eval("span.label", (els) =>
     els
       .filter((e) =>
-        ["Staging", "Elevation", "Plan"].includes((e.textContent ?? "").trim()),
+        ["Step", "Elevation", "Plan"].includes((e.textContent ?? "").trim()),
       )
       .map((e) => Math.round(e.getBoundingClientRect().top)),
   );

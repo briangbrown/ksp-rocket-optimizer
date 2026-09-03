@@ -95,3 +95,26 @@ control shows and what it committed.
   what it measured before the roles; the 400 px it gained were leading, not
   type. Do not reach for a `lineHeight` override to win a budget back: the
   leading is the design, and the budget is what moves.
+
+- **A disclosure's `i` needs room beside it.** The glyph is a 44 px
+  `IconButton` on the phone sitting in a 28 px row, and the 8 and 6 px it
+  hangs over are a negative margin on the wrapper span, not the button — on
+  the button the border box overflows the wrapper, and the layout suite
+  reads any box with `scrollWidth > clientWidth` as the page scrolling
+  sideways. On the wrapper it overflows into its neighbour, which therefore
+  has to be room: `Field`'s label group is `flex: 1` for this, `Callout`
+  puts `more` in a third grid column so the overhang lands in the padding,
+  and a `Disclosure` dropped into a hugging container will show up in the
+  `sideways` count as its own hidden text. A `caption`ed one has no negative
+  margin at all.
+
+- **`Choice`'s `hint` is a CSS tooltip, and only under a pointer.** It is
+  `data-hint` rendered by `::after` under `@media (hover: hover)`, so it is
+  neither in `innerText` nor in the phone's reach; the sentences it shows
+  go in a `Disclosure` beside the group as well, which is what the render
+  sweep and the phone read.
+
+- **The visual suite runs against `dist/`.** `npm run test:visual` builds
+  first; running `vitest --config vitest.visual.config.js` by hand does not,
+  and measures whatever was last built — a change that "had no effect" on a
+  budget usually was not built.

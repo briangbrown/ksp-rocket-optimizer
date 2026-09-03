@@ -98,7 +98,25 @@ input[type=range]{ accent-color:${C.amber}; width:100%; }
                   border:1px solid ${C.rule}; border-radius:${RADIUS.sm}px; padding:${SPACE.xs}px ${SPACE.md}px;
                   pointer-events:none; z-index:${Z.popover}; }
 .iconbtn:hover::after, .iconbtn:focus-visible::after { display:block; }
-@media (min-width: ${BREAK}px) { .iconbtn { width:32px; height:32px; } .chip { ${size("body", 1)} } }
+/* A disclosure's i beside a label: the same square target, its wrapper
+   pulled in by negative margins so it takes 28 px of the row it sits in —
+   primitives.tsx says why the wrapper and not the button. With a caption the
+   words are the target and it is as tall as the square. */
+.disc { margin:-8px -6px; }
+.disc-cap { display:inline-flex; align-items:center; gap:${SPACE.xs}px; min-height:44px;
+            color:${C.muted}; transition:${MOTION.quick}ms; }
+.disc-cap:hover, .disc-cap:focus-visible { color:${C.paper}; }
+/* A chip's one-sentence hint, for a pointer; the group's disclosure is the
+   finger's path to the same words. Hidden as the icon tooltip is, and only
+   where there is a pointer to hover with. */
+.chip { position:relative; }
+.chip[data-hint]::after { content:attr(data-hint); display:none; position:absolute; top:100%; left:0;
+                          transform:translateY(${SPACE.sm}px); width:max-content; max-width:260px; white-space:normal; text-align:left;
+                          font-family:${FONTS.sans}; font-size:${TYPE.note.size[1]}px; font-weight:400; line-height:1.4;
+                          color:${C.paper}; background:${C.panel2}; border:1px solid ${C.rule}; border-radius:${RADIUS.sm}px;
+                          padding:${SPACE.xs}px ${SPACE.md}px; pointer-events:none; z-index:${Z.popover}; }
+@media (hover: hover) { .chip[data-hint]:hover::after { display:block; } }
+@media (min-width: ${BREAK}px) { .iconbtn { width:32px; height:32px; } .disc { margin:-4px; } .disc-cap { min-height:32px; } .chip { ${size("body", 1)} } }
 /* The fold's chevron, turned by the section it belongs to. */
 .chev { transition:transform ${MOTION.quick}ms; color:${C.dim}; flex-shrink:0; }
 [aria-expanded="true"] > .chev { transform:rotate(90deg); }

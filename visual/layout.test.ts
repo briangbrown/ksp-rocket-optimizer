@@ -23,22 +23,22 @@ import type { Page } from "puppeteer";
    render.test.ts gives. */
 const BUDGET = {
   phone: {
-    height: 5660, // px, the whole page with the default mission solved and the brief set: 5541, with 2% for a different Chrome's fonts
-    words: 1119, // visible words on that page
+    height: 4570, // px, the whole page with the default mission solved and the brief set: 4474, with 2% for a different Chrome's fonts
+    words: 663, // visible words on that page — the paragraphs are behind disclosures, #135
     tinyText: 0, // text under 12 px
     smallBody: 60, // text under 13 px: the labels, at 12
-    targets: 19, // pressable things under 44 × 44 — of 25
-    sideways: 1, // things wider than their box: the parts table, by 136
+    targets: 19, // pressable things under 44 × 44 — of 27
+    sideways: 1, // things wider than their box: the build section's header row, by 27
     unreachable: 0, // targets a keyboard cannot reach
     axe: 0, // nodes axe objects to, wcag2a + wcag2aa
-    folded: 1130, // px, every section folded: the brief, four lines and the footer — 1102
+    folded: 860, // px, every section folded: the brief, four lines and the footer — 844
   },
   desktop: {
-    height: 2960, // 2899
-    words: 1120,
+    height: 2680, // 2620
+    words: 664,
     tinyText: 61, // the labels, at 11
-    smallBody: 93, // labels and notes
-    targets: 13, // under 24 × 24 — of 25
+    smallBody: 89, // labels and notes
+    targets: 13, // under 24 × 24 — of 27
     sideways: 0,
     unreachable: 0,
     axe: 0,
@@ -274,6 +274,45 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
     expect(new Set(labels).size, `duplicates in ${labels.join(", ")}`).toBe(
       labels.length,
     );
+  });
+
+  it("opens every disclosure where it stands", async () => {
+    /* Each `i` on the page — the slider hints, the objectives, the method,
+       the callouts' second paragraphs — shows its words when pressed: a
+       popover under it on desktop, a sheet on the phone. The brief is set
+       and folded by now, so it is opened first, and its "More options" with
+       it. Escape closes each before the next. #135 */
+    const brief = await page.$('section button[aria-expanded="false"]');
+    await brief?.click();
+    await new Promise((r) => setTimeout(r, MOTION.quick * 3));
+    const more = await page.$$('section section button[aria-expanded="false"]');
+    for (const b of more) await b.click();
+    await new Promise((r) => setTimeout(r, MOTION.quick * 3));
+    const count = await page.$$eval(
+      "button[aria-controls][aria-expanded]",
+      (bs) => bs.length,
+    );
+    expect(count, "no disclosures on the page").toBeGreaterThanOrEqual(8);
+    for (let i = 0; i < count; i++) {
+      const b = (await page.$$("button[aria-controls][aria-expanded]"))[i];
+      const name = await b.evaluate(
+        (el) => el.getAttribute("aria-label") ?? el.textContent?.trim(),
+      );
+      await b.evaluate((el) => el.scrollIntoView({ block: "center" }));
+      await b.click();
+      await new Promise((r) => setTimeout(r, MOTION.quick * 3));
+      const shown = await b.evaluate((el) => {
+        const r = document.getElementById(
+          el.getAttribute("aria-controls") ?? "",
+        );
+        if (!r) return 0;
+        const box = r.getBoundingClientRect();
+        return box.width * box.height;
+      });
+      expect(shown, `${name}: nothing shown`).toBeGreaterThan(0);
+      await page.keyboard.press("Escape");
+      await new Promise((r) => setTimeout(r, MOTION.quick * 3));
+    }
   });
 
   it("puts the sections in reading order, and folds to a page of lines", async () => {

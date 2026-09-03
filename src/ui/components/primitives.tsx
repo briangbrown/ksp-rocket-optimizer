@@ -169,7 +169,14 @@ const Toggle = ({ label, on, onChange, disabled, style }: ToggleProps) => (
 /* One of several. A radio group of chips: arrow keys move between the ones
    that can be chosen, the chosen one is inverted, and only it is in the tab
    order — the group is one stop. */
-type Option<V> = { value: V; label: ReactNode; disabled?: boolean };
+/* `hint` is the one sentence a pointer sees on hover; the group's
+   `Disclosure` is where a finger reads the same sentences. */
+type Option<V> = {
+  value: V;
+  label: ReactNode;
+  disabled?: boolean;
+  hint?: string;
+};
 type ChoiceProps<V> = {
   label: string;
   options: ReadonlyArray<Option<V>>;
@@ -228,6 +235,7 @@ function Choice<V extends string | number>({
             role="radio"
             aria-checked={on}
             data-on={on ? 1 : 0}
+            data-hint={o.hint}
             disabled={o.disabled}
             tabIndex={i === stop ? 0 : -1}
             onClick={() => onChange(o.value)}
@@ -390,10 +398,24 @@ function Sheet({ open, onClose, title, children }: SheetProps) {
 /* ----------------------------- Disclosure ----------------------------- */
 /* The i. A glyph beside a label; a popover under it on desktop and a sheet on
    the phone, closed by tapping away or Escape. What it holds is in the DOM
-   either way, hidden, so a text scan still reaches it. */
-type DisclosureProps = { label: string; children: ReactNode };
+   either way, hidden, so a text scan still reaches it. With a `caption` the
+   glyph carries words — "How this was computed" — and the words are part of
+   the target.
 
-function Disclosure({ label, children }: DisclosureProps) {
+   Without one the target is the `.iconbtn` square, and the wrapper — not the
+   button — carries the negative margin that lets a 44 px target sit in a
+   28 px row. On the button it would overflow the wrapper, and the layout
+   suite reads any box wider than its parent as the page scrolling sideways;
+   on the wrapper it overflows into whatever is beside it, which has to be
+   room: a flex row with slack, or a callout's padding. */
+type DisclosureProps = {
+  label: string;
+  caption?: ReactNode;
+  children: ReactNode;
+  style?: CSSProperties;
+};
+
+function Disclosure({ label, caption, children, style }: DisclosureProps) {
   const [open, setOpen] = useState(false);
   const id = useId();
   const box = useRef<HTMLSpanElement | null>(null);
@@ -415,16 +437,20 @@ function Disclosure({ label, children }: DisclosureProps) {
   }, [open]);
   const phone = open && isPhone();
   return (
-    <span ref={box} style={{ position: "relative", display: "inline-flex" }}>
+    <span
+      ref={box}
+      className={caption === undefined ? "disc" : undefined}
+      style={{ position: "relative", display: "inline-flex", ...style }}
+    >
       <button
-        className="iconbtn"
-        aria-label={label}
+        className={caption === undefined ? "iconbtn" : "disc-cap note"}
+        aria-label={caption === undefined ? label : undefined}
         aria-expanded={open}
         aria-controls={id}
         onClick={() => setOpen(!open)}
-        style={{ width: 24, height: 24 }}
       >
         <Info size={ICON.chip} strokeWidth={STROKE} aria-hidden />
+        {caption}
       </button>
       {phone ? (
         <Sheet open onClose={() => setOpen(false)} title={label}>
@@ -444,7 +470,7 @@ function Disclosure({ label, children }: DisclosureProps) {
             top: "100%",
             left: 0,
             zIndex: Z.popover,
-            width: 280,
+            width: "min(360px, 90vw)",
             marginTop: SPACE.sm,
             padding: `${SPACE.md}px ${SPACE.lg}px`,
             background: C.panel2,
@@ -461,8 +487,8 @@ function Disclosure({ label, children }: DisclosureProps) {
 }
 
 /* ------------------------------- Callout ------------------------------- */
-/* A severity, its icon, a headline, and the rest. Sits at the top of the
-   section it is about. */
+/* A severity, its icon, a headline, the one sentence a reader acts on, and —
+   behind an i — the rest. Sits at the top of the section it is about. */
 const GLYPH: Record<Severity, ComponentType<LucideProps>> = {
   info: Info,
   good: CircleCheck,
@@ -474,10 +500,12 @@ type CalloutProps = {
   severity: Severity;
   title?: ReactNode;
   children?: ReactNode;
+  /* The explanation, disclosed: why it happened and what else would fix it. */
+  more?: ReactNode;
   style?: CSSProperties;
 };
 
-function Callout({ severity, title, children, style }: CalloutProps) {
+function Callout({ severity, title, children, more, style }: CalloutProps) {
   const Glyph = GLYPH[severity];
   return (
     <div
@@ -486,7 +514,7 @@ function Callout({ severity, title, children, style }: CalloutProps) {
       role={severity === "bad" ? "alert" : undefined}
       style={{
         display: "grid",
-        gridTemplateColumns: "auto 1fr",
+        gridTemplateColumns: more === undefined ? "auto 1fr" : "auto 1fr auto",
         gap: `0 ${SPACE.md}px`,
         alignItems: "start",
         border: "1px solid",
@@ -509,6 +537,9 @@ function Callout({ severity, title, children, style }: CalloutProps) {
         {title !== undefined && children !== undefined && " "}
         {children}
       </div>
+      {more !== undefined && (
+        <Disclosure label="More about this">{more}</Disclosure>
+      )}
     </div>
   );
 }
@@ -676,11 +707,21 @@ function Field({
         style={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "baseline",
+          alignItems: "center",
           gap: SPACE.md,
         }}
       >
-        <span className="label">{label}</span>
+        <span style={{ display: "flex", alignItems: "center", flex: 1 }}>
+          <span className="label">{label}</span>
+          {hint && (
+            <Disclosure
+              label={`About ${typeof label === "string" ? label : "this"}`}
+              style={{ marginLeft: SPACE.xs }}
+            >
+              {hint}
+            </Disclosure>
+          )}
+        </span>
         <span style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
           <input
             className="figure"
@@ -733,11 +774,6 @@ function Field({
         onChange={(e) => onChange(parseFloat(e.target.value))}
         style={{ marginTop: SPACE.md }}
       />
-      {hint && (
-        <div className="note" style={{ color: C.dim, marginTop: SPACE.sm }}>
-          {hint}
-        </div>
-      )}
       {over && (
         <div className="note" style={{ color: C.amber, marginTop: 3 }}>
           above the slider range — typed value in use

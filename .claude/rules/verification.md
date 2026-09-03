@@ -27,7 +27,9 @@ destination, objective and profile. It asserts three things: no `NaN`,
 all; and that the same destinations still produce a design, recorded in
 `solvability.txt` as liftoff mass and stage count. That third assertion is the
 one that earns its keep — see the `fmt` entry below for why a text scan alone is
-not enough.
+not enough. The text scan reads `textContent`, which includes what every
+`Disclosure` holds while closed; the initial-mount case then opens every one
+and scans again, so a bad value composed on the way in is caught too (#135).
 
 **The model checks** stand where the panel-containment check used to. That one
 read the SVG rectangles out of jsdom and asserted every part lay inside its
@@ -80,7 +82,10 @@ the page's top-level sections — brief, rocket, build, fly, route — and the
 height of the page with every one of them folded, which is the brief, four
 lines and the footer (#134); that check runs last because it leaves the page
 folded, and it waits a beat after clicking because React commits the folds
-after the click returns, not during it. The screenshots and the
+after the click returns, not during it. Before that it opens every
+`Disclosure` on the page where it stands and asserts the disclosed box has
+an area, since jsdom cannot tell a popover that rendered from one that
+rendered off the page (#135). The screenshots and the
 numbers go to `visual/.out/`, gitignored and uploaded as the `layout`
 artefact, for a person — never compared.
 
@@ -157,6 +162,7 @@ invisible to every baseline here.
     test/brief.test.tsx                   the brief folds, sticks and stays put
     test/brief-line.test.ts               the set brief's one line
     test/results-order.test.tsx           the build tabs, and the route folded until cut
+    test/disclosure.test.tsx              every paragraph is behind an i, and in the DOM
     test/solver-client.test.ts            the worker message protocol
     test/mission-sweep.test.ts            what planMission actually delivers
     test/shard.test.ts                    the sharded search folds back in order
