@@ -52,9 +52,14 @@ input[type=range]{ accent-color:${C.amber}; width:100%; }
    the aria attribute beside it is how a reader hears the same thing. */
 .chip { ${face("body")}${size("body", 0)} border:1px solid ${C.edge}; border-radius:${RADIUS.sm}px;
         line-height:1.2; padding:5px 10px; background:${C.panel2}; color:${C.muted}; transition:${MOTION.quick}ms; }
-.chip:hover:not(:disabled) { border-color:${C.dim}; color:${C.paper}; }
 .chip:disabled { opacity:.4; }
-.chip[data-on="1"] { background:${C.paper}; color:${C.ink}; border-color:${C.paper}; font-weight:600; }
+/* Hover only where there is a pointer to hover with: a tap leaves :hover set
+   on a phone until the next tap lands somewhere else. And the selected rule is
+   repeated with :hover so it outranks the hover rule, which has three parts to
+   its selector against this one's two — without it a chip under the pointer
+   was paper on paper. #146 */
+@media (hover: hover) { .chip:hover:not(:disabled) { border-color:${C.dim}; color:${C.paper}; } }
+.chip[data-on="1"], .chip[data-on="1"]:hover { background:${C.paper}; color:${C.ink}; border-color:${C.paper}; font-weight:600; }
 .card { background:${C.panel}; border:1px solid ${C.rule}; border-radius:${RADIUS.sm}px; }
 /* An icon-only control: a square target, 44 on the phone and 32 on desktop,
    with the icon standing in the middle of it. The tooltip is the label the
