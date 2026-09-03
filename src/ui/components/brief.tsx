@@ -1,7 +1,8 @@
+import { Undo2 } from "lucide-react";
 import { PROFILES, SYS } from "../../core/orbits.js";
 import { C, SPACE } from "../tokens.js";
 import { BodyPicker } from "./route.jsx";
-import { Choice, Field, Section, Toggle } from "./primitives.jsx";
+import { Choice, Field, ICON, STROKE, Section, Toggle } from "./primitives.jsx";
 import type { Objective } from "../../core/performance.js";
 
 /* What the search is asked to minimise, and what to call each. */
@@ -79,7 +80,8 @@ function Brief(p: BriefProps) {
             style={{ marginBottom: SPACE.md }}
             onClick={() => p.onOrigin("Kerbin")}
           >
-            ← back to Kerbin
+            <Undo2 size={ICON.chip} strokeWidth={STROKE} aria-hidden />
+            back to Kerbin
           </button>
         )}
         <BodyPicker

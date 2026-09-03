@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { Maximize, Minimize, Pause, Play } from "lucide-react";
+import { Box, Maximize, Minimize, Pause, Play } from "lucide-react";
 
 import { payloadDiaOf, stackGeometry } from "../../core/geometry.js";
 import { extentOf, modelOf } from "../../core/model.js";
@@ -16,7 +16,7 @@ import { framing, panelSizes } from "../views.js";
 import { pose, separation } from "../separation.js";
 import { C, FONT, RADIUS, SPACE, Z } from "../tokens.js";
 import type { Theme } from "../tokens.js";
-import { Choice, IconButton, Toggle } from "./primitives.jsx";
+import { Choice, IconButton } from "./primitives.jsx";
 import type { ReactNode } from "react";
 import type { PlanStage } from "../../core/plan.js";
 import type { Solution } from "../../core/solution.js";
@@ -145,8 +145,11 @@ export function stepModels(
 const RAIL = 200;
 const GAP = 22;
 /* The header line above each of the three columns, which is what makes their
-   labels share one. */
-const HEAD = 22;
+   labels share one. As tall as the icon button the elevation's carries, which
+   is the target size and not negotiable: the row it sits in scrolls sideways,
+   and a sideways scroll clips vertically too, so a button taller than this
+   line loses the top and bottom of its inverted ground when selected. */
+const HEAD = 44;
 /* How tall the drawings stand when this is not full screen: what they have
    always been. Full screen is where the space is. */
 const INLINE_H = 300;
@@ -567,11 +570,11 @@ function BuildView({
         angle,
         elev,
         buffers?.elev,
-        <Toggle
-          label="Iso"
+        <IconButton
+          icon={Box}
+          label="Isometric"
           on={angle === "iso"}
-          onChange={(iso) => setAngle(iso ? "iso" : "side")}
-          style={{ padding: "2px 7px" }}
+          onClick={() => setAngle(angle === "iso" ? "side" : "iso")}
         />,
         1,
         frame,

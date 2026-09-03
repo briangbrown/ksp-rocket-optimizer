@@ -393,22 +393,22 @@ idiom not on this list adds it here first.
 alone, stroke width 1.75 throughout. Every icon-only control has an
 `aria-label` and a touch-reachable tooltip; a `title` attribute is not either.
 
-| Action                    | Icon                                                | Note                                             |
-| ------------------------- | --------------------------------------------------- | ------------------------------------------------ |
-| copy                      | `Copy` → `Check`                                    | the check for 1.6 s, then back                   |
-| load from clipboard       | `ClipboardPaste`                                    |                                                  |
-| share a link              | `Share2`                                            |                                                  |
-| setup                     | `Settings`                                          |                                                  |
-| fold / unfold             | `ChevronRight`                                      | rotates 90° when open                            |
-| close / cancel / clear    | `X`                                                 | with the count when clearing exclusions          |
-| cut the route here        | `Scissors`                                          | open when uncut, closed and `amber` when cut     |
-| isometric                 | `Box`                                               | a `Toggle`                                       |
-| play / pause the staging  | `Play` / `Pause`                                    | in use today                                     |
-| full screen / leave it    | `Maximize2` / `Minimize2`                           | in use today                                     |
-| a disclosure              | `Info`                                              |                                                  |
-| back to the top           | `ArrowUp`                                           | the jump bar                                     |
-| return to Kerbin (origin) | `Undo2` + word                                      | it is a destination, not a verb — the word stays |
-| severity                  | `Info` `CircleCheck` `TriangleAlert` `OctagonAlert` | see Colour                                       |
+| Action                    | Icon                                                | Note                                                                               |
+| ------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| copy                      | `Copy` → `Check`                                    | the check for 1.6 s, then back                                                     |
+| load from clipboard       | `ClipboardPaste`                                    |                                                                                    |
+| share a link              | `Share2`                                            |                                                                                    |
+| setup                     | `Settings`                                          |                                                                                    |
+| fold / unfold             | `ChevronRight`                                      | rotates 90° when open                                                              |
+| close / cancel / clear    | `X`                                                 | with the count when clearing exclusions                                            |
+| cut the route here        | `Scissors` → `ScissorsLineDashed`                   | `dim` when uncut; `amber`, with the cut line, when cut — lucide has no closed pair |
+| isometric                 | `Box`                                               | a `Toggle`                                                                         |
+| play / pause the staging  | `Play` / `Pause`                                    | in use today                                                                       |
+| full screen / leave it    | `Maximize2` / `Minimize2`                           | in use today                                                                       |
+| a disclosure              | `Info`                                              |                                                                                    |
+| back to the top           | `ArrowUp`                                           | the jump bar                                                                       |
+| return to Kerbin (origin) | `Undo2` + word                                      | it is a destination, not a verb — the word stays                                   |
+| severity                  | `Info` `CircleCheck` `TriangleAlert` `OctagonAlert` | see Colour                                                                         |
 
 Words stay where no icon is established: _Return trip_, _Gimbal_, _Solid
 boosters_, _Parachutes_ (toggles), the stage count `auto 1 2 3 4 5`, the

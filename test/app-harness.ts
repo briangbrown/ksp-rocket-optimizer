@@ -16,9 +16,11 @@ export const byText = (label: string) =>
     (b) => b.textContent.trim() === label,
   );
 
-export const allByText = (label: string) =>
+/* An icon-only control has no text to find it by; its `aria-label` is the
+   name a reader hears and the one a test looks for. */
+export const allByLabel = (label: string) =>
   [...document.querySelectorAll("button")].filter(
-    (b) => b.textContent.trim() === label,
+    (b) => b.getAttribute("aria-label") === label,
   );
 
 export async function click(target: string | Element | null | undefined) {

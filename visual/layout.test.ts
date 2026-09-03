@@ -23,21 +23,21 @@ import type { Page } from "puppeteer";
    render.test.ts gives. */
 const BUDGET = {
   phone: {
-    height: 9240, // px, the whole page with the default mission solved: 9057, with 2% for a different Chrome's fonts
-    words: 1755, // visible words on that page — three of them the theme control
+    height: 9240, // px, the whole page with the default mission solved: 9095, with 2% for a different Chrome's fonts
+    words: 1741, // visible words on that page
     tinyText: 0, // text under 12 px
-    smallBody: 81, // text under 13 px: the labels, at 12
-    targets: 66, // pressable things under 44 × 44 — of 68, three of them the theme chips
+    smallBody: 77, // text under 13 px: the labels, at 12
+    targets: 63, // pressable things under 44 × 44 — of 68
     sideways: 7, // things wider than their box: six sliders by 4 px, the parts table by 136
     unreachable: 0, // targets a keyboard cannot reach
     axe: 11, // nodes axe objects to, wcag2a + wcag2aa
   },
   desktop: {
-    height: 4980, // 4884
-    words: 1756,
-    tinyText: 82, // the labels, at 11
-    smallBody: 153, // labels and notes
-    targets: 27, // under 24 × 24 — of 68
+    height: 4980, // 4914
+    words: 1742,
+    tinyText: 78, // the labels, at 11
+    smallBody: 149, // labels and notes
+    targets: 26, // under 24 × 24 — of 68
     sideways: 6,
     unreachable: 0,
     axe: 10,
@@ -245,6 +245,23 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
     });
     expect(fg, `selected chip under the pointer: ${fg} on ${bg}`).not.toBe(bg);
     await page.mouse.move(0, 0);
+  });
+
+  it("names every icon button, and no two alike", async () => {
+    /* An icon-only control is what its `aria-label` says it is — to a
+       reader, and to `press()` in render.test.ts. Two with the same name
+       would be the same control to both. #132 */
+    const labels = await page.$$eval("button.iconbtn", (bs) =>
+      bs.map((b) => b.getAttribute("aria-label") ?? ""),
+    );
+    expect(labels.length, "no icon buttons on the page").toBeGreaterThan(0);
+    expect(
+      labels.filter((l) => !l),
+      "unnamed icon buttons",
+    ).toEqual([]);
+    expect(new Set(labels).size, `duplicates in ${labels.join(", ")}`).toBe(
+      labels.length,
+    );
   });
 
   it("reads in both themes", () => {
