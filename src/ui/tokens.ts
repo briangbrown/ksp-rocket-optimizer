@@ -40,6 +40,156 @@ const C = {
    inherits the browser's default there rather than Inter. #99 */
 const FONT = "'Inter',system-ui,-apple-system,sans-serif";
 
+/* The three families, each with the fallback it degrades to. `FONT` above is
+   `FONTS.sans` under the name the portal trap made necessary. */
+const FONTS = {
+  sans: FONT,
+  condensed: "'Barlow Condensed',Impact,sans-serif",
+  mono: "'IBM Plex Mono',ui-monospace,Menlo,monospace",
+};
+
+/* Below this the page is a phone: one column, the phone size of every type
+   role, 44 px targets. At or above it a second column is earned. */
+const BREAK = 1024;
+
+/* The six type roles, and the one larger figure. Nothing in a component sets
+   a size; it names one of these, and `styles.ts` turns the table into the
+   `.display` … `.note` classes with a media query at `BREAK` for the two
+   sizes. `size` is [phone, desktop]. */
+type Role = {
+  family: string;
+  size: [number, number];
+  weight: number;
+  /* Letter-spacing as a CSS length; the caps roles track, nothing else does. */
+  tracking: string;
+  caps: boolean;
+  line: number;
+};
+const TYPE: Readonly<Record<string, Role>> = {
+  display: {
+    family: FONTS.condensed,
+    size: [34, 34],
+    weight: 700,
+    tracking: ".06em",
+    caps: true,
+    line: 0.95,
+  },
+  heading: {
+    family: FONTS.condensed,
+    size: [15, 15],
+    weight: 600,
+    tracking: ".06em",
+    caps: true,
+    line: 1.2,
+  },
+  label: {
+    family: FONTS.mono,
+    size: [10, 10],
+    weight: 400,
+    tracking: ".22em",
+    caps: true,
+    line: 1.4,
+  },
+  body: {
+    family: FONTS.sans,
+    size: [12.5, 12.5],
+    weight: 400,
+    tracking: "0",
+    caps: false,
+    line: 1.5,
+  },
+  figure: {
+    family: FONTS.mono,
+    size: [12, 12],
+    weight: 400,
+    tracking: "0",
+    caps: false,
+    line: 1.4,
+  },
+  "figure-lg": {
+    family: FONTS.mono,
+    size: [24, 24],
+    weight: 600,
+    tracking: "0",
+    caps: false,
+    line: 1.1,
+  },
+  note: {
+    family: FONTS.sans,
+    size: [11, 11],
+    weight: 400,
+    tracking: "0",
+    caps: false,
+    line: 1.45,
+  },
+};
+
+/* The 4 px scale. `xs` is the gap inside a chip and between a figure and its
+   unit; `xxxl` is between sections. */
+const SPACE = { xs: 2, sm: 4, md: 8, lg: 12, xl: 16, xxl: 24, xxxl: 32 };
+
+/* Two radii and round. `sm` for chips, fields and cards; `lg` for sheets,
+   popovers and the overlay's rail; `round` for a dot. */
+const RADIUS = { sm: 3, lg: 8, round: 999 };
+
+/* The stacking order, named. The bar stays above the overlay so a full-screen
+   rocket about to be replaced still says so — `.claude/rules/ui.md`. */
+const Z = {
+  brief: 10,
+  jump: 20,
+  pill: 30,
+  overlay: 40,
+  solving: 50,
+  sheet: 60,
+  popover: 70,
+};
+
+/* Motion, in milliseconds. `quick` is a chip changing state or a chevron
+   turning; `settle` is a fold opening or a sheet sliding. The staging's own
+   two paces live with the build view. */
+const MOTION = { quick: 120, settle: 400 };
+
+/* The two shadows, both on black whatever the theme: the solving bar's and the
+   pill's, which sit over content rather than on a surface. */
+const SHADOW = {
+  bar: "0 2px 12px rgba(0,0,0,.45)",
+  pill: "0 4px 18px rgba(0,0,0,.6)",
+};
+/* Behind a sheet. */
+const SCRIM = "rgba(0,0,0,.6)";
+
+/* Four severities, each with the lucide icon that carries it where colour
+   cannot. `primitives.tsx` resolves the names to components. */
+type Severity = "info" | "good" | "warn" | "bad";
+const SEVERITY: Readonly<
+  Record<
+    Severity,
+    {
+      color: string;
+      icon: "Info" | "CircleCheck" | "TriangleAlert" | "OctagonAlert";
+    }
+  >
+> = {
+  info: { color: C.sky, icon: "Info" },
+  good: { color: C.mint, icon: "CircleCheck" },
+  warn: { color: C.amber, icon: "TriangleAlert" },
+  bad: { color: C.rust, icon: "OctagonAlert" },
+};
+
+/* What each kind of part is drawn in, shared by the elevation and the parts
+   list so a swatch in one is the fill in the other. A booster takes the body
+   hue, which is not a constant, and `hardware` is listed and never drawn. */
+const KIND = {
+  tank: C.tank,
+  engine: C.engine,
+  coupler: C.violet,
+  adapter: C.violet,
+  decoupler: C.dim,
+  payload: C.payloadFill,
+  shroud: C.shroud,
+  hardware: C.muted,
+};
+
 const BODY_HUE: Readonly<Record<string, string>> = {
   Moho: "#EEB688",
   Eve: "#6C20E4",
@@ -89,9 +239,20 @@ const SYSTEMS: ReadonlyArray<[string, Array<string>]> = [
 
 export {
   BODY_HUE,
+  BREAK,
   C,
   FONT,
+  FONTS,
+  KIND,
+  MOTION,
+  RADIUS,
+  SCRIM,
+  SEVERITY,
+  SHADOW,
+  SPACE,
   SYSTEMS,
+  TYPE,
+  Z,
   edgeOf,
   hueFor,
   inkOn,
@@ -99,3 +260,4 @@ export {
   lumOf,
   rgbOf,
 };
+export type { Role, Severity };

@@ -4,7 +4,7 @@ import { render, cleanup } from "@testing-library/react";
 import { manifest, manifestCount } from "../src/core/manifest.js";
 import { modelOf } from "../src/core/model.js";
 import { stageParts } from "../src/core/performance.js";
-import { PartsTable } from "../src/ui/components/build.jsx";
+import { PartsTable } from "../src/ui/components/parts.jsx";
 import type { Coupler, Engine, Tank } from "../src/core/catalogue.js";
 import type { Role } from "../src/core/manifest.js";
 import type { Solution } from "../src/core/solution.js";

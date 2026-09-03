@@ -359,6 +359,11 @@ a `Disclosure` for the hint. The typed value is a draft while focused
 **`Stat`** — a `label` over a `figure-lg` and its unit in `note`. The six under
 the rocket. Not for: a figure in running text (that is a `figure` span).
 
+**`Check`** — a native checkbox with its label wrapped round it, for a list
+where several things can be on at once: the installed expansions, the parts
+excluded from a tech node. The whole label is the target. Not for: a single
+boolean standing alone (that is a `Toggle`) or one-of-several (a `Choice`).
+
 **`Sheet`** — a panel that slides up from the bottom on the phone and in from
 the right on desktop, with a scrim, focus trapped and returned, Escape to
 close. Setup, paste, and every disclosure on the phone. Not for: anything the

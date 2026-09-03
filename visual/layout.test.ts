@@ -22,23 +22,23 @@ import type { Page } from "puppeteer";
    render.test.ts gives. */
 const BUDGET = {
   phone: {
-    height: 7600, // px, the whole page with the default mission solved: 7441, with 2% for a different Chrome's fonts
-    words: 1754, // visible words on that page
-    tinyText: 174, // text under 12 px
-    smallBody: 411, // text under 13 px
-    targets: 66, // pressable things under 44 × 44 — of 66
+    height: 8020, // px, the whole page with the default mission solved: 7864, with 2% for a different Chrome's fonts
+    words: 1752, // visible words on that page
+    tinyText: 152, // text under 12 px
+    smallBody: 454, // text under 13 px
+    targets: 63, // pressable things under 44 × 44 — of 65
     sideways: 7, // things wider than their box: six sliders by 4 px, the parts table by 136
-    unreachable: 4, // targets a keyboard cannot reach: the two pickers and two tech spans
+    unreachable: 0, // targets a keyboard cannot reach
     axe: 16, // nodes axe objects to, wcag2a + wcag2aa
   },
   desktop: {
-    height: 4450, // 4371
-    words: 1755,
-    tinyText: 175,
-    smallBody: 412,
-    targets: 31, // under 24 × 24 — of 66
+    height: 4690, // 4594
+    words: 1753,
+    tinyText: 153,
+    smallBody: 455,
+    targets: 29, // under 24 × 24 — of 65
     sideways: 6,
-    unreachable: 4,
+    unreachable: 0,
     axe: 15,
   },
 };
@@ -124,7 +124,12 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
       }
       last = k;
     }
-    missed = m.targets.filter((t) => !seen.has(t.k));
+    const groups = new Set(
+      m.targets.filter((t) => seen.has(t.k)).map((t) => t.group),
+    );
+    missed = m.targets.filter(
+      (t) => !seen.has(t.k) && !(t.group !== null && groups.has(t.group)),
+    );
 
     await page.addScriptTag({ path: AXE });
     axe = await page.evaluate(async () => {

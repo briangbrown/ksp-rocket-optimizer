@@ -8,6 +8,7 @@ export type Box = {
   text: string;
   w: number;
   h: number;
+  group: number | null;
 };
 export type Small = { tag: string; text: string; px: number };
 export type Measure = {
@@ -33,14 +34,18 @@ export const measure = (): Measure => {
   /* Everything a finger can press: the form controls, and anything that asks
      for a pointer cursor whose parent does not — which is how a `div` with an
      `onClick` and a `span` in the tech tree are found, since neither is a
-     button. A label wrapping a checkbox is the checkbox's target, so the
-     input inside it is the label's and is not counted again at 13 px. Each
+     button. A disabled control is not one: nothing presses it and the Tab
+     order skips it. A label wrapping a checkbox is the checkbox's target, so
+     the input inside it is the label's and is not counted again at 13 px. Each
      target is stamped with its index so the keyboard walk can name what it
-     reached. */
+     reached, and a chip inside a radiogroup carries the group's index too:
+     a `Choice` puts one chip in the Tab order and the arrow keys reach the
+     rest, so reaching the group is reaching the chip. */
   const isControl = (el: Element) =>
     /^(BUTTON|A|SELECT|TEXTAREA)$/.test(el.tagName) ||
     (el.tagName === "INPUT" && (el as HTMLInputElement).type !== "checkbox");
   const targets: Array<Box> = [];
+  const groups = Array.from(document.querySelectorAll("[role=radiogroup]"));
   for (const el of document.querySelectorAll("body *")) {
     const cs = getComputedStyle(el);
     const pointer =
@@ -50,7 +55,7 @@ export const measure = (): Measure => {
         getComputedStyle(el.parentElement).cursor === "pointer"
       );
     if (!isControl(el) && !pointer) continue;
-    if (!shown(el)) continue;
+    if (!shown(el) || (el as HTMLButtonElement).disabled) continue;
     if (el.tagName === "INPUT" && el.closest("label")) continue;
     const r = el.getBoundingClientRect();
     el.setAttribute("data-k", String(targets.length));
@@ -60,6 +65,10 @@ export const measure = (): Measure => {
       text: name(el),
       w: Math.round(r.width),
       h: Math.round(r.height),
+      group: (() => {
+        const g = el.closest("[role=radiogroup]");
+        return g ? groups.indexOf(g) : null;
+      })(),
     });
   }
 

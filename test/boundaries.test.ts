@@ -89,6 +89,40 @@ describe("the layer boundaries", () => {
   });
 });
 
+describe("the design tokens", () => {
+  /* Thirteen font sizes and five jobs for one class is how the UI refresh
+     started (#130). A component names a role or a token; the literal lives in
+     `tokens.ts` and the class in `styles.ts`, and nowhere else. Matched on the
+     source text rather than the rendered page because the CSSOM discards what
+     it cannot parse and jsdom cannot see a size at all — see CLAUDE.md,
+     "Verification". `FONT` and `RADIUS.x` are tokens and pass; a bare number or
+     a quoted family is what this is for. */
+  it("keeps sizes, families and colours in tokens.ts and styles.ts", () => {
+    const literal: Array<[string, RegExp]> = [
+      ["a hex colour", /#[0-9a-fA-F]{6}(?![0-9a-zA-Z])/],
+      ["an rgb() colour", /\brgba?\(/],
+      ["a fontSize", /fontSize:\s*[\d"']/],
+      ["a quoted fontFamily", /fontFamily:\s*["'`]/],
+      ["a letterSpacing", /letterSpacing:\s*["']/],
+      ["a numeric borderRadius", /borderRadius:\s*\d/],
+      ["a numeric zIndex", /zIndex:\s*\d/],
+    ];
+    const bad: Array<string> = [];
+    for (const path of files("src/ui")) {
+      if (/[\/]tokens\.ts$|[\/]styles\.ts$/.test(path)) continue;
+      const src = readFileSync(path, "utf8");
+      for (const [what, re] of literal) {
+        const m = re.exec(src);
+        if (m)
+          bad.push(
+            `${path}:${src.slice(0, m.index).split("\n").length} sets ${what}`,
+          );
+      }
+    }
+    expect(bad, `${bad.length} literals outside the tokens`).toEqual([]);
+  });
+});
+
 describe("what does not belong in committed code", () => {
   /* Written down under "What not to do" and enforced by nothing. A stray log in
      the solver runs 81 times a suite and once per frame in the application. */
