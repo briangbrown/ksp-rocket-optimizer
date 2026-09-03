@@ -253,7 +253,7 @@ is the fill in the elevation.
 | `engine`    | `#9FB0C4`    | `#4E6176` | 7.9 / 6.4       |                                                                                                            |
 | `adapter`   | `violet`     | `violet`  | 5.2 / 7.0       | couplers too                                                                                               |
 | `decoupler` | `dim`        | `dim`     | 4.9 / 5.6       |                                                                                                            |
-| `booster`   | the body hue | the same  | —               | outlined by `edgeOf`, which lifts a dark hue on dark and will darken a light hue on light                  |
+| `booster`   | the body hue | the same  | —               | outlined by `edgeOf`, which lifts a dark hue on dark and darkens a light hue on light                      |
 | `payload`   | `mint`       | `#2A9A72` | 9.2 / 3.5       |                                                                                                            |
 | `shroud`    | `#3F5064`    | `#AEBBC8` | 2.1 / 2.0       | **deliberate exception** — a fairing sits under its outline and reads as a ghost; 3:1 would make it a part |
 | `hardware`  | `muted`      | `muted`   | —               | list only; it is not drawn                                                                                 |
@@ -261,17 +261,30 @@ is the fill in the elevation.
 ### The two-space trap
 
 A bare `ShaderMaterial` draws the hex it is given; `setClearColor` converts it.
-`panelClear()` in `shaders.ts` exists so the panel behind the drawing is the
-card's colour and not a third-as-bright version of it. Under a light theme the
-same function reads the live token, and a theme change is a rebuild of the
-scene, not a re-render — `.claude/rules/renderer.md`.
+`panelClear(pal)` in `shaders.ts` exists so the panel behind the drawing is
+the card's colour and not a third-as-bright version of it. The stylesheet sees
+the palette as custom properties (`C.panel` is the string `var(--panel)`), and
+the renderer cannot: every shader takes the resolved palette, `palette(theme)`,
+and a theme change is a rebuild of the scene, not a re-render —
+`.claude/rules/renderer.md`.
 
 ### Body hues on a light panel
 
 `inkOn(h)` picks the ink for a filled planet button and is theme-independent —
-the button is the hue, whatever is behind it. `edgeOf(h)` is not: it lifts a
-dark hue so it clears a dark panel, and on a light panel the light hues (Pol,
-Moho, Kerbin) need the reverse. The light theme gives it a second branch.
+the button is the hue, whatever is behind it. `edgeOf(h, theme)` is not: it
+walks the hue toward the theme's paper — lifting in dark, shading in light —
+until it clears 4.5:1 on `panel2`, and stops there. Most hues are untouched;
+Minmus, Jool and Eeloo lift in dark, and Pol, Moho and Kerbin darken in light.
+The number is checked rather than the hue guessed at.
+
+### Choosing
+
+The theme follows the operating system unless the reader says otherwise. The
+control is a three-way `Choice` — _System · Dark · Light_ — at the top of
+setup, and the choice is stored beside the roster. `system` sets no attribute,
+so the `prefers-color-scheme` rule decides; the other two set `data-theme` on
+the root and win over it. The `theme-color` meta follows whichever is in
+force.
 
 ---
 

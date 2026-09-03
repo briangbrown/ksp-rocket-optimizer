@@ -35,9 +35,11 @@ accessibility bar. This file is the short form — what you must not do in
   side by side below it.
 
 - **The drawing takes its colours from the same tokens, but not the same
-  way.** `panelClear()` and the `KIND` fills read the live theme, and a theme
-  change is a rebuild of the scene — `.claude/rules/renderer.md` has the
-  colour-space reason.
+  way.** `C.panel` is the string `var(--panel)`, which a stylesheet resolves
+  and a shader cannot. Anything that needs a number — `panelClear`, the fills,
+  `edgeOf`, a luminance — takes `palette(theme)`, and a theme change is a
+  rebuild of the scene — `.claude/rules/renderer.md` has the colour-space
+  reason.
 
 - **Budgets are measured, not asserted.** The layout suite holds page height,
   word count, target size, type floor and contrast. A PR that improves one

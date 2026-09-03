@@ -7,7 +7,8 @@ import {
   Vector2,
   Vector3,
 } from "three";
-import { C, rgbOf } from "../tokens.js";
+import { rgbOf } from "../tokens.js";
+import type { Palette } from "../tokens.js";
 
 /* ----------------------------- schematic shading -----------------------------
 
@@ -40,12 +41,17 @@ import { C, rgbOf } from "../tokens.js";
    the drawing stays a drawing rather than becoming a render with lines on it.
 */
 
-/* Every line in the drawing is this. Light on a dark panel, which keeps
-   Gooch's rule that the extremes belong to the linework — the fills stay in the
-   mid-tones and the lines are the brightest thing in the picture, where before
-   they were a near neighbour of the fill and had to be held back with opacity
-   to stop thirty parts reading as a mesh. */
-export const LINE = C.paper;
+/* Every line in the drawing is the theme's `paper`: light on a dark panel,
+   dark on a light one, which keeps Gooch's rule that the extremes belong to
+   the linework — the fills stay in the mid-tones and the lines are the
+   furthest thing from the panel in the picture, where before they were a
+   near neighbour of the fill and had to be held back with opacity to stop
+   thirty parts reading as a mesh.
+
+   Every function here takes the palette rather than reading a module
+   constant, because the palette is not constant: the drawing is rebuilt when
+   the theme changes, and it is rebuilt from what it is handed. */
+export const lineOf = (pal: Palette) => pal.paper;
 
 /* Palette colours as they are written, not as three.js would manage them.
    Everything here renders to a target and composites without a colour-space
@@ -71,8 +77,8 @@ const vec3 = (hex: string) => new Vector3(...raw(hex));
    of the token — the same colour, about a third as bright — and the drawing
    would sit in a darker rectangle than the card around it. Naming the working
    space makes the conversion a no-op. */
-export const panelClear = () =>
-  new Color().setRGB(...raw(C.panel), LinearSRGBColorSpace);
+export const panelClear = (pal: Palette) =>
+  new Color().setRGB(...raw(pal.panel), LinearSRGBColorSpace);
 
 /* Where the light is. Fixed in view space, not world space, so turning the
    model to the isometric does not swing the shading round with it — the
@@ -87,15 +93,17 @@ const LIGHT = "vec3(-0.32, 0.62, 0.72)";
 const COOL_MIX = 0.34;
 const WARM_MIX = 0.2;
 /* Cool towards the panel the drawing sits on, warm towards a paper white. The
-   hue shift is the point — a tank turning away goes blue before it goes dark. */
-const COOL = vec3(C.panel);
+   hue shift is the point — a tank turning away goes blue before it goes dark.
+   On a light panel the cool side is nearly white and the warm side is too,
+   so the ramp there is the warmth alone; the fills are darker to give it
+   room. */
 const WARM = new Vector3(1.0, 0.96, 0.88);
 
-export function goochMaterial(baseHex: string) {
+export function goochMaterial(baseHex: string, pal: Palette) {
   return new ShaderMaterial({
     uniforms: {
       base: { value: vec3(baseHex) },
-      cool: { value: COOL.clone() },
+      cool: { value: vec3(pal.panel) },
       warm: { value: WARM.clone() },
     },
     vertexShader: /* glsl */ `
@@ -170,15 +178,15 @@ export function idMaterial(index: number) {
    targets, a multisample resolve and a premultiplied canvas, and getting a
    fringe on the silhouette in return. The colour is the same one the card is
    drawn in, and it comes from the same token. */
-export function compositeMaterial() {
+export function compositeMaterial(pal: Palette) {
   return new ShaderMaterial({
     uniforms: {
       tColor: { value: null },
       tId: { value: null },
       tDepth: { value: null },
       texel: { value: new Vector2() },
-      edgeColor: { value: vec3(LINE) },
-      panel: { value: vec3(C.panel) },
+      edgeColor: { value: vec3(lineOf(pal)) },
+      panel: { value: vec3(pal.panel) },
       camNear: { value: 0 },
       camFar: { value: 1 },
       cueNear: { value: 0 },
@@ -298,13 +306,17 @@ const EDGE_HI = 0.85;
 const DASH_DUTY = 0.55;
 const LINE_ALPHA = 0.85;
 
-export function ghostMaterial(baseHex: string, dashPeriod: number) {
-  const m = goochMaterial(baseHex);
+export function ghostMaterial(
+  baseHex: string,
+  dashPeriod: number,
+  pal: Palette,
+) {
+  const m = goochMaterial(baseHex, pal);
   m.transparent = true;
   m.depthFunc = GreaterDepth;
   m.depthWrite = false;
   m.polygonOffset = false;
-  m.uniforms.edgeColor = { value: vec3(LINE) };
+  m.uniforms.edgeColor = { value: vec3(lineOf(pal)) };
   m.uniforms.dash = { value: dashPeriod };
   m.fragmentShader = /* glsl */ `
       uniform vec3 base, cool, warm, edgeColor;

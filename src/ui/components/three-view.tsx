@@ -20,16 +20,17 @@ import {
 import type { ShaderMaterial } from "three";
 import { extentOf } from "../../core/model.js";
 import { cameraFor, viewOf } from "../views.js";
-import { C, KIND } from "../tokens.js";
+import { fills, palette } from "../tokens.js";
 import {
-  LINE,
   compositeMaterial,
   ghostMaterial,
   goochMaterial,
   idMaterial,
+  lineOf,
   panelClear,
 } from "./shaders.js";
 import type { ModelPart } from "../../core/model.js";
+import type { Theme } from "../tokens.js";
 import type { Extent } from "../views.js";
 import type { Offset } from "../separation.js";
 
@@ -48,10 +49,10 @@ import type { Offset } from "../separation.js";
    never on a loop, because the cameras do not move. */
 
 /* The fills come from `KIND`, the same table the parts legend draws from, so
-   the drawing and the list cannot disagree about what colour a decoupler is.
-   Roles the table does not name — a shroud on a plate, mission hardware —
-   fall back to `dim`. */
-const FILL: Readonly<Record<string, string>> = KIND;
+   the drawing and the list cannot disagree about what colour a decoupler is —
+   read through `fills` in the theme being drawn, because a shader is handed
+   the number and not the custom property. Roles the table does not name — a
+   shroud on a plate, mission hardware — fall back to `dim`. */
 
 /* Enough segments to read as round at this size. The count used to be pulled
    two ways — fine enough to look round, coarse enough that its seams stayed
@@ -129,6 +130,11 @@ type ThreeViewProps = {
   sweep?: Extent;
   midY?: number;
   offsets?: ReadonlyArray<Offset> | null;
+  /* The theme the drawing is built in. A change is a rebuild of the scene —
+     every material holds the panel and the line colour as numbers — which is
+     why it is a prop and a dependency of the build effect, not something the
+     paint step reads. `.claude/rules/renderer.md` */
+  theme: Theme;
 };
 
 /* Reused rather than allocated per part per frame. */
@@ -166,6 +172,7 @@ export default function ThreeView({
   sweep,
   midY,
   offsets,
+  theme,
 }: ThreeViewProps) {
   const host = useRef<HTMLDivElement | null>(null);
   const gl = useRef<WebGLRenderer | null>(null);
@@ -227,6 +234,8 @@ export default function ThreeView({
       return;
     }
 
+    const pal = palette(theme);
+    const fill = fills(pal);
     const scene = new Scene();
     const group = new Group();
     scene.add(group);
@@ -264,7 +273,7 @@ export default function ThreeView({
        would not be if lines were interleaved among them. */
     const creases = new Group();
     scene.add(creases);
-    const creaseMat = new LineBasicMaterial({ color: LINE });
+    const creaseMat = new LineBasicMaterial({ color: lineOf(pal) });
     owned.push(creaseMat);
 
     for (const [i, p] of parts.entries()) {
@@ -272,16 +281,17 @@ export default function ThreeView({
         p.rTop === undefined
           ? new CylinderGeometry(p.r, p.r, p.h, SEGMENTS)
           : new LatheGeometry(taperedProfile(p.r, p.rTop, p.h), SEGMENTS);
-      const fill = goochMaterial(
-        p.role === "booster" ? color : FILL[p.role] || C.dim,
+      const mat = goochMaterial(
+        p.role === "booster" ? color : fill[p.role] || pal.dim,
+        pal,
       );
       /* The crease sits exactly on the surface it marks, so the two compete
          for the same depth and the line comes and goes along its length. Push
          the fill back a hair and it stops. */
-      fill.polygonOffset = true;
-      fill.polygonOffsetFactor = 1;
-      fill.polygonOffsetUnits = 1;
-      const mesh = new Mesh(geo, fill);
+      mat.polygonOffset = true;
+      mat.polygonOffsetFactor = 1;
+      mat.polygonOffsetUnits = 1;
+      const mesh = new Mesh(geo, mat);
       meshes.push(mesh);
       group.add(mesh);
       const line = new LineSegments(
@@ -292,8 +302,9 @@ export default function ThreeView({
       creases.add(line);
       if (ghost) {
         const gm = ghostMaterial(
-          p.role === "booster" ? color : FILL[p.role] || C.dim,
+          p.role === "booster" ? color : fill[p.role] || pal.dim,
           DASH_PERIOD * renderer.getPixelRatio(),
+          pal,
         );
         const back = new Mesh(geo, gm);
         ghosts.push(back);
@@ -302,8 +313,8 @@ export default function ThreeView({
       }
       const id = idMaterial(i);
       idMats.push(id);
-      fillMats.push(fill);
-      owned.push(geo, fill, id, line.geometry);
+      fillMats.push(mat);
+      owned.push(geo, mat, id, line.geometry);
     }
 
     /* Buffers at device resolution, not CSS pixels, or the outline is found at
@@ -325,7 +336,7 @@ export default function ThreeView({
     const fillTarget = new WebGLRenderTarget(bw, bh, { samples: 4 });
     owned.push(idTarget, fillTarget, depth);
 
-    const quadMat = compositeMaterial();
+    const quadMat = compositeMaterial(pal);
     const quadGeo = new PlaneGeometry(2, 2);
     const quadScene = new Scene();
     const quadMesh = new Mesh(quadGeo, quadMat);
@@ -362,7 +373,7 @@ export default function ThreeView({
       renderer.setRenderTarget(null);
       for (const o of owned) o.dispose();
     };
-  }, [parts, view, color, bufW, bufH]);
+  }, [parts, view, color, bufW, bufH, theme]);
 
   /* ---------------------------- painted often ----------------------------
 
@@ -440,7 +451,7 @@ export default function ThreeView({
     b.creases.visible = true;
     for (let i = 0; i < parts.length; i++) b.meshes[i].material = b.fillMats[i];
     renderer.setRenderTarget(b.fillTarget);
-    renderer.setClearColor(panelClear(), 1);
+    renderer.setClearColor(panelClear(palette(theme)), 1);
     renderer.clear();
     renderer.render(b.scene, camera);
 
@@ -472,7 +483,19 @@ export default function ThreeView({
     b.quadMat.uniforms.cueSpan.value = cam.cueSpan;
     renderer.setRenderTarget(null);
     renderer.render(b.quadScene, b.quad);
-  }, [parts, view, color, bufW, bufH, width, height, extent, midY, offsets]);
+  }, [
+    parts,
+    view,
+    color,
+    bufW,
+    bufH,
+    width,
+    height,
+    extent,
+    midY,
+    offsets,
+    theme,
+  ]);
 
   /* The visible box, clipping the buffer's top-left corner. They are the same
      size in a still frame and the clip does nothing. */

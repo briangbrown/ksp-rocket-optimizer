@@ -124,9 +124,19 @@ export type Viewport = Partial<typeof PHONE> & {
   height: number;
 };
 
+/* The theme the operating system would ask for. Headless Chrome has no
+   operating system to ask, and answers `light` — so a page opened without
+   saying which would measure the light theme and sample the dark palette. It
+   is pinned here, dark by default, and a suite that wants the other one
+   changes it with `page.emulateMediaFeatures`. #131 */
+export type Scheme = "dark" | "light";
+export const scheme = (page: Page, value: Scheme) =>
+  page.emulateMediaFeatures([{ name: "prefers-color-scheme", value }]);
+
 export async function open(
   url: string,
   viewport: Viewport = { width: 1200, height: 1400 },
+  theme: Scheme = "dark",
 ) {
   const browser = await puppeteer.launch({
     executablePath: browserPath(),
@@ -134,6 +144,7 @@ export async function open(
   });
   const page = await browser.newPage();
   await page.setViewport({ deviceScaleFactor: SCALE, ...viewport });
+  await scheme(page, theme);
 
   /* Anything the page complains about is a failure here. A shader that will not
      compile logs and draws nothing; there is no exception to catch and no

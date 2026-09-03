@@ -33,8 +33,11 @@ import {
   SPACE,
   Z,
   edgeOf,
+  palette,
+  themeNow,
 } from "./tokens.js";
 import type { Objective } from "../core/performance.js";
+import type { Theme, ThemePref } from "./tokens.js";
 import type { PlanStage } from "../core/plan.js";
 import type { Ascent } from "./components/flight.jsx";
 import type { SearchStats } from "./components/results.jsx";
@@ -45,6 +48,32 @@ export default function KSPMissionPlanner() {
   const [profile, setProfile] = useState("land");
   const [returning, setReturning] = useState(true); // most missions are meant to come home
   const [needGimbal, setNeedGimbal] = useState(true);
+  /* What the reader asked for, and what the page is showing — the OS's
+     choice resolved. The choice goes on the root as `data-theme`, where the
+     stylesheet reads it; the resolved theme is state because the drawing
+     has to be rebuilt in it. */
+  const [themePref, setThemePref] = useState<ThemePref>("system");
+  const [theme, setTheme] = useState<Theme>(themeNow);
+  useEffect(() => {
+    const root = document.documentElement;
+    if (themePref === "system") delete root.dataset.theme;
+    else root.dataset.theme = themePref;
+    setTheme(themeNow());
+    const mq = window.matchMedia?.("(prefers-color-scheme: light)");
+    const on = () => setTheme(themeNow());
+    mq?.addEventListener?.("change", on);
+    return () => mq?.removeEventListener?.("change", on);
+  }, [themePref]);
+  /* The browser chrome follows the page ground. */
+  useEffect(() => {
+    let m = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (!m) {
+      m = document.createElement("meta");
+      m.name = "theme-color";
+      document.head.appendChild(m);
+    }
+    m.content = palette(theme).ink;
+  }, [theme]);
   const [planeNow, setPlaneNow] = useState(false);
   const [asparagus, setAsparagus] = useState(false);
   const [maxAspect, setMaxAspect] = useState(14);
@@ -104,6 +133,8 @@ export default function KSPMissionPlanner() {
         if (Array.isArray(v.excluded)) setExcluded(new Set(v.excluded));
         if (v.expansions) setExpansions(v.expansions);
         if (typeof v.needGimbal === "boolean") setNeedGimbal(v.needGimbal);
+        if (v.theme === "system" || v.theme === "dark" || v.theme === "light")
+          setThemePref(v.theme);
       }
       if (live) setHydrated(true);
     })();
@@ -152,8 +183,9 @@ export default function KSPMissionPlanner() {
       excluded: [...excluded],
       expansions,
       needGimbal,
+      theme: themePref,
     });
-  }, [hydrated, unlocked, excluded, expansions, needGimbal]);
+  }, [hydrated, unlocked, excluded, expansions, needGimbal, themePref]);
 
   const engines = useMemo(
     () =>
@@ -500,7 +532,7 @@ export default function KSPMissionPlanner() {
   // the accent is the target's own tracking-station colour, lifted if too dark to read
   const dcolor = (() => {
     const k = bodyKey(dest);
-    return k && BODY_HUE[k] ? edgeOf(BODY_HUE[k]) : C.sky;
+    return k && BODY_HUE[k] ? edgeOf(BODY_HUE[k], theme) : palette(theme).sky;
   })();
 
   const setSplit = (key: number, k: number) =>
@@ -719,6 +751,8 @@ export default function KSPMissionPlanner() {
             open={showTech}
             onToggle={() => setShowTech(!showTech)}
             accent={dcolor}
+            theme={themePref}
+            onTheme={setThemePref}
           />
 
           <div
@@ -785,6 +819,7 @@ export default function KSPMissionPlanner() {
             payloadDia={payloadDia}
             hardware={hardware}
             color={dcolor}
+            theme={theme}
             search={search}
             configText={configText}
             onLoad={applyConfig}
