@@ -23,20 +23,20 @@ import type { Page } from "puppeteer";
    render.test.ts gives. */
 const BUDGET = {
   phone: {
-    height: 9240, // px, the whole page with the default mission solved: 9073, with 2% for a different Chrome's fonts
-    words: 1740, // visible words on that page
+    height: 9240, // px, the whole page with the default mission solved: 9095, with 2% for a different Chrome's fonts
+    words: 1741, // visible words on that page
     tinyText: 0, // text under 12 px
-    smallBody: 76, // text under 13 px: the labels, at 12
+    smallBody: 77, // text under 13 px: the labels, at 12
     targets: 63, // pressable things under 44 × 44 — of 68
     sideways: 7, // things wider than their box: six sliders by 4 px, the parts table by 136
     unreachable: 0, // targets a keyboard cannot reach
     axe: 11, // nodes axe objects to, wcag2a + wcag2aa
   },
   desktop: {
-    height: 4980, // 4892
-    words: 1741,
-    tinyText: 77, // the labels, at 11
-    smallBody: 148, // labels and notes
+    height: 4980, // 4914
+    words: 1742,
+    tinyText: 78, // the labels, at 11
+    smallBody: 149, // labels and notes
     targets: 26, // under 24 × 24 — of 68
     sideways: 6,
     unreachable: 0,

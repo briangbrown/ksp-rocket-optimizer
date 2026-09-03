@@ -283,21 +283,34 @@ function Config({ search, text, onLoad }: ConfigProps) {
             {search.threads > 1 && <> on {search.threads} threads</>}
           </span>
         )}
-        <IconButton
-          icon={copied ? Check : Copy}
-          label={copied ? "Copied" : "Copy configuration"}
-          on={copied}
-          onClick={copy}
-        />
-        <IconButton
-          icon={ClipboardPaste}
-          label="Load configuration"
-          on={pasteOpen}
-          onClick={() => {
-            setPasteOpen(!pasteOpen);
-            setNote(null);
+        {/* The icons say copy and paste; the word says of what. One group,
+            so the label and its buttons wrap as one. */}
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: SPACE.xs,
           }}
-        />
+        >
+          <span className="label" style={{ marginRight: SPACE.sm }}>
+            Configuration
+          </span>
+          <IconButton
+            icon={copied ? Check : Copy}
+            label={copied ? "Copied" : "Copy configuration"}
+            on={copied}
+            onClick={copy}
+          />
+          <IconButton
+            icon={ClipboardPaste}
+            label="Load configuration"
+            on={pasteOpen}
+            onClick={() => {
+              setPasteOpen(!pasteOpen);
+              setNote(null);
+            }}
+          />
+        </span>
         {note && (
           <span className="note" style={{ color: note.bad ? C.rust : C.mint }}>
             <SeverityMark severity={note.bad ? "bad" : "good"} /> {note.msg}

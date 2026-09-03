@@ -145,8 +145,11 @@ export function stepModels(
 const RAIL = 200;
 const GAP = 22;
 /* The header line above each of the three columns, which is what makes their
-   labels share one. */
-const HEAD = 22;
+   labels share one. As tall as the icon button the elevation's carries, which
+   is the target size and not negotiable: the row it sits in scrolls sideways,
+   and a sideways scroll clips vertically too, so a button taller than this
+   line loses the top and bottom of its inverted ground when selected. */
+const HEAD = 44;
 /* How tall the drawings stand when this is not full screen: what they have
    always been. Full screen is where the space is. */
 const INLINE_H = 300;
