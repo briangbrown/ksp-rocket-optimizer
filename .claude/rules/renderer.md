@@ -91,7 +91,19 @@ them.
   trap is anything that does not go through them: `setClearColor(C.panel)`
   converts the hex into the linear working space, and the drawing would sit in a
   rectangle of the same colour about a third as bright as the card around it.
-  `panelClear()` names the working space so the conversion is a no-op.
+  `panelClear(pal)` names the working space so the conversion is a no-op.
+
+- **A theme change is a rocket change.** The stylesheet reads the palette as
+  custom properties and swaps them on `data-theme` or the media query, so the
+  page re-themes without React noticing. The scene cannot: a `ShaderMaterial`
+  was built with `vec3` uniforms from the hex values of the theme it was made
+  under, and `C.panel` is the string `var(--panel)`, which is not a colour to
+  three.js. So `ThreeView` takes `theme` as a prop, every shader in
+  `shaders.ts` takes the resolved `palette(theme)`, and `theme` is a dependency
+  of the build effect — a switch rebuilds the meshes as though the rocket had
+  changed. `visual/render.test.ts` samples the clear colour and the outline
+  under each theme and expects the token's value to the bit; jsdom draws
+  nothing and cannot see any of this. #131
 
 - **A whole number interpolated into GLSL loses its decimal point.** `${3.0}`
   is the string `3`, and there is no `pow(float, int)` in GLSL — the shader

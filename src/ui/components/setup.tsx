@@ -1,9 +1,10 @@
 import { DATA } from "../../core/catalogue.js";
 import { NODE_PARTS, TIERS, withDeps } from "../../core/tech.js";
 import { C, SPACE } from "../tokens.js";
-import { Check, Section } from "./primitives.jsx";
+import { Check, Choice, Section } from "./primitives.jsx";
 import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import type { ThemePref } from "../tokens.js";
 
 /* Where the parts come from, and what to call each. Stock is always on — it is
    the game — which is what `locked` reads below. */
@@ -31,6 +32,9 @@ type SetupProps = {
   open: boolean;
   onToggle: () => void;
   accent: string;
+  /* The theme the reader asked for; the OS's unless they chose one. */
+  theme: ThemePref;
+  onTheme: (t: ThemePref) => void;
 };
 
 /* The install and the research: which expansions are present, which nodes are
@@ -49,6 +53,8 @@ function Setup({
   open,
   onToggle,
   accent,
+  theme,
+  onTheme,
 }: SetupProps) {
   /* Which node shows its parts. One at a time: the tree is long enough
      already. */
@@ -74,8 +80,29 @@ function Setup({
 
   return (
     <>
-      <div className="label" style={{ marginBottom: SPACE.md }}>
-        Installed
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: SPACE.md,
+          marginBottom: SPACE.md,
+        }}
+      >
+        <span className="label">Installed</span>
+        <span style={{ flex: 1 }} />
+        {/* Dark is the design and light is the same design on white; the
+            reader's OS decides unless they say otherwise here. */}
+        <Choice
+          label="Theme"
+          value={theme}
+          onChange={onTheme}
+          options={[
+            { value: "system", label: "System" },
+            { value: "dark", label: "Dark" },
+            { value: "light", label: "Light" },
+          ]}
+          chip={{ padding: "1px 7px" }}
+        />
       </div>
       <div
         style={{

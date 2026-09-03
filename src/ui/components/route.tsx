@@ -153,7 +153,7 @@ function RouteMap({
                 <div
                   className="label"
                   style={{
-                    color: isCut ? C.amber : C.rule,
+                    color: isCut ? C.amber : C.dim,
                     textAlign: "left",
                   }}
                 >

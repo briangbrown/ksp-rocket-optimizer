@@ -15,6 +15,7 @@ import { extentOf, modelOf } from "../../core/model.js";
 import { framing, panelSizes } from "../views.js";
 import { pose, separation } from "../separation.js";
 import { C, FONT, RADIUS, SPACE, Z } from "../tokens.js";
+import type { Theme } from "../tokens.js";
 import { Choice, IconButton, Toggle } from "./primitives.jsx";
 import type { ReactNode } from "react";
 import type { PlanStage } from "../../core/plan.js";
@@ -219,6 +220,7 @@ type BuildViewProps = {
   payload: number;
   payloadDia: number;
   color: string;
+  theme: Theme;
   maxAspect?: number;
 };
 
@@ -227,6 +229,7 @@ function BuildView({
   payload,
   payloadDia,
   color,
+  theme,
   maxAspect = 14,
 }: BuildViewProps) {
   const solved = useMemo(() => stages.filter(isSolved), [stages]);
@@ -518,6 +521,7 @@ function BuildView({
             width={size.w}
             height={size.h}
             color={color}
+            theme={theme}
             buffer={buffer}
             extent={moves ? moves.extent : undefined}
             sweep={moves ? moves.sweep : undefined}

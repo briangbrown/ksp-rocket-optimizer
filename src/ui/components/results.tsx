@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { fmt } from "../format.js";
 import { C, RADIUS, SPACE } from "../tokens.js";
+import type { Theme } from "../tokens.js";
 import { BuildView } from "./build.jsx";
 import { AscentPanel } from "./flight.jsx";
 import { LEGEND, PartsTable } from "./parts.jsx";
@@ -35,6 +36,7 @@ type ResultsProps = {
   payloadDia: number;
   hardware: Hardware | null;
   color: string;
+  theme: Theme;
   search: SearchStats | null;
   configText: string;
   onLoad: (text: string) => { bad: boolean; msg: string };
@@ -131,6 +133,7 @@ function Results(p: ResultsProps) {
             payload={p.payload}
             payloadDia={p.payloadDia}
             color={p.color}
+            theme={p.theme}
             maxAspect={p.maxAspect}
           />
         </section>

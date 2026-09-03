@@ -3,12 +3,14 @@ import {
   C,
   FONTS,
   MOTION,
+  PALETTE,
   RADIUS,
   SEVERITY,
   SPACE,
   TYPE,
   Z,
 } from "./tokens.js";
+import type { Palette } from "./tokens.js";
 
 /* The stylesheet, written from the tokens rather than beside them. Every role
    in `TYPE` becomes a class of the same name, so a component says what a piece
@@ -34,8 +36,25 @@ const roleBase = (name: string) => `.${name} { ${face(name)}}`;
 
 const roles = Object.keys(TYPE);
 
+/* A palette as custom properties. `color-scheme` beside them so the native
+   controls — the checkboxes, the range thumbs, the scrollbars — follow. */
+const vars = (pal: Palette, scheme: "dark" | "light") =>
+  Object.entries(pal)
+    .map(([k, v]) => `--${k}:${v};`)
+    .join(" ") + ` color-scheme:${scheme};`;
+
+/* Dark is the design and the default. The OS's preference selects light
+   unless the reader chose dark by name, and choosing light by name wins over
+   an OS that says dark — `data-theme` on the root is the choice. */
+const THEMES = `
+:root { ${vars(PALETTE.dark, "dark")} }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { ${vars(PALETTE.light, "light")} } }
+:root[data-theme="light"] { ${vars(PALETTE.light, "light")} }
+`;
+
 const STYLES = `
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+${THEMES}
 * { box-sizing: border-box; }
 ${roles.map(roleBase).join("\n")}
 ${roles.map((n) => role(n, 0)).join("\n")}

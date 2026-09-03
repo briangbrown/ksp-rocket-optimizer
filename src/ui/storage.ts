@@ -22,6 +22,8 @@ type ArtifactStorage = {
   set: (key: string, value: string) => unknown;
 };
 
+import type { ThemePref } from "./tokens.js";
+
 declare global {
   interface Window {
     storage?: ArtifactStorage;
@@ -29,13 +31,14 @@ declare global {
 }
 
 /* What is kept between sessions: the tech tree, the parts held back, the
-   expansions, and whether a stage has to be able to steer. Not the mission —
-   that is what the pasted configuration is for. */
+   expansions, whether a stage has to be able to steer, and the theme. Not the
+   mission — that is what the pasted configuration is for. */
 type Roster = {
   unlocked: Array<string>;
   excluded: Array<string>;
   expansions: { mh: boolean; rs: boolean };
   needGimbal: boolean;
+  theme: ThemePref;
 };
 
 const KEY = "ksp-planner:roster";

@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { DESKTOP, PHONE, open, serve, settle } from "./browser.js";
+import { DESKTOP, PHONE, open, scheme, serve, settle } from "./browser.js";
 import { focused, measure } from "./measure.js";
 import { MOTION } from "../src/ui/tokens.js";
 import type { Viewport } from "./browser.js";
@@ -24,23 +24,23 @@ import type { Page } from "puppeteer";
 const BUDGET = {
   phone: {
     height: 9240, // px, the whole page with the default mission solved: 9057, with 2% for a different Chrome's fonts
-    words: 1752, // visible words on that page
+    words: 1755, // visible words on that page — three of them the theme control
     tinyText: 0, // text under 12 px
     smallBody: 81, // text under 13 px: the labels, at 12
-    targets: 63, // pressable things under 44 × 44 — of 65
+    targets: 66, // pressable things under 44 × 44 — of 68, three of them the theme chips
     sideways: 7, // things wider than their box: six sliders by 4 px, the parts table by 136
     unreachable: 0, // targets a keyboard cannot reach
-    axe: 16, // nodes axe objects to, wcag2a + wcag2aa
+    axe: 11, // nodes axe objects to, wcag2a + wcag2aa
   },
   desktop: {
     height: 4980, // 4884
-    words: 1753,
+    words: 1756,
     tinyText: 82, // the labels, at 11
     smallBody: 153, // labels and notes
-    targets: 24, // under 24 × 24 — of 65
+    targets: 27, // under 24 × 24 — of 68
     sideways: 6,
     unreachable: 0,
-    axe: 15,
+    axe: 10,
   },
 };
 
@@ -98,7 +98,9 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
   let tiny: Measure["text"];
   let small: Measure["text"];
   let missed: Measure["targets"];
-  let axe: Array<{ text: string; nodes: number; impact: string }>;
+  type Axe = Array<{ text: string; nodes: number; impact: string }>;
+  let axe: Axe;
+  let axeLight: Axe;
 
   beforeAll(async () => {
     ({ page } = await open(ctx.url, viewport));
@@ -133,17 +135,29 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
     );
 
     await page.addScriptTag({ path: AXE });
-    axe = await page.evaluate(async () => {
-      const a = (window as unknown as { axe: any }).axe;
-      const r = await a.run(document, {
-        runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] },
+    const run = (): Promise<Axe> =>
+      page.evaluate(async () => {
+        const a = (window as unknown as { axe: any }).axe;
+        const r = await a.run(document, {
+          runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] },
+        });
+        return r.violations.map((v: any) => ({
+          text: v.id,
+          nodes: v.nodes.length,
+          impact: v.impact,
+        }));
       });
-      return r.violations.map((v: any) => ({
-        text: v.id,
-        nodes: v.nodes.length,
-        impact: v.impact,
-      }));
+    axe = await run();
+
+    /* The same page in the light theme, for the contrast check and for a
+       person: the geometry is the same, the colours are not. #131 */
+    await scheme(page, "light");
+    await settle(page);
+    await page.screenshot({
+      path: `${OUT}/${screen}-light.png`,
+      fullPage: true,
     });
+    axeLight = await run();
 
     n = {
       height: m.height,
@@ -231,5 +245,19 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
     });
     expect(fg, `selected chip under the pointer: ${fg} on ${bg}`).not.toBe(bg);
     await page.mouse.move(0, 0);
+  });
+
+  it("reads in both themes", () => {
+    /* Contrast is the one rule a theme can break on its own, so it is held at
+       zero in each rather than folded into the budget above. */
+    const contrast = (v: Axe) => v.filter((x) => x.text === "color-contrast");
+    expect(
+      contrast(axe).reduce((a, v) => a + v.nodes, 0),
+      `dark:\n${list(contrast(axe))}`,
+    ).toBe(0);
+    expect(
+      contrast(axeLight).reduce((a, v) => a + v.nodes, 0),
+      `light:\n${list(contrast(axeLight))}`,
+    ).toBe(0);
   });
 });

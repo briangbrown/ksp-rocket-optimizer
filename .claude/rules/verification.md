@@ -79,6 +79,15 @@ that improves one lowers it in the same commit. The screenshots and the
 numbers go to `visual/.out/`, gitignored and uploaded as the `layout`
 artefact, for a person — never compared.
 
+The same page is then switched to the light theme with
+`page.emulateMediaFeatures`, screenshotted again as `<screen>-light.png`, and
+axe is run a second time; `color-contrast` is held at zero in each theme
+rather than folded into the axe budget, because contrast is the one rule a
+theme can break on its own. Headless Chrome answers `light` to
+`prefers-color-scheme` when nothing says otherwise, so `open()` in
+`visual/browser.ts` pins dark before `goto` — a page opened without that
+measures one theme and samples the other's palette. #131
+
 What it finds is decided by `visual/measure.ts`, which runs inside the page:
 a target is a form control or anything with a pointer cursor whose parent has
 none, which is how a `div` with an `onClick` is counted; text is measured on

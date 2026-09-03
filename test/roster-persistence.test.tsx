@@ -27,6 +27,7 @@ const { click, settle } = await import("./app-harness.js");
 const { DATA } = await import("../src/core/catalogue.js");
 const { withDeps } = await import("../src/core/tech.js");
 const { default: KSPMissionPlanner } = await import("../src/ui/app.jsx");
+const { PALETTE } = await import("../src/ui/tokens.js");
 
 const KEY = "ksp-planner:roster";
 
@@ -121,5 +122,28 @@ describe("the roster in a browser", () => {
 
     await mount();
     expect(nodesShown(), "the roster reverted to the default").toBe(before);
+  }, 60_000);
+
+  it("keeps the theme beside the roster", async () => {
+    /* #131: the preference is stored, and what it stores is applied — as the
+       attribute on the root the stylesheet keys off, and the `theme-color` a
+       browser paints its chrome with. jsdom's matchMedia is absent, so
+       "system" resolves to dark here; only the explicit choices are checked. */
+    await mount();
+    expect(saved().theme).toBe("system");
+    expect(document.documentElement.dataset.theme).toBeUndefined();
+
+    await click(button("Light"));
+    expect(saved().theme).toBe("light");
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(
+      document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+        ?.content,
+    ).toBe(PALETTE.light.ink);
+    cleanup();
+
+    await mount();
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(saved().theme).toBe("light");
   }, 60_000);
 });

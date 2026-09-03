@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SCALE, open, serve, settle } from "./browser.js";
 import { LEAN, NEAR, READ, forCanvas } from "./pixels.js";
-import { C } from "../src/ui/tokens.js";
+import { PALETTE } from "../src/ui/tokens.js";
 import type { Page } from "puppeteer";
 
 /* What `READ` hands back from inside the page: the canvas's two sizes, how
@@ -255,7 +255,7 @@ describe("the build view, in a browser", () => {
        rocket — flat-shaded cylinders with cap rims — and only the absence of
        the edge colour would say so. */
     await step("On the pad");
-    const ink = await forCanvas(page, NEAR, ELEVATION, C.paper, 26);
+    const ink = await forCanvas(page, NEAR, ELEVATION, PALETTE.dark.paper, 26);
     expect(ink, "no outline colour anywhere in the elevation").toBeGreaterThan(
       0.002,
     );
@@ -269,8 +269,8 @@ describe("the build view, in a browser", () => {
        pixels a person would have had to notice. */
     await step("On the pad");
     const [side, plan] = (await Promise.all([
-      forCanvas(page, LEAN, ELEVATION, C.panel),
-      forCanvas(page, LEAN, PLAN, C.panel),
+      forCanvas(page, LEAN, ELEVATION, PALETTE.dark.panel),
+      forCanvas(page, LEAN, PLAN, PALETTE.dark.panel),
     ])) as [Lean, Lean];
     expect(side.ink, "nothing drawn in the elevation").toBeGreaterThan(0);
     expect(plan.ink, "nothing drawn in the plan").toBeGreaterThan(0);
@@ -283,6 +283,32 @@ describe("the build view, in a browser", () => {
       Math.abs(bias(side) - bias(plan)),
       `elevation leans ${bias(side).toFixed(2)}, plan ${bias(plan).toFixed(2)}`,
     ).toBeLessThan(1.2);
+  });
+
+  it("draws each theme in that theme's own tokens", async () => {
+    /* #131: the palette is CSS variables to the page and numbers to the
+       renderer, and nothing ties the two together but `palette()`. A shader
+       built from the wrong theme, or not rebuilt when it changed, would leave a
+       dark rocket sitting in a light card — and the clear colour goes through
+       three.js, which would happily convert it into a working space and draw a
+       panel a third as bright as the card. The value read back has to be the
+       token's, to the bit. */
+    await step("On the pad");
+    for (const theme of ["light", "dark"] as const) {
+      await press(theme === "light" ? "Light" : "Dark");
+      const pal = PALETTE[theme];
+      for (const [name, i] of PANELS) {
+        const got = await read(i);
+        expect(got.top[0][0], `${name} background under ${theme}`).toBe(
+          pal.panel.toLowerCase(),
+        );
+      }
+      const ink = await forCanvas(page, NEAR, ELEVATION, pal.paper, 26);
+      expect(ink, `no outline in the ${theme} outline colour`).toBeGreaterThan(
+        0.002,
+      );
+    }
+    await press("System");
   });
 
   it("fills the window when asked, and gives it back", async () => {
