@@ -73,6 +73,7 @@ simulator cannot fly to orbit at all, so their ascent goes unverified.
     test/           the checks — see How it is verified
     perf/           solver benchmarks, deliberately outside CI
     docs/optimiser-flow.mermaid    how the search works, and where simulation enters
+    docs/design.md                 the design guide: type, colour, space, components, the a11y bar
     .claude/rules/  the traps, split by the code they apply to
 
 `src/core/plan.ts` is the seam: `planMission()` takes a destination and a payload
