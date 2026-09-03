@@ -80,8 +80,9 @@ it was written, and the assertion is that it has not grown. A pull request
 that improves one lowers it in the same commit. It also holds the order of
 the page's top-level sections — brief, rocket, build, fly, route — and the
 height of the page with every one of them folded, which is the brief, four
-lines and the footer (#134); that check runs last because it leaves the page
-folded, and it waits a beat after clicking because React commits the folds
+lines and the footer (#134) — on both screens that is less than the viewport,
+so what it measures is the viewport; that check runs last because it leaves
+the page folded, and it waits a beat after clicking because React commits the folds
 after the click returns, not during it. Before that it opens every
 `Disclosure` on the page where it stands and asserts the disclosed box has
 an area, since jsdom cannot tell a popover that rendered from one that
@@ -163,6 +164,7 @@ invisible to every baseline here.
     test/brief-line.test.ts               the set brief's one line
     test/results-order.test.tsx           the build tabs, and the route folded until cut
     test/disclosure.test.tsx              every paragraph is behind an i, and in the DOM
+    test/solving-indicator.test.tsx       the solving pill follows the visual viewport
     test/solver-client.test.ts            the worker message protocol
     test/mission-sweep.test.ts            what planMission actually delivers
     test/shard.test.ts                    the sharded search folds back in order

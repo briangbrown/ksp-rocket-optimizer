@@ -53,7 +53,6 @@ const THEMES = `
 `;
 
 const STYLES = `
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 ${THEMES}
 * { box-sizing: border-box; }
 ${roles.map(roleBase).join("\n")}
@@ -86,7 +85,8 @@ input[type=range]{ accent-color:${C.amber}; width:100%; }
 .iconbtn { position:relative; display:inline-flex; align-items:center; justify-content:center;
            width:44px; height:44px; flex-shrink:0; border-radius:${RADIUS.sm}px; color:${C.muted};
            transition:${MOTION.quick}ms; }
-.iconbtn:hover, .iconbtn:focus-visible { color:${C.paper}; background:${C.panel2}; }
+.iconbtn:hover:not(:disabled), .iconbtn:focus-visible { color:${C.paper}; background:${C.panel2}; }
+.iconbtn:disabled { opacity:.4; }
 .iconbtn[data-on="1"] { color:${C.ink}; background:${C.paper}; }
 /* Not merely transparent while hidden: an absolutely positioned box still
    counts towards its parent's scrollWidth, and the layout suite would read
@@ -110,6 +110,25 @@ input[type=range]{ accent-color:${C.amber}; width:100%; }
    finger's path to the same words. Hidden as the icon tooltip is, and only
    where there is a pointer to hover with. */
 .chip { position:relative; }
+/* The body picker's dash and moons, hung level with the planet's name. */
+.dash { margin-top:7px; }
+.moons { margin-top:4px; }
+/* The flight profile: a row is one line, whatever the screen. */
+.profile th { padding:0 0 4px; white-space:nowrap; vertical-align:bottom; }
+.profile td { padding:2px 0 2px ${SPACE.md}px; white-space:nowrap; vertical-align:top; }
+.profile td:first-child { padding-left:0; }
+/* The bill of parts. Five columns on desktop; on the phone, below, a row
+   is the part and then its figures. */
+.parts th { text-align:left; padding:6px 8px; border-bottom:1px solid ${C.rule}; white-space:nowrap; }
+.parts td { padding:6px 8px; border-bottom:1px solid ${C.panel2}; }
+.parts td.under { padding-left:22px; }
+.parts .num { text-align:right; }
+/* The rocket's name and its headline figures, one wrapping row; on the
+   phone, below, the name is a line of its own and the figures sit closer. */
+.hero { gap:26px; }
+/* A checkbox and its words as one row, the row being the target. */
+.check { display:flex; gap:6px; align-items:flex-start; }
+.check > input { margin-top:2px; }
 .chip[data-hint]::after { content:attr(data-hint); display:none; position:absolute; top:100%; left:0;
                           transform:translateY(${SPACE.sm}px); width:max-content; max-width:260px; white-space:normal; text-align:left;
                           font-family:${FONTS.sans}; font-size:${TYPE.note.size[1]}px; font-weight:400; line-height:1.4;
@@ -117,6 +136,55 @@ input[type=range]{ accent-color:${C.amber}; width:100%; }
                           padding:${SPACE.xs}px ${SPACE.md}px; pointer-events:none; z-index:${Z.popover}; }
 @media (hover: hover) { .chip[data-hint]:hover::after { display:block; } }
 @media (min-width: ${BREAK}px) { .iconbtn { width:32px; height:32px; } .disc { margin:-4px; } .disc-cap { min-height:32px; } .chip { ${size("body", 1)} } }
+/* The page's foot: room for the footer's last line, and on the phone for
+   the jump bar over it. */
+.page { padding-bottom:60px; }
+.jump { display:flex; }
+/* The phone's targets: 44 px on anything a finger presses. A chip grows
+   to it; a fold's header button, a checkbox's label row, a planet, a moon
+   and the cut row take it as a minimum height through \`tap\`; a link in
+   running text takes it as padding its negative margin gives back to the
+   line, so the box is 44 tall without the line being. A number field is
+   16 px so iOS does not zoom into it on focus, and a slider is as tall as
+   the thumb needs. #136 */
+@media (max-width: ${BREAK - 1}px) {
+  .chip, .tap { min-height:44px; }
+  .page { padding-bottom:calc(104px + env(safe-area-inset-bottom)); }
+  .check { align-items:center; }
+  .dash { margin-top:11px; }
+  .moons { margin-top:0; }
+  .check > input { margin-top:0; }
+  .fold { min-height:44px; margin:-10px 0; }
+  a { display:inline-block; padding:14px 0; margin:-14px 0; }
+  .field-in { font-size:16px; min-height:44px; }
+  input[type=range] { height:44px; margin:0; }
+  /* The bill, a row at a time: the stage number down the left, the part
+     across the top, and under it \`qty × each t = total t\` — the glue and
+     the units are drawn here, since the header that named the columns is
+     not. A note row is its words alone; a hardware row is \`qty · in
+     payload\`. */
+  .hero { gap:${SPACE.lg}px; }
+  .hero-name { flex-basis:100%; }
+  .parts thead { display:none; }
+  .parts tr { display:grid; grid-template-columns:24px max-content max-content 1fr; column-gap:${SPACE.xs}px; padding:${SPACE.md}px 0; border-bottom:1px solid ${C.panel2}; }
+  .parts td { padding:0; border:0; }
+  .parts .num { text-align:left; }
+  .parts td:nth-child(1) { grid-row:1 / 3; }
+  .parts td:nth-child(2) { grid-column:2 / 5; }
+  .parts td.under { padding-left:0; }
+  .parts td:nth-child(4)::before { content:"× "; }
+  .parts td:nth-child(4)::after, .parts td:nth-child(5)::after { content:" t"; }
+  .parts td:nth-child(5)::before { content:"= "; }
+  .parts tr.words td:nth-child(n+3) { display:none; }
+  .parts tr.hw td:nth-child(4) { display:none; }
+  .parts tr.hw td:nth-child(5)::before { content:"· "; }
+  .parts tr.hw td:nth-child(5)::after { content:none; }
+}
+@media (min-width: ${BREAK}px) { .parts { min-width:460px; } }
+/* The fold's header button on desktop: 24 px, the desktop's target; and no
+   jump bar, the page being in view at once. */
+@media (min-width: ${BREAK}px) { .fold { min-height:24px; margin:-3px 0; } .jump { display:none; }
+                                 a { display:inline-block; padding:3px 0; margin:-3px 0; } }
 /* The fold's chevron, turned by the section it belongs to. */
 .chev { transition:transform ${MOTION.quick}ms; color:${C.dim}; flex-shrink:0; }
 [aria-expanded="true"] > .chev { transform:rotate(90deg); }
@@ -135,7 +203,6 @@ ${Object.entries(SEVERITY)
 a { color:${C.muted}; text-decoration:underline; text-decoration-color:${C.edge};
     text-underline-offset:2px; transition:${MOTION.quick}ms; }
 a:hover { color:${C.paper}; text-decoration-color:${C.amber}; }
-@keyframes sweep { 0% { transform:translateX(-100%); } 100% { transform:translateX(386%); } }
 @keyframes fadein { from { opacity:0; } to { opacity:1; } }
 @keyframes pulse { 0%,100% { opacity:.35; } 50% { opacity:1; } }
 @keyframes rise { from { transform:translateY(100%); } to { transform:none; } }

@@ -192,12 +192,12 @@ const SPACE = { xs: 2, sm: 4, md: 8, lg: 12, xl: 16, xxl: 24, xxxl: 32 };
    bar bled to the page's edges, which has no corners to round. */
 const RADIUS = { none: 0, sm: 3, lg: 8, round: 999 };
 
-/* The stacking order, named. The bar stays above the overlay so a full-screen
-   rocket about to be replaced still says so — `.claude/rules/ui.md`. */
+/* The stacking order, named. The solving pill stays above the overlay so a
+   full-screen rocket about to be replaced still says so — `.claude/rules/ui.md`.
+   30 was a second pill inside the veil, gone with #136. */
 const Z = {
   brief: 10,
   jump: 20,
-  pill: 30,
   overlay: 40,
   solving: 50,
   sheet: 60,

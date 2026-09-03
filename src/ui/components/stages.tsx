@@ -1,6 +1,6 @@
 import { fmt, hms } from "../format.js";
 import { C, RADIUS, SPACE } from "../tokens.js";
-import { Choice, Stat } from "./primitives.jsx";
+import { Stat, Stepper, Toggle } from "./primitives.jsx";
 import type { ManifestRow } from "../../core/manifest.js";
 import type { PlanStage } from "../../core/plan.js";
 import type { Solution } from "../../core/solution.js";
@@ -8,9 +8,8 @@ import type { Solution } from "../../core/solution.js";
 /* The part's name, where the row has one to give. */
 const partName = (p: ManifestRow["part"]) => (p && "n" in p ? (p.n ?? "") : "");
 
-/* The stage-count options a segment offers: the solver's own choice, or a
-   number forced on it. */
-const COUNTS = [0, 1, 2, 3, 4, 5];
+/* The most stages a segment may be forced to. */
+const MAX_STAGES = 5;
 
 type StageStackProps = {
   stages: ReadonlyArray<PlanStage>;
@@ -68,6 +67,9 @@ function StageStack({ stages, color, splitBy, onSetSplit }: StageStackProps) {
                     {fmt(need)} m/s
                   </span>
                 </span>
+                {/* The solver's own count, or one forced on it: `auto` is
+                    on until the stepper is touched, and turns it back over.
+                    A zero in splitBy is the solver's choice. */}
                 <span
                   style={{
                     display: "flex",
@@ -78,16 +80,18 @@ function StageStack({ stages, color, splitBy, onSetSplit }: StageStackProps) {
                   <span className="label" style={{ marginRight: SPACE.xs }}>
                     stages
                   </span>
-                  <Choice
+                  <Toggle
+                    label="auto"
+                    on={pick === 0}
+                    onChange={(on) => on && onSetSplit(seg.key, 0)}
+                  />
+                  <Stepper
                     label="Stages in this segment"
-                    value={pick}
+                    unit="stages"
+                    value={pick || seg.items.length}
+                    min={1}
+                    max={MAX_STAGES}
                     onChange={(k) => onSetSplit(seg.key, k)}
-                    chip={{ padding: "1px 7px" }}
-                    style={{ gap: SPACE.sm }}
-                    options={COUNTS.map((k) => ({
-                      value: k,
-                      label: k === 0 ? `auto (${seg.items.length})` : k,
-                    }))}
                   />
                 </span>
               </div>

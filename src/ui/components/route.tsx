@@ -132,6 +132,7 @@ function RouteMap({
                 aria-label={
                   isCut ? "Remove staging event" : "Add staging event"
                 }
+                className="tap"
                 style={{
                   display: "grid",
                   gridTemplateColumns: "26px 1fr",
@@ -263,7 +264,7 @@ function BodyPicker({ options, value, onPick }: BodyPickerProps) {
             }}
           >
             <button
-              className="body"
+              className="body tap"
               style={{ ...planetBtn(pl, po === value, !!po), flexShrink: 0 }}
               onClick={() => po && onPick(po)}
               disabled={!po}
@@ -272,23 +273,26 @@ function BodyPicker({ options, value, onPick }: BodyPickerProps) {
             </button>
             {mo.length > 0 && (
               <>
-                <span className="body" style={{ color: C.rule, marginTop: 7 }}>
+                <span className="body dash" style={{ color: C.rule }}>
                   ─
                 </span>
+                {/* The dash and the moons sit on the planet's first line;
+                    how far down that is depends on the height a target has,
+                    which is the stylesheet's to say. */}
                 <div
+                  className="moons"
                   style={{
                     display: "flex",
                     gap: 4,
                     flexWrap: "wrap",
                     flex: 1,
                     minWidth: 0,
-                    marginTop: 4,
                   }}
                 >
                   {mo.map(({ b, o }) => (
                     <button
                       key={b}
-                      className="note"
+                      className="note tap"
                       style={moonBtn(b, o === value)}
                       onClick={() => onPick(o)}
                     >

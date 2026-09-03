@@ -69,6 +69,7 @@ function Results(p: ResultsProps) {
   return (
     <>
       <Section
+        id="rocket"
         heading="Your rocket"
         summary={`${p.craft.name} · ${dash(fmt(p.liftoff, 1))} t`}
         open={rocketOpen}
@@ -99,17 +100,20 @@ function Results(p: ResultsProps) {
         )}
 
         {/* The name and the headline figures. Step 11 (#138) makes the rocket
-            the hero; this is the row beside it. */}
+            the hero; this is the row beside it. The gap is the stylesheet's:
+            26 on desktop, and on the phone 12, with the name on a line of
+            its own, which is what lets seven figures fall on two lines
+            rather than three. #136 */}
         <div
+          className="hero"
           style={{
             display: "flex",
             flexWrap: "wrap",
-            gap: 26,
             alignItems: "flex-end",
             marginBottom: p.stages.some((x) => x.sol) ? SPACE.xl : 0,
           }}
         >
-          <div style={{ maxWidth: 340 }}>
+          <div className="hero-name" style={{ maxWidth: 340 }}>
             <div className="label" style={{ marginBottom: 3 }}>
               Save it as
             </div>
@@ -163,6 +167,7 @@ function Results(p: ResultsProps) {
       </Section>
 
       <Section
+        id="build"
         heading="How to build it"
         summary={`${dash(p.stages.length)} stages · ${dash(p.totalParts)} parts · ${dash(fmt(p.liftoff, 1))} t`}
         open={buildOpen}
@@ -206,6 +211,7 @@ function Results(p: ResultsProps) {
 
       {flights.length > 0 && (
         <Section
+          id="fly"
           heading="How to fly it"
           summary={flightLine(flights[0])}
           open={flyOpen}
@@ -245,6 +251,7 @@ function Results(p: ResultsProps) {
       )}
 
       <Section
+        id="route"
         heading="Where it goes"
         summary={`${p.route.length} legs · ${fmt(p.budget)} m/s · ${
           p.cuts.size === 0

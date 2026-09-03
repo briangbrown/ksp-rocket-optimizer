@@ -23,26 +23,26 @@ import type { Page } from "puppeteer";
    render.test.ts gives. */
 const BUDGET = {
   phone: {
-    height: 4570, // px, the whole page with the default mission solved and the brief set: 4474, with 2% for a different Chrome's fonts
-    words: 663, // visible words on that page — the paragraphs are behind disclosures, #135
+    height: 4180, // px, the whole page with the default mission solved and the brief set: 4095, with 2% for a different Chrome's fonts
+    words: 645, // visible words on that page — the paragraphs are behind disclosures, #135
     tinyText: 0, // text under 12 px
     smallBody: 60, // text under 13 px: the labels, at 12
-    targets: 19, // pressable things under 44 × 44 — of 27
-    sideways: 1, // things wider than their box: the build section's header row, by 27
+    targets: 0, // pressable things under 44 × 44 — of 24, #136
+    sideways: 0, // things wider than their box
     unreachable: 0, // targets a keyboard cannot reach
     axe: 0, // nodes axe objects to, wcag2a + wcag2aa
-    folded: 860, // px, every section folded: the brief, four lines and the footer — 844
+    folded: 860, // px, every section folded: the brief, four lines and the footer — 844, which is the viewport
   },
   desktop: {
-    height: 2680, // 2620
-    words: 664,
+    height: 2640, // 2582
+    words: 646,
     tinyText: 61, // the labels, at 11
-    smallBody: 89, // labels and notes
-    targets: 13, // under 24 × 24 — of 27
+    smallBody: 88, // labels and notes
+    targets: 0, // under 24 × 24 — of 24
     sideways: 0,
     unreachable: 0,
     axe: 0,
-    folded: 920, // 900
+    folded: 920, // 900, the viewport
   },
 };
 
@@ -184,6 +184,17 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
       axe: axe.reduce((a, v) => a + v.nodes, 0),
     };
     writeFileSync(`${OUT}/${screen}.json`, JSON.stringify(n, null, 2));
+    /* And what each number is made of, since a failure lists only the first
+       twelve and a pass lists nothing: which targets, which text, which
+       boxes. For a person working a budget down. */
+    writeFileSync(
+      `${OUT}/${screen}-detail.json`,
+      JSON.stringify(
+        { under, tiny, small, sideways: m.sideways, missed, axe, axeLight },
+        null,
+        2,
+      ),
+    );
   }, 300_000);
 
   afterAll(async () => {
@@ -345,6 +356,7 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
     const folded = await page.evaluate(
       () => document.documentElement.scrollHeight,
     );
+    writeFileSync(`${OUT}/${screen}-folded.txt`, `${folded}\n`);
     expect(folded, `folded page ${folded}px`).toBeLessThanOrEqual(
       budget.folded,
     );

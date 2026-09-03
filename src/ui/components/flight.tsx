@@ -162,19 +162,24 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
         : "circularised",
     ],
   ];
+  /* The number stands beside the words rather than over them: a step is a
+     line or two, and the phone stacks seven of them. */
   const box = {
+    display: "grid",
+    gridTemplateColumns: "20px 1fr",
+    gap: SPACE.sm,
     background: C.panel2,
     border: `1px solid ${C.rule}`,
     borderRadius: RADIUS.sm,
-    padding: "10px 12px",
+    padding: "6px 12px 6px 10px",
   };
   return (
     <div>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
-          gap: 8,
+          gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+          gap: SPACE.md,
           marginBottom: 14,
         }}
       >
@@ -186,22 +191,25 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
               borderLeft: `3px solid ${i === 1 || i === 2 ? color : C.rule}`,
             }}
           >
-            <div className="label" style={{ marginBottom: SPACE.sm }}>
+            <div className="label" style={{ paddingTop: 3 }}>
               {i + 1}
             </div>
-            <div className="body" style={{ marginBottom: 3 }}>
-              {main}
+            <div>
+              <div className="body" style={{ marginBottom: 2 }}>
+                {main}
+              </div>
+              <div className="note">{sub}</div>
             </div>
-            <div className="note">{sub}</div>
           </div>
         ))}
       </div>
 
+      {/* As many across as fit at a figure's width. */}
       <div
         style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "8px 26px",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
+          gap: `${SPACE.md}px ${SPACE.lg}px`,
           marginBottom: hot ? 12 : 0,
         }}
       >
@@ -259,19 +267,21 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
           <div className="label" style={{ marginBottom: 7 }}>
             Fly this profile
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          {/* Four figures a row, and a row is one line: at 390 px the widest
+              — a time, a pitch, a speed and an altitude — is 27 characters
+              of the figure face, which fits with the cutoff and apoapsis
+              tags on a line of their own under the time. The cells' padding
+              is the stylesheet's. #136 */}
+          <table
+            className="profile"
+            style={{ width: "100%", borderCollapse: "collapse" }}
+          >
             <thead>
               <tr className="label">
-                <th style={{ textAlign: "left", padding: "0 0 5px" }}>T+</th>
-                <th style={{ textAlign: "right", padding: "0 0 5px" }}>
-                  Navball pitch
-                </th>
-                <th style={{ textAlign: "right", padding: "0 0 5px" }}>
-                  Speed
-                </th>
-                <th style={{ textAlign: "right", padding: "0 0 5px" }}>
-                  Altitude
-                </th>
+                <th style={{ textAlign: "left" }}>T+</th>
+                <th style={{ textAlign: "right" }}>Pitch</th>
+                <th style={{ textAlign: "right" }}>Speed</th>
+                <th style={{ textAlign: "right" }}>Altitude</th>
               </tr>
             </thead>
             <tbody className="figure">
@@ -285,16 +295,18 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
                 >
                   <td
                     style={{
-                      padding: "3px 0",
                       color: w.meco || w.apoMark ? color : C.paper,
                     }}
                   >
                     {hms(w.t)}
-                    {w.meco ? " · cutoff" : w.apoMark ? " · apoapsis" : ""}
+                    {(w.meco || w.apoMark) && (
+                      <span style={{ display: "block", color: C.dim }}>
+                        {w.meco ? "cutoff" : "apoapsis"}
+                      </span>
+                    )}
                   </td>
                   <td
                     style={{
-                      padding: "3px 0",
                       textAlign: "right",
                       color: w.coast ? C.dim : color,
                       fontWeight: w.coast ? 400 : 600,
@@ -308,22 +320,10 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
                           ? `${w.nav ?? 0}° up`
                           : `${-(w.nav ?? 0)}° down`}
                   </td>
-                  <td
-                    style={{
-                      padding: "3px 0",
-                      textAlign: "right",
-                      color: C.muted,
-                    }}
-                  >
+                  <td style={{ textAlign: "right", color: C.muted }}>
                     {w.v} m/s
                   </td>
-                  <td
-                    style={{
-                      padding: "3px 0",
-                      textAlign: "right",
-                      color: C.dim,
-                    }}
-                  >
+                  <td style={{ textAlign: "right", color: C.dim }}>
                     {(w.h / 1000).toFixed(1)} km
                   </td>
                 </tr>

@@ -3,9 +3,9 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 
 /* Can you see that it is solving?
 
-   The bar is `position: fixed`, which pins it to the layout viewport. An
+   The pill is `position: fixed`, which pins it to the layout viewport. An
    on-screen keyboard does not shrink that one — it shrinks the visual viewport,
-   and the browser scrolls the focused field up into what is left — so the bar
+   and the browser scrolls the focused field up into what is left — so the pill
    ends up above the visible area at exactly the moment it is needed: you have
    typed a value into a field and want to know the solve started. Reported from
    an Android phone as the solve appearing not to run at all, because the only
@@ -26,8 +26,9 @@ const { settle } = await import("./app-harness.js");
 const { must } = await import("./must.js");
 const { default: KSPMissionPlanner } = await import("../src/ui/app.jsx");
 
-/* The one fixed, full-width layer above everything else. */
-const bar = () =>
+/* The one fixed layer above everything but a sheet: the pill's row, which
+   was a bar across the page until #136. */
+const pill = () =>
   [...document.querySelectorAll("div")].find(
     (d) => d.style.position === "fixed" && d.style.zIndex === "50",
   );
@@ -64,24 +65,26 @@ afterEach(() => {
   delete (window as { visualViewport?: unknown }).visualViewport;
 });
 
-describe("the solving bar", () => {
+describe("the solving pill", () => {
   it("follows the visual viewport when a keyboard pushes it", async () => {
     const vv = fakeViewport();
     render(<KSPMissionPlanner />);
     await settle(30_000);
 
-    const el = bar();
-    expect(el, "no fixed solving bar rendered").toBeTruthy();
-    expect(must(el, "the solving bar").style.transform).toBe("translateY(0px)");
+    const el = pill();
+    expect(el, "no fixed solving pill rendered").toBeTruthy();
+    expect(must(el, "the solving pill").style.transform).toBe(
+      "translateY(0px)",
+    );
 
     await vv.moveTo(240);
     expect(
-      must(bar(), "the solving bar").style.transform,
-      "the bar stayed at the top of the layout viewport, which is off screen",
+      must(pill(), "the solving pill").style.transform,
+      "the pill stayed at the top of the layout viewport, which is off screen",
     ).toBe("translateY(240px)");
 
     await vv.moveTo(0);
-    expect(must(bar(), "the solving bar").style.transform).toBe(
+    expect(must(pill(), "the solving pill").style.transform).toBe(
       "translateY(0px)",
     );
   }, 60_000);

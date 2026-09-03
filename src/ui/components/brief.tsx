@@ -89,12 +89,16 @@ function Brief(p: BriefProps) {
         /* Up as well as out: the grid's top padding would otherwise show
            as a strip of ink between the header and the bar. */
         margin: `-${SPACE.xl}px -${SPACE.xl}px 0`,
+        /* Bled to the edges, so under the notch's strip as well: the page's
+           own inset is inside the margin this undoes. */
+        paddingTop: `calc(${SPACE.xl}px + env(safe-area-inset-top))`,
         borderRadius: RADIUS.none,
         borderWidth: "0 0 1px",
         boxShadow: SHADOW.bar,
       };
   return (
     <Section
+      id="brief"
       heading="Brief"
       summary={p.line}
       open={p.open}

@@ -30,8 +30,8 @@ control shows and what it committed.
   descendant. A full-screen overlay rendered inside it re-anchors itself to the
   results column halfway through a solve. The build view's goes through
   `createPortal` to `document.body` for that reason, and sits at a z-index
-  below the app's own solving bar — which is fixed at 50 and outside the veil —
-  so a full-screen rocket about to be replaced still says so.
+  below the app's own solving pill — which is fixed at 50 and outside the
+  veil — so a full-screen rocket about to be replaced still says so.
 
   What a portal costs is that it is a second root. The type stack is set on the
   application's own root div, and `button { font-family: inherit }` in the
@@ -48,7 +48,7 @@ control shows and what it committed.
 - **`position: fixed` is not the top of the screen on a phone.** An on-screen
   keyboard shrinks the visual viewport, not the layout one, and the browser
   scrolls the focused field up into what is left — so a fixed overlay ends up
-  above the visible area at exactly the moment it is wanted. The solving bar
+  above the visible area at exactly the moment it is wanted. The solving pill
   translates by `visualViewport.offsetTop` for this reason, and so does the
   set brief, which is `sticky` rather than `fixed` but pinned to the same
   wrong top. `viewTop` in `app.tsx` is the one subscription both read.
@@ -113,6 +113,29 @@ control shows and what it committed.
   neither in `innerText` nor in the phone's reach; the sentences it shows
   go in a `Disclosure` beside the group as well, which is what the render
   sweep and the phone read.
+
+- **The phone's targets are the stylesheet's, not the components'.** A
+  chip and anything with the `tap` class take `min-height: 44px` under the
+  phone's media query and nothing above it; a fold's button and a link in
+  running text get their 44 as padding a negative margin gives back, so the
+  line they sit in is no taller. Setting a height on a control inline makes
+  it that tall on desktop too, where the target is 24. A number field is
+  16 px on the phone (`.field-in`) because iOS zooms into anything smaller
+  on focus, and that is a size, not a role — the one place `font-size` is
+  set outside `TYPE`. #136
+
+- **`flex: 1` never wraps.** The shorthand's basis is `0`, and a flex line
+  wraps on the items' bases, so a `flex: 1` item asks for no room and its
+  row never breaks — the build section's tabs sat on top of its heading
+  until the fold's button became `flex: 1 1 auto`. And the brief's summary
+  is `contain: inline-size` inside that button, or its words would count
+  towards the row and push the Δv aside under the heading. #136
+
+- **The jump bar hides with `visibility`, not `aria-hidden`.** It is off
+  screen until the reader scrolls past the header, and an `aria-hidden` nav
+  with a focusable button in it is an axe failure (`aria-hidden-focus`).
+  `visibility: hidden` takes it out of the Tab order and the accessibility
+  tree together, and transitions with the slide.
 
 - **The visual suite runs against `dist/`.** `npm run test:visual` builds
   first; running `vitest --config vitest.visual.config.js` by hand does not,

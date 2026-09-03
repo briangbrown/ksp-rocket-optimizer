@@ -20,6 +20,7 @@ import { Brief } from "./components/brief.jsx";
 import { IconButton, Sheet } from "./components/primitives.jsx";
 import { Results } from "./components/results.jsx";
 import { Setup } from "./components/setup.jsx";
+import { JumpBar } from "./components/jump.jsx";
 import { Solving } from "./components/solving.jsx";
 import { parseConfig } from "./config.js";
 import { briefLine, craftName } from "./format.js";
@@ -29,10 +30,7 @@ import {
   BODY_HUE,
   C,
   FONT,
-  RADIUS,
-  SHADOW,
   SPACE,
-  Z,
   edgeOf,
   palette,
   themeNow,
@@ -387,6 +385,8 @@ export default function KSPMissionPlanner() {
      Absent in jsdom and in older browsers, where this stays 0 and the bar
      behaves as it always did. */
   const [viewTop, setViewTop] = useState(0);
+  /* The header: what the jump bar waits for the page to scroll past. */
+  const headRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
@@ -604,74 +604,27 @@ export default function KSPMissionPlanner() {
 
   return (
     <div
+      className="page"
       style={{
         background: C.ink,
         color: C.paper,
-        minHeight: "100vh",
+        /* dvh, not vh: a phone's address bar comes and goes, and the page
+           is as tall as what is left. */
+        minHeight: "100dvh",
         fontFamily: FONT,
-        padding: "0 0 60px",
+        /* The notch's strip and the rounded corners' on a phone held
+           sideways; the foot is the stylesheet's, which knows about the
+           jump bar. */
+        paddingTop: "env(safe-area-inset-top)",
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
       }}
     >
       <style>{STYLES}</style>
 
       {/* ---------------------------- header ---------------------------- */}
-      {/* Solving can take seconds at full tech, so say so plainly rather than with
-          a hairline. Held back 120 ms so quick recalculations do not flash. */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: Z.solving,
-          transform: `translateY(${viewTop}px)`,
-          background: C.panel2,
-          borderBottom: `1px solid ${C.amber}`,
-          boxShadow: SHADOW.bar,
-          opacity: busy ? 1 : 0,
-          pointerEvents: "none",
-          transition: busy ? "opacity .08s ease-out" : "opacity .7s ease-in",
-        }}
-      >
-        <div style={{ height: 4, background: C.rule, overflow: "hidden" }}>
-          <div
-            style={{
-              height: "100%",
-              width: "30%",
-              background: C.amber,
-              animation: busy ? "sweep 1s ease-in-out infinite" : "none",
-            }}
-          />
-        </div>
-        <div
-          style={{
-            maxWidth: 1160,
-            margin: "0 auto",
-            padding: "7px 20px",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: RADIUS.round,
-              background: C.amber,
-              animation: busy ? "pulse 1s ease-in-out infinite" : "none",
-            }}
-          />
-          <span className="body" style={{ color: C.paper, fontWeight: 600 }}>
-            Solving {origin} → {dest}
-          </span>
-          <span className="note">
-            staging, engine selection and ascent simulation
-          </span>
-        </div>
-      </div>
-
       <header
+        ref={headRef}
         style={{
           borderBottom: `1px solid ${C.rule}`,
           background: C.panel,
@@ -794,7 +747,14 @@ export default function KSPMissionPlanner() {
           onChutes={edit(setChutes)}
         />
 
-        <Solving busy={busy} label={`Solving ${origin} → ${dest}…`}>
+        {/* Solving can take seconds at full tech, so say so plainly rather
+            than with a hairline. Held back 120 ms so quick recalculations do
+            not flash. */}
+        <Solving
+          busy={busy}
+          top={viewTop}
+          label={`Solving ${origin} → ${dest}…`}
+        >
           <Results
             route={route}
             cuts={effCuts}
@@ -862,6 +822,7 @@ export default function KSPMissionPlanner() {
           }
         </div>
       </div>
+      <JumpBar past={headRef} />
     </div>
   );
 }
