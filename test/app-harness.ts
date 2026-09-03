@@ -34,6 +34,40 @@ export async function click(target: string | Element | null | undefined) {
   });
 }
 
+/* A `Field`'s text input carries its label as `aria-label`, so a test can ask
+   for "Payload delivered" rather than the third input on the page — an index
+   that moved twice in the refresh. */
+export const field = (label: string) =>
+  [...document.querySelectorAll("input")].find(
+    (i) => i.type !== "range" && i.getAttribute("aria-label") === label,
+  );
+
+/* The folding sections and the setup sheet, #133. The brief folds itself the
+   first time a design solves, so a test that reaches for a control on it has
+   to open it first — the same tap a reader makes. Opening counts as touching
+   it, and a touched brief stays open across a re-solve. */
+const folder = (heading: string) =>
+  [...document.querySelectorAll("button[aria-expanded]")].find((b) =>
+    b.querySelector(".label")?.textContent?.trim().startsWith(heading),
+  );
+
+export async function openFold(heading: string) {
+  const b = folder(heading);
+  if (!(b instanceof HTMLElement)) throw new Error(`no "${heading}" fold`);
+  if (b.getAttribute("aria-expanded") === "true") return;
+  await click(b);
+}
+
+export const openBrief = () => openFold("Brief");
+
+/* Setup — the install, the tech tree, the theme, the configuration — is in a
+   sheet behind the header's gear. The sheet is a portal to body, so what it
+   holds is still found from `document`. */
+export async function openSetup() {
+  if (document.querySelector('[role="dialog"]')) return;
+  await click(allByLabel("Setup")[0]);
+}
+
 /* The solve effect debounces by 120 ms before it starts, so checking
    immediately would read the previous design as though it were the new one.
    Wait past the debounce first, then for the veil to clear. */

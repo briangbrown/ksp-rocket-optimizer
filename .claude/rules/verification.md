@@ -149,6 +149,8 @@ invisible to every baseline here.
     test/seam-contract.test.ts            planMission stays serialisable
     test/seam-input.test.tsx              what the app actually hands the seam
     test/resolve-wiring.test.tsx          does a control change re-solve
+    test/brief.test.tsx                   the brief folds, sticks and stays put
+    test/brief-line.test.ts               the set brief's one line
     test/solver-client.test.ts            the worker message protocol
     test/mission-sweep.test.ts            what planMission actually delivers
     test/shard.test.ts                    the sharded search folds back in order

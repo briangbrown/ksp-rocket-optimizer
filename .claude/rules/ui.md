@@ -49,7 +49,26 @@ control shows and what it committed.
   keyboard shrinks the visual viewport, not the layout one, and the browser
   scrolls the focused field up into what is left — so a fixed overlay ends up
   above the visible area at exactly the moment it is wanted. The solving bar
-  translates by `visualViewport.offsetTop` for this reason.
+  translates by `visualViewport.offsetTop` for this reason, and so does the
+  set brief, which is `sticky` rather than `fixed` but pinned to the same
+  wrong top. `viewTop` in `app.tsx` is the one subscription both read.
+
+- **The brief folds itself exactly once.** The first design that solves folds
+  it; after that the reader owns it. That is a `touched` ref, set by opening
+  the brief or by any control on it, and read by the solve effect — state
+  would do, but a ref does not put "has the reader touched the form" into a
+  dependency array that is about the mission. A test that reaches for a
+  control on the brief has to open it first, which is what `openBrief` in the
+  harness is for; opening counts as touching, so it then stays open.
+
+- **`Sheet`'s `onClose` is an effect dependency.** The effect installs the
+  Escape and Tab handling and moves focus into the panel; an inline arrow for
+  `onClose` re-runs it every render, which re-focuses the panel on every
+  keystroke inside it. Wrap it in `useCallback`, as `closeSetup` is.
+
+- **A portal is at the end of `body`.** The setup sheet's chips come after
+  everything on the page in DOM order, so a test that finds "the button
+  containing Light" now finds the brief's _Lightest_ first. Match exactly.
 
 - **A text field renders its draft, not its value.** `Field` holds a draft
   string while focused so half-typed values are not fought. A typed number

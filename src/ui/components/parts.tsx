@@ -354,7 +354,10 @@ function PartsTable({ stages, payload, hardware, color }: PartsTableProps) {
     borderBottom: `1px solid ${C.panel2}`,
   };
   return (
-    <div style={{ overflowX: "auto" }}>
+    /* The table is wider than a phone and scrolls inside its box; a tab stop
+       is what lets a keyboard scroll it, and what axe asks of a region that
+       scrolls. */
+    <div style={{ overflowX: "auto" }} tabIndex={0}>
       <table
         style={{ width: "100%", borderCollapse: "collapse", minWidth: 460 }}
       >

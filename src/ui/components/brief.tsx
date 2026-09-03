@@ -1,18 +1,28 @@
 import { Undo2 } from "lucide-react";
 import { PROFILES, SYS } from "../../core/orbits.js";
-import { C, SPACE } from "../tokens.js";
+import { OBJECTIVES, fmt } from "../format.js";
+import { C, RADIUS, SHADOW, SPACE, Z } from "../tokens.js";
 import { BodyPicker } from "./route.jsx";
 import { Choice, Field, ICON, STROKE, Section, Toggle } from "./primitives.jsx";
+import type { CSSProperties } from "react";
 import type { Objective } from "../../core/performance.js";
 
-/* What the search is asked to minimise, and what to call each. */
-const OBJECTIVES: ReadonlyArray<[Objective, string]> = [
-  ["mass", "Lightest"],
-  ["cost", "Cheapest"],
-  ["parts", "Fewest parts"],
-];
-
 type BriefProps = {
+  /* Open, the brief is the form. Set, it is one line under the solving bar,
+     stuck to the top of the page so it is a tap away from anywhere. */
+  open: boolean;
+  onToggle: () => void;
+  onDone: () => void;
+  /* The set line — briefLine in format.ts — and the Δv budget beside it. */
+  line: string;
+  budget: number;
+  /* The Δv accent: the destination's own hue. */
+  accent: string;
+  /* How far the visual viewport has been pushed down the layout one, which
+     is where "the top of the page" actually is — `.claude/rules/ui.md`. */
+  top: number;
+  moreOpen: boolean;
+  onToggleMore: () => void;
   origin: string;
   onOrigin: (b: string) => void;
   originOpen: boolean;
@@ -20,8 +30,6 @@ type BriefProps = {
   dest: string;
   destList: ReadonlyArray<string>;
   onDest: (d: string) => void;
-  destOpen: boolean;
-  onToggleDest: () => void;
   /* The profile in force, which is not always the one chosen: a landing
      falls back to orbit where there is nothing to land on. */
   profile: string;
@@ -55,16 +63,52 @@ type BriefProps = {
   onChutes: (on: boolean) => void;
 };
 
-/* The mission: where from, where to, what is carried and what the search is
-   asked for. Everything here changes run to run, which is why none of it is
-   saved. */
+/* The mission: where to, what kind, what it carries, how much margin, and
+   what the search is asked for — in the order you decide it. Everything here
+   changes run to run, which is why none of it is saved. Once it is decided
+   the card folds to a line and the page below it is all result. */
 function Brief(p: BriefProps) {
+  /* Set: stuck under the solving bar, bled to the page edges so the results
+     scroll under it rather than past it. `top` follows the visual viewport
+     for the same reason the solving bar does. */
+  const stuck: CSSProperties | undefined = p.open
+    ? undefined
+    : {
+        position: "sticky",
+        top: 0,
+        zIndex: Z.brief,
+        transform: `translateY(${p.top}px)`,
+        /* Up as well as out: the grid's top padding would otherwise show
+           as a strip of ink between the header and the bar. */
+        margin: `-${SPACE.xl}px -${SPACE.xl}px 0`,
+        borderRadius: RADIUS.none,
+        borderWidth: "0 0 1px",
+        boxShadow: SHADOW.bar,
+      };
   return (
-    <>
+    <Section
+      heading="Brief"
+      summary={p.line}
+      open={p.open}
+      onToggle={p.onToggle}
+      style={stuck}
+      aside={
+        <span className="figure" style={{ color: p.accent }}>
+          {fmt(p.budget)}
+          <span className="note" style={{ color: C.dim, marginLeft: SPACE.sm }}>
+            m/s
+          </span>
+        </span>
+      }
+    >
+      <div className="label" style={{ marginBottom: SPACE.md }}>
+        Where to
+      </div>
+      <BodyPicker value={p.dest} options={p.destList} onPick={p.onDest} />
+
       {/* Almost every mission starts at Kerbin, so the full sixteen-body
-          picker is a lot of furniture for a choice nobody makes. Folded by
-          default; the destination is the opposite, since that is the thing
-          you came to change. */}
+          picker is a lot of furniture for a choice nobody makes. Folded
+          beneath the destination, which is the thing you came to change. */}
       <Section
         bare
         heading="Launching from"
@@ -72,7 +116,7 @@ function Brief(p: BriefProps) {
         open={p.originOpen}
         onToggle={p.onToggleOrigin}
         gap={10}
-        style={{ marginBottom: SPACE.xl }}
+        style={{ margin: `${SPACE.lg}px 0 ${SPACE.xl}px` }}
       >
         {p.origin !== "Kerbin" && (
           <button
@@ -89,18 +133,6 @@ function Brief(p: BriefProps) {
           options={Object.keys(SYS).filter((b) => b !== "Sun" && SYS[b].ascent)}
           onPick={p.onOrigin}
         />
-      </Section>
-
-      <Section
-        bare
-        heading="Mission"
-        summary={p.dest}
-        open={p.destOpen}
-        onToggle={p.onToggleDest}
-        gap={10}
-        style={{ marginBottom: SPACE.xl }}
-      >
-        <BodyPicker value={p.dest} options={p.destList} onPick={p.onDest} />
       </Section>
 
       <div
@@ -154,6 +186,7 @@ function Brief(p: BriefProps) {
           display: "grid",
           gap: 18,
           gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
+          marginBottom: SPACE.xl,
         }}
       >
         <Field
@@ -168,37 +201,6 @@ function Brief(p: BriefProps) {
           hint="Everything not counted as engine or tank: pod, probe, science, rover, cargo — and the lander's own kit, its legs and heat shield included."
         />
         <Field
-          label="Δv margin"
-          value={p.margin}
-          min={0}
-          max={40}
-          step={1}
-          unit="%"
-          hardMax={100}
-          onChange={p.onMargin}
-          hint="Reserve over the map value for inefficiency and correction burns."
-        />
-        {p.crossfeedOk && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: SPACE.md,
-              flexWrap: "wrap",
-              margin: "8px 0",
-            }}
-          >
-            <Toggle
-              label="Asparagus staging"
-              on={p.asparagus}
-              onChange={p.onAsparagus}
-            />
-            <span className="note" style={{ color: C.dim }}>
-              liquid side stacks feed the core and drop in pairs
-            </span>
-          </div>
-        )}
-        <Field
           label="Payload width"
           value={p.payloadDia}
           min={0.625}
@@ -210,26 +212,15 @@ function Brief(p: BriefProps) {
           hint="How wide the thing you are lifting actually is. It sets the drag the stack has to push through, and on a small rocket the payload is often the widest part of it."
         />
         <Field
-          label="Slenderness limit"
-          value={p.maxAspect}
-          min={6}
-          max={30}
-          step={0.5}
-          unit=":1"
-          hardMax={60}
-          onChange={p.onMaxAspect}
-          hint="Tallest the stack may be relative to its widest point, boosters excluded — they stage away inside the atmosphere and what is left has to stay pointed. A pencil wobbles, needs struts and flips under load."
-        />
-        <Field
-          label="Extra Δv"
-          value={p.extraDv}
+          label="Δv margin"
+          value={p.margin}
           min={0}
-          max={1500}
-          step={10}
-          unit="m/s"
-          hardMax={9000}
-          onChange={p.onExtraDv}
-          hint="A flat reserve added after the margin, carried on the top stage — for rendezvous, a contract you have not planned yet, or getting home when the map was optimistic."
+          max={40}
+          step={1}
+          unit="%"
+          hardMax={100}
+          onChange={p.onMargin}
+          hint="Reserve over the map value for inefficiency and correction burns."
         />
         <div>
           <div className="label" style={{ marginBottom: SPACE.md }}>
@@ -248,37 +239,102 @@ function Brief(p: BriefProps) {
             that fit, and will accept a heavier rocket to save a part.
           </div>
         </div>
-        <div>
-          <div className="label" style={{ marginBottom: SPACE.md }}>
-            Atmospheric descent
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-            <Toggle
-              label="Gimbal in atmosphere"
-              on={p.needGimbal}
-              onChange={p.onNeedGimbal}
-            />
-            <Toggle
-              label="Solid boosters allowed"
-              on={p.srbAvail && p.boosters}
-              disabled={!p.srbAvail}
-              onChange={p.onBoosters}
-            />
-            <Toggle
-              label="Parachutes fitted"
-              on={p.airDescent && p.chutes}
-              disabled={!p.airDescent}
-              onChange={p.onChutes}
-            />
-          </div>
-          <div className="note" style={{ color: C.dim, marginTop: SPACE.md }}>
-            Cuts landing Δv to ~18% on Duna, Eve and Laythe. Add a heat shield
-            to the payload mass.
-          </div>
-        </div>
       </div>
-    </>
+
+      {/* The defaults are right for most missions, and these were fighting
+          the inputs above for a row. */}
+      <Section
+        bare
+        heading="More options"
+        open={p.moreOpen}
+        onToggle={p.onToggleMore}
+        gap={SPACE.lg}
+        style={{ marginBottom: SPACE.xl }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gap: 18,
+            gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
+          }}
+        >
+          <Field
+            label="Slenderness limit"
+            value={p.maxAspect}
+            min={6}
+            max={30}
+            step={0.5}
+            unit=":1"
+            hardMax={60}
+            onChange={p.onMaxAspect}
+            hint="Tallest the stack may be relative to its widest point, boosters excluded — they stage away inside the atmosphere and what is left has to stay pointed. A pencil wobbles, needs struts and flips under load."
+          />
+          <Field
+            label="Extra Δv"
+            value={p.extraDv}
+            min={0}
+            max={1500}
+            step={10}
+            unit="m/s"
+            hardMax={9000}
+            onChange={p.onExtraDv}
+            hint="A flat reserve added after the margin, carried on the top stage — for rendezvous, a contract you have not planned yet, or getting home when the map was optimistic."
+          />
+          <div>
+            <div className="label" style={{ marginBottom: SPACE.md }}>
+              Atmospheric descent
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              <Toggle
+                label="Gimbal in atmosphere"
+                on={p.needGimbal}
+                onChange={p.onNeedGimbal}
+              />
+              <Toggle
+                label="Solid boosters allowed"
+                on={p.srbAvail && p.boosters}
+                disabled={!p.srbAvail}
+                onChange={p.onBoosters}
+              />
+              <Toggle
+                label="Parachutes fitted"
+                on={p.airDescent && p.chutes}
+                disabled={!p.airDescent}
+                onChange={p.onChutes}
+              />
+            </div>
+            <div className="note" style={{ color: C.dim, marginTop: SPACE.md }}>
+              Cuts landing Δv to ~18% on Duna, Eve and Laythe. Add a heat shield
+              to the payload mass.
+            </div>
+          </div>
+          {p.crossfeedOk && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: SPACE.md,
+                flexWrap: "wrap",
+              }}
+            >
+              <Toggle
+                label="Asparagus staging"
+                on={p.asparagus}
+                onChange={p.onAsparagus}
+              />
+              <span className="note" style={{ color: C.dim }}>
+                liquid side stacks feed the core and drop in pairs
+              </span>
+            </div>
+          )}
+        </div>
+      </Section>
+
+      <button className="chip" data-on={1} onClick={p.onDone}>
+        Done
+      </button>
+    </Section>
   );
 }
 
-export { Brief, OBJECTIVES };
+export { Brief };

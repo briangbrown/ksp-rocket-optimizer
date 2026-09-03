@@ -23,7 +23,7 @@ vi.mock("../src/ui/solver-client.js", () => ({
 }));
 
 const { render, cleanup } = await import("@testing-library/react");
-const { click, settle } = await import("./app-harness.js");
+const { byText, click, openSetup, settle } = await import("./app-harness.js");
 const { DATA } = await import("../src/core/catalogue.js");
 const { withDeps } = await import("../src/core/tech.js");
 const { default: KSPMissionPlanner } = await import("../src/ui/app.jsx");
@@ -44,7 +44,8 @@ const tier = (lvl: number) =>
 const saved = () => JSON.parse(localStorage.getItem(KEY) ?? "null");
 
 /* The collapsed tech header reads "Tech tree · N of M nodes · …", so the node
-   count is on screen without opening the panel. */
+   count is on screen without opening the panel — once the setup sheet is,
+   which `mount` sees to (#133). */
 function nodesShown() {
   for (const el of document.querySelectorAll(".label")) {
     const m = /Tech tree · (\d+) of/.exec(el.textContent ?? "");
@@ -74,6 +75,7 @@ function tierChip(lvl: number) {
 async function mount() {
   render(<KSPMissionPlanner />);
   await settle(30_000);
+  await openSetup();
 }
 
 beforeEach(() => {
@@ -133,7 +135,9 @@ describe("the roster in a browser", () => {
     expect(saved().theme).toBe("system");
     expect(document.documentElement.dataset.theme).toBeUndefined();
 
-    await click(button("Light"));
+    /* Exactly "Light": the brief's "Lightest" chip is earlier in the DOM now
+       that the sheet is a portal at the end of body. */
+    await click(byText("Light"));
     expect(saved().theme).toBe("light");
     expect(document.documentElement.dataset.theme).toBe("light");
     expect(

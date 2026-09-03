@@ -1,3 +1,6 @@
+import { PROFILES } from "../core/orbits.js";
+import type { Objective } from "../core/performance.js";
+
 const NAME_WORDS: Readonly<Record<string, ReadonlyArray<string>>> = {
   flyby: ["Drive-By", "Wave", "Peek", "Flyby", "Glance", "Sightsee"],
   orbit: ["Circuit", "Loiter", "Lap", "Orbiter", "Vigil", "Holding Pattern"],
@@ -106,6 +109,59 @@ function craftName({
   };
 }
 
+/* What the search is asked to minimise, and what to call each: the chip in
+   the brief, and — lower-cased — the last word of its summary line. */
+const OBJECTIVES: ReadonlyArray<[Objective, string]> = [
+  ["mass", "Lightest"],
+  ["cost", "Cheapest"],
+  ["parts", "Fewest parts"],
+];
+
+/* The set brief, as one line: `Kerbin → Mun · land & return · 2.5 t ·
+   cheapest`. A function of the mission and nothing else, so a table can
+   check it — test/brief-line.test.ts walks every profile, origin and
+   objective through it. */
+type BriefIn = {
+  origin: string;
+  dest: string;
+  /* The profile in force, not the one chosen: a landing falls back to orbit
+     where there is nothing to land on, and the line says what will fly. */
+  profile: string;
+  returning: boolean;
+  payload: number;
+  objective: Objective;
+};
+
+function briefLine({
+  origin,
+  dest,
+  profile,
+  returning,
+  payload,
+  objective,
+}: BriefIn) {
+  /* Launching straight into an orbit of the origin: there is no arrival to
+     shape and no return leg, so neither the profile nor the trip is said. */
+  const here = dest === "Low orbit" || dest === "Stationary orbit";
+  const kind = here
+    ? null
+    : `${(PROFILES[profile]?.name ?? profile).toLowerCase()}${returning ? " & return" : ", one way"}`;
+  const tonnes = payload.toLocaleString(undefined, {
+    maximumFractionDigits: 1,
+  });
+  const aim = (
+    OBJECTIVES.find(([k]) => k === objective)?.[1] ?? objective
+  ).toLowerCase();
+  return [
+    `${origin} → ${here ? dest.toLowerCase() : dest}`,
+    kind,
+    `${tonnes} t`,
+    aim,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 /* ================================== UI ================================== */
 /* Defensive: a row can legitimately carry no number — the parallel-stacks note
    has no mass of its own — and a formatter that throws on null takes the whole
@@ -132,6 +188,16 @@ function hms(sec: number) {
   return (d ? `${d}d ` : "") + `${pad(h)}:${pad(m)}:${pad(s2)}`;
 }
 
-export { NAME_ADJ, NAME_JOKE, NAME_TAIL, NAME_WORDS, craftName, fmt, hms };
+export {
+  NAME_ADJ,
+  NAME_JOKE,
+  NAME_TAIL,
+  NAME_WORDS,
+  OBJECTIVES,
+  briefLine,
+  craftName,
+  fmt,
+  hms,
+};
 
-export type { CraftIn };
+export type { BriefIn, CraftIn };
