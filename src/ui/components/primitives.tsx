@@ -56,7 +56,9 @@ type SectionProps = {
   style?: CSSProperties;
   /* Space under the header before the children. */
   gap?: number;
-  /* At the right end of the header, folded or not: the brief's Δv budget. */
+  /* At the right end of the header, folded or not — beside the fold's button
+     rather than inside it, so it may itself be a control: the brief's Δv
+     budget, or the build section's tabs. */
   aside?: ReactNode;
 };
 
@@ -84,7 +86,17 @@ function Section({
           aria-hidden
         />
       )}
-      <span className="label" id={id}>
+      {/* Beside a summary or an aside the heading holds its line and the
+          rest wraps; alone it may run as long as the tech tree's. */}
+      <span
+        className="label"
+        id={id}
+        style={
+          (summary !== undefined && !shown) || aside !== undefined
+            ? { whiteSpace: "nowrap" }
+            : undefined
+        }
+      >
         {heading}
       </span>
       {summary !== undefined && !shown && (
@@ -92,18 +104,15 @@ function Section({
           {summary}
         </span>
       )}
-      {aside !== undefined && (
-        <span style={{ marginLeft: "auto", flexShrink: 0 }}>{aside}</span>
-      )}
     </>
   );
   const row: CSSProperties = {
     display: "flex",
     alignItems: "center",
     gap: SPACE.md,
-    width: "100%",
+    flex: 1,
+    minWidth: 0,
     textAlign: "left",
-    marginBottom: shown && children ? gap : 0,
   };
   return (
     <section
@@ -111,13 +120,23 @@ function Section({
       aria-labelledby={id}
       style={bare ? style : { padding: SPACE.xl, ...style }}
     >
-      {folds ? (
-        <button onClick={onToggle} aria-expanded={!!open} style={row}>
-          {head}
-        </button>
-      ) : (
-        <div style={row}>{head}</div>
-      )}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: SPACE.md,
+          marginBottom: shown && children ? gap : 0,
+        }}
+      >
+        {folds ? (
+          <button onClick={onToggle} aria-expanded={!!open} style={row}>
+            {head}
+          </button>
+        ) : (
+          <div style={row}>{head}</div>
+        )}
+        {aside !== undefined && <span style={{ flexShrink: 0 }}>{aside}</span>}
+      </div>
       {shown && children}
     </section>
   );

@@ -81,6 +81,8 @@ describe("a control change re-solves", () => {
     const before = design();
     expect(stat("Liftoff mass")).not.toBe("—");
 
+    /* The route starts folded until it has a cut (#134). */
+    await openFold("Where it goes");
     const cuts = [...document.querySelectorAll("button")].filter(
       (b) => b.getAttribute("aria-label") === "Add staging event",
     );

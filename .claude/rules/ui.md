@@ -66,6 +66,17 @@ control shows and what it committed.
   `onClose` re-runs it every render, which re-focuses the panel on every
   keystroke inside it. Wrap it in `useCallback`, as `closeSetup` is.
 
+- **Nothing interactive goes inside a `Section`'s fold button.** The header
+  is a `<button>`, and a button inside a button is invalid HTML that axe
+  flags as `nested-interactive` and a screen reader reads as one control.
+  The `aside` slot is rendered beside the button for this reason, which is
+  what lets the build section keep its tabs in the header.
+
+- **The route starts folded.** It has a summary line and no cut, so a test
+  that reaches for a scissor has to `openFold("Where it goes")` first, as
+  the cut case in `resolve-wiring` does. Summaries show only while folded:
+  to read one after opening a section, fold it again.
+
 - **A portal is at the end of `body`.** The setup sheet's chips come after
   everything on the page in DOM order, so a test that finds "the button
   containing Light" now finds the brief's _Lightest_ first. Match exactly.
