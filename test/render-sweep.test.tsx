@@ -1,8 +1,14 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import { act } from "react";
-import { byText, openBrief, settle, stat } from "./app-harness.js";
+import {
+  byText,
+  click,
+  openBrief,
+  openFold,
+  settle,
+  stat,
+} from "./app-harness.js";
 import KSPMissionPlanner from "../src/ui/app.jsx";
 
 /* The render sweep.
@@ -45,14 +51,6 @@ const BAD_TEXT = /\b(NaN|Infinity|undefined|null)\b/;
    #63 step 4 removed the SVG; there is nothing to read now, since jsdom makes
    no WebGL context. */
 const BAD_STYLE = /\b(NaN|Infinity|undefined)\b/;
-
-async function click(label: string) {
-  const el = byText(label);
-  if (!el) throw new Error(`no button labelled "${label}"`);
-  await act(async () => {
-    el.click();
-  });
-}
 
 /* Offenders are reported with context — "NaN appears somewhere in 10 kB of text"
    is not an actionable failure. */
@@ -108,6 +106,16 @@ describe("render sweep", () => {
     render(<KSPMissionPlanner />);
     await settle();
     expect(scan("initial mount")).toEqual([]);
+    /* What a disclosure holds is in the DOM closed as well as open, so the
+       scan above has already read it; opening every one is the check that
+       this stays so, and that nothing bad is composed on the way in. #135 */
+    await openBrief();
+    await openFold("More options");
+    for (const b of document.querySelectorAll(
+      "button[aria-controls][aria-expanded]",
+    ))
+      await click(b);
+    expect(scan("every disclosure open")).toEqual([]);
     cleanup();
   }, 180_000);
 

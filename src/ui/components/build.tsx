@@ -428,9 +428,7 @@ function BuildView({
     />
   );
 
-  const heading = (
-    <span className="label">Build · step through the staging</span>
-  );
+  const heading = <span className="label">Staging</span>;
 
   const header = (
     <div
@@ -560,7 +558,7 @@ function BuildView({
             flexDirection: "column",
           }}
         >
-          {head("Staging")}
+          {head("Step")}
           {chips}
         </div>
       )}

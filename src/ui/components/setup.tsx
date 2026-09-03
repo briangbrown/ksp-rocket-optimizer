@@ -3,7 +3,14 @@ import { DATA } from "../../core/catalogue.js";
 import { NODE_PARTS, TIERS, withDeps } from "../../core/tech.js";
 import { C, SPACE } from "../tokens.js";
 import { Config } from "./config.jsx";
-import { Check, Choice, ICON, STROKE, Section } from "./primitives.jsx";
+import {
+  Check,
+  Choice,
+  Disclosure,
+  ICON,
+  STROKE,
+  Section,
+} from "./primitives.jsx";
 import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { ThemePref } from "../tokens.js";
@@ -263,6 +270,33 @@ function Setup({
 
       <div style={{ borderTop: `1px solid ${C.rule}`, margin: "14px 0" }} />
       <Config search={search} text={configText} onLoad={onLoad} />
+
+      <div style={{ borderTop: `1px solid ${C.rule}`, margin: "14px 0" }} />
+      {/* Where the numbers come from and where they are still approximate.
+          It was the page's footer, 170 words under every result; the reader
+          who wants it is the one who came in here. #135 */}
+      <Disclosure label="About" caption="About the numbers">
+        <p style={{ margin: `0 0 ${SPACE.md}px` }}>
+          Part masses, costs, tech nodes and Isp curves are read from KSP 1.12.5
+          configs — Squad, Breaking Ground and ReStock+. Making History is off
+          by default because it is not installed. Atmospheres are the exact
+          stock pressure and temperature splines, and Isp follows each engine's
+          own atmosphereCurve, so a vacuum bell correctly produces nothing at
+          Eve's surface. Ascents are flown, not estimated: an RK4 integration at
+          0.1 s searches a two-parameter gravity turn, with drag assembled the
+          way KSP assembles it, from the curves and constants in Physics.cfg.
+        </p>
+        <p style={{ margin: 0 }}>
+          <strong>Where it is still approximate:</strong> drag counts only the
+          frontal area against one representative cube coefficient, so nothing
+          is occluded, a nose cone buys nothing, and neither does a fairing.
+          Staging is serial — no asparagus, which is why an Eve return does not
+          close. Δv between bodies is a Hohmann transfer through the real
+          orbital elements, ignoring the eccentricity and the launch window you
+          actually get. Whether a design flies is judged by this simulator, not
+          by the game.
+        </p>
+      </Disclosure>
     </>
   );
 }

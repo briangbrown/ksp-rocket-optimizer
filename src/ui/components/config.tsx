@@ -119,10 +119,6 @@ function Config({ search, text, onLoad }: ConfigProps) {
             <SeverityMark severity={note.bad ? "bad" : "good"} /> {note.msg}
           </span>
         )}
-        <span className="note" style={{ color: C.dim }}>
-          Paste this into the chat and I can load the same build — every
-          setting, the researched nodes and any parts you have ruled out.
-        </span>
       </div>
       {pasteOpen && (
         <div style={{ marginTop: 10 }}>
@@ -130,7 +126,7 @@ function Config({ search, text, onLoad }: ConfigProps) {
             className="figure"
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
-            placeholder="Paste a KSP-PLANNER configuration here"
+            placeholder="Paste a KSP-PLANNER configuration — every setting, the researched nodes and any parts ruled out — to load the same build"
             style={{ ...area, height: 70 }}
           />
           <div style={{ display: "flex", gap: SPACE.md, marginTop: 6 }}>

@@ -11,6 +11,42 @@ type Ascent =
   | (Turn & { veh: Vehicle; bodyName: string; target: number })
   | { ok: false; veh: Vehicle; bodyName: string; target: number };
 
+/* The one sentence a pilot needs under the profile table. The rest of what
+   the table used to say beneath itself is `FLYING_IT`, disclosed. */
+const FLY_THE_CLOCK =
+  "Fly the clock, not the altimeter, and hold the circularisation burn level — 0° on the navball.";
+
+/* How to read the profile table, at the length it used to run to under it. */
+const FLYING_IT =
+  "Pitch is degrees above the horizon on the navball, flying east. A shallow " +
+  "upper stage will level off and may nose slightly below the horizon while it " +
+  "builds horizontal speed, so altitude stops rising monotonically near the end " +
+  "and is a poor thing to steer by. If you are slow at a given time you are " +
+  "climbing too steeply: pitch further down rather than waiting for prograde to " +
+  "come to you. After cutoff there is nothing to fly until apoapsis; start the " +
+  "circularisation half its duration early so it straddles the mark. Hold that " +
+  "burn level rather than on prograde: a long circularisation lifts you as it " +
+  "runs, so prograde tilts upward and following it pushes apoapsis ahead of you " +
+  "instead of raising periapsis behind you. Level is the attitude that closes " +
+  "the orbit. The circularisation figure assumes you arrive at apoapsis on this " +
+  "profile — a few hundred m/s short there costs far more than that to fix.";
+
+/* What the simulator did to get a flight, for the disclosure at the foot of
+   the section. The atmosphere line is the body's, so it is one paragraph per
+   flight. */
+const methodology = (a: Ascent) => {
+  const atm = (a.veh.atmo.p(0) / 101.325).toFixed(2);
+  return (
+    `Simulated from ${a.bodyName}: the atmosphere is its own stock pressure and ` +
+    `temperature spline — ${atm} atm at the surface — and density and speed of ` +
+    "sound fall straight out of it with nothing fitted. Isp follows a three-key " +
+    "curve pinned to each engine's vacuum and sea-level figures. Drag takes the " +
+    "widest cross-section still attached plus any live boosters, on the stock " +
+    "transonic Cd hump — that part is an approximation, since the game bakes " +
+    "drag cubes per part and occludes them by how you stack."
+  );
+};
+
 /* The whole point of simulating is to hand back something flyable, so this is a
    flight card, not a readout: five steps in the order you do them. Numbering is
    load-bearing here — it really is a sequence. */
@@ -26,17 +62,19 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
       <Callout
         severity="bad"
         title={`This design never reaches orbit from ${a.bodyName}.`}
+        more={
+          <>
+            The stages above were sized on vacuum Isp, but {a.bodyName} sits at{" "}
+            {atm} atm on the surface, where engines deliver a fraction of their
+            rated thrust and efficiency. The Δv map figure already assumes
+            losses the rocket equation on its own cannot see. Add stages, choose
+            engines with a flatter Isp curve, or expect a far heavier vehicle
+            than the parts list suggests.
+          </>
+        }
       >
         No pitch programme gets {fmt(m0, 1)} t up to{" "}
         {Math.round(a.target / 1000)} km.
-        <div style={{ color: C.muted, marginTop: 7 }}>
-          The stages above were sized on vacuum Isp, but {a.bodyName} sits at{" "}
-          {atm} atm on the surface, where engines deliver a fraction of their
-          rated thrust and efficiency. The Δv map figure already assumes losses
-          the rocket equation on its own cannot see. Add stages, choose engines
-          with a flatter Isp curve, or expect a far heavier vehicle than the
-          parts list suggests.
-        </div>
       </Callout>
     );
   }
@@ -194,11 +232,13 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
       </div>
 
       {circBurn > 90 && (
-        <Callout severity="info" style={{ marginBottom: SPACE.lg }}>
-          That circularisation runs {Math.round(circBurn)} s on a low-thrust
-          stage. Centring it still helps, but over a burn that long the apoapsis
-          drifts while you push — expect to arrive slightly elliptical and trim
-          it on the next pass.
+        <Callout
+          severity="info"
+          title={`That circularisation runs ${Math.round(circBurn)} s on a low-thrust stage.`}
+          style={{ marginBottom: SPACE.lg }}
+          more="Centring it still helps, but over a burn that long the apoapsis drifts while you push."
+        >
+          Expect to arrive slightly elliptical and trim it on the next pass.
         </Callout>
       )}
       {a.circShort && (
@@ -291,21 +331,7 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
             </tbody>
           </table>
           <div className="note" style={{ color: C.dim, marginTop: SPACE.md }}>
-            Pitch is degrees above the horizon on the navball, flying east — fly
-            the clock, not the altimeter. A shallow upper stage will level off
-            and may nose slightly below the horizon while it builds horizontal
-            speed, so altitude stops rising monotonically near the end and is a
-            poor thing to steer by. If you are slow at a given time you are
-            climbing too steeply: pitch further down rather than waiting for
-            prograde to come to you. After cutoff there is nothing to fly until
-            apoapsis; start the circularisation half its duration early so it
-            straddles the mark. Hold that burn level — 0° on the navball —
-            rather than on prograde. A long circularisation lifts you as it
-            runs, so prograde tilts upward and following it pushes apoapsis
-            ahead of you instead of raising periapsis behind you. Level is the
-            attitude that closes the orbit. The circularisation figure below
-            assumes you arrive at apoapsis on this profile — a few hundred m/s
-            short there costs far more than that to fix.
+            {FLY_THE_CLOCK}
           </div>
         </div>
       )}
@@ -314,12 +340,9 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
           severity="warn"
           title="Upper stage cannot hover."
           style={{ marginBottom: SPACE.lg }}
+          more={`It lights at TWR ${lowUpper.toFixed(2)}, so it will not hold altitude pointed upward. If you keep following prograde while still climbing steeply it will bleed the whole stage climbing and arrive at apoapsis far too slow to circularise.`}
         >
-          It lights at TWR {lowUpper.toFixed(2)}, so it will not hold altitude
-          pointed upward — it has to be flown nearly level to build speed. If
-          you keep following prograde while still climbing steeply it will bleed
-          the whole stage climbing and arrive at apoapsis far too slow to
-          circularise.
+          Fly it nearly level to build speed.
         </Callout>
       )}
       {cored && (
@@ -327,11 +350,9 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
           severity="good"
           title={`Hold the core at ${Math.round(core * 100)}% until the boosters burn out.`}
           style={{ marginBottom: SPACE.lg }}
+          more="Solids have no shutdown, so at full throttle this stack carries its apoapsis well past the mark before you can stop it. Throttling the liquid core lands the two together."
         >
-          Solids have no shutdown, so at full throttle this stack carries its
-          apoapsis well past the mark before you can stop it. Throttling the
-          liquid core lands the two together and is worth about{" "}
-          {fmt(Math.round((a.fullThrottle || 0) - a.total))} m/s.
+          Worth about {fmt(Math.round((a.fullThrottle || 0) - a.total))} m/s.
         </Callout>
       )}
       {limited && (
@@ -339,50 +360,30 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
           severity="good"
           title={`Throttled to ${Math.round(limit * 100)}% on ${limitOn}.`}
           style={{ marginBottom: SPACE.lg }}
+          more="At full thrust this stack passes 40 kPa, where a real one tends to flip or shed parts. The limiter cuts fuel flow with the thrust, so the stage simply burns longer at lower thrust and loses no Δv."
         >
-          At full thrust this stack passes 40 kPa, where a real one tends to
-          flip or shed parts. Right-click the part in the VAB and drag the
-          thrust limiter — it cuts fuel flow with the thrust, so the stage
-          simply burns longer at lower thrust and loses no Δv. Peak now{" "}
-          {(a.maxQ / 1000).toFixed(0)} kPa.
+          Right-click the part in the VAB and drag the thrust limiter — peak is
+          now {(a.maxQ / 1000).toFixed(0)} kPa.
         </Callout>
       )}
       {hot && (
         <Callout
           severity="bad"
           title={`Nothing stays under 40 kPa — peak is ${(a.maxQ / 1000).toFixed(0)} kPa at ${(a.maxQalt / 1000).toFixed(1)} km.`}
+          more={
+            Number(atm) > 1.5
+              ? `${atm} atm at the surface makes high dynamic pressure unavoidable, and this is the gentlest trajectory that still reaches orbit. Treat the drag figure as indicative — it is well outside where the model was checked against Kerbin ascents.`
+              : "This vehicle is over-thrusted for the air it climbs through, where a real stack tends to flip or shed parts."
+          }
         >
-          {Number(atm) > 1.5 ? (
-            <>
-              That is {a.bodyName} rather than your rocket: {atm} atm at the
-              surface makes high dynamic pressure unavoidable, and this is the
-              gentlest trajectory that still reaches orbit. Treat the drag
-              figure as indicative — it is well outside where the model was
-              checked against Kerbin ascents.
-            </>
-          ) : (
-            <>
-              This vehicle is over-thrusted for the air it climbs through, where
-              a real stack tends to flip or shed parts. Drop a booster, throttle
-              the first stage back, or fly a shallower turn and accept the extra
-              gravity loss.
-            </>
-          )}
+          {Number(atm) > 1.5
+            ? `That is ${a.bodyName} rather than your rocket.`
+            : "Drop a booster, throttle the first stage back, or fly a shallower turn and accept the extra gravity loss."}
         </Callout>
       )}
-
-      <div className="note" style={{ color: C.dim, marginTop: SPACE.lg }}>
-        Atmosphere is {a.bodyName}'s own stock pressure and temperature spline —{" "}
-        {atm} atm at the surface. Density and speed of sound fall straight out
-        of it with nothing fitted. Isp follows a three-key curve pinned to the
-        vacuum and sea-level figures. Drag takes the widest cross-section still
-        attached plus any live boosters, on the stock transonic Cd hump — that
-        part is an approximation, since the game bakes drag cubes per part and
-        occludes them by how you stack.
-      </div>
     </div>
   );
 }
 
-export { AscentPanel };
+export { AscentPanel, FLYING_IT, methodology };
 export type { Ascent };

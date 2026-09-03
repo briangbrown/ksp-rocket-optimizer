@@ -117,6 +117,15 @@ const OBJECTIVES: ReadonlyArray<[Objective, string]> = [
   ["parts", "Fewest parts"],
 ];
 
+/* One sentence on what each gives up: the chip's hint under a pointer, and
+   the group's disclosure under a finger. */
+const OBJECTIVE_HINT: Readonly<Record<Objective, string>> = {
+  mass: "Lightest minimises what leaves the pad.",
+  cost: "Cheapest gives up efficiency for price, taking plainer engines and carrying more propellant.",
+  parts:
+    "Fewest parts favours self-contained boosters and the largest tanks that fit, and will accept a heavier rocket to save a part.",
+};
+
 /* The set brief, as one line: `Kerbin → Mun · land & return · 2.5 t ·
    cheapest`. A function of the mission and nothing else, so a table can
    check it — test/brief-line.test.ts walks every profile, origin and
@@ -194,6 +203,7 @@ export {
   NAME_TAIL,
   NAME_WORDS,
   OBJECTIVES,
+  OBJECTIVE_HINT,
   briefLine,
   craftName,
   fmt,

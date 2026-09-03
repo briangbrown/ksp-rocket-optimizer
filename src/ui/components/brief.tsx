@@ -1,9 +1,17 @@
 import { Undo2 } from "lucide-react";
 import { PROFILES, SYS } from "../../core/orbits.js";
-import { OBJECTIVES, fmt } from "../format.js";
+import { OBJECTIVES, OBJECTIVE_HINT, fmt } from "../format.js";
 import { C, RADIUS, SHADOW, SPACE, Z } from "../tokens.js";
 import { BodyPicker } from "./route.jsx";
-import { Choice, Field, ICON, STROKE, Section, Toggle } from "./primitives.jsx";
+import {
+  Choice,
+  Disclosure,
+  Field,
+  ICON,
+  STROKE,
+  Section,
+  Toggle,
+} from "./primitives.jsx";
 import type { CSSProperties } from "react";
 import type { Objective } from "../../core/performance.js";
 
@@ -223,21 +231,33 @@ function Brief(p: BriefProps) {
           hint="Reserve over the map value for inefficiency and correction burns."
         />
         <div>
-          <div className="label" style={{ marginBottom: SPACE.md }}>
-            Optimise for
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              marginBottom: SPACE.md,
+            }}
+          >
+            <span className="label">Optimise for</span>
+            <Disclosure
+              label="About the objectives"
+              style={{ marginLeft: SPACE.xs }}
+            >
+              {OBJECTIVES.map(([k]) => (
+                <div key={k}>{OBJECTIVE_HINT[k]}</div>
+              ))}
+            </Disclosure>
           </div>
           <Choice
             label="Optimise for"
             value={p.objective}
             onChange={p.onObjective}
-            options={OBJECTIVES.map(([k, lab]) => ({ value: k, label: lab }))}
+            options={OBJECTIVES.map(([k, lab]) => ({
+              value: k,
+              label: lab,
+              hint: OBJECTIVE_HINT[k],
+            }))}
           />
-          <div className="note" style={{ color: C.dim, marginTop: 6 }}>
-            Lightest minimises what leaves the pad. Cheapest gives up efficiency
-            for price, taking plainer engines and carrying more propellant.
-            Fewest parts favours self-contained boosters and the largest tanks
-            that fit, and will accept a heavier rocket to save a part.
-          </div>
         </div>
       </div>
 
@@ -284,7 +304,14 @@ function Brief(p: BriefProps) {
             <div className="label" style={{ marginBottom: SPACE.md }}>
               Atmospheric descent
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: 5,
+              }}
+            >
               <Toggle
                 label="Gimbal in atmosphere"
                 on={p.needGimbal}
@@ -302,10 +329,10 @@ function Brief(p: BriefProps) {
                 disabled={!p.airDescent}
                 onChange={p.onChutes}
               />
-            </div>
-            <div className="note" style={{ color: C.dim, marginTop: SPACE.md }}>
-              Cuts landing Δv to ~18% on Duna, Eve and Laythe. Add a heat shield
-              to the payload mass.
+              <Disclosure label="About parachutes">
+                Parachutes cut landing Δv to ~18% on Duna, Eve and Laythe. Add a
+                heat shield to the payload mass.
+              </Disclosure>
             </div>
           </div>
           {p.crossfeedOk && (
