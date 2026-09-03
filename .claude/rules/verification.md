@@ -67,6 +67,26 @@ repository has already priced. It is a separate script and a separate CI job —
 the main suite is minutes long and `test/model.test.ts` records a worker running
 out of memory when the mission models were built twice.
 
+**The layout suite**, `visual/layout.test.ts`, runs in the same job and
+measures the UI's budgets the way the design snapshot measures the solver's:
+at 390 px with touch and at 1280 px, the page's height, its visible words,
+whether anything is wider than its box, how much text is under 12 and 13 px,
+how many pressable things are under 44 px (phone) or 24 (desktop), how many a
+keyboard cannot reach, and what axe objects to at WCAG 2 A and AA. Each has a
+number at the top of the file that is what the application measured the day
+it was written, and the assertion is that it has not grown. A pull request
+that improves one lowers it in the same commit. The screenshots and the
+numbers go to `visual/.out/`, gitignored and uploaded as the `layout`
+artefact, for a person — never compared.
+
+What it finds is decided by `visual/measure.ts`, which runs inside the page:
+a target is a form control or anything with a pointer cursor whose parent has
+none, which is how a `div` with an `onClick` is counted; text is measured on
+the element that owns it, not inherited. What it cannot see: a real GPU, a
+real phone's address bar or keyboard, a thumb, or whether the words it counted
+are the right ones. Reintroduce a 10 px label, a 16 px button, a 3,000 px
+table or a clickable `div` and it names each one.
+
 One thing it has to be told: `settle` waits for the solver, and a staging
 transition has nothing to do with the solver. Sampling a panel before the
 separation has finished reads a frame of the animation as though it were the
@@ -98,6 +118,8 @@ invisible to every baseline here.
     visual/browser.ts                     chromium with a software WebGL context
     visual/pixels.ts                      reading a canvas back as numbers
     visual/render.test.ts                 what the build view actually draws
+    visual/measure.ts                     the layout suite's in-page measurements
+    visual/layout.test.ts                 the UI's budgets, held
     test/design-snapshot.test.ts          the design snapshot
     test/render-sweep.test.tsx            the render sweep
     test/model.test.ts                    the rocket as shapes, checked as shapes

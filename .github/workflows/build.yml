@@ -97,5 +97,16 @@ jobs:
       # drawn, whether the canvas is the size of its panel, whether the drawing
       # survives a repaint, and whether the plan redraws when a stage is
       # dropped. Every one of those shipped past a green build at least once.
+      # And what no assertion can: the layout suite writes a full-page
+      # screenshot of each screen beside the numbers it measured, for a
+      # person to look at. Never compared. #129
       - name: Render the build view in a real browser
         run: npm run test:visual
+
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: layout
+          path: visual/.out
+          if-no-files-found: ignore

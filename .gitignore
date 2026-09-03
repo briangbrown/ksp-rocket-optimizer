@@ -164,3 +164,4 @@ perf/traces/*
 !perf/traces/.gitkeep
 Trace-*.json
 *.cpuprofile
+visual/.out
