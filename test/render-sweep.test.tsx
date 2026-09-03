@@ -2,7 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { act } from "react";
-import { byText, settle, stat } from "./app-harness.js";
+import { byText, openBrief, settle, stat } from "./app-harness.js";
 import KSPMissionPlanner from "../src/ui/app.jsx";
 
 /* The render sweep.
@@ -114,6 +114,8 @@ describe("render sweep", () => {
   it("renders every destination, and the same ones still produce a design", async () => {
     render(<KSPMissionPlanner />);
     await settle();
+    /* Folded once the first design solved; it stays open once touched. */
+    await openBrief();
 
     const problems = [];
     const table = [];
@@ -142,6 +144,7 @@ describe("render sweep", () => {
   it("renders every objective and profile without a bad value", async () => {
     render(<KSPMissionPlanner />);
     await settle();
+    await openBrief();
 
     const problems = [];
     for (const objective of OBJECTIVES) {

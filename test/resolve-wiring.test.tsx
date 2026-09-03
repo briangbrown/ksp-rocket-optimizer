@@ -7,9 +7,12 @@ import KSPMissionPlanner from "../src/ui/app.jsx";
 import {
   settle,
   byText,
-  allByLabel,
   click,
   design,
+  field,
+  openBrief,
+  openFold,
+  openSetup,
   stat,
 } from "./app-harness.js";
 
@@ -36,9 +39,13 @@ import {
    researched. Both are gaps, listed here so the next person knows the sweep is
    not exhaustive rather than assuming it is. */
 
+/* The brief folds once the first design solves (#133); every case here
+   reaches for a control on it, and two for one under "More options". */
 async function mount() {
   render(<KSPMissionPlanner />);
   await settle();
+  await openBrief();
+  await openFold("More options");
 }
 
 /* Set a controlled numeric field the way the component expects.
@@ -48,14 +55,8 @@ async function mount() {
    only commits it on blur. And React's onBlur is delegated from `focusout`, not
    `blur` — `blur` does not bubble, so a dispatched `blur` never reaches the
    listener and the draft is silently dropped. */
-/* The fields have no explicit type attribute, so `input[type="text"]` matches
-   nothing — select by what they are not. */
-const numericFields = () =>
-  [...document.querySelectorAll("input")].filter(
-    (i) => i.type !== "range" && i.type !== "checkbox",
-  );
-
-function typeInto(input: HTMLInputElement, value: number | string) {
+function typeInto(input: HTMLInputElement | undefined, value: number | string) {
+  if (!input) throw new Error("no such field");
   const setter = must(
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set,
     "the native value setter",
@@ -64,7 +65,8 @@ function typeInto(input: HTMLInputElement, value: number | string) {
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-async function setField(input: HTMLInputElement, value: number | string) {
+async function setField(label: string, value: number | string) {
+  const input = must(field(label), `the "${label}" field`);
   await act(async () => {
     typeInto(input, value);
     input.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
@@ -79,7 +81,9 @@ describe("a control change re-solves", () => {
     const before = design();
     expect(stat("Liftoff mass")).not.toBe("—");
 
-    const cuts = allByLabel("Add staging event");
+    const cuts = [...document.querySelectorAll("button")].filter(
+      (b) => b.getAttribute("aria-label") === "Add staging event",
+    );
     expect(cuts.length, "no cut controls rendered").toBeGreaterThan(0);
     await click(cuts[0]);
     await settle();
@@ -94,11 +98,8 @@ describe("a control change re-solves", () => {
     await mount();
     const before = design();
 
-    const tech = [...document.querySelectorAll("button")].find((b) =>
-      b.textContent.trim().startsWith("Tech tree"),
-    );
-    expect(tech, "no tech tree control").toBeTruthy();
-    await click(tech);
+    await openSetup();
+    await openFold("Tech tree");
     /* Stage-count chips stop at 5, so "9" is unambiguously a tier. */
     await click(byText("9"));
     await settle();
@@ -114,11 +115,8 @@ describe("a control change re-solves", () => {
     await mount();
     const before = design();
 
-    const fields = numericFields();
-    expect(fields[0]?.value, "first text field is no longer payload").toBe(
-      "2.5",
-    );
-    await setField(fields[0], 9);
+    expect(field("Payload delivered")?.value).toBe("2.5");
+    await setField("Payload delivered", 9);
     await settle();
 
     expect(design(), "changing the payload did not change the design").not.toBe(
@@ -141,18 +139,18 @@ describe("a control change re-solves", () => {
        before the fix the commit had nowhere else to happen. */
     await mount();
     const before = design();
-    const field = numericFields()[0];
-    expect(field?.value, "first text field is no longer payload").toBe("2.5");
+    const input = must(field("Payload delivered"), "the payload field");
+    expect(input.value).toBe("2.5");
 
     const realBlur = HTMLInputElement.prototype.blur;
     HTMLInputElement.prototype.blur = () => {};
     try {
       await act(async () => {
-        field.focus();
+        input.focus();
       });
       await act(async () => {
-        typeInto(field, 9);
-        field.dispatchEvent(
+        typeInto(input, 9);
+        input.dispatchEvent(
           new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
         );
       });
@@ -168,9 +166,8 @@ describe("a control change re-solves", () => {
   it("the margin changes the design", async () => {
     await mount();
     const before = design();
-    const fields = numericFields();
-    expect(fields[1]?.value, "second field is no longer margin").toBe("10");
-    await setField(fields[1], 40);
+    expect(field("Δv margin")?.value).toBe("10");
+    await setField("Δv margin", 40);
     await settle();
     expect(design(), "changing the margin did not change the design").not.toBe(
       before,
@@ -184,13 +181,11 @@ describe("a control change re-solves", () => {
        the slider's own minimum of 6, so no value it offers can touch it. A 1 t
        payload wants a pencil: 13.57:1 left alone, 5.02:1 held to 6. */
     await mount();
-    const fields0 = numericFields();
-    await setField(fields0[0], 1);
+    await setField("Payload delivered", 1);
     await settle();
     const before = design();
-    const fields = numericFields();
-    expect(fields[3]?.value, "fourth field is no longer max aspect").toBe("14");
-    await setField(fields[3], 6);
+    expect(field("Slenderness limit")?.value).toBe("14");
+    await setField("Slenderness limit", 6);
     await settle();
     expect(
       design(),
@@ -202,9 +197,8 @@ describe("a control change re-solves", () => {
   it("the extra delta-v reserve changes the design", async () => {
     await mount();
     const before = design();
-    const fields = numericFields();
-    expect(fields[4]?.value, "fifth field is no longer extra dv").toBe("0");
-    await setField(fields[4], 800);
+    expect(field("Extra Δv")?.value).toBe("0");
+    await setField("Extra Δv", 800);
     await settle();
     expect(
       design(),

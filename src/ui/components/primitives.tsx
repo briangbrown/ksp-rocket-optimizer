@@ -56,6 +56,8 @@ type SectionProps = {
   style?: CSSProperties;
   /* Space under the header before the children. */
   gap?: number;
+  /* At the right end of the header, folded or not: the brief's Δv budget. */
+  aside?: ReactNode;
 };
 
 function Section({
@@ -67,6 +69,7 @@ function Section({
   children,
   style,
   gap = SPACE.lg,
+  aside,
 }: SectionProps) {
   const id = useId();
   const folds = onToggle !== undefined;
@@ -88,6 +91,9 @@ function Section({
         <span className="body" style={{ color: C.paper, fontWeight: 600 }}>
           {summary}
         </span>
+      )}
+      {aside !== undefined && (
+        <span style={{ marginLeft: "auto", flexShrink: 0 }}>{aside}</span>
       )}
     </>
   );
@@ -659,6 +665,7 @@ function Field({
         <span style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
           <input
             className="figure"
+            aria-label={typeof label === "string" ? label : undefined}
             value={draft ?? value}
             inputMode="decimal"
             onChange={(e) => setDraft(e.target.value)}
@@ -699,6 +706,7 @@ function Field({
       </div>
       <input
         type="range"
+        aria-label={typeof label === "string" ? label : undefined}
         min={min}
         max={max}
         step={step}

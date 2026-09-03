@@ -302,8 +302,9 @@ neighbour, not a spacing.
 ### Radius
 
 Two: **`r-sm` 3** for chips, fields and cards; **`r-lg` 8** for sheets,
-popovers and the full-screen overlay's rail. Dots are round. Today's `1` and
-`2` on chips become `3`.
+popovers and the full-screen overlay's rail. Dots are round, and a bar bled
+to the page's edges — the set brief — has `none`. Today's `1` and `2` on
+chips become `3`.
 
 ### Z
 
@@ -337,8 +338,20 @@ is for and what it is not for.
 **`Section`** — a card with a `heading`, an optional one-line summary, and an
 optional fold. Folded, it shows the heading and the summary; open, the
 children. The chevron is the fold's only control and the whole header is its
-target. Sections are `<section aria-labelledby>`. Not for: grouping fields
-inside the brief (that is a `Field` group with a `label`).
+target. An optional `aside` sits at the header's right in both states — the
+brief's Δv budget is the one there is. Sections are `<section
+aria-labelledby>`. Not for: grouping fields inside the brief (that is a
+`Field` group with a `label`).
+
+The brief is a `Section` with three rules of its own (#133). It opens as the
+form and folds itself the first time a design solves; once the reader has
+touched it — opened it, or changed anything — it stays wherever they put it
+across every re-solve, until they say _Done_. Set, it is stuck to the top of
+the visual viewport, bled to the page's edges under the header, so the
+mission is one tap away from anywhere on the page. Its line is `briefLine` in
+`format.ts`: _origin → destination · profile & trip · payload · objective_,
+with the profile and trip left out when the destination is an orbit of the
+origin, because there is no arrival to describe.
 
 **`Toggle`** — a boolean. A chip with `aria-pressed`, whose label never changes:
 _Return trip_ is on or off; it does not become _One way_. Not for: a choice

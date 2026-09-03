@@ -294,8 +294,15 @@ describe("the build view, in a browser", () => {
        panel a third as bright as the card. The value read back has to be the
        token's, to the bit. */
     await step("On the pad");
+    /* The theme choice is in the setup sheet now (#133); close it again so
+       the canvases are read with nothing over them. */
+    const choose = async (name: string) => {
+      await press("Setup");
+      await press(name);
+      await press("Close");
+    };
     for (const theme of ["light", "dark"] as const) {
-      await press(theme === "light" ? "Light" : "Dark");
+      await choose(theme === "light" ? "Light" : "Dark");
       const pal = PALETTE[theme];
       for (const [name, i] of PANELS) {
         const got = await read(i);
@@ -308,7 +315,7 @@ describe("the build view, in a browser", () => {
         0.002,
       );
     }
-    await press("System");
+    await choose("System");
   });
 
   it("fills the window when asked, and gives it back", async () => {

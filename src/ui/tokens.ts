@@ -187,9 +187,10 @@ const TYPE: Readonly<Record<string, Role>> = {
    unit; `xxxl` is between sections. */
 const SPACE = { xs: 2, sm: 4, md: 8, lg: 12, xl: 16, xxl: 24, xxxl: 32 };
 
-/* Two radii and round. `sm` for chips, fields and cards; `lg` for sheets,
-   popovers and the overlay's rail; `round` for a dot. */
-const RADIUS = { sm: 3, lg: 8, round: 999 };
+/* Two radii, round, and none. `sm` for chips, fields and cards; `lg` for
+   sheets, popovers and the overlay's rail; `round` for a dot; `none` for a
+   bar bled to the page's edges, which has no corners to round. */
+const RADIUS = { none: 0, sm: 3, lg: 8, round: 999 };
 
 /* The stacking order, named. The bar stays above the overlay so a full-screen
    rocket about to be replaced still says so — `.claude/rules/ui.md`. */

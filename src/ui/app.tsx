@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useCallback, useState, useMemo, useEffect, useRef } from "react";
+import { Settings } from "lucide-react";
 import { solve, cancelSolve } from "./solver-client.js";
 import { buildVehicleFor, simCached } from "../core/ascent.js";
 import { orbitAlt } from "../core/atmosphere.js";
@@ -16,12 +17,12 @@ import { missionHardware } from "../core/parts.js";
 import { stageCost, stageParts } from "../core/performance.js";
 import { withDeps } from "../core/tech.js";
 import { Brief } from "./components/brief.jsx";
-import { Stat } from "./components/primitives.jsx";
+import { IconButton, Sheet, Stat } from "./components/primitives.jsx";
 import { Results } from "./components/results.jsx";
 import { Setup } from "./components/setup.jsx";
 import { Solving } from "./components/solving.jsx";
 import { parseConfig } from "./config.js";
-import { craftName, fmt } from "./format.js";
+import { briefLine, craftName, fmt } from "./format.js";
 import { STYLES } from "./styles.js";
 import { loadRoster, saveRoster } from "./storage.js";
 import {
@@ -40,7 +41,7 @@ import type { Objective } from "../core/performance.js";
 import type { Theme, ThemePref } from "./tokens.js";
 import type { PlanStage } from "../core/plan.js";
 import type { Ascent } from "./components/flight.jsx";
-import type { SearchStats } from "./components/results.jsx";
+import type { SearchStats } from "./components/config.jsx";
 
 export default function KSPMissionPlanner() {
   const [origin, setOrigin] = useState("Kerbin");
@@ -104,7 +105,21 @@ export default function KSPMissionPlanner() {
   const [cuts, setCuts] = useState<Set<number> | null>(null); // null = follow defaultCuts
   const [showTech, setShowTech] = useState(false);
   const [showOrigin, setShowOrigin] = useState(false);
-  const [showDest, setShowDest] = useState(true);
+  const [showMore, setShowMore] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
+  const closeSetup = useCallback(() => setShowSetup(false), []);
+  /* Open until the first solve delivers a design, then one line — unless
+     the reader has touched it, in which case it stays open until they say
+     Done: a form that folds under someone mid-edit is worse than one that
+     asks to be closed. Opening it again counts as touching it. */
+  const [briefOpen, setBriefOpen] = useState(true);
+  const touched = useRef(false);
+  const edit =
+    <A extends unknown[]>(f: (...a: A) => void) =>
+    (...a: A) => {
+      touched.current = true;
+      f(...a);
+    };
   const [excluded, setExcluded] = useState(() => new Set<string>()); // parts the user has ruled out
   /* The part roster is setup, not a per-session choice: it describes your install
      and what you have researched, and retyping it every time would be tedious.
@@ -303,6 +318,12 @@ export default function KSPMissionPlanner() {
          failed worker leaves the app showing "Solving" for good. */
       if (result) {
         setStages(result.stages);
+        if (
+          !touched.current &&
+          result.stages.length > 0 &&
+          result.stages.every((s) => s.sol)
+        )
+          setBriefOpen(false);
         setSearch({
           ...result.tally,
           threads: result.threads || 1,
@@ -656,13 +677,14 @@ export default function KSPMissionPlanner() {
           background: C.panel,
           padding: "18px 20px",
           display: "flex",
-          flexWrap: "wrap",
           gap: 20,
           alignItems: "flex-end",
           justifyContent: "space-between",
         }}
       >
         <div>
+          {/* What is installed: the setup sheet's summary, and the one line
+              of it that belongs on the page. */}
           <div className="label">
             Kerbal Space Program 1.12 ·{" "}
             {["Stock", hasMH && "Making History", hasRS && "ReStock+"]
@@ -673,58 +695,35 @@ export default function KSPMissionPlanner() {
             Mission&nbsp;<span style={{ color: dcolor }}>Δv</span>&nbsp;Planner
           </h1>
         </div>
-        <div style={{ display: "flex", gap: 26, flexWrap: "wrap" }}>
-          <Stat
-            label="Δv budget"
-            value={fmt(budget)}
-            unit="m/s"
-            color={dcolor}
-          />
-          <div
-            style={{ marginLeft: "auto", textAlign: "right", maxWidth: 340 }}
-          >
-            <div className="label" style={{ marginBottom: 3 }}>
-              Save it as
-            </div>
-            <div
-              className="body"
-              style={{ color: C.paper, fontWeight: 600, lineHeight: 1.25 }}
-            >
-              {craft.name}
-            </div>
-            <div className="note" style={{ marginTop: 2 }}>
-              {craft.sub}
-            </div>
-          </div>
-          <Stat
-            label="Liftoff mass"
-            value={ok ? fmt(liftoff, 1) : "—"}
-            unit="t"
-          />
-          <Stat label="Stages" value={ok ? stages.length : "—"} unit="" />
-          <Stat
-            label="Height"
-            value={ok ? geom.h.toFixed(1) : "—"}
-            unit="m"
-            small
-          />
-          <Stat
-            label="Aspect"
-            value={ok ? geom.ar.toFixed(1) : "—"}
-            unit=":1"
-            color={ok && geom.ar > maxAspect ? C.amber : undefined}
-            small
-          />
-          <Stat
-            label="Cost"
-            value={ok ? fmt(totalCost) : "—"}
-            unit="funds"
-            small
-          />
-          <Stat label="Parts" value={ok ? totalParts : "—"} unit="" small />
-          <Stat label="Class" value={vehicleClass} unit="" small />
-        </div>
+        <IconButton
+          icon={Settings}
+          label="Setup"
+          on={showSetup}
+          onClick={() => setShowSetup(true)}
+        />
       </header>
+
+      <Sheet open={showSetup} onClose={closeSetup} title="Setup">
+        <Setup
+          expansions={expansions}
+          setExpansions={setExpansions}
+          partsBy={EXPANSION_PARTS}
+          unlocked={unlocked}
+          setUnlocked={setUnlocked}
+          excluded={excluded}
+          setExcluded={setExcluded}
+          engines={engines.length}
+          tanks={tanks.length}
+          open={showTech}
+          onToggle={() => setShowTech(!showTech)}
+          accent={dcolor}
+          theme={themePref}
+          onTheme={setThemePref}
+          search={search}
+          configText={configText}
+          onLoad={applyConfig}
+        />
+      </Sheet>
 
       <div
         style={{
@@ -736,72 +735,121 @@ export default function KSPMissionPlanner() {
           margin: "0 auto",
         }}
       >
-        {/* ---------------------------- mission controls ---------------------------- */}
-        <section className="card" style={{ padding: SPACE.xl }}>
-          <Setup
-            expansions={expansions}
-            setExpansions={setExpansions}
-            partsBy={EXPANSION_PARTS}
-            unlocked={unlocked}
-            setUnlocked={setUnlocked}
-            excluded={excluded}
-            setExcluded={setExcluded}
-            engines={engines.length}
-            tanks={tanks.length}
-            open={showTech}
-            onToggle={() => setShowTech(!showTech)}
-            accent={dcolor}
-            theme={themePref}
-            onTheme={setThemePref}
-          />
-
-          <div
-            style={{ borderTop: `1px solid ${C.rule}`, margin: "16px 0 14px" }}
-          />
-
-          <Brief
-            origin={origin}
-            onOrigin={pickOrigin}
-            originOpen={showOrigin}
-            onToggleOrigin={() => setShowOrigin(!showOrigin)}
-            dest={dest}
-            destList={destList}
-            onDest={pickDest}
-            destOpen={showDest}
-            onToggleDest={() => setShowDest(!showDest)}
-            profile={effProfile}
-            canLand={canLand}
-            orbitHere={orbitHere}
-            onProfile={setProfile}
-            returning={returning}
-            onReturning={setReturning}
-            payload={payload}
-            onPayload={setPayload}
-            margin={margin}
-            onMargin={setMargin}
-            payloadDia={payloadDia}
-            onPayloadDia={setPayloadDia}
-            maxAspect={maxAspect}
-            onMaxAspect={setMaxAspect}
-            extraDv={extraDv}
-            onExtraDv={setExtraDv}
-            crossfeedOk={crossfeedOk}
-            asparagus={asparagus}
-            onAsparagus={setAsparagus}
-            objective={objective}
-            onObjective={setObjective}
-            needGimbal={needGimbal}
-            onNeedGimbal={setNeedGimbal}
-            srbAvail={srbAvail}
-            boosters={boosters}
-            onBoosters={setBoosters}
-            airDescent={airDescent}
-            chutes={chutes}
-            onChutes={setChutes}
-          />
-        </section>
+        {/* ---------------------------- the brief ---------------------------- */}
+        <Brief
+          open={briefOpen}
+          onToggle={() => {
+            touched.current = true;
+            setBriefOpen(!briefOpen);
+          }}
+          onDone={() => setBriefOpen(false)}
+          line={briefLine({
+            origin,
+            dest,
+            profile: effProfile,
+            returning,
+            payload,
+            objective,
+          })}
+          budget={budget}
+          accent={dcolor}
+          top={viewTop}
+          moreOpen={showMore}
+          onToggleMore={() => setShowMore(!showMore)}
+          origin={origin}
+          onOrigin={edit(pickOrigin)}
+          originOpen={showOrigin}
+          onToggleOrigin={() => setShowOrigin(!showOrigin)}
+          dest={dest}
+          destList={destList}
+          onDest={edit(pickDest)}
+          profile={effProfile}
+          canLand={canLand}
+          orbitHere={orbitHere}
+          onProfile={edit(setProfile)}
+          returning={returning}
+          onReturning={edit(setReturning)}
+          payload={payload}
+          onPayload={edit(setPayload)}
+          margin={margin}
+          onMargin={edit(setMargin)}
+          payloadDia={payloadDia}
+          onPayloadDia={edit(setPayloadDia)}
+          maxAspect={maxAspect}
+          onMaxAspect={edit(setMaxAspect)}
+          extraDv={extraDv}
+          onExtraDv={edit(setExtraDv)}
+          crossfeedOk={crossfeedOk}
+          asparagus={asparagus}
+          onAsparagus={edit(setAsparagus)}
+          objective={objective}
+          onObjective={edit(setObjective)}
+          needGimbal={needGimbal}
+          onNeedGimbal={edit(setNeedGimbal)}
+          srbAvail={srbAvail}
+          boosters={boosters}
+          onBoosters={edit(setBoosters)}
+          airDescent={airDescent}
+          chutes={chutes}
+          onChutes={edit(setChutes)}
+        />
 
         <Solving busy={busy} label={`Solving ${origin} → ${dest}…`}>
+          {/* The name and the headline figures, off the header and onto the
+              result they describe. Step 7 (#134) puts them on the rocket. */}
+          <section
+            className="card"
+            style={{
+              padding: SPACE.xl,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 26,
+              alignItems: "flex-end",
+              marginBottom: SPACE.xl,
+            }}
+          >
+            <div style={{ maxWidth: 340 }}>
+              <div className="label" style={{ marginBottom: 3 }}>
+                Save it as
+              </div>
+              <div
+                className="body"
+                style={{ color: C.paper, fontWeight: 600, lineHeight: 1.25 }}
+              >
+                {craft.name}
+              </div>
+              <div className="note" style={{ marginTop: 2 }}>
+                {craft.sub}
+              </div>
+            </div>
+            <Stat
+              label="Liftoff mass"
+              value={ok ? fmt(liftoff, 1) : "—"}
+              unit="t"
+            />
+            <Stat label="Stages" value={ok ? stages.length : "—"} unit="" />
+            <Stat
+              label="Height"
+              value={ok ? geom.h.toFixed(1) : "—"}
+              unit="m"
+              small
+            />
+            <Stat
+              label="Aspect"
+              value={ok ? geom.ar.toFixed(1) : "—"}
+              unit=":1"
+              color={ok && geom.ar > maxAspect ? C.amber : undefined}
+              small
+            />
+            <Stat
+              label="Cost"
+              value={ok ? fmt(totalCost) : "—"}
+              unit="funds"
+              small
+            />
+            <Stat label="Parts" value={ok ? totalParts : "—"} unit="" small />
+            <Stat label="Class" value={vehicleClass} unit="" small />
+          </section>
           <Results
             route={route}
             cuts={effCuts}
@@ -820,9 +868,6 @@ export default function KSPMissionPlanner() {
             hardware={hardware}
             color={dcolor}
             theme={theme}
-            search={search}
-            configText={configText}
-            onLoad={applyConfig}
           />
         </Solving>
 

@@ -2,10 +2,12 @@ import { X } from "lucide-react";
 import { DATA } from "../../core/catalogue.js";
 import { NODE_PARTS, TIERS, withDeps } from "../../core/tech.js";
 import { C, SPACE } from "../tokens.js";
+import { Config } from "./config.jsx";
 import { Check, Choice, ICON, STROKE, Section } from "./primitives.jsx";
 import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { ThemePref } from "../tokens.js";
+import type { SearchStats } from "./config.jsx";
 
 /* Where the parts come from, and what to call each. Stock is always on — it is
    the game — which is what `locked` reads below. */
@@ -36,11 +38,17 @@ type SetupProps = {
   /* The theme the reader asked for; the OS's unless they chose one. */
   theme: ThemePref;
   onTheme: (t: ThemePref) => void;
+  /* The configuration string that reproduces the run, and what the last
+     solve cost — the sheet's foot. */
+  search: SearchStats | null;
+  configText: string;
+  onLoad: (text: string) => { bad: boolean; msg: string };
 };
 
 /* The install and the research: which expansions are present, which nodes are
    researched, and which parts under them have been ruled out. Setup rather
-   than a per-mission choice, which is why it is saved and why it folds. */
+   than a per-mission choice, which is why it is saved and why it lives in a
+   sheet behind the header's gear rather than on the page. */
 function Setup({
   expansions,
   setExpansions,
@@ -56,6 +64,9 @@ function Setup({
   accent,
   theme,
   onTheme,
+  search,
+  configText,
+  onLoad,
 }: SetupProps) {
   /* Which node shows its parts. One at a time: the tree is long enough
      already. */
@@ -249,6 +260,9 @@ function Setup({
           ))}
         </div>
       </Section>
+
+      <div style={{ borderTop: `1px solid ${C.rule}`, margin: "14px 0" }} />
+      <Config search={search} text={configText} onLoad={onLoad} />
     </>
   );
 }
