@@ -28,11 +28,11 @@ describe("the results", () => {
       build?.querySelector("table"),
       "the bill is showing first",
     ).toBeNull();
-    expect(byText("auto (4)"), "no stage-count picker").toBeTruthy();
+    expect(byText("auto"), "no stage-count picker").toBeTruthy();
 
     await click("Build order");
     expect(build?.querySelector("table"), "no parts table").toBeTruthy();
-    expect(byText("auto (4)")).toBeUndefined();
+    expect(byText("auto")).toBeUndefined();
 
     await click("By stage");
     expect(build?.querySelector("table")).toBeNull();

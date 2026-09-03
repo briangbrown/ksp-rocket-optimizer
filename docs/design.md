@@ -78,8 +78,8 @@ list of what is still approximate — the old footer's two paragraphs — are a
 ┌──────────────────────────────────┐
 │ KSP ROCKET OPTIMIZER         [⚙] │  header: title and setup only
 ├──────────────────────────────────┤
-│ Kerbin → Mun · land & return     │  brief, set — sticky under the
-│ 2.5 t · cheapest        [✎] [⇪]  │  solving bar
+│ Kerbin → Mun · land & return     │  brief, set — sticky; the solving
+│ 2.5 t · cheapest        [✎] [⇪]  │  pill floats over it while solving
 ├──────────────────────────────────┤
 │ YOUR ROCKET                      │
 │ ┌──────────────────────────────┐ │
@@ -304,9 +304,9 @@ force.
 A 4 px scale: **2 · 4 · 8 · 12 · 16 · 24 · 32**. `2` is for the gap inside a
 chip and between a figure and its unit; `32` is between sections. Today's
 values run through every integer from 1 to 26; the mapping is nearest-on-scale,
-rounding down inside a component and up between components. `60px` (the
-solving bar's height, as the page's top padding) is a layout constant in `Z`'s
-neighbour, not a spacing.
+rounding down inside a component and up between components. The page's
+`padding-bottom` — the footer's last line's room, and on the phone the jump
+bar's — is a layout constant in the stylesheet, not a spacing.
 
 ### Radius
 
@@ -317,18 +317,18 @@ chips become `3`.
 
 ### Z
 
-| Token     | Value | What                                                                                |
-| --------- | ----- | ----------------------------------------------------------------------------------- |
-| `brief`   | 10    | the set brief, sticky under the solving bar                                         |
-| `jump`    | 20    | the phone's jump bar                                                                |
-| `pill`    | 30    | the solving pill, sticky inside the veil                                            |
-| `overlay` | 40    | the full-screen build view, portaled to `body`                                      |
-| `solving` | 50    | the solving bar — above the overlay, so a rocket about to be replaced still says so |
-| `sheet`   | 60    | the setup sheet and the paste sheet                                                 |
-| `popover` | 70    | a disclosure's popover                                                              |
+| Token     | Value | What                                                                                 |
+| --------- | ----- | ------------------------------------------------------------------------------------ |
+| `brief`   | 10    | the set brief, sticky at the top                                                     |
+| `jump`    | 20    | the phone's jump bar                                                                 |
+| `overlay` | 40    | the full-screen build view, portaled to `body`                                       |
+| `solving` | 50    | the solving pill — above the overlay, so a rocket about to be replaced still says so |
+| `sheet`   | 60    | the setup sheet and the paste sheet                                                  |
+| `popover` | 70    | a disclosure's popover                                                               |
 
-Today: 40 (pill), 45 (overlay), 50 (bar). The bar stays where it is because
-`.claude/rules/ui.md` says why.
+30 was a second solving pill, sticky inside the veil under a bar across the
+page; #136 kept the pill and dropped the bar, and the pill is fixed outside
+the veil for the reason `.claude/rules/ui.md` gives.
 
 ### Containers
 
@@ -336,6 +336,16 @@ The card is the only container: `panel` ground, `rule` border, `r-sm`,
 `16` padding on the phone and `16 20` on desktop. A section is a card with a
 heading. A callout is a card with a severity edge. Nothing nests a card in a
 card; a raised thing inside one is `panel2`.
+
+### Tables
+
+Two, and neither scrolls sideways at 390. The bill of parts is five columns
+on desktop and on the phone a row per part: the stage number down the left,
+the name across, and `qty × each t = total t` under it, the glue and the
+units drawn by the stylesheet since the header that named the columns is
+hidden. The flight profile is four figures a row on both — a time, a pitch,
+a speed and an altitude fit in 27 characters of the figure face — with the
+_cutoff_ and _apoapsis_ tags on a line of their own under the time. #136
 
 ---
 
@@ -374,6 +384,12 @@ keys between them, the selected one inverted. Each chip may carry a one-sentence
 not, the same sentences go in a `Disclosure` beside the group's label, as the
 objectives' do. Not for: more than five options (use a `Field` with a select) or
 booleans.
+
+**`Stepper`** — a small integer: `−` and `+` as `IconButton`s either side of
+a `figure` that reads out as it changes, with the buttons disabled at the
+ends. The stage count, beside an `auto` `Toggle` that hands the choice back
+to the solver. Not for: a value with a range worth seeing (that is a `Field`
+with its slider) or one-of-several named things (a `Choice`).
 
 **`IconButton`** — a `lucide` icon, an `aria-label`, and a tooltip that works
 on touch (the label shows on long-press and in the sheet). A 44 px square on
@@ -443,7 +459,7 @@ alone, stroke width 1.75 throughout. Every icon-only control has an
 | severity                  | `Info` `CircleCheck` `TriangleAlert` `OctagonAlert` | see Colour                                                                         |
 
 Words stay where no icon is established: _Return trip_, _Gimbal_, _Solid
-boosters_, _Parachutes_ (toggles), the stage count `auto 1 2 3 4 5`, the
+boosters_, _Parachutes_ (toggles), the stage count's `auto`, the
 objectives, the profiles, every planet. A checkbox stays a checkbox where there
 is a list of them.
 
@@ -482,7 +498,9 @@ What every component clears before it is merged. The layout suite asserts the
 measurable ones at both viewports and both themes.
 
 - **Targets**: 44 × 44 on the phone, 24 × 24 on desktop, for anything that
-  responds to a press. A chip grows; it does not get a bigger hit area.
+  responds to a press. A chip grows; it does not get a bigger hit area. A
+  link in running text is the one exception: its box grows by padding a
+  negative margin gives back to the line, so the line does not.
 - **Keyboard**: everything a click reaches, Tab reaches, in reading order.
   Escape closes the topmost thing that can close. Arrow keys move within a
   `Choice` and along the staging scrubber.

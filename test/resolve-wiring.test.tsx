@@ -6,6 +6,7 @@ import { must } from "./must.js";
 import KSPMissionPlanner from "../src/ui/app.jsx";
 import {
   settle,
+  allByLabel,
   byText,
   click,
   design,
@@ -213,7 +214,7 @@ describe("a control change re-solves", () => {
     /* Reaches the solver through splitBy, which is its own piece of wiring. */
     await mount();
     const before = design();
-    await click(byText("2"));
+    await click(allByLabel("Fewer stages")[0]);
     await settle();
     expect(
       design(),

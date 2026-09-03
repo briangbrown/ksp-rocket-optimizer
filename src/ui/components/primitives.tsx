@@ -4,7 +4,9 @@ import {
   ChevronRight,
   CircleCheck,
   Info,
+  Minus,
   OctagonAlert,
+  Plus,
   TriangleAlert,
 } from "lucide-react";
 import {
@@ -54,6 +56,8 @@ type SectionProps = {
   bare?: boolean;
   children?: ReactNode;
   style?: CSSProperties;
+  /* An anchor, for the jump bar to scroll to. */
+  id?: string;
   /* Space under the header before the children. */
   gap?: number;
   /* At the right end of the header, folded or not — beside the fold's button
@@ -72,6 +76,7 @@ function Section({
   style,
   gap = SPACE.lg,
   aside,
+  id: anchor,
 }: SectionProps) {
   const id = useId();
   const folds = onToggle !== undefined;
@@ -99,37 +104,76 @@ function Section({
       >
         {heading}
       </span>
+      {/* The summary takes what the heading and the aside leave, and asks
+          for nothing: `contain` is what keeps its words out of the row's
+          intrinsic width, so the brief's aside stays beside a summary of
+          any length and the build's tabs wrap under a heading they cannot
+          share a line with. */}
       {summary !== undefined && !shown && (
-        <span className="body" style={{ color: C.paper, fontWeight: 600 }}>
+        <span
+          className="body"
+          style={{
+            color: C.paper,
+            fontWeight: 600,
+            flex: "1 1 0",
+            minWidth: 0,
+            contain: "inline-size",
+          }}
+        >
           {summary}
         </span>
       )}
     </>
   );
+  /* `1 1 auto`, not `1`: a basis of zero is what the shorthand gives, and
+     a zero-wide item never asks the row to wrap. */
   const row: CSSProperties = {
     display: "flex",
     alignItems: "center",
     gap: SPACE.md,
-    flex: 1,
+    flex: "1 1 auto",
     minWidth: 0,
     textAlign: "left",
   };
   return (
     <section
+      id={anchor}
       className={bare ? undefined : "card"}
       aria-labelledby={id}
-      style={bare ? style : { padding: SPACE.xl, ...style }}
+      /* Four longhands, not the shorthand: the brief's stuck style sets
+         `paddingTop`, and React clears a longhand it stops seeing without
+         re-applying a shorthand it still sees — the brief opened with no
+         padding above its heading. */
+      style={
+        bare
+          ? style
+          : {
+              paddingTop: SPACE.xl,
+              paddingRight: SPACE.xl,
+              paddingBottom: SPACE.xl,
+              paddingLeft: SPACE.xl,
+              ...style,
+            }
+      }
     >
+      {/* The aside wraps under the heading where the two will not share a
+          line — the build section's three tabs beside its heading, at 390. */}
       <div
         style={{
           display: "flex",
+          flexWrap: "wrap",
           alignItems: "center",
           gap: SPACE.md,
           marginBottom: shown && children ? gap : 0,
         }}
       >
         {folds ? (
-          <button onClick={onToggle} aria-expanded={!!open} style={row}>
+          <button
+            className="fold"
+            onClick={onToggle}
+            aria-expanded={!!open}
+            style={row}
+          >
             {head}
           </button>
         ) : (
@@ -258,6 +302,7 @@ type IconButtonProps = {
   label: string;
   onClick: () => void;
   on?: boolean;
+  disabled?: boolean;
   style?: CSSProperties;
 };
 
@@ -266,6 +311,7 @@ const IconButton = ({
   label,
   onClick,
   on,
+  disabled,
   style,
 }: IconButtonProps) => (
   <button
@@ -273,11 +319,55 @@ const IconButton = ({
     aria-label={label}
     aria-pressed={on}
     data-on={on ? 1 : 0}
+    disabled={disabled}
     onClick={onClick}
     style={style}
   >
     <Icon size={ICON.alone} strokeWidth={STROKE} aria-hidden />
   </button>
+);
+
+/* ------------------------------- Stepper ------------------------------- */
+/* A small integer: the figure between a minus and a plus, each an icon
+   button with the unit in its name — "Fewer stages", "More stages". The ends
+   go quiet at the bounds. A row of numbered chips did this job until #136,
+   at a size no finger could pick from. */
+type StepperProps = {
+  label: string;
+  /* The noun the two buttons name: "stages". */
+  unit: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (v: number) => void;
+};
+
+const Stepper = ({ label, unit, value, min, max, onChange }: StepperProps) => (
+  <span
+    role="group"
+    aria-label={label}
+    style={{ display: "inline-flex", alignItems: "center", gap: SPACE.xs }}
+  >
+    <IconButton
+      icon={Minus}
+      label={`Fewer ${unit}`}
+      disabled={value <= min}
+      onClick={() => onChange(Math.max(min, value - 1))}
+    />
+    <span
+      className="figure"
+      aria-live="polite"
+      style={{ minWidth: "2ch", textAlign: "center", color: C.paper }}
+    >
+      {value}
+    </span>
+    <IconButton
+      icon={Plus}
+      label={`More ${unit}`}
+      disabled={value >= max}
+      onClick={() => onChange(Math.min(max, value + 1))}
+    />
+  </span>
 );
 
 /* ------------------------------- Sheet ------------------------------- */
@@ -365,8 +455,14 @@ function Sheet({ open, onClose, title, children }: SheetProps) {
             ? `${RADIUS.lg}px ${RADIUS.lg}px 0 0`
             : `${RADIUS.lg}px 0 0 ${RADIUS.lg}px`,
           padding: SPACE.xl,
+          /* The home indicator's strip, on a phone that has one. */
+          paddingBottom: phone
+            ? `calc(${SPACE.xl}px + env(safe-area-inset-bottom))`
+            : SPACE.xl,
           width: phone ? "100%" : "min(480px, 100%)",
-          maxHeight: phone ? "85vh" : "100%",
+          /* dvh: the address bar's height comes and goes, and a sheet sized
+             to the tallest viewport hides its foot under the bar. */
+          maxHeight: phone ? "85dvh" : "100%",
           overflowY: "auto",
           animation: `${phone ? "rise" : "slide"} .4s ease-out`,
           outline: "none",
@@ -578,19 +674,14 @@ const Check = ({
   style,
 }: CheckProps) => (
   <label
-    style={{
-      display: "flex",
-      gap: 6,
-      alignItems: "flex-start",
-      cursor: disabled ? "default" : "pointer",
-      ...style,
-    }}
+    className="check tap"
+    style={{ cursor: disabled ? "default" : "pointer", ...style }}
   >
     <input
       type="checkbox"
       checked={checked}
       disabled={disabled}
-      style={{ marginTop: 2, accentColor: accent }}
+      style={{ accentColor: accent }}
       onChange={(e) => onChange(e.target.checked)}
     />
     {children}
@@ -724,7 +815,7 @@ function Field({
         </span>
         <span style={{ display: "flex", alignItems: "baseline", gap: 3 }}>
           <input
-            className="figure"
+            className="figure field-in"
             aria-label={typeof label === "string" ? label : undefined}
             value={draft ?? value}
             inputMode="decimal"
@@ -791,6 +882,7 @@ export {
   Field,
   ICON,
   IconButton,
+  Stepper,
   STROKE,
   Section,
   SeverityMark,

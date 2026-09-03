@@ -2,7 +2,7 @@ import { manifest } from "../../core/manifest.js";
 import { PLATE_SHROUD } from "../../core/parts.js";
 import { fmt } from "../format.js";
 import { C, KIND, RADIUS } from "../tokens.js";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { ManifestRow } from "../../core/manifest.js";
 import type { Solution } from "../../core/solution.js";
 
@@ -343,64 +343,42 @@ function PartsTable({ stages, payload, hardware, color }: PartsTableProps) {
       }
     }
   });
-  const th: CSSProperties = {
-    textAlign: "left",
-    padding: "6px 8px",
-    borderBottom: `1px solid ${C.rule}`,
-    whiteSpace: "nowrap",
-  };
-  const td = {
-    padding: "6px 8px",
-    borderBottom: `1px solid ${C.panel2}`,
-  };
+  /* The cells' padding and rules are the stylesheet's, which on the phone
+     turns each row into two lines — the part, then `qty × each = total` —
+     and hides the header, the line saying what its figures are. #136 */
   return (
-    /* The table is wider than a phone and scrolls inside its box; a tab stop
-       is what lets a keyboard scroll it, and what axe asks of a region that
-       scrolls. */
+    /* On desktop the table has a width of its own and scrolls inside its box
+       where the column is narrower; a tab stop is what lets a keyboard scroll
+       it, and what axe asks of a region that scrolls. */
     <div style={{ overflowX: "auto" }} tabIndex={0}>
       <table
-        style={{ width: "100%", borderCollapse: "collapse", minWidth: 460 }}
+        className="parts"
+        style={{ width: "100%", borderCollapse: "collapse" }}
       >
         <thead>
           <tr>
-            <th className="label" style={th}>
-              Stage
-            </th>
-            <th className="label" style={th}>
-              Part
-            </th>
-            <th className="label" style={{ ...th, textAlign: "right" }}>
-              Qty
-            </th>
-            <th className="label" style={{ ...th, textAlign: "right" }}>
-              Each&nbsp;t
-            </th>
-            <th className="label" style={{ ...th, textAlign: "right" }}>
-              Total&nbsp;t
-            </th>
+            <th className="label">Stage</th>
+            <th className="label">Part</th>
+            <th className="label num">Qty</th>
+            <th className="label num">Each&nbsp;t</th>
+            <th className="label num">Total&nbsp;t</th>
           </tr>
         </thead>
         <tbody className="body">
           <tr>
-            <td style={{ ...td, color: C.dim }}>—</td>
-            <td style={{ ...td, color: color, fontWeight: 600 }}>
+            <td style={{ color: C.dim }}>—</td>
+            <td style={{ color: color, fontWeight: 600 }}>
               Payload (pod, probe, science, cargo)
             </td>
-            <td style={{ ...td, textAlign: "right" }} className="figure">
-              1
-            </td>
-            <td style={{ ...td, textAlign: "right" }} className="figure">
-              {fmt(payload, 2)}
-            </td>
-            <td style={{ ...td, textAlign: "right" }} className="figure">
-              {fmt(payload, 2)}
-            </td>
+            <td className="figure num">1</td>
+            <td className="figure num">{fmt(payload, 2)}</td>
+            <td className="figure num">{fmt(payload, 2)}</td>
           </tr>
           {hardware &&
             hardware.items.map((h, i) => (
-              <tr key={"hw" + i}>
-                <td style={{ ...td, color: C.dim }}></td>
-                <td style={{ ...td, color: C.sky, paddingLeft: 22 }}>
+              <tr key={"hw" + i} className="hw">
+                <td style={{ color: C.dim }}></td>
+                <td style={{ color: C.sky }} className="under">
                   ↳ {h.name}
                   <span
                     className="note"
@@ -409,31 +387,22 @@ function PartsTable({ stages, payload, hardware, color }: PartsTableProps) {
                     {h.why}
                   </span>
                 </td>
-                <td style={{ ...td, textAlign: "right" }} className="figure">
-                  {h.qty}
-                </td>
-                <td
-                  style={{ ...td, textAlign: "right", color: C.dim }}
-                  className="figure"
-                >
+                <td className="figure num">{h.qty}</td>
+                <td style={{ color: C.dim }} className="figure num">
                   —
                 </td>
-                <td
-                  className="note"
-                  style={{ ...td, textAlign: "right", color: C.dim }}
-                >
+                <td className="note num" style={{ color: C.dim }}>
                   in payload
                 </td>
               </tr>
             ))}
           {rows.map((r, i) => (
-            <tr key={i}>
-              <td style={{ ...td, color: C.muted }} className="figure">
+            <tr key={i} className={r.kind === "note" ? "words" : undefined}>
+              <td style={{ color: C.muted }} className="figure">
                 {r.stage}
               </td>
               <td
                 style={{
-                  ...td,
                   color: ROW_INK[r.kind] ?? C.muted,
                   fontStyle: r.kind === "note" ? "italic" : "normal",
                 }}
@@ -457,16 +426,11 @@ function PartsTable({ stages, payload, hardware, color }: PartsTableProps) {
                 )}
                 {r.part}
               </td>
-              <td style={{ ...td, textAlign: "right" }} className="figure">
-                {r.qty}
-              </td>
-              <td
-                style={{ ...td, textAlign: "right", color: C.muted }}
-                className="figure"
-              >
+              <td className="figure num">{r.qty}</td>
+              <td style={{ color: C.muted }} className="figure num">
                 {r.kind === "note" ? "" : fmt(r.each, 3)}
               </td>
-              <td style={{ ...td, textAlign: "right" }} className="figure">
+              <td className="figure num">
                 {r.kind === "note" ? "" : fmt(r.tot, 2)}
               </td>
             </tr>

@@ -645,7 +645,7 @@ function BuildView({
      containing block for a `position: fixed` descendant — so the overlay would
      re-anchor itself to the results column halfway through a solve.
 
-     Under the app's own solving bar, which is `Z.solving` and lives outside
+     Under the app's own solving pill, which is `Z.solving` and lives outside
      the veil, so a full-screen rocket about to be replaced still says so.
 
      Not the Fullscreen API. This is meant to run inside a Claude artifact's
@@ -660,6 +660,10 @@ function BuildView({
             style={{
               position: "fixed",
               inset: 0,
+              /* The window as it is now, address bar and all: `100vh` on a
+                 phone is the window with the bar gone, and the rail's foot
+                 sat under it. */
+              height: "100dvh",
               zIndex: Z.overlay,
               background: C.ink,
               /* A second root. Outside the one the application sets these on,
@@ -667,7 +671,9 @@ function BuildView({
                  and every chip in here comes out in Times. */
               fontFamily: FONT,
               color: C.paper,
-              padding: 16,
+              /* Inside the notch and the home indicator on a phone. */
+              padding:
+                "calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))",
               display: "flex",
               flexDirection: "column",
             }}
