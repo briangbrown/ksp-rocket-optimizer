@@ -22,21 +22,21 @@ import type { Page } from "puppeteer";
    render.test.ts gives. */
 const BUDGET = {
   phone: {
-    height: 8020, // px, the whole page with the default mission solved: 7864, with 2% for a different Chrome's fonts
+    height: 9240, // px, the whole page with the default mission solved: 9057, with 2% for a different Chrome's fonts
     words: 1752, // visible words on that page
-    tinyText: 152, // text under 12 px
-    smallBody: 454, // text under 13 px
+    tinyText: 0, // text under 12 px
+    smallBody: 81, // text under 13 px: the labels, at 12
     targets: 63, // pressable things under 44 × 44 — of 65
     sideways: 7, // things wider than their box: six sliders by 4 px, the parts table by 136
     unreachable: 0, // targets a keyboard cannot reach
     axe: 16, // nodes axe objects to, wcag2a + wcag2aa
   },
   desktop: {
-    height: 4690, // 4594
+    height: 4980, // 4884
     words: 1753,
-    tinyText: 153,
-    smallBody: 455,
-    targets: 29, // under 24 × 24 — of 65
+    tinyText: 82, // the labels, at 11
+    smallBody: 153, // labels and notes
+    targets: 24, // under 24 × 24 — of 65
     sideways: 6,
     unreachable: 0,
     axe: 15,

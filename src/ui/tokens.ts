@@ -68,11 +68,11 @@ type Role = {
 const TYPE: Readonly<Record<string, Role>> = {
   display: {
     family: FONTS.condensed,
-    size: [34, 34],
-    weight: 700,
+    size: [28, 34],
+    weight: 600,
     tracking: ".06em",
     caps: true,
-    line: 0.95,
+    line: 1.2,
   },
   heading: {
     family: FONTS.condensed,
@@ -84,15 +84,15 @@ const TYPE: Readonly<Record<string, Role>> = {
   },
   label: {
     family: FONTS.mono,
-    size: [10, 10],
-    weight: 400,
-    tracking: ".22em",
+    size: [12, 11],
+    weight: 500,
+    tracking: ".14em",
     caps: true,
     line: 1.4,
   },
   body: {
     family: FONTS.sans,
-    size: [12.5, 12.5],
+    size: [14, 13.5],
     weight: 400,
     tracking: "0",
     caps: false,
@@ -100,15 +100,15 @@ const TYPE: Readonly<Record<string, Role>> = {
   },
   figure: {
     family: FONTS.mono,
-    size: [12, 12],
-    weight: 400,
+    size: [13, 13],
+    weight: 500,
     tracking: "0",
     caps: false,
     line: 1.4,
   },
   "figure-lg": {
     family: FONTS.mono,
-    size: [24, 24],
+    size: [22, 24],
     weight: 600,
     tracking: "0",
     caps: false,
@@ -116,11 +116,11 @@ const TYPE: Readonly<Record<string, Role>> = {
   },
   note: {
     family: FONTS.sans,
-    size: [11, 11],
+    size: [13, 12.5],
     weight: 400,
     tracking: "0",
     caps: false,
-    line: 1.45,
+    line: 1.5,
   },
 };
 

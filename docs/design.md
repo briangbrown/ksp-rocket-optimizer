@@ -133,7 +133,7 @@ Three families, six roles, one size per role per breakpoint. Nothing else.
 | --------- | ---------------- | ----- | ------- | ------ | ---------------- | ----------------------------------------------------------------- |
 | `display` | Barlow Condensed | 28    | 34      | 600    | caps, `.06em`    | the title; the craft name on the rocket                           |
 | `heading` | Barlow Condensed | 15    | 15      | 600    | caps, `.06em`    | section and stage names; the flight card's step titles            |
-| `label`   | IBM Plex Mono    | 11    | 11      | 500    | caps, `.14em`    | field and stat labels, table heads, the eyebrow over a section    |
+| `label`   | IBM Plex Mono    | 12    | 11      | 500    | caps, `.14em`    | field and stat labels, table heads, the eyebrow over a section    |
 | `body`    | Inter            | 14    | 13.5    | 400    | sentence, `0`    | reading text, chips, buttons, callout headlines, field values     |
 | `figure`  | IBM Plex Mono    | 13    | 13      | 500    | tabular numerals | any number a reader compares: Δv, mass, cost, T+, the typed value |
 | `note`    | Inter            | 13    | 12.5    | 400    | sentence, `0`    | secondary text: subtitles, disclosed hints, units beside a figure |
