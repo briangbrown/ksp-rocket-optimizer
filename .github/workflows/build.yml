@@ -109,4 +109,7 @@ jobs:
         with:
           name: layout
           path: visual/.out
-          if-no-files-found: ignore
+          # A dot-directory, like perf/.out; the action skips hidden paths
+          # unless told otherwise and reports "no files found".
+          include-hidden-files: true
+          if-no-files-found: error
