@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { DESKTOP, PHONE, open, serve, settle } from "./browser.js";
 import { focused, measure } from "./measure.js";
+import { MOTION } from "../src/ui/tokens.js";
 import type { Viewport } from "./browser.js";
 import type { Measure } from "./measure.js";
 import type { Page } from "puppeteer";
@@ -211,5 +212,24 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
 
   it("clears axe within budget", () => {
     expect(n.axe, `axe:\n${list(axe)}`).toBeLessThanOrEqual(budget.axe);
+  });
+
+  it("keeps a selected chip legible under the pointer", async () => {
+    /* The hover rule outranked the selected rule and set the text to the
+       colour the selection had set the ground to — paper on paper — so the
+       chip just pressed went blank until the pointer left it, which on a
+       phone is the next tap. Computed colours, because the CSSOM and jsdom
+       cannot see which rule won. #146 */
+    const el = await page.$('button.chip[data-on="1"]');
+    if (!el) throw new Error("no selected chip on the page");
+    await el.hover();
+    /* The chip transitions its colours, so read them once it has arrived. */
+    await new Promise((r) => setTimeout(r, MOTION.quick * 3));
+    const { fg, bg } = await el.evaluate((b) => {
+      const s = getComputedStyle(b);
+      return { fg: s.color, bg: s.backgroundColor };
+    });
+    expect(fg, `selected chip under the pointer: ${fg} on ${bg}`).not.toBe(bg);
+    await page.mouse.move(0, 0);
   });
 });
