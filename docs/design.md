@@ -133,7 +133,7 @@ Three families, six roles, one size per role per breakpoint. Nothing else.
 | --------- | ---------------- | ----- | ------- | ------ | ---------------- | ----------------------------------------------------------------- |
 | `display` | Barlow Condensed | 28    | 34      | 600    | caps, `.06em`    | the title; the craft name on the rocket                           |
 | `heading` | Barlow Condensed | 15    | 15      | 600    | caps, `.06em`    | section and stage names; the flight card's step titles            |
-| `label`   | IBM Plex Mono    | 11    | 11      | 500    | caps, `.14em`    | field and stat labels, table heads, the eyebrow over a section    |
+| `label`   | IBM Plex Mono    | 12    | 11      | 500    | caps, `.14em`    | field and stat labels, table heads, the eyebrow over a section    |
 | `body`    | Inter            | 14    | 13.5    | 400    | sentence, `0`    | reading text, chips, buttons, callout headlines, field values     |
 | `figure`  | IBM Plex Mono    | 13    | 13      | 500    | tabular numerals | any number a reader compares: Δv, mass, cost, T+, the typed value |
 | `note`    | Inter            | 13    | 12.5    | 400    | sentence, `0`    | secondary text: subtitles, disclosed hints, units beside a figure |
@@ -358,6 +358,11 @@ a `Disclosure` for the hint. The typed value is a draft while focused
 
 **`Stat`** — a `label` over a `figure-lg` and its unit in `note`. The six under
 the rocket. Not for: a figure in running text (that is a `figure` span).
+
+**`Check`** — a native checkbox with its label wrapped round it, for a list
+where several things can be on at once: the installed expansions, the parts
+excluded from a tech node. The whole label is the target. Not for: a single
+boolean standing alone (that is a `Toggle`) or one-of-several (a `Choice`).
 
 **`Sheet`** — a panel that slides up from the bottom on the phone and in from
 the right on desktop, with a scrim, focus trapped and returned, Escape to

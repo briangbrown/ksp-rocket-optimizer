@@ -55,7 +55,7 @@ export async function settle(timeoutMs = 120_000) {
 /* Stat renders <div class="eyebrow">label</div> followed by the value div,
    whose trailing span holds the unit. */
 export function stat(label: string) {
-  for (const el of document.querySelectorAll(".eyebrow")) {
+  for (const el of document.querySelectorAll(".label")) {
     if (el.textContent?.trim() !== label) continue;
     const value = el.nextElementSibling;
     if (!value) return null;

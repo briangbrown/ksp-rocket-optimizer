@@ -1,5 +1,6 @@
 import { fmt } from "../format.js";
-import { C, SYSTEMS, edgeOf, hueFor, inkOn } from "../tokens.js";
+import { C, RADIUS, SYSTEMS, edgeOf, hueFor, inkOn } from "../tokens.js";
+import { Choice } from "./primitives.jsx";
 import type { CSSProperties } from "react";
 import type { Leg } from "../../core/orbits.js";
 import type { PlanStage } from "../../core/plan.js";
@@ -73,22 +74,22 @@ function RouteMap({
                     transform: "translateY(-50%)",
                     width: 11,
                     height: 11,
-                    borderRadius: "50%",
+                    borderRadius: RADIUS.round,
                     background: C.ink,
                     border: `3px solid ${leg.free ? C.rule : color}`,
                   }}
                 />
               </div>
               <div
-                style={{
-                  fontSize: 12.5,
-                  lineHeight: 1.3,
-                  color: leg.free ? C.dim : C.paper,
-                }}
+                className="body"
+                style={{ lineHeight: 1.3, color: leg.free ? C.dim : C.paper }}
               >
                 {leg.label}
                 {leg.chuted && (
-                  <span style={{ color: C.mint, fontSize: 10 }}> · chutes</span>
+                  <span className="note" style={{ color: C.mint }}>
+                    {" "}
+                    · chutes
+                  </span>
                 )}
                 {/* The one leg whose cost is a choice rather than a number: pay it
                     in Δv now, or in waiting for a launch window. */}
@@ -99,32 +100,27 @@ function RouteMap({
                   leg.cheap !== undefined &&
                   leg.costly !== undefined &&
                   leg.cheap < leg.costly && (
-                    <button
-                      className="chip"
-                      onClick={() => onPlaneMode(!leg.planeNow)}
-                      style={{
-                        marginLeft: 8,
-                        fontSize: 10,
-                        padding: "1px 7px",
-                      }}
-                      title={
-                        leg.planeNow
-                          ? "Switch to timing the encounter at a node — far cheaper, but you wait for the window"
-                          : "Switch to burning it out of low orbit — costs more, goes whenever you like"
-                      }
-                    >
-                      {leg.planeNow ? "burning it now" : "timed at a node"}
-                    </button>
+                    <Choice
+                      label="Plane change"
+                      value={leg.planeNow ? "now" : "node"}
+                      onChange={(m) => onPlaneMode(m === "now")}
+                      options={[
+                        { value: "node", label: "timed at a node" },
+                        { value: "now", label: "burning it now" },
+                      ]}
+                      chip={{ padding: "1px 7px" }}
+                      style={{ display: "inline-flex", marginLeft: 8, gap: 4 }}
+                    />
                   )}
                 {leg.note && (
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                  <div className="note" style={{ marginTop: 2 }}>
                     {leg.note}
                   </div>
                 )}
               </div>
               <div
-                className="mono"
-                style={{ fontSize: 13, color: leg.free ? C.dim : C.paper }}
+                className="figure"
+                style={{ color: leg.free ? C.dim : C.paper }}
               >
                 {leg.dv === 0 ? "free" : `${fmt(leg.dv)}`}
               </div>
@@ -155,12 +151,9 @@ function RouteMap({
                   />
                 </div>
                 <div
+                  className="label"
                   style={{
-                    fontSize: 10,
-                    letterSpacing: ".14em",
-                    textTransform: "uppercase",
                     color: isCut ? C.amber : C.rule,
-                    fontFamily: "'IBM Plex Mono',monospace",
                     textAlign: "left",
                   }}
                 >
@@ -202,13 +195,10 @@ function BodyPicker({ options, value, onPick }: BodyPickerProps) {
     const h = hueFor(b);
     return {
       padding: "7px 11px",
-      borderRadius: 3,
+      borderRadius: RADIUS.sm,
       minWidth: 84,
       textAlign: "left",
-      fontFamily: "inherit",
-      fontSize: 14.5,
-      fontWeight: 650,
-      letterSpacing: "-0.01em",
+      fontWeight: 600,
       cursor: live ? "pointer" : "default",
       opacity: live ? 1 : 0.4,
       background: on ? h : C.panel2,
@@ -220,10 +210,7 @@ function BodyPicker({ options, value, onPick }: BodyPickerProps) {
     const h = hueFor(b);
     return {
       padding: "3px 9px",
-      borderRadius: 3,
-      fontFamily: "inherit",
-      fontSize: 11.5,
-      fontWeight: 400,
+      borderRadius: RADIUS.sm,
       cursor: "pointer",
       background: on ? h : "transparent",
       color: on ? inkOn(h) : C.muted,
@@ -268,6 +255,7 @@ function BodyPicker({ options, value, onPick }: BodyPickerProps) {
             }}
           >
             <button
+              className="body"
               style={{ ...planetBtn(pl, po === value, !!po), flexShrink: 0 }}
               onClick={() => po && onPick(po)}
               disabled={!po}
@@ -276,7 +264,7 @@ function BodyPicker({ options, value, onPick }: BodyPickerProps) {
             </button>
             {mo.length > 0 && (
               <>
-                <span style={{ color: C.rule, fontSize: 12, marginTop: 7 }}>
+                <span className="body" style={{ color: C.rule, marginTop: 7 }}>
                   ─
                 </span>
                 <div
@@ -292,6 +280,7 @@ function BodyPicker({ options, value, onPick }: BodyPickerProps) {
                   {mo.map(({ b, o }) => (
                     <button
                       key={b}
+                      className="note"
                       style={moonBtn(b, o === value)}
                       onClick={() => onPick(o)}
                     >

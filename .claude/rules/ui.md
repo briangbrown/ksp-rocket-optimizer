@@ -51,9 +51,17 @@ control shows and what it committed.
   above the visible area at exactly the moment it is wanted. The solving bar
   translates by `visualViewport.offsetTop` for this reason.
 
-- **A text field renders its draft, not its value.** `Slider` holds a draft
+- **A text field renders its draft, not its value.** `Field` holds a draft
   string while focused so half-typed values are not fought. A typed number
   therefore looks accepted whether or not it ever reached state, so "the value
   updated" is not evidence that anything did — the slider moving is, because the
   range input renders the committed value. Two fixes were built on the wrong
   reading of this before the real cause turned up.
+
+- **The roles carry their leading.** `body` is 1.5, `note` 1.45, `figure`
+  1.4, where the inline sizes they replaced left the browser's `normal` — so
+  moving a block of text onto a role makes it taller without making it
+  bigger. Setting every role back to `normal` put the page 170 px _under_
+  what it measured before the roles; the 400 px it gained were leading, not
+  type. Do not reach for a `lineHeight` override to win a budget back: the
+  leading is the design, and the budget is what moves.

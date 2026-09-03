@@ -87,6 +87,15 @@ real phone's address bar or keyboard, a thumb, or whether the words it counted
 are the right ones. Reintroduce a 10 px label, a 16 px button, a 3,000 px
 table or a clickable `div` and it names each one.
 
+Two things it learned the hard way. A `Choice` keeps one chip in the Tab
+order and reaches the rest by arrow key — that is what a radiogroup is — so
+the Tab walk marks a chip reached when its group was, or every choice on the
+page reads as unreachable. And `scrollWidth` counts an absolutely positioned
+descendant even at `opacity: 0`, so a tooltip that is merely transparent
+while hidden turns every icon button's row into "scrolling sideways"; the
+`IconButton` tooltip is `display: none` until shown for this reason, not a
+styling preference.
+
 One thing it has to be told: `settle` waits for the solver, and a staging
 transition has nothing to do with the solver. Sampling a panel before the
 separation has finished reads a frame of the animation as though it were the

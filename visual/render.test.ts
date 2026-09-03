@@ -123,7 +123,7 @@ async function step(label: string) {
    used to bottom-align its columns, and the elevation's header is taller than
    the plan's, so the two labels landed at different heights. #99 */
 const labelTops = () =>
-  page.$$eval("span.eyebrow", (els) =>
+  page.$$eval("span.label", (els) =>
     els
       .filter((e) =>
         ["Staging", "Elevation", "Plan"].includes((e.textContent ?? "").trim()),

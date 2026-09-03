@@ -45,7 +45,7 @@ const saved = () => JSON.parse(localStorage.getItem(KEY) ?? "null");
 /* The collapsed tech header reads "Tech tree · N of M nodes · …", so the node
    count is on screen without opening the panel. */
 function nodesShown() {
-  for (const el of document.querySelectorAll(".eyebrow")) {
+  for (const el of document.querySelectorAll(".label")) {
     const m = /Tech tree · (\d+) of/.exec(el.textContent ?? "");
     if (m) return Number(m[1]);
   }

@@ -20,7 +20,7 @@ import {
 import type { ShaderMaterial } from "three";
 import { extentOf } from "../../core/model.js";
 import { cameraFor, viewOf } from "../views.js";
-import { C } from "../tokens.js";
+import { C, KIND } from "../tokens.js";
 import {
   LINE,
   compositeMaterial,
@@ -47,14 +47,11 @@ import type { Offset } from "../separation.js";
    Nothing animates. A frame is drawn when the rocket or the view changes and
    never on a loop, because the cameras do not move. */
 
-const FILL: Readonly<Record<string, string>> = {
-  tank: C.tank,
-  engine: C.engine,
-  coupler: C.violet,
-  adapter: C.violet,
-  decoupler: C.dim,
-  payload: C.payloadFill,
-};
+/* The fills come from `KIND`, the same table the parts legend draws from, so
+   the drawing and the list cannot disagree about what colour a decoupler is.
+   Roles the table does not name — a shroud on a plate, mission hardware —
+   fall back to `dim`. */
+const FILL: Readonly<Record<string, string>> = KIND;
 
 /* Enough segments to read as round at this size. The count used to be pulled
    two ways — fine enough to look round, coarse enough that its seams stayed
