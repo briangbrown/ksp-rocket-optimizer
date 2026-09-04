@@ -54,55 +54,81 @@ type Cell = {
 const nickOf = (n: string) =>
   n.match(/["']([^"']+)["']/)?.[1] ?? n.replace(/ (Liquid|Solid).*$/, "");
 
-/* Where everything stands: the parts for the renderer and, beside them, the
-   cell each engine occupies, for its label. Rows are as tall as the tallest
-   engine in them. */
-function layout(per: number) {
+/* Where everything stands. Rows are as tall as the tallest engine in them,
+   the first row is at the top, and the rows are dealt into groups of two or
+   three, each its own canvas: one canvas for the whole grid was 6,000 CSS
+   pixels tall at a desktop width, which at a device pixel ratio of 2 is a
+   render target no GPU will allocate — the page drew black. A handful of
+   canvases stays under the context limit; one per engine would not. */
+type Group = { parts: Array<ModelPart>; cells: Array<Cell>; height: number };
+
+function layout(per: number, rowsPer: number): Array<Group> {
   const engines = [...DATA.engines].sort((a, b) => {
     const d = diaOf(a) - diaOf(b);
     return d !== 0 ? d : a.m - b.m;
   });
-  const parts: Array<ModelPart> = [];
-  const cells: Array<Cell> = [];
-  let base = 0;
-  for (let r = 0; r * per < engines.length; r++) {
-    const row = engines.slice(r * per, r * per + per);
-    /* The row's height: the tallest engine and the tank over it. */
-    const hs = row.map((e) => (engineLen(e) * 2) / diaOf(e));
-    const rowH = Math.max(...hs) + TANK_H + CELL_GAP;
-    row.forEach((e, i) => {
-      const D = diaOf(e);
-      const s = 2 / D;
-      const x = (i - (per - 1) / 2) * CELL_W;
-      const eh = engineLen(e) * s;
-      const er = (widthOf(e, D) * s) / 2;
-      parts.push({
-        role: "engine",
-        part: e,
-        x,
-        z: 0,
-        y: base,
-        r: Math.min(er, CELL_W / 2 - 0.1),
-        h: eh,
-        nozzle: engineShape(e.n),
-      });
-      parts.push({ role: "tank", x, z: 0, y: base + eh, r: TANK_R, h: TANK_H });
-      cells.push({
-        name: e.n,
-        nick: nickOf(e.n),
-        sz: e.sz.join("/"),
-        bells: engineShape(e.n)?.n ?? 1,
-        radial: isRadial(e),
-        x,
-        base,
-        top: base + eh + TANK_H,
-        col: i,
-        row: r,
+  const rows: Array<typeof engines> = [];
+  for (let i = 0; i < engines.length; i += per)
+    rows.push(engines.slice(i, i + per));
+  const groups: Array<Group> = [];
+  for (let g = 0; g < rows.length; g += rowsPer) {
+    const mine = rows.slice(g, g + rowsPer);
+    const heights = mine.map(
+      (row) =>
+        Math.max(...row.map((e) => (engineLen(e) * 2) / diaOf(e))) +
+        TANK_H +
+        CELL_GAP,
+    );
+    const parts: Array<ModelPart> = [];
+    const cells: Array<Cell> = [];
+    mine.forEach((row, r) => {
+      /* The rows below this one, so the first row is at the top. */
+      const base = heights.slice(r + 1).reduce((a, h) => a + h, 0);
+      row.forEach((e, i) => {
+        const D = diaOf(e);
+        const s = 2 / D;
+        const x = (i - (per - 1) / 2) * CELL_W;
+        const eh = engineLen(e) * s;
+        const er = (widthOf(e, D) * s) / 2;
+        parts.push({
+          role: "engine",
+          part: e,
+          x,
+          z: 0,
+          y: base,
+          r: Math.min(er, CELL_W / 2 - 0.1),
+          h: eh,
+          nozzle: engineShape(e.n),
+        });
+        parts.push({
+          role: "tank",
+          x,
+          z: 0,
+          y: base + eh,
+          r: TANK_R,
+          h: TANK_H,
+        });
+        cells.push({
+          name: e.n,
+          nick: nickOf(e.n),
+          sz: e.sz.join("/"),
+          bells: engineShape(e.n)?.n ?? 1,
+          radial: isRadial(e),
+          x,
+          base,
+          top: base + eh + TANK_H,
+          col: i,
+          row: g + r,
+        });
       });
     });
-    base += rowH;
+    groups.push({
+      parts,
+      cells,
+      height: heights.reduce((a, h) => a + h, 0),
+    });
   }
-  return { parts, cells, height: base };
+  return groups;
 }
 
 /* A point in the drawing to a point on the canvas, for the still frame the
@@ -143,20 +169,16 @@ function EngineGallery() {
     return () => window.removeEventListener("resize", on);
   }, []);
   const per = width < 700 ? 3 : 6;
+  const rowsPer = per === 6 ? 2 : 3;
   /* The art is solve-scoped state in the solver; the gallery sets it the
      way planMission would before it lays anything out. */
-  const model = useMemo(() => {
+  const groups = useMemo(() => {
     useArt({ mh: true, rs: art === "restock" });
-    return layout(per);
-  }, [art, per]);
-  /* The canvas is as tall as the grid needs at this width, with the
-     renderer's own margins and no more. */
-  const need = framing(view, extentOf(model.parts));
-  const aspect = (need.w * 1.2) / (need.h * 1.08);
-  const height = Math.round(width / aspect);
-  const at = projector(view, model.parts, width, height);
+    return layout(per, rowsPer);
+  }, [art, per, rowsPer]);
   const theme = themeNow();
   const drawn = canRender3D();
+  let n = 0;
 
   return (
     <div
@@ -212,50 +234,69 @@ function EngineGallery() {
           title="This browser has no WebGL, so there is nothing to draw here."
         />
       )}
-      <div style={{ position: "relative", width, margin: "0 auto" }}>
-        {drawn && (
-          <Suspense fallback={null}>
-            <ThreeView
-              parts={model.parts}
-              view={view}
-              width={width}
-              height={height}
-              color={palette(theme).amber}
-              theme={theme}
-              alt={`${model.cells.length} engines, each under a tank`}
-            />
-          </Suspense>
-        )}
-        {model.cells.map((c, i) => {
-          const p = at(c.x, c.base - 0.15);
-          const w = (CELL_W / (need.w * 2 * 1.2)) * width;
-          return (
-            <div
-              key={c.name}
-              className="note"
-              style={{
-                position: "absolute",
-                left: p.left - w / 2,
-                top: drawn ? p.top : i * 44,
-                width: w,
-                textAlign: "center",
-                color: C.paper,
-                lineHeight: 1.25,
-              }}
-            >
-              <span className="figure" style={{ color: C.dim }}>
-                {i + 1}
-              </span>{" "}
-              <span style={{ fontWeight: 600 }}>{c.nick}</span>
-              <div style={{ color: C.dim }}>
-                {c.sz}
-                {c.bells > 1 ? ` · ${c.bells} bells` : ""}
-                {c.radial ? " · radial" : ""}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {groups.map((grp, g) => {
+        /* Each canvas as tall as its rows need at this width, with the
+           renderer's own margins and no more. */
+        const need = framing(view, extentOf(grp.parts));
+        const aspect = (need.w * 1.2) / (need.h * 1.08);
+        const height = Math.round(width / aspect);
+        const at = projector(view, grp.parts, width, height);
+        const cellPx = (CELL_W / (need.w * 2 * 1.2)) * width;
+        return (
+          <div
+            key={`${art}-${view}-${g}`}
+            style={{
+              position: "relative",
+              width,
+              height: drawn ? height : grp.cells.length * 44,
+              margin: "0 auto",
+            }}
+          >
+            {drawn && (
+              <Suspense fallback={null}>
+                <ThreeView
+                  parts={grp.parts}
+                  view={view}
+                  width={width}
+                  height={height}
+                  color={palette(theme).amber}
+                  theme={theme}
+                  alt={`Engines ${n + 1} to ${n + grp.cells.length}, each under a tank`}
+                />
+              </Suspense>
+            )}
+            {grp.cells.map((c, i) => {
+              const p = at(c.x, c.base - 0.15);
+              const k = ++n;
+              return (
+                <div
+                  key={c.name}
+                  className="note"
+                  style={{
+                    position: "absolute",
+                    left: p.left - cellPx / 2,
+                    top: drawn ? p.top : i * 44,
+                    width: cellPx,
+                    textAlign: "center",
+                    color: C.paper,
+                    lineHeight: 1.25,
+                  }}
+                >
+                  <span className="figure" style={{ color: C.dim }}>
+                    {k}
+                  </span>{" "}
+                  <span style={{ fontWeight: 600 }}>{c.nick}</span>
+                  <div style={{ color: C.dim }}>
+                    {c.sz}
+                    {c.bells > 1 ? ` · ${c.bells} bells` : ""}
+                    {c.radial ? " · radial" : ""}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
     </div>
   );
 }
