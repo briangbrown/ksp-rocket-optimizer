@@ -1,11 +1,19 @@
 import { useState } from "react";
+import { Scissors, Settings } from "lucide-react";
 import { fmt, hms } from "../format.js";
 import { SPACE } from "../tokens.js";
 import type { Theme } from "../tokens.js";
 import { BuildView } from "./build.jsx";
 import { AscentPanel, FLYING_IT, methodology } from "./flight.jsx";
 import { PartsTable } from "./parts.jsx";
-import { Callout, Choice, Disclosure, Section } from "./primitives.jsx";
+import {
+  Callout,
+  Choice,
+  Disclosure,
+  ICON,
+  STROKE,
+  Section,
+} from "./primitives.jsx";
 import { RouteMap } from "./route.jsx";
 import { StageStack } from "./stages.jsx";
 import type { Leg } from "../../core/orbits.js";
@@ -22,12 +30,22 @@ type RouteProps = {
   /* The mission's Δv, for the summary line. */
   budget: number;
   color: string;
+  /* Before the first solve: the heading over a skeleton line. */
+  busy?: boolean;
 };
 
 type ResultsProps = {
   stages: ReadonlyArray<PlanStage>;
   /* Every stage solved. */
   ok: boolean;
+  /* No solve has come back yet: the sections show their shape and nothing
+     else. */
+  first: boolean;
+  /* What to try when nothing solves, each absent where it cannot apply —
+     every leg already cut, the payload already at its floor. */
+  onCut?: () => void;
+  onTech: () => void;
+  onHalve?: () => void;
   splitBy: Map<number, number>;
   onSetSplit: (key: number, k: number) => void;
   geom: { h: number; w: number; ar: number };
@@ -75,6 +93,7 @@ function RouteSection(p: RouteProps) {
       open={open}
       onToggle={() => setOpen(!open)}
       gap={SPACE.sm}
+      busy={p.busy}
     >
       <div className="note" style={{ marginBottom: SPACE.xl }}>
         Cut where the hardware parts company.
@@ -111,17 +130,42 @@ function Results(p: ResultsProps) {
         summary={`${p.craft.name} · ${dash(fmt(p.liftoff, 1))} t`}
         open={rocketOpen}
         onToggle={() => setRocketOpen(!rocketOpen)}
+        busy={p.first}
       >
+        {/* The three things to try are buttons that try them, not a sentence
+            that names them. A chip each, with the icon where one is
+            established — the route's scissors, the setup's cog — and the
+            word where none is (docs/design.md §7). #139 */}
         {!p.ok && (
           <Callout
             severity="bad"
             title="No solution for at least one stage."
             style={{ marginBottom: 14 }}
-            more="A single stock stage tops out near Isp·g₀·ln 9: however much tank you add, the empty tank comes with it."
-          >
-            Add a staging cut on the route, unlock a higher-Isp engine, or lower
-            the payload.
-          </Callout>
+            more="A single stock stage tops out near Isp·g₀·ln 9: however much tank you add, the empty tank comes with it. Cutting the route makes it two vehicles with a stage limit each; a higher-Isp engine raises the ceiling; a lighter payload needs less of it."
+            actions={
+              <>
+                <button
+                  className="chip"
+                  onClick={p.onCut}
+                  disabled={p.onCut === undefined}
+                >
+                  <Scissors size={ICON.chip} strokeWidth={STROKE} aria-hidden />
+                  Cut the route
+                </button>
+                <button className="chip" onClick={p.onTech}>
+                  <Settings size={ICON.chip} strokeWidth={STROKE} aria-hidden />
+                  Open the tech tree
+                </button>
+                <button
+                  className="chip"
+                  onClick={p.onHalve}
+                  disabled={p.onHalve === undefined}
+                >
+                  Halve the payload
+                </button>
+              </>
+            }
+          />
         )}
         {p.ok && p.geom.ar > p.maxAspect && (
           <Callout
@@ -159,8 +203,9 @@ function Results(p: ResultsProps) {
         summary={`${dash(p.stages.length)} stages · ${dash(p.totalParts)} parts · ${dash(fmt(p.liftoff, 1))} t`}
         open={buildOpen}
         onToggle={() => setBuildOpen(!buildOpen)}
+        busy={p.first}
         aside={
-          buildOpen ? (
+          buildOpen && !p.first ? (
             <Choice
               label="Show"
               value={tab}
@@ -196,13 +241,14 @@ function Results(p: ResultsProps) {
         )}
       </Section>
 
-      {flights.length > 0 && (
+      {(flights.length > 0 || p.first) && (
         <Section
           id="fly"
           heading="How to fly it"
-          summary={flightLine(flights[0])}
+          summary={flights.length > 0 ? flightLine(flights[0]) : undefined}
           open={flyOpen}
           onToggle={() => setFlyOpen(!flyOpen)}
+          busy={p.first}
         >
           {p.ascent && <AscentPanel a={p.ascent} color={p.color} />}
           {p.returnAscent && (

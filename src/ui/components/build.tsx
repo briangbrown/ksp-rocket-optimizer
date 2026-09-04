@@ -19,7 +19,7 @@ import { framing, panelSizes } from "../views.js";
 import { arrive, assembly, pose, separation } from "../separation.js";
 import { C, FONT, RADIUS, SPACE, Z } from "../tokens.js";
 import type { Theme } from "../tokens.js";
-import { Choice, IconButton, Stat, useWide } from "./primitives.jsx";
+import { Callout, Choice, IconButton, Stat, useWide } from "./primitives.jsx";
 import type { ReactNode } from "react";
 import type { PlanStage } from "../../core/plan.js";
 import type { Solution } from "../../core/solution.js";
@@ -77,20 +77,16 @@ const Loading = ({ w, h }: { w: number; h: number }) => (
    the panels and the parts table are all still there and all still say what the
    rocket is, so this is a missing picture rather than a missing answer — which
    is why it is a line rather than a second drawing kept alive for it. #63. */
+/* Where nothing can be drawn, say so where the drawing would be, and leave
+   the figures under it standing: they are the same rocket. #139 */
 const NoWebGL = () => (
-  <div
-    className="body"
-    style={{
-      border: `1px solid ${C.rule}`,
-      borderRadius: RADIUS.sm,
-      padding: "18px 16px",
-      color: C.muted,
-      maxWidth: 460,
-    }}
+  <Callout
+    severity="info"
+    title="This browser has no WebGL, so the rocket cannot be drawn."
+    style={{ maxWidth: 520 }}
   >
-    This browser has no WebGL, so the rocket cannot be drawn. Every part of it
-    is in the stage table below.
-  </div>
+    Every part of it is in the stage table below.
+  </Callout>
 );
 
 /* The steps the stepper offers. Boosters leave on a step of their own, before

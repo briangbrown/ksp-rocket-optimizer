@@ -207,3 +207,23 @@ control shows and what it committed.
   asked for up to 70 dvh; at the layout suite's 900 px window that is 55 px
   over the desktop page's height budget, and the budget is the evidence. Six
   tenths measures 2583 against 2610. Full screen is where the rest is.
+
+- **"Nothing solved yet" and "nothing solves" are different states.** An
+  empty stage list is not a solved one, so `ok` is false on the first render
+  and the unsolvable callout showed under the veil until the first solve came
+  back. `first` in `app.tsx` is the flag — set false when a run completes,
+  delivered or not, so a worker that fails to start ends in "nothing solved"
+  rather than a page of skeletons — and `Results` draws its sections `busy`
+  while it is true. Do not derive it from `stages.length`. #139
+
+- **Picking a destination resets the cuts.** `pickDest` clears them because
+  they index a route that no longer exists. A test that adds a cut and then
+  changes the destination has lost the cut, and one that needs an unsolvable
+  mission after a cut made it solvable gets one that way. #139
+
+- **The route map runs bottom-up, and a cut is "after leg i".** Its rows are
+  the route reversed — launchpad last, the way a rocket is read — so the
+  scissors for cut _i_ go _before_ leg _i_'s row in the DOM, between it and
+  leg _i + 1_. After the row they sit between leg _i_ and the one before: a
+  slot too low everywhere, one under the launchpad and none under the final
+  burn. `test/route-map.test.tsx` holds the reading order. #139

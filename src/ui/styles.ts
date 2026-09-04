@@ -227,6 +227,11 @@ ${Object.entries(SEVERITY)
       `.callout[data-severity="${k}"] > .callout-head { color:${v.color}; }`,
   )
   .join("\n")}
+/* A section's summary before there is one: a line of the summary's height,
+   in its place, breathing. Capped at about a summary's length so it reads as
+   text to come rather than a rule. #139 */
+.skel { display:block; flex:1 1 0; max-width:16em; height:1em; border-radius:${RADIUS.sm}px;
+        background:${C.panel2}; animation:pulse 1.6s ease-in-out infinite; }
 /* The only links in the application. Browser-default blue against this
    palette reads as a mistake, so they take the muted ink and earn their
    underline on hover rather than shouting by default. */
@@ -237,7 +242,7 @@ a:hover { color:${C.paper}; text-decoration-color:${C.amber}; }
 @keyframes pulse { 0%,100% { opacity:.35; } 50% { opacity:1; } }
 @keyframes rise { from { transform:translateY(100%); } to { transform:none; } }
 @keyframes slide { from { transform:translateX(100%); } to { transform:none; } }
-@media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+@media (prefers-reduced-motion: reduce) { * { transition:none !important; } .skel { animation:none; } }
 `;
 
 export { STYLES };

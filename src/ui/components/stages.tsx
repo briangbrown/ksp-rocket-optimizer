@@ -1,6 +1,6 @@
 import { fmt, hms } from "../format.js";
 import { C, RADIUS, SPACE } from "../tokens.js";
-import { Stat, Stepper, Toggle } from "./primitives.jsx";
+import { Callout, Stat, Stepper, Toggle } from "./primitives.jsx";
 import type { ManifestRow } from "../../core/manifest.js";
 import type { PlanStage } from "../../core/plan.js";
 import type { Solution } from "../../core/solution.js";
@@ -244,21 +244,14 @@ function StageStack({ stages, color, splitBy, onSetSplit }: StageStackProps) {
                             </div>
                           </div>
                         ) : (
-                          <div
-                            className="body"
-                            style={{
-                              background: C.panel2,
-                              border: `1px dashed ${C.rust}`,
-                              borderRadius: RADIUS.sm,
-                              padding: SPACE.lg,
-                              color: C.muted,
-                            }}
+                          <Callout
+                            severity="bad"
+                            title={`No stack reaches ${fmt(s.want)} m/s carrying ${fmt(s.payloadIn, 1)} t.`}
+                            more="One stage tops out at Isp·g₀·ln 9: however much tank you add, the empty tank comes with it."
                           >
-                            No stack reaches {fmt(s.want)} m/s carrying{" "}
-                            {fmt(s.payloadIn, 1)} t. Raise the stage count
-                            above, or unlock a higher-Isp engine — one stage
-                            tops out at Isp·g₀·ln 9.
-                          </div>
+                            Raise the stage count above, or unlock a higher-Isp
+                            engine.
+                          </Callout>
                         )}
                       </div>
                     );

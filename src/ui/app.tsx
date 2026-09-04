@@ -284,6 +284,12 @@ export default function KSPMissionPlanner() {
      wants. */
   const [stages, setStages] = useState<Array<PlanStage>>([]);
   const [busy, setBusy] = useState(false);
+  /* Until the first solve has come back, the results have a shape and no
+     numbers; `Results` draws the sections' headings over skeleton lines. Set
+     when a run completes, delivered or not — a worker that failed to start
+     has no later run coming, and a page of skeletons is worse than a page
+     that says nothing solved. #139 */
+  const [first, setFirst] = useState(true);
   const runId = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -360,6 +366,7 @@ export default function KSPMissionPlanner() {
         });
       }
       setBusy(false);
+      setFirst(false);
     })();
 
     return () => {};
@@ -601,6 +608,25 @@ export default function KSPMissionPlanner() {
       return n;
     });
 
+  /* The three things to try when nothing solves, as the callout's buttons.
+     The cut goes at the first place the route can be cut and is not — after
+     the climb to orbit, for a mission that starts on the pad — which is
+     where a cut most often turns one impossible vehicle into two possible
+     ones. The rule for where a cut may go is `RouteMap`'s, repeated. #139 */
+  const shownLegs = route.filter((l) => !l.free).length;
+  const nextCut = route.findIndex(
+    (l, i) => !l.free && i !== shownLegs - 1 && !effCuts.has(i),
+  );
+  const tryCut = nextCut < 0 ? undefined : () => toggleCut(nextCut);
+  const tryTech = () => {
+    setShowSetup(true);
+    setShowTech(true);
+  };
+  const tryHalf =
+    payload > 0.1
+      ? edit(() => setPayload(Math.max(0.1, Math.round(payload * 5) / 10)))
+      : undefined;
+
   /* Picking a body resets the cuts: they index the legs of a route that no
      longer exists. A destination the new origin cannot reach falls back to
      low orbit. */
@@ -698,6 +724,7 @@ export default function KSPMissionPlanner() {
     <RouteSection
       route={route}
       cuts={effCuts}
+      busy={first}
       onToggleCut={toggleCut}
       onPlaneMode={setPlaneNow}
       stages={stages}
@@ -830,6 +857,10 @@ export default function KSPMissionPlanner() {
           <Results
             stages={stages}
             ok={ok}
+            first={first}
+            onCut={tryCut}
+            onTech={tryTech}
+            onHalve={tryHalf}
             splitBy={splitBy}
             onSetSplit={setSplit}
             geom={geom}

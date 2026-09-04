@@ -9,16 +9,7 @@ import {
   Plus,
   TriangleAlert,
 } from "lucide-react";
-import {
-  BREAK,
-  C,
-  FONT,
-  RADIUS,
-  SCRIM,
-  SEVERITY,
-  SPACE,
-  Z,
-} from "../tokens.js";
+import { BREAK, C, FONT, RADIUS, SCRIM, SPACE, Z } from "../tokens.js";
 import type { Severity } from "../tokens.js";
 import type {
   CSSProperties,
@@ -83,6 +74,10 @@ type SectionProps = {
      rather than inside it, so it may itself be a control: the brief's Δv
      budget, or the build section's tabs. */
   aside?: ReactNode;
+  /* Before the first solve has returned: the heading over a line where the
+     summary will be, no fold and no children. Not blank and not a spinner —
+     the page has its shape before it has its numbers. #139 */
+  busy?: boolean;
 };
 
 function Section({
@@ -95,11 +90,12 @@ function Section({
   style,
   gap = SPACE.lg,
   aside,
+  busy,
   id: anchor,
 }: SectionProps) {
   const id = useId();
-  const folds = onToggle !== undefined;
-  const shown = !folds || open;
+  const folds = onToggle !== undefined && !busy;
+  const shown = !busy && (!folds || open);
   const head = (
     <>
       {folds && (
@@ -128,19 +124,24 @@ function Section({
           intrinsic width, so the brief's aside stays beside a summary of
           any length and the build's tabs wrap under a heading they cannot
           share a line with. */}
-      {summary !== undefined && !shown && (
-        <span
-          className="body"
-          style={{
-            color: C.paper,
-            fontWeight: 600,
-            flex: "1 1 0",
-            minWidth: 0,
-            contain: "inline-size",
-          }}
-        >
-          {summary}
-        </span>
+      {busy ? (
+        <span className="skel body" aria-hidden />
+      ) : (
+        summary !== undefined &&
+        !shown && (
+          <span
+            className="body"
+            style={{
+              color: C.paper,
+              fontWeight: 600,
+              flex: "1 1 0",
+              minWidth: 0,
+              contain: "inline-size",
+            }}
+          >
+            {summary}
+          </span>
+        )
       )}
     </>
   );
@@ -159,6 +160,7 @@ function Section({
       id={anchor}
       className={bare ? undefined : "card"}
       aria-labelledby={id}
+      aria-busy={busy || undefined}
       /* Four longhands, not the shorthand: the brief's stuck style sets
          `paddingTop`, and React clears a longhand it stops seeing without
          re-applying a shorthand it still sees — the brief opened with no
@@ -617,10 +619,20 @@ type CalloutProps = {
   children?: ReactNode;
   /* The explanation, disclosed: why it happened and what else would fix it. */
   more?: ReactNode;
+  /* What to do about it, as buttons that do it — chips, a verb each, under
+     the sentence. The unsolvable callout's three. #139 */
+  actions?: ReactNode;
   style?: CSSProperties;
 };
 
-function Callout({ severity, title, children, more, style }: CalloutProps) {
+function Callout({
+  severity,
+  title,
+  children,
+  more,
+  actions,
+  style,
+}: CalloutProps) {
   const Glyph = GLYPH[severity];
   return (
     <div
@@ -651,6 +663,18 @@ function Callout({ severity, title, children, more, style }: CalloutProps) {
         )}
         {title !== undefined && children !== undefined && " "}
         {children}
+        {actions !== undefined && (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: SPACE.md,
+              marginTop: SPACE.md,
+            }}
+          >
+            {actions}
+          </div>
+        )}
       </div>
       {more !== undefined && (
         <Disclosure label="More about this">{more}</Disclosure>
@@ -658,19 +682,6 @@ function Callout({ severity, title, children, more, style }: CalloutProps) {
     </div>
   );
 }
-
-/* The same glyph on its own, for a status in a line of text: copied, loaded. */
-const SeverityMark = ({ severity }: { severity: Severity }) => {
-  const Glyph = GLYPH[severity];
-  return (
-    <Glyph
-      size={ICON.chip}
-      strokeWidth={STROKE}
-      aria-label={severity}
-      style={{ color: SEVERITY[severity].color, verticalAlign: "-3px" }}
-    />
-  );
-};
 
 /* -------------------------------- Check -------------------------------- */
 /* A native checkbox with its text, for a list of them — the tech tree. One
@@ -868,7 +879,7 @@ function Field({
               background: C.panel2,
               color: C.paper,
               borderRadius: RADIUS.sm,
-              border: `1px solid ${over ? C.amber : C.rule}`,
+              border: `1px solid ${C.rule}`,
             }}
           />
           <span className="note">{unit}</span>
@@ -884,10 +895,16 @@ function Field({
         onChange={(e) => onChange(parseFloat(e.target.value))}
         style={{ marginTop: SPACE.md }}
       />
+      {/* The callout says it; the field's edge used to go amber as well,
+          which was the colour on its own. #139 */}
       {over && (
-        <div className="note" style={{ color: C.amber, marginTop: 3 }}>
-          above the slider range — typed value in use
-        </div>
+        <Callout
+          severity="info"
+          title="Above the slider's range."
+          style={{ marginTop: SPACE.md }}
+        >
+          The typed value is in use.
+        </Callout>
       )}
     </div>
   );
@@ -904,7 +921,6 @@ export {
   Stepper,
   STROKE,
   Section,
-  SeverityMark,
   Sheet,
   Stat,
   Toggle,
