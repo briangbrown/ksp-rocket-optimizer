@@ -8,8 +8,9 @@ import type { Solution } from "../../core/solution.js";
 /* The part's name, where the row has one to give. */
 const partName = (p: ManifestRow["part"]) => (p && "n" in p ? (p.n ?? "") : "");
 
-/* The most stages a segment may be forced to. */
-const MAX_STAGES = 5;
+/* The most stages a segment may be forced to — the same six the automatic
+   count may reach on its own (`autoK` in `plan.ts`). */
+const MAX_STAGES = 6;
 
 type StageStackProps = {
   stages: ReadonlyArray<PlanStage>;

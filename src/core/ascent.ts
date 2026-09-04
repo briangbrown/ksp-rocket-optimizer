@@ -27,6 +27,10 @@ type FlightBoosters = {
   pairProp: number;
   pairDry: number;
   pairArea: number;
+  /* Whether the ring is solid motors, which the flight card has to know: a
+     solid cannot be throttled or shut down, a liquid column can. The
+     simulator itself flies every ring to burnout either way. */
+  solid: boolean;
 };
 
 type FlightStage = {
@@ -752,6 +756,7 @@ function buildVehicleFor<S extends PlannedStage>(
            same. Both effects have to step down together, which is why this has to
            reach the simulator and not just the rocket equation. */
             asparagus: !!sol.asparagus,
+            solid: !b.part.column && !b.part.dropTank,
             pairProp: b.part.fuelM * 2,
             pairDry: b.part.dry * 2,
             pairArea: ((2 * 1.16 * Math.PI) / 4) * Math.pow(diaOf(b.part), 2),

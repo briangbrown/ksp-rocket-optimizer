@@ -9,8 +9,8 @@ Traps in the React layer: layout, overlays, and the difference between what a
 control shows and what it committed.
 
 - **A panel is never narrower than the label above it.** The elevation's header
-  — the word and the `Iso` chip beside it — runs to about 110 px, and a column
-  is as wide as the widest thing in it. Sizing the drawing below 110 widened
+  — the word and the isometric `IconButton` beside it — runs to about 110 px,
+  and a column is as wide as the widest thing in it. Sizing the drawing below 110 widened
   the column anyway, so the arithmetic that laid the row out described a row
   narrower than the one on screen and the plan spilled three pixels past the
   card. `MIN_PANEL` in `src/ui/views.ts` is that floor, and it is a layout
@@ -88,7 +88,7 @@ control shows and what it committed.
   range input renders the committed value. Two fixes were built on the wrong
   reading of this before the real cause turned up.
 
-- **The roles carry their leading.** `body` is 1.5, `note` 1.45, `figure`
+- **The roles carry their leading.** `body` and `note` are 1.5, `figure`
   1.4, where the inline sizes they replaced left the browser's `normal` — so
   moving a block of text onto a role makes it taller without making it
   bigger. Setting every role back to `normal` put the page 170 px _under_

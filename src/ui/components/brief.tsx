@@ -343,7 +343,7 @@ function Brief(p: BriefProps) {
           />
           <div>
             <div className="label" style={{ marginBottom: SPACE.md }}>
-              Atmospheric descent
+              Atmosphere
             </div>
             <div
               style={{
@@ -371,7 +371,8 @@ function Brief(p: BriefProps) {
                 onChange={p.onChutes}
               />
               <Disclosure label="About parachutes">
-                Parachutes cut landing Δv to ~18% on Duna, Eve and Laythe. Add a
+                Parachutes cut landing Δv to ~18% wherever there is air to land
+                through — Duna, Eve, Laythe, and Kerbin on the way home. Add a
                 heat shield to the payload mass.
               </Disclosure>
             </div>
