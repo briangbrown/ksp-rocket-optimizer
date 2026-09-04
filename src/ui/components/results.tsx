@@ -13,11 +13,18 @@ import type { PlanStage } from "../../core/plan.js";
 import type { Ascent } from "./flight.jsx";
 import type { Hardware } from "./parts.jsx";
 
-type ResultsProps = {
+type RouteProps = {
   route: ReadonlyArray<Leg>;
   cuts: Set<number>;
   onToggleCut: (i: number) => void;
   onPlaneMode: (now: boolean) => void;
+  stages: ReadonlyArray<PlanStage>;
+  /* The mission's Δv, for the summary line. */
+  budget: number;
+  color: string;
+};
+
+type ResultsProps = {
   stages: ReadonlyArray<PlanStage>;
   /* Every stage solved. */
   ok: boolean;
@@ -36,8 +43,6 @@ type ResultsProps = {
   totalCost: number;
   totalParts: number;
   vehicleClass: string;
-  /* The mission's Δv, for the route's summary line. */
-  budget: number;
   color: string;
   theme: Theme;
 };
@@ -52,15 +57,48 @@ const flightLine = (a: Ascent) =>
     ? `${fmt(a.total)} m/s · MECO T+${hms(a.tMeco ?? a.t)} · circularise ${fmt(a.circ)} m/s`
     : `does not reach orbit from ${a.bodyName}`;
 
+/* Where it goes. Its own component because the desktop shell stands it
+   beside the brief — it is the one result a reader edits — and the phone
+   stands it last; `app.tsx` decides which. It starts folded unless it has
+   been cut, since a cut is the one thing on it that changes the rocket.
+   #134, #137 */
+function RouteSection(p: RouteProps) {
+  const [open, setOpen] = useState(p.cuts.size > 0);
+  return (
+    <Section
+      id="route"
+      heading="Where it goes"
+      summary={`${p.route.length} legs · ${fmt(p.budget)} m/s · ${
+        p.cuts.size === 0
+          ? "one span"
+          : `${p.cuts.size} cut${p.cuts.size === 1 ? "" : "s"}`
+      }`}
+      open={open}
+      onToggle={() => setOpen(!open)}
+      gap={SPACE.sm}
+    >
+      <div className="note" style={{ marginBottom: SPACE.xl }}>
+        Cut where the hardware parts company.
+      </div>
+      <RouteMap
+        route={p.route}
+        cuts={p.cuts}
+        onToggle={p.onToggleCut}
+        color={p.color}
+        stages={p.stages}
+        onPlaneMode={p.onPlaneMode}
+      />
+    </Section>
+  );
+}
+
 /* Everything downstream of the solve, in the order a reader uses it: the
-   rocket, how to build it, how to fly it, where it goes. Each is a section
-   that folds to a line; the route starts folded unless it has been cut, since
-   a cut is the one thing on it that changes the rocket. #134 */
+   rocket, how to build it, how to fly it. Each is a section that folds to a
+   line. #134 */
 function Results(p: ResultsProps) {
   const [rocketOpen, setRocketOpen] = useState(true);
   const [buildOpen, setBuildOpen] = useState(true);
   const [flyOpen, setFlyOpen] = useState(true);
-  const [routeOpen, setRouteOpen] = useState(p.cuts.size > 0);
   const [tab, setTab] = useState<Tab>("stages");
 
   const dash = (v: string | number) => (p.ok ? v : "—");
@@ -249,33 +287,8 @@ function Results(p: ResultsProps) {
           </div>
         </Section>
       )}
-
-      <Section
-        id="route"
-        heading="Where it goes"
-        summary={`${p.route.length} legs · ${fmt(p.budget)} m/s · ${
-          p.cuts.size === 0
-            ? "one span"
-            : `${p.cuts.size} cut${p.cuts.size === 1 ? "" : "s"}`
-        }`}
-        open={routeOpen}
-        onToggle={() => setRouteOpen(!routeOpen)}
-        gap={SPACE.sm}
-      >
-        <div className="note" style={{ marginBottom: SPACE.xl }}>
-          Cut where the hardware parts company.
-        </div>
-        <RouteMap
-          route={p.route}
-          cuts={p.cuts}
-          onToggle={p.onToggleCut}
-          color={p.color}
-          stages={p.stages}
-          onPlaneMode={p.onPlaneMode}
-        />
-      </Section>
     </>
   );
 }
 
-export { Results };
+export { Results, RouteSection };

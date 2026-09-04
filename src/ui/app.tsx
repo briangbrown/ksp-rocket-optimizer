@@ -17,11 +17,11 @@ import { missionHardware } from "../core/parts.js";
 import { stageCost, stageParts } from "../core/performance.js";
 import { withDeps } from "../core/tech.js";
 import { Brief } from "./components/brief.jsx";
-import { IconButton, Sheet } from "./components/primitives.jsx";
-import { Results } from "./components/results.jsx";
+import { IconButton, Sheet, useWide } from "./components/primitives.jsx";
+import { Results, RouteSection } from "./components/results.jsx";
 import { Setup } from "./components/setup.jsx";
 import { JumpBar } from "./components/jump.jsx";
-import { Solving } from "./components/solving.jsx";
+import { Solving, Veil } from "./components/solving.jsx";
 import { parseConfig } from "./config.js";
 import { briefLine, craftName } from "./format.js";
 import { STYLES } from "./styles.js";
@@ -40,6 +40,37 @@ import type { Theme, ThemePref } from "./tokens.js";
 import type { PlanStage } from "../core/plan.js";
 import type { Ascent } from "./components/flight.jsx";
 import type { SearchStats } from "./components/config.jsx";
+
+/* Where the desktop's left column sticks.
+
+   The column is the brief and the route, and it holds its place beside the
+   results as the page scrolls — while it fits the window. Taller than the
+   window, a column pinned by its head keeps its foot out of reach for the
+   length of the page, so it is pinned by its foot instead: `top` goes
+   negative by the overshoot, the column scrolls with the page until its last
+   line is in view, and holds there. A callback ref, because the column is
+   only in the tree on a wide screen — `.claude/rules/ui.md`. #137 */
+function useStickyTop(margin: number) {
+  const [h, setH] = useState(0);
+  const [winH, setWinH] = useState(() =>
+    typeof window === "undefined" ? 0 : window.innerHeight,
+  );
+  const watching = useRef<ResizeObserver | null>(null);
+  const ref = useCallback((el: HTMLDivElement | null) => {
+    watching.current?.disconnect();
+    watching.current = null;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([e]) => setH(e.contentRect.height));
+    ro.observe(el);
+    watching.current = ro;
+  }, []);
+  useEffect(() => {
+    const on = () => setWinH(window.innerHeight);
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
+  return { ref, top: Math.min(margin, winH - h - margin) };
+}
 
 export default function KSPMissionPlanner() {
   const [origin, setOrigin] = useState("Kerbin");
@@ -387,6 +418,10 @@ export default function KSPMissionPlanner() {
   const [viewTop, setViewTop] = useState(0);
   /* The header: what the jump bar waits for the page to scroll past. */
   const headRef = useRef<HTMLElement | null>(null);
+  /* Two columns or one. The stylesheet draws the difference; this is what
+     decides where the route stands — see `useWide`. */
+  const wide = useWide();
+  const ask = useStickyTop(SPACE.xl);
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
@@ -602,6 +637,79 @@ export default function KSPMissionPlanner() {
             ? "Super heavy"
             : "Kerbal-scale monster";
 
+  const brief = (
+    <Brief
+      wide={wide}
+      open={briefOpen}
+      onToggle={() => {
+        touched.current = true;
+        setBriefOpen(!briefOpen);
+      }}
+      onDone={() => setBriefOpen(false)}
+      line={briefLine({
+        origin,
+        dest,
+        profile: effProfile,
+        returning,
+        payload,
+        objective,
+      })}
+      budget={budget}
+      accent={dcolor}
+      top={viewTop}
+      moreOpen={showMore}
+      onToggleMore={() => setShowMore(!showMore)}
+      origin={origin}
+      onOrigin={edit(pickOrigin)}
+      originOpen={showOrigin}
+      onToggleOrigin={() => setShowOrigin(!showOrigin)}
+      dest={dest}
+      destList={destList}
+      onDest={edit(pickDest)}
+      profile={effProfile}
+      canLand={canLand}
+      orbitHere={orbitHere}
+      onProfile={edit(setProfile)}
+      returning={returning}
+      onReturning={edit(setReturning)}
+      payload={payload}
+      onPayload={edit(setPayload)}
+      margin={margin}
+      onMargin={edit(setMargin)}
+      payloadDia={payloadDia}
+      onPayloadDia={edit(setPayloadDia)}
+      maxAspect={maxAspect}
+      onMaxAspect={edit(setMaxAspect)}
+      extraDv={extraDv}
+      onExtraDv={edit(setExtraDv)}
+      crossfeedOk={crossfeedOk}
+      asparagus={asparagus}
+      onAsparagus={edit(setAsparagus)}
+      objective={objective}
+      onObjective={edit(setObjective)}
+      needGimbal={needGimbal}
+      onNeedGimbal={edit(setNeedGimbal)}
+      srbAvail={srbAvail}
+      boosters={boosters}
+      onBoosters={edit(setBoosters)}
+      airDescent={airDescent}
+      chutes={chutes}
+      onChutes={edit(setChutes)}
+    />
+  );
+
+  const routeSection = (
+    <RouteSection
+      route={route}
+      cuts={effCuts}
+      onToggleCut={toggleCut}
+      onPlaneMode={setPlaneNow}
+      stages={stages}
+      budget={budget}
+      color={dcolor}
+    />
+  );
+
   return (
     <div
       className="page"
@@ -678,10 +786,18 @@ export default function KSPMissionPlanner() {
         />
       </Sheet>
 
+      {/* The shell. On the phone, one column in reading order: the brief,
+          the three results, the route. On a wide screen the same flow gains
+          a second column rather than becoming a different application: the
+          two things that are inputs — the brief and the route, since a cut
+          changes the rocket — stand on the left and hold their place as the
+          results scroll; the three results take the rest. The route moves
+          between the two in the tree, not just on the screen, so what a
+          reader is read matches what they see. #137 */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(0,1fr)",
+          gridTemplateColumns: wide ? "360px minmax(0,1fr)" : "minmax(0,1fr)",
           gap: SPACE.xl,
           padding: SPACE.xl,
           maxWidth: 1500,
@@ -689,63 +805,23 @@ export default function KSPMissionPlanner() {
         }}
       >
         {/* ---------------------------- the brief ---------------------------- */}
-        <Brief
-          open={briefOpen}
-          onToggle={() => {
-            touched.current = true;
-            setBriefOpen(!briefOpen);
-          }}
-          onDone={() => setBriefOpen(false)}
-          line={briefLine({
-            origin,
-            dest,
-            profile: effProfile,
-            returning,
-            payload,
-            objective,
-          })}
-          budget={budget}
-          accent={dcolor}
-          top={viewTop}
-          moreOpen={showMore}
-          onToggleMore={() => setShowMore(!showMore)}
-          origin={origin}
-          onOrigin={edit(pickOrigin)}
-          originOpen={showOrigin}
-          onToggleOrigin={() => setShowOrigin(!showOrigin)}
-          dest={dest}
-          destList={destList}
-          onDest={edit(pickDest)}
-          profile={effProfile}
-          canLand={canLand}
-          orbitHere={orbitHere}
-          onProfile={edit(setProfile)}
-          returning={returning}
-          onReturning={edit(setReturning)}
-          payload={payload}
-          onPayload={edit(setPayload)}
-          margin={margin}
-          onMargin={edit(setMargin)}
-          payloadDia={payloadDia}
-          onPayloadDia={edit(setPayloadDia)}
-          maxAspect={maxAspect}
-          onMaxAspect={edit(setMaxAspect)}
-          extraDv={extraDv}
-          onExtraDv={edit(setExtraDv)}
-          crossfeedOk={crossfeedOk}
-          asparagus={asparagus}
-          onAsparagus={edit(setAsparagus)}
-          objective={objective}
-          onObjective={edit(setObjective)}
-          needGimbal={needGimbal}
-          onNeedGimbal={edit(setNeedGimbal)}
-          srbAvail={srbAvail}
-          boosters={boosters}
-          onBoosters={edit(setBoosters)}
-          airDescent={airDescent}
-          chutes={chutes}
-          onChutes={edit(setChutes)}
-        />
+        {wide ? (
+          <div
+            ref={ask.ref}
+            style={{
+              position: "sticky",
+              top: ask.top,
+              alignSelf: "start",
+              display: "grid",
+              gap: SPACE.xl,
+            }}
+          >
+            {brief}
+            <Veil busy={busy}>{routeSection}</Veil>
+          </div>
+        ) : (
+          brief
+        )}
 
         {/* Solving can take seconds at full tech, so say so plainly rather
             than with a hairline. Held back 120 ms so quick recalculations do
@@ -756,10 +832,6 @@ export default function KSPMissionPlanner() {
           label={`Solving ${origin} → ${dest}…`}
         >
           <Results
-            route={route}
-            cuts={effCuts}
-            onToggleCut={toggleCut}
-            onPlaneMode={setPlaneNow}
             stages={stages}
             ok={ok}
             splitBy={splitBy}
@@ -776,10 +848,10 @@ export default function KSPMissionPlanner() {
             totalCost={totalCost}
             totalParts={totalParts}
             vehicleClass={vehicleClass}
-            budget={budget}
             color={dcolor}
             theme={theme}
           />
+          {!wide && routeSection}
         </Solving>
 
         {/* Outside <Solving> on purpose, and last on the page.
@@ -796,6 +868,7 @@ export default function KSPMissionPlanner() {
         <div
           className="note"
           style={{
+            gridColumn: "1 / -1",
             borderTop: `1px solid ${C.rule}`,
             marginTop: 18,
             padding: "14px 2px 4px",

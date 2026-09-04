@@ -126,6 +126,17 @@ input[type=range]{ accent-color:${C.amber}; width:100%; }
 /* The rocket's name and its headline figures, one wrapping row; on the
    phone, below, the name is a line of its own and the figures sit closer. */
 .hero { gap:26px; }
+/* The flight card's steps: boxes that wrap, the number beside the words. On
+   a wide screen, below, the same seven are one row — a numbered timeline
+   with a line joining the numbers. \`--n\` is how many, \`--accent\` the
+   destination's hue on the two steps that are the launch. #137 */
+.steps { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:${SPACE.md}px; margin-bottom:14px; }
+.step { display:grid; grid-template-columns:20px 1fr; gap:${SPACE.sm}px; min-width:0; background:${C.panel2};
+        border:1px solid ${C.rule}; border-left:3px solid ${C.rule}; border-radius:${RADIUS.sm}px; padding:6px 12px 6px 10px; }
+.step[data-hot="1"] { border-left-color:var(--accent); }
+.step-n { padding-top:3px; }
+/* The stage cards: one under another, and two across on a wide screen. */
+.stages { display:grid; gap:10px ${SPACE.xl}px; }
 /* A checkbox and its words as one row, the row being the target. */
 .check { display:flex; gap:6px; align-items:flex-start; }
 .check > input { margin-top:2px; }
@@ -185,6 +196,25 @@ input[type=range]{ accent-color:${C.amber}; width:100%; }
    jump bar, the page being in view at once. */
 @media (min-width: ${BREAK}px) { .fold { min-height:24px; margin:-3px 0; } .jump { display:none; }
                                  a { display:inline-block; padding:3px 0; margin:-3px 0; } }
+/* The wide screen's timeline and stage grid — the phone's boxes above. A
+   step is its number in a ring with the words beneath, and the line runs
+   from each ring to the next; the last has none. The room between steps
+   is padding rather than a grid gap so the line can end inside its own
+   box — hanging it out over a gap is 16 px of \`scrollWidth\` the layout
+   suite reads as the page scrolling sideways. A word that will not fit a
+   seventh of the row breaks rather than spilling. */
+@media (min-width: ${BREAK}px) {
+  .steps { grid-template-columns:repeat(var(--n), minmax(0,1fr)); gap:0; }
+  .step { display:block; position:relative; background:none; border:0; padding:0 ${SPACE.xl}px 0 0; overflow-wrap:anywhere; }
+  .step-n { position:relative; z-index:1; display:inline-flex; align-items:center; justify-content:center;
+            width:24px; height:24px; padding:0; margin-bottom:${SPACE.md}px; border-radius:${RADIUS.round}px;
+            border:1px solid ${C.edge}; background:${C.panel}; color:${C.muted}; }
+  .step[data-hot="1"] .step-n { border-color:var(--accent); color:var(--accent); }
+  .step::before { content:""; position:absolute; top:12px; left:24px; right:0; border-top:1px solid ${C.rule}; }
+  .step:last-child::before { display:none; }
+  .stages { grid-template-columns:1fr 1fr; }
+  .stages > :only-child { grid-column:1 / -1; }
+}
 /* The fold's chevron, turned by the section it belongs to. */
 .chev { transition:transform ${MOTION.quick}ms; color:${C.dim}; flex-shrink:0; }
 [aria-expanded="true"] > .chev { transform:rotate(90deg); }

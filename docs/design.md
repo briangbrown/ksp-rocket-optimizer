@@ -132,6 +132,27 @@ since a cut changes the rocket. The right column is the three things that are
 results. Between 640 and 1024 the phone flow holds with wider cards; nothing
 goes side by side until both halves have room.
 
+The left column is sticky, and it is pinned by whichever end fits: while it is
+shorter than the viewport it holds 16 px under the top, and when the open brief
+is taller than the viewport its `top` goes negative by the difference so the
+column's foot — the route's line — stays 16 px above the bottom and the page
+scrolls the rest into view. It is not an inner scroll container, because a
+chip's hint would be clipped by one. The route moves in the tree between the
+two layouts rather than being repositioned, so that reading order is DOM order
+on both screens (`useWide`); the set brief is stuck on its own only on the
+phone, since on the desktop the column carries it.
+
+The build view is the column's width and half the viewport tall (`clamp(300px,
+50dvh, 600px)`) instead of a fixed 300, the plan square beside the elevation
+and the pair centred in the room a pencil-shaped rocket leaves. Full screen is
+the same view at the window's size with the rail on the left. The flight
+card's seven steps are one row, each a number in a ring with the words under
+it and a rule joining the rings; the two launch steps take the theme's accent
+on the ring. A segment's stage cards are two across, top of the rocket first,
+and a lone card spans both columns. The per-stage plan view beside each card
+that #137 sketched is not built: every one is a WebGL context, and a
+four-stage rocket would hold six.
+
 ---
 
 ## 3. Type

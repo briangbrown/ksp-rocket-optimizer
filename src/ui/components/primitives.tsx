@@ -42,6 +42,25 @@ const isPhone = () =>
   typeof window !== "undefined" &&
   !!window.matchMedia?.(`(max-width: ${BREAK - 1}px)`).matches;
 
+/* The same question as state, for the one thing a stylesheet cannot do:
+   put an element somewhere else in the tree. The desktop shell stands the
+   route beside the brief and the phone stands it last, and reading order is
+   DOM order, so the section has to move rather than be repositioned. Asked
+   of the same query the stylesheet uses, so the two never disagree; jsdom
+   answers "wide", as `isPhone` answers "not a phone". #137 */
+function useWide() {
+  const [wide, setWide] = useState(() => !isPhone());
+  useEffect(() => {
+    const mq = window.matchMedia?.(`(min-width: ${BREAK}px)`);
+    if (!mq) return;
+    const on = () => setWide(mq.matches);
+    on();
+    mq.addEventListener?.("change", on);
+    return () => mq.removeEventListener?.("change", on);
+  }, []);
+  return wide;
+}
+
 /* ------------------------------- Section ------------------------------- */
 /* A card with a heading, an optional one-line summary, and an optional fold.
    Folded, it shows the heading and the summary; open, the children. The whole
@@ -889,4 +908,5 @@ export {
   Sheet,
   Stat,
   Toggle,
+  useWide,
 };

@@ -16,7 +16,7 @@ import { framing, panelSizes } from "../views.js";
 import { pose, separation } from "../separation.js";
 import { C, FONT, RADIUS, SPACE, Z } from "../tokens.js";
 import type { Theme } from "../tokens.js";
-import { Choice, IconButton } from "./primitives.jsx";
+import { Choice, IconButton, useWide } from "./primitives.jsx";
 import type { ReactNode } from "react";
 import type { PlanStage } from "../../core/plan.js";
 import type { Solution } from "../../core/solution.js";
@@ -150,9 +150,12 @@ const GAP = 22;
    and a sideways scroll clips vertically too, so a button taller than this
    line loses the top and bottom of its inverted ground when selected. */
 const HEAD = 44;
-/* How tall the drawings stand when this is not full screen: what they have
-   always been. Full screen is where the space is. */
+/* How tall the drawings stand when this is not full screen, on a screen too
+   narrow for a second column. Wide, the row takes half the window instead —
+   `INLINE_WIDE` — and the panels are sized from what it measures, the way
+   full screen is. Full screen is where the rest of the space is. #137 */
 const INLINE_H = 300;
+const INLINE_WIDE = "clamp(300px, 50dvh, 600px)";
 /* How long one stage separation takes.
 
    Two paces, because the two ways of asking for one are different questions.
@@ -183,9 +186,10 @@ const WIDE = 640;
 /* The observed size of an element.
 
    Width is always safe to read: the row is as wide as the card, and the
-   drawings never affect that. Height is read only in full screen, where the row
-   is a flex child of a column of known height — inline it would be the
-   drawings' own height coming back round to size them again.
+   drawings never affect that. Height is read only where the row has a height
+   of its own — full screen, where it is a flex child of a column of known
+   height, and the wide screen's half-window — inline on a phone it would be
+   the drawings' own height coming back round to size them again.
 
    jsdom implements no ResizeObserver, and nothing there can see this anyway:
    `canRender3D()` is false, so the panels this sizes are never built. */
@@ -251,6 +255,7 @@ function BuildView({
   const [angle, setAngle] = useState("side");
   const [full, setFull] = useState(false);
   const box = useBox();
+  const wide = useWide();
 
   const drawn = canRender3D();
   /* Nothing to animate where nothing is drawn — jsdom takes this path, and so
@@ -390,7 +395,11 @@ function BuildView({
   const outerW = box.w || 320;
   const railed = drawn && outerW >= WIDE;
   const aw = railed ? outerW - RAIL - GAP : outerW;
-  const ah = full ? Math.max(1, box.h - HEAD) : INLINE_H;
+  /* The row's height is read where the row has one of its own — full screen,
+     and the wide screen's half-window — and never where it is the drawings'
+     own height coming back round. */
+  const sized = full || wide;
+  const ah = sized && box.h ? Math.max(1, box.h - HEAD) : INLINE_H;
   const { elev, plan } = panelSizes({ aw, ah }, wMax / H, GAP);
 
   /* One header line per column, so all three labels sit on it. */
@@ -543,8 +552,10 @@ function BuildView({
         /* Every column the height of the row, so the one that pushes its
            drawing to the bottom has something to push against. */
         alignItems: "stretch",
-        /* Full screen: everything the two lines of text do not need. */
+        /* Full screen: everything the two lines of text do not need. Wide:
+           half the window, which `useBox` reads back to size the panels. */
         flex: full ? 1 : undefined,
+        height: !full && wide ? INLINE_WIDE : undefined,
         minHeight: 0,
         overflowX: railed ? undefined : "auto",
       }}
@@ -562,30 +573,46 @@ function BuildView({
           {chips}
         </div>
       )}
-      {panel(
-        "Elevation",
-        model,
-        angle,
-        elev,
-        buffers?.elev,
-        <IconButton
-          icon={Box}
-          label="Isometric"
-          on={angle === "iso"}
-          onClick={() => setAngle(angle === "iso" ? "side" : "iso")}
-        />,
-        1,
-        frame,
-      )}
-      {panel(
-        "Plan",
-        planModel,
-        "plan",
-        plan,
-        buffers?.plan,
-        undefined,
-        planFade,
-      )}
+      {/* The two drawings in the middle of what is left of the row. A pencil
+          is a few pixels wide at any height, and `panelSizes` keeps the plan
+          no wider than the elevation, so on a wide screen most of the row is
+          air: better either side of the rocket than all to its right. Where
+          the drawings fill the row this does nothing. #137 */}
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          display: "flex",
+          gap: GAP,
+          alignItems: "stretch",
+          justifyContent: railed ? "center" : undefined,
+        }}
+      >
+        {panel(
+          "Elevation",
+          model,
+          angle,
+          elev,
+          buffers?.elev,
+          <IconButton
+            icon={Box}
+            label="Isometric"
+            on={angle === "iso"}
+            onClick={() => setAngle(angle === "iso" ? "side" : "iso")}
+          />,
+          1,
+          frame,
+        )}
+        {panel(
+          "Plan",
+          planModel,
+          "plan",
+          plan,
+          buffers?.plan,
+          undefined,
+          planFade,
+        )}
+      </div>
     </div>
   );
 

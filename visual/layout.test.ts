@@ -34,7 +34,7 @@ const BUDGET = {
     folded: 860, // px, every section folded: the brief, four lines and the footer — 844, which is the viewport
   },
   desktop: {
-    height: 2640, // 2582
+    height: 2610, // 2556 — the two-column shell, #137
     words: 646,
     tinyText: 61, // the labels, at 11
     smallBody: 88, // labels and notes
@@ -46,15 +46,26 @@ const BUDGET = {
   },
 };
 
-/* The page's sections, in the order a reader uses them: the mission, the
-   rocket, how to build it, how to fly it, where it goes. #134 */
-const ORDER = [
-  "Brief",
-  "Your rocket",
-  "How to build it",
-  "How to fly it",
-  "Where it goes",
-];
+/* The page's sections, in the order a reader uses them. On the phone the
+   route comes last, after the answers (#134); on the desktop it sits under
+   the brief in the left column, and it is moved there in the tree rather
+   than by the stylesheet so that reading order and DOM order agree (#137). */
+const ORDER = {
+  phone: [
+    "Brief",
+    "Your rocket",
+    "How to build it",
+    "How to fly it",
+    "Where it goes",
+  ],
+  desktop: [
+    "Brief",
+    "Where it goes",
+    "Your rocket",
+    "How to build it",
+    "How to fly it",
+  ],
+};
 
 /* The bar a target has to clear on each screen: a thumb, and a pointer. */
 const TARGET_PX = { phone: 44, desktop: 24 };
@@ -326,6 +337,39 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
     }
   });
 
+  it("fills the screen with the build view when asked", async () => {
+    /* The desktop's full screen: the rail on the left and the drawings at the
+       size `panelSizes` gives the window, which the screenshot is for a
+       person to look at — render.test.ts holds the arithmetic. The one
+       thing measured here is that the drawings are inside the window and use
+       most of its height, since a build view that fills the screen with air
+       is the bug this step was for. #137 */
+    if (screen !== "desktop") return;
+    await page.click('[aria-label="Full screen"]');
+    await settle(page);
+    await new Promise((r) => setTimeout(r, MOTION.quick * 3));
+    await page.screenshot({ path: `${OUT}/${screen}-full.png` });
+    const box = await page.evaluate(() => ({
+      w: window.innerWidth,
+      h: window.innerHeight,
+      canvases: [...document.querySelectorAll("canvas")].map((c) => {
+        const r = c.getBoundingClientRect();
+        return { w: r.width, h: r.height, right: r.right, bottom: r.bottom };
+      }),
+    }));
+    expect(box.canvases.length).toBe(2);
+    for (const c of box.canvases) {
+      expect(c.right).toBeLessThanOrEqual(box.w + 1);
+      expect(c.bottom).toBeLessThanOrEqual(box.h + 1);
+    }
+    const tallest = Math.max(...box.canvases.map((c) => c.h));
+    expect(tallest, `elevation ${tallest} of ${box.h}px`).toBeGreaterThan(
+      box.h * 0.6,
+    );
+    await page.keyboard.press("Escape");
+    await settle(page);
+  });
+
   it("puts the sections in reading order, and folds to a page of lines", async () => {
     /* Top-level sections only — the brief's own folds and the build view's
        are inside one. Then every fold closed, and the page measured again:
@@ -344,7 +388,7 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
         ),
       tops.toString(),
     );
-    expect(headings).toEqual(ORDER);
+    expect(headings).toEqual(ORDER[screen]);
     await page.evaluate((f) => {
       for (const s of (0, eval)(f)()) {
         const b = s.querySelector('button[aria-expanded="true"]');
