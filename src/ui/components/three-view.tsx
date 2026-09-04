@@ -18,8 +18,15 @@ import {
   WebGLRenderer,
 } from "three";
 import type { ShaderMaterial } from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { extentOf } from "../../core/model.js";
-import { cameraFor, viewOf } from "../views.js";
+import {
+  bellProfile,
+  cameraFor,
+  engineLayout,
+  engineProfile,
+  viewOf,
+} from "../views.js";
 import { fills, palette } from "../tokens.js";
 import {
   compositeMaterial,
@@ -31,7 +38,8 @@ import {
 } from "./shaders.js";
 import type { ModelPart } from "../../core/model.js";
 import type { Theme } from "../tokens.js";
-import type { Extent } from "../views.js";
+import type { Extent, Profile } from "../views.js";
+import { ringPositions } from "../../core/geometry.js";
 import type { Offset } from "../separation.js";
 
 /* The build model, drawn.
@@ -95,6 +103,39 @@ function taperedProfile(rBase: number, rTop: number, h: number) {
     ...arc(rTop - f, y1 - f, 0, Math.PI / 2),
     new Vector2(0, y1),
   ];
+}
+
+/* An engine from its proportions: the plate and housing revolved on the axis,
+   with the bell in the same profile where there is one, and a cluster's bells
+   revolved separately and stood at the same ring positions the solver spaces a
+   cluster by. Merged into one geometry, because a part is one mesh: the id
+   buffer names parts by mesh index and a separation moves a part's three
+   pieces together, so an engine in five geometries would be five parts to
+   both. The profiles are `views.ts`'s, held on numbers there. #85 */
+const lathe = (pts: Profile) =>
+  new LatheGeometry(
+    pts.map(([r, y]) => new Vector2(r, y)),
+    SEGMENTS,
+  );
+
+function engineGeometry(
+  R: number,
+  H: number,
+  noz: Parameters<typeof engineLayout>[2],
+) {
+  const body = lathe(engineProfile(R, H, noz));
+  const L = engineLayout(R, H, noz);
+  if (L.n === 1) return body;
+  const bells = ringPositions(L.n).map(([ux, uz]) =>
+    lathe(bellProfile(L.rb, L.hb, noz.throat, noz.exit, L.y0)).translate(
+      ux * L.offset,
+      0,
+      uz * L.offset,
+    ),
+  );
+  const merged = mergeGeometries([body, ...bells]);
+  for (const g of [body, ...bells]) g.dispose();
+  return merged;
 }
 
 /* The dash period of a hidden edge, in CSS pixels — scaled to device pixels
@@ -284,9 +325,11 @@ export default function ThreeView({
 
     for (const [i, p] of parts.entries()) {
       const geo =
-        p.rTop === undefined
-          ? new CylinderGeometry(p.r, p.r, p.h, SEGMENTS)
-          : new LatheGeometry(taperedProfile(p.r, p.rTop, p.h), SEGMENTS);
+        p.role === "engine" && p.nozzle
+          ? engineGeometry(p.r, p.h, p.nozzle)
+          : p.rTop === undefined
+            ? new CylinderGeometry(p.r, p.r, p.h, SEGMENTS)
+            : new LatheGeometry(taperedProfile(p.r, p.rTop, p.h), SEGMENTS);
       const mat = goochMaterial(
         p.role === "booster" ? color : fill[p.role] || pal.dim,
         pal,

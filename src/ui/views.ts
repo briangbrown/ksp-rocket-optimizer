@@ -233,5 +233,126 @@ export function panelSizes(
   return { elev: { w: ew, h: eh }, plan: { w: ps, h: ps } };
 }
 
-export { MIN_PANEL };
-export type { Extent, Vec3, View };
+/* ------------------------------ engine profiles ------------------------------
+
+   An engine drawn from its `Nozzle` proportions: a body of revolution for the
+   plate and the housing, and a bell — or two, or four — under it. Written as
+   polylines of [radius, y] with y centred on the part the way `CylinderGeometry`
+   is, so the renderer revolves them with a lathe and places them where it
+   places a cylinder; and written here rather than in the renderer so a test
+   can hold the shape on numbers without three.js. `.claude/rules/renderer.md`
+   says why views.ts never imports it.
+
+   A lathe revolves a polyline and faces its triangles by the direction of
+   travel: walked from the bottom up the outside, the surface faces out, which
+   is the convention `taperedProfile` set. The bell is hollow — the plan view
+   looks up into it — so its profile starts on the axis inside the throat,
+   comes down the inside, turns at a sharp lip and goes back up the outside.
+   The flare is a parabola, steep at the throat and flattening to the exit,
+   which is what a bell is; a pod's fillets would read as a rounded bucket. #85 */
+type Nozzle = {
+  n: number;
+  plate: number;
+  body: ReadonlyArray<number>;
+  throat: number;
+  exit: number;
+};
+type Profile = Array<[number, number]>;
+
+/* Points along the flare, throat to lip. */
+const FLARE = 10;
+/* The wall at the lip, as a fraction of the bell's radius: thick enough to
+   read as an edge, thin enough that the inside is most of what is seen from
+   below. */
+const WALL = 0.06;
+
+/* The bell alone: `rb` its radius, `hb` its height, standing on y0 with its
+   throat at y0 + hb. Inside first, then out. */
+function bellProfile(
+  rb: number,
+  hb: number,
+  throat: number,
+  exit: number,
+  y0: number,
+): Profile {
+  const r0 = throat * rb;
+  const r1 = exit * rb;
+  const wall = WALL * rb;
+  const flare = (t: number) => r0 + (r1 - r0) * (1 - (1 - t) * (1 - t));
+  const out: Profile = [];
+  /* The inside stops short of the throat — a bell's interior narrows into
+     the chamber, and closing it a little below the top keeps the cap a single
+     face for the lathe. */
+  const top = y0 + hb;
+  out.push([0, top - hb * 0.18]);
+  for (let i = 2; i <= FLARE; i++) {
+    const t = i / FLARE;
+    out.push([Math.max(0, flare(t) - wall), top - hb * t]);
+  }
+  out.push([r1, y0]);
+  for (let i = FLARE - 1; i >= 0; i--) {
+    const t = i / FLARE;
+    out.push([flare(t), top - hb * t]);
+  }
+  return out;
+}
+
+/* Two consecutive points the same are a zero-length segment, which a lathe
+   turns into degenerate triangles and the crease pass into stray lines. */
+const tidy = (pts: Profile): Profile =>
+  pts.filter(
+    ([r, y], i) =>
+      i === 0 ||
+      Math.abs(r - pts[i - 1][0]) + Math.abs(y - pts[i - 1][1]) > 1e-9,
+  );
+
+/* Where the parts of an engine of radius R and height H fall, in the part's
+   own centred frame: the bell's height and radius, and the y its throat
+   meets the body. Shared by the profile and by the renderer, which places
+   each bell of a cluster from it. */
+function engineLayout(R: number, H: number, noz: Nozzle) {
+  const n = Math.max(1, Math.round(noz.n));
+  const span = SPAN[n] || 1 + Math.sqrt(n);
+  const rb = R / span;
+  const hPlate = noz.plate * H;
+  const hBody = noz.body[1] * H;
+  const hb = Math.max(0, H - hPlate - hBody);
+  const y0 = -H / 2;
+  return {
+    n,
+    rb,
+    hb,
+    y0,
+    rBody: noz.body[0] * R,
+    yBody: y0 + hb,
+    yPlate: y0 + hb + hBody,
+    top: H / 2,
+    /* Bell centres, as offsets from the part's axis. */
+    offset: R - rb,
+  };
+}
+
+/* The body of revolution on the axis: the bell too where there is one, else
+   the housing and the plate alone with a cap where the bells hang. */
+function engineProfile(R: number, H: number, noz: Nozzle): Profile {
+  const L = engineLayout(R, H, noz);
+  const pts: Profile =
+    L.n === 1
+      ? bellProfile(L.rb, L.hb, noz.throat, noz.exit, L.y0)
+      : [[0, L.yBody]];
+  pts.push([L.rBody, L.yBody], [L.rBody, L.yPlate]);
+  /* No plate, no flange: two horizontal runs at the top would be a disc of
+     no thickness, drawn twice. */
+  if (L.yPlate < L.top - 1e-9) pts.push([R, L.yPlate], [R, L.top]);
+  pts.push([0, L.top]);
+  return tidy(pts);
+}
+
+/* Enclosing-circle diameter for n packed circles, in units of one circle's —
+   the same table the solver spaces a cluster by, so the drawn bells stand
+   where the engines were sized to. Kept in step with `SPAN` in
+   src/core/geometry.ts by test/engine-shapes.test.ts. */
+const SPAN = [0, 1, 2, 2.155, 2.414, 2.701, 3, 3, 3.304, 3.613, 3.813];
+
+export { MIN_PANEL, bellProfile, engineLayout, engineProfile };
+export type { Extent, Nozzle, Profile, Vec3, View };

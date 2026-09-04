@@ -177,6 +177,28 @@ them.
   in `src/core/signature.ts` plus the payload diameter — a re-solve that
   returns the same rocket is not an arrival. #138
 
+- **An engine is one mesh, however many bells.** The id buffer names a part
+  by its mesh index and a separation moves a part's fill, crease and ghost
+  together by that index, so a Mammoth drawn as a body and four bells in five
+  geometries would be five parts to both. `engineGeometry` merges them with
+  `mergeGeometries` from three's examples; a `LatheGeometry` and a
+  `CylinderGeometry` both index, which is what the merge needs. The profiles
+  are `views.ts`'s — `engineProfile`, `bellProfile`, `engineLayout` — held
+  on numbers in `test/engine-shapes.test.ts`, and `views.ts` keeps its own
+  copy of `SPAN` rather than import the solver into the bundle that draws;
+  the same test holds the two tables equal. #85
+
+- **A lathe faces its surface by the direction of travel.** Walked from the
+  bottom up the outside, the triangles face out — `taperedProfile`'s
+  convention. A bell is hollow so the plan view can look up into it, and its
+  profile therefore starts on the axis inside the throat, comes down the
+  inside, turns at the lip and goes back up the outside: down the inside
+  faces in, up the outside faces out, and both are front faces to the camera
+  that sees them. Reverse either run and that surface culls to nothing with
+  no error. Zero-length segments — a plate of no height, a body as wide as
+  its bell — make degenerate triangles the crease pass draws as stray lines;
+  `tidy` drops them. #85
+
 - **The scrubber and the stepper drive the same pair.** While the range
   input is held, `scrub` (a position in steps, `2.4` being forty percent of
   the way from step 2 to 3) replaces `anim` as the source of the motion, and

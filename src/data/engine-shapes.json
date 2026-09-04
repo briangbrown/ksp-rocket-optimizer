@@ -1,0 +1,371 @@
+{
+  "about": "Authored, not measured: schematic proportions for drawing each engine, as fractions of the envelope the solver sized it at. See .claude/rules/part-data.md.",
+  "shapes": {
+    "24-77 \"Twitch\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.45, 0.3],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "48-7S \"Spark\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.12,
+      "body": [0.45, 0.28],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "BACC \"Thumper\" Solid Fuel Booster": {
+      "n": 1,
+      "plate": 0.9,
+      "body": [0.55, 0.02],
+      "throat": 0.3,
+      "exit": 0.62
+    },
+    "CR-7 R.A.P.I.E.R. Engine": {
+      "n": 1,
+      "plate": 0.12,
+      "body": [0.55, 0.4],
+      "throat": 0.45,
+      "exit": 1.0
+    },
+    "F3S0 \"Shrimp\" Solid Fuel Booster": {
+      "n": 1,
+      "plate": 0.9,
+      "body": [0.5, 0.02],
+      "throat": 0.3,
+      "exit": 0.6
+    },
+    "FL-S1200 Liquid Fuel Tank": {
+      "n": 1,
+      "plate": 0.9,
+      "body": [0.55, 0.02],
+      "throat": 0.3,
+      "exit": 0.55
+    },
+    "FM1 \"Mite\" Solid Fuel Booster": {
+      "n": 1,
+      "plate": 0.85,
+      "body": [0.6, 0.03],
+      "throat": 0.3,
+      "exit": 0.55
+    },
+    "IX-6315 \"Dawn\" Electric Propulsion System": {
+      "n": 1,
+      "plate": 0.35,
+      "body": [0.75, 0.3],
+      "throat": 0.7,
+      "exit": 0.95
+    },
+    "KR-1 'Boar' Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.45, 0.3],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "KR-10A 'Corgi' Liquid Fuel Engine Cluster": {
+      "n": 4,
+      "plate": 0.15,
+      "body": [0.6, 0.25],
+      "throat": 0.3,
+      "exit": 1.0
+    },
+    "Kerbodyne KE-1 \"Mastodon\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.12,
+      "body": [0.45, 0.3],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "Kerbodyne KR-2L+ \"Rhino\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.4, 0.25],
+      "throat": 0.35,
+      "exit": 1.0
+    },
+    "LFB KR-1x2 \"Twin-Boar\" Liquid Fuel Engine": {
+      "n": 2,
+      "plate": 0.72,
+      "body": [0.6, 0.05],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "LV-1 \"Ant\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.12,
+      "body": [0.4, 0.3],
+      "throat": 0.35,
+      "exit": 1.0
+    },
+    "LV-1R \"Spider\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.45, 0.35],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "LV-303 'Pug' Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.35, 0.2],
+      "throat": 0.3,
+      "exit": 1.0
+    },
+    "LV-909 \"Terrier\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.08,
+      "body": [0.32, 0.22],
+      "throat": 0.28,
+      "exit": 1.0
+    },
+    "LV-N \"Nerv\" Atomic Rocket Motor": {
+      "n": 1,
+      "plate": 0.08,
+      "body": [0.55, 0.5],
+      "throat": 0.25,
+      "exit": 0.9
+    },
+    "LV-N410 'Cherenkov' Atomic Rocket Motor": {
+      "n": 1,
+      "plate": 0.08,
+      "body": [0.6, 0.5],
+      "throat": 0.25,
+      "exit": 0.95
+    },
+    "LV-T15 'Valiant' Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.5, 0.3],
+      "throat": 0.45,
+      "exit": 0.95
+    },
+    "LV-T30 \"Reliant\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.45, 0.32],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "LV-T45 \"Swivel\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.45, 0.35],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "LV-T91 \"Cheetah\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.08,
+      "body": [0.35, 0.25],
+      "throat": 0.3,
+      "exit": 1.0
+    },
+    "LV-TX87 \"Bobcat\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.45, 0.35],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "Launch Escape System Jr.": {
+      "n": 1,
+      "plate": 0.9,
+      "body": [0.4, 0.02],
+      "throat": 0.3,
+      "exit": 0.5
+    },
+    "Mk-1H 'Torch' Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.45, 0.3],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "Mk-55 \"Thud\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.12,
+      "body": [0.5, 0.4],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "O-10 \"Puff\" MonoPropellant Fuel Engine": {
+      "n": 1,
+      "plate": 0.15,
+      "body": [0.5, 0.35],
+      "throat": 0.35,
+      "exit": 1.0
+    },
+    "RE-I2 \"Skiff\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.4, 0.3],
+      "throat": 0.35,
+      "exit": 1.0
+    },
+    "RE-I5 \"Skipper\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.12,
+      "body": [0.45, 0.3],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "RE-J10 \"Wolfhound\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.3, 0.2],
+      "throat": 0.25,
+      "exit": 1.0
+    },
+    "RE-L10 \"Poodle\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.15,
+      "body": [0.45, 0.25],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "RE-M3 \"Mainsail\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.12,
+      "body": [0.5, 0.3],
+      "throat": 0.45,
+      "exit": 1.0
+    },
+    "RK-1 'Trash Panda' Vernier Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.5, 0.4],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "RK-107 'Ursa' Liquid Fuel Engine": {
+      "n": 4,
+      "plate": 0.15,
+      "body": [0.55, 0.3],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "RK-7 \"Kodiak\" Liquid Fueled Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.45, 0.32],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "RT-10 \"Hammer\" Solid Fuel Booster": {
+      "n": 1,
+      "plate": 0.88,
+      "body": [0.55, 0.02],
+      "throat": 0.3,
+      "exit": 0.6
+    },
+    "RT-5 \"Flea\" Solid Fuel Booster": {
+      "n": 1,
+      "plate": 0.86,
+      "body": [0.55, 0.02],
+      "throat": 0.3,
+      "exit": 0.6
+    },
+    "RV-1 \"Cub\" Vernier Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.5, 0.4],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "S1 SRB-KD25k \"Kickback\" Solid Fuel Booster": {
+      "n": 1,
+      "plate": 0.9,
+      "body": [0.55, 0.02],
+      "throat": 0.3,
+      "exit": 0.65
+    },
+    "S2-17 \"Thoroughbred\" Solid Fuel Booster": {
+      "n": 1,
+      "plate": 0.9,
+      "body": [0.55, 0.02],
+      "throat": 0.3,
+      "exit": 0.7
+    },
+    "S2-33 \"Clydesdale\" Solid Fuel Booster": {
+      "n": 1,
+      "plate": 0.92,
+      "body": [0.55, 0.02],
+      "throat": 0.3,
+      "exit": 0.7
+    },
+    "S3 KS-25 \"Vector\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.4, 0.28],
+      "throat": 0.35,
+      "exit": 1.0
+    },
+    "S3 KS-25x4 \"Mammoth\" Liquid Fuel Engine": {
+      "n": 4,
+      "plate": 0.18,
+      "body": [0.6, 0.2],
+      "throat": 0.35,
+      "exit": 1.0
+    },
+    "Sepratron I": {
+      "n": 1,
+      "plate": 0.7,
+      "body": [0.5, 0.1],
+      "throat": 0.35,
+      "exit": 0.6
+    },
+    "T-1 Toroidal Aerospike \"Dart\" Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.25,
+      "body": [0.9, 0.15],
+      "throat": 0.85,
+      "exit": 0.3
+    },
+    "TCK-2 'Castor' Solid Rocket Booster": {
+      "n": 1,
+      "plate": 0.9,
+      "body": [0.55, 0.02],
+      "throat": 0.3,
+      "exit": 0.7
+    },
+    "THK \"Pollux\" Solid Fuel Booster": {
+      "n": 1,
+      "plate": 0.9,
+      "body": [0.55, 0.02],
+      "throat": 0.3,
+      "exit": 0.7
+    },
+    "UR-1 'Galleon' Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.12,
+      "body": [0.45, 0.3],
+      "throat": 0.4,
+      "exit": 1.0
+    },
+    "UR-137 'Schnauzer' Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.08,
+      "body": [0.35, 0.2],
+      "throat": 0.28,
+      "exit": 1.0
+    },
+    "UR-2 'Caravel' Liquid Fuel Engine": {
+      "n": 1,
+      "plate": 0.1,
+      "body": [0.45, 0.3],
+      "throat": 0.4,
+      "exit": 1.0
+    }
+  },
+  "restock": {
+    "RE-L10 \"Poodle\" Liquid Fuel Engine": {
+      "n": 4,
+      "plate": 0.2,
+      "body": [0.6, 0.3],
+      "throat": 0.4,
+      "exit": 1.0
+    }
+  }
+}

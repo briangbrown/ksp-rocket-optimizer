@@ -51,6 +51,24 @@ Changing a number here is changing a measurement.
   installed 22 titles name two parts; the rest of the duplicates are engine
   plates, which have no cube in any install and so cannot disagree.
 
+- **`engine-shapes.json` is authored, and says so.** It is the one table here
+  that is not a measurement: how each engine is drawn — bells, plate, body —
+  as proportions of the envelope the solver sized it at. The shapes live in
+  the install's `.mu` meshes, which are not published, and the drag cubes
+  carry a height and a face area and nothing about a bell (#85 has the
+  numbers: every liquid engine measures no wider than its mount). What is
+  known about a part is what it is modelled on — the Terrier an LMDE, the
+  Mammoth four RS-25s, the ReStock Poodle the four-chamber RD-0124 — and the
+  table says that, in fractions, and stays inside the measured envelope by
+  construction, so nothing the solver judged moves. A number in it is a
+  judgement about a picture, not a fact about the game; change it when the
+  drawing reads wrong, and say that is why. `restock` overrides the stock
+  entry where ReStock's remodel changes the count of bells, chosen by the
+  same `useArt` that picks the geometry table. The three cluster calls made
+  from descriptions rather than from a screenshot are the ReStock Poodle,
+  the Ursa (RD-107) and the Corgi (4× RL-10) — the preview is where they
+  are checked.
+
 - **Six parts have no measurement anywhere.** The Nerv and the five engine
   plates carry `DRAG_CUBE { procedural = True }` — KSP computes them at runtime
   because the shroud varies with what is mounted inside. They fall back by

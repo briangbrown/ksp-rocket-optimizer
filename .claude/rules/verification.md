@@ -190,6 +190,7 @@ invisible to every baseline here.
     test/first-run.test.tsx               the sections' shape before the first solve
     test/landmarks.test.tsx               main, footer, headings by level, the solving live region
     test/three-view.test.ts               the orthographic framing, on numbers
+    test/engine-shapes.test.ts            the engine table complete and in its envelope; the bell profiles
     test/seam-contract.test.ts            planMission stays serialisable
     test/seam-input.test.tsx              what the app actually hands the seam, and from a link
     test/link.test.ts                     the design as a hash: size, round trip, refusal
