@@ -67,10 +67,19 @@ describe("the route map", () => {
     /* The one cut placed is after the launch, so it reads under the leg it
        ends and over the pad — and the ends of the route offer none: nothing
        to separate after the final burn, nothing after a free leg. */
-    const cut = container.querySelector('[aria-label="Remove staging event"]');
+    const cut = container.querySelector('[aria-label^="Remove staging event"]');
     expect(cut?.textContent).toBe("separates here");
+    /* And each names the leg it follows, since the scissors say nothing. */
+    expect(cut?.getAttribute("aria-label")).toBe(
+      "Remove staging event after Launchpad → orbit",
+    );
     expect(
-      container.querySelectorAll('[aria-label$="staging event"]').length,
-    ).toBe(2);
+      [...container.querySelectorAll("button")].map((b) =>
+        b.getAttribute("aria-label"),
+      ),
+    ).toEqual([
+      "Add staging event after Orbit → escape",
+      "Remove staging event after Launchpad → orbit",
+    ]);
   });
 });

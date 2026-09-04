@@ -328,9 +328,19 @@ describe("the build view, in a browser", () => {
     const small = await read(ELEVATION);
     const smallPlan = await read(PLAN);
 
+    /* From the keyboard, so there is a place for focus to come back to. */
+    await page.focus('[aria-label="Full screen"]');
     await press("Full screen");
     const big = await read(ELEVATION);
     const bigPlan = await read(PLAN);
+    /* Focus went in with it: the overlay is a dialog, held as the sheet is,
+       and Tab cannot reach the page underneath. #141 */
+    expect(
+      await page.evaluate(
+        () => document.activeElement?.closest('[role="dialog"]') !== null,
+      ),
+      "focus did not go into the overlay",
+    ).toBe(true);
     /* A quarter taller, not half: the inline view takes six tenths of the
        window since #138, so full screen has less left to add. */
     expect(
@@ -368,9 +378,15 @@ describe("the build view, in a browser", () => {
       );
     }
 
-    /* Escape leaves, the same as the button. */
+    /* Escape leaves, the same as the button, and focus comes back to it. */
     await page.keyboard.press("Escape");
     await settle(page);
+    expect(
+      await page.evaluate(() =>
+        document.activeElement?.getAttribute("aria-label"),
+      ),
+      "focus did not come back to the button",
+    ).toBe("Full screen");
     const back = await read(ELEVATION);
     expect(back.css, "the panel did not go back to its inline size").toEqual(
       small.css,
@@ -572,6 +588,30 @@ describe("the build view, in a browser", () => {
     await settle(page);
     await restore();
   }, 120_000);
+
+  it("says what each drawing shows, and follows the step", async () => {
+    /* A canvas has no text. Each drawing's host is an image named for the
+       view, the craft, the step and the figures under it — jsdom never
+       mounts a ThreeView, so this is the one place it is held. #141 */
+    const alts = () =>
+      page.$$eval('[role="img"]', (els) =>
+        els
+          .filter((e) => e.querySelector("canvas"))
+          .map((e) => e.getAttribute("aria-label") ?? ""),
+      );
+    await step("On the pad");
+    const pad = await alts();
+    expect(pad.length, "each drawing named").toBeGreaterThanOrEqual(2);
+    expect(pad[0]).toMatch(
+      /^Elevation of .+, On the pad: [\d.,]+ t, \d+ stages?, [\d.]+ m tall$/,
+    );
+    expect(pad[1]).toMatch(/^Plan of .+, On the pad: /);
+    const next = (await steps())[1];
+    await step(next);
+    const after = await alts();
+    expect(after[0]).toContain(`, ${next}: `);
+    expect(after[0]).not.toBe(pad[0]);
+  });
 
   it("says nothing to the console", async () => {
     /* Last, so it reports what the whole walk above provoked. A shader that

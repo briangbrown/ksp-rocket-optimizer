@@ -135,6 +135,11 @@ type ThreeViewProps = {
      why it is a prop and a dependency of the build effect, not something the
      paint step reads. `.claude/rules/renderer.md` */
   theme: Theme;
+  /* What the drawing is a picture of, for a reader who cannot see it: the
+     view, the step and the figures beside it. A canvas has no text of its
+     own, and jsdom never mounts one, so the render suite is what holds this.
+     #141 */
+  alt: string;
 };
 
 /* Reused rather than allocated per part per frame. */
@@ -173,6 +178,7 @@ export default function ThreeView({
   midY,
   offsets,
   theme,
+  alt,
 }: ThreeViewProps) {
   const host = useRef<HTMLDivElement | null>(null);
   const gl = useRef<WebGLRenderer | null>(null);
@@ -501,6 +507,8 @@ export default function ThreeView({
      size in a still frame and the clip does nothing. */
   return (
     <div
+      role="img"
+      aria-label={alt}
       style={{ width, height, overflow: "hidden", lineHeight: 0 }}
       ref={host}
     />

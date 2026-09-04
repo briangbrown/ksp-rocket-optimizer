@@ -84,8 +84,8 @@ describe("a control change re-solves", () => {
 
     /* The route starts folded until it has a cut (#134). */
     await openFold("Where it goes");
-    const cuts = [...document.querySelectorAll("button")].filter(
-      (b) => b.getAttribute("aria-label") === "Add staging event",
+    const cuts = [...document.querySelectorAll("button")].filter((b) =>
+      b.getAttribute("aria-label")?.startsWith("Add staging event"),
     );
     expect(cuts.length, "no cut controls rendered").toBeGreaterThan(0);
     await click(cuts[0]);

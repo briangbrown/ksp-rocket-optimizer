@@ -30,7 +30,7 @@ const BUDGET = {
     targets: 0, // pressable things under 44 × 44 — of 26, #136
     sideways: 0, // things wider than their box
     unreachable: 0, // targets a keyboard cannot reach
-    axe: 0, // nodes axe objects to, wcag2a + wcag2aa
+    axe: 0, // nodes axe objects to, every rule on (#141)
     folded: 860, // px, every section folded: the brief, four lines and the footer — 844, which is the viewport
   },
   desktop: {
@@ -124,6 +124,8 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
   type Axe = Array<{ text: string; nodes: number; impact: string }>;
   let axe: Axe;
   let axeLight: Axe;
+  /* What each Tab stop drew for a ring: computed outline, by element. */
+  let rings: Array<{ at: string; ring: string }>;
 
   beforeAll(async () => {
     ({ page } = await open(ctx.url, viewport));
@@ -140,6 +142,7 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
        cap is a guard against a focus trap, not a limit on the page. */
     await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
     const seen = new Set<number>();
+    rings = [];
     let last: number | null = null;
     for (let i = 0; i < m.targets.length * 2 + 50; i++) {
       await page.keyboard.press("Tab");
@@ -149,6 +152,21 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
         seen.add(k);
       }
       last = k;
+      /* Whatever has focus — a target or not; the parts table's scroll box
+         is neither a button nor a pointer — and the ring it shows. */
+      const r = await page.evaluate(() => {
+        const el = document.activeElement;
+        if (!el || el === document.body) return null;
+        const cs = getComputedStyle(el);
+        const name =
+          el.getAttribute("aria-label") ??
+          (el.textContent ?? "").trim().slice(0, 30);
+        return {
+          at: `${el.tagName.toLowerCase()} ${name}`,
+          ring: `${cs.outlineStyle} ${cs.outlineWidth} ${cs.outlineColor}`,
+        };
+      });
+      if (r) rings.push(r);
     }
     const groups = new Set(
       m.targets.filter((t) => seen.has(t.k)).map((t) => t.group),
@@ -161,9 +179,7 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
     const run = (): Promise<Axe> =>
       page.evaluate(async () => {
         const a = (window as unknown as { axe: any }).axe;
-        const r = await a.run(document, {
-          runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] },
-        });
+        const r = await a.run(document);
         return r.violations.map((v: any) => ({
           text: v.id,
           nodes: v.nodes.length,
@@ -256,6 +272,24 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
       n.unreachable,
       `of ${n.of} targets, Tab never reaches:\n${list(missed)}`,
     ).toBeLessThanOrEqual(budget.unreachable);
+  });
+
+  it("draws the one focus ring on every stop", () => {
+    /* `:focus-visible` after a Tab, on every surface: a filled planet
+       button, an inverted chip, the icon buttons, the scroll box. One
+       style, one width, one colour across the walk — not colour-checked,
+       since the ring's contrast is axe's, but the same ring everywhere. */
+    expect(rings.length).toBeGreaterThan(10);
+    const off = rings.filter(
+      (r) => !r.ring.startsWith("solid 2px") || r.ring.includes("none"),
+    );
+    expect(
+      off.length,
+      `no ring on:\n${off.map((r) => `  ${r.at}: ${r.ring}`).join("\n")}`,
+    ).toBe(0);
+    expect(new Set(rings.map((r) => r.ring)).size, "more than one ring").toBe(
+      1,
+    );
   });
 
   it("clears axe within budget", () => {

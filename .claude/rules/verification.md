@@ -79,7 +79,11 @@ measures the UI's budgets the way the design snapshot measures the solver's:
 at 390 px with touch and at 1280 px, the page's height, its visible words,
 whether anything is wider than its box, how much text is under 12 and 13 px,
 how many pressable things are under 44 px (phone) or 24 (desktop), how many a
-keyboard cannot reach, and what axe objects to at WCAG 2 A and AA. Each has a
+keyboard cannot reach, and what axe objects to with every rule on — the
+best-practice rules included, since #141; `region` and `landmark-one-main`
+were what they added. The Tab walk that counts reach also reads each stop's
+computed outline and holds every one to the same solid 2 px ring, so a
+control that opts out of `:focus-visible` is named. Each has a
 number at the top of the file that is what the application measured the day
 it was written, and the assertion is that it has not grown. A pull request
 that improves one lowers it in the same commit. It also holds the order of
@@ -184,6 +188,7 @@ invisible to every baseline here.
     test/slenderness.test.ts              the limit is on the whole rocket
     test/staging-figures.test.tsx         the figures follow the staging step
     test/first-run.test.tsx               the sections' shape before the first solve
+    test/landmarks.test.tsx               main, footer, headings by level, the solving live region
     test/three-view.test.ts               the orthographic framing, on numbers
     test/seam-contract.test.ts            planMission stays serialisable
     test/seam-input.test.tsx              what the app actually hands the seam, and from a link

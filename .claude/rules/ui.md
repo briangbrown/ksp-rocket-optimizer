@@ -254,3 +254,47 @@ control shows and what it committed.
   The row is the only box whose parent has padding to hang into; the same
   margin on the aside span or the button's wrapper overflows the row, and
   the layout suite reads it as the page scrolling sideways. #140
+
+- **A `Section` inside a `Section` says `level={3}`.** The heading is an
+  `h2` since #141, and axe's `heading-order` rule — on, with every other
+  best-practice rule — fails an `h2` under an `h2`. The brief's two folds
+  and the setup sheet's tech tree are the nested ones; a sheet's title is an
+  `h2` of its own, so a section inside a sheet is `3` as well.
+
+- **Anything that holds focus is `useTrap`.** The sheet and the build view's
+  full-screen overlay share the one hook: focus in, Tab wrapped, Escape out,
+  body scroll held, focus returned. Its `onClose` is an effect dependency
+  exactly as the sheet's was, so the overlay's is a `useCallback`; an inline
+  arrow re-runs the effect every render and re-focuses the overlay on every
+  keystroke inside it. The container it focuses takes `tabIndex={-1}` and
+  `outline: "none"` inline, since `:focus-visible` is now on every element
+  rather than on buttons and fields.
+
+- **The canvases' names live in the render suite.** `ThreeView`'s host is
+  `role="img"` with the view, the craft, the step and the figures as its
+  label; jsdom never mounts a `ThreeView` — `canRender3D()` is false there —
+  so no test under `test/` can see it, and `visual/render.test.ts` is what
+  holds it, step to step. Change the caption's wording and that test moves.
+
+- **The solving pill's live region is its own span.** `role="status"` on the
+  pill would announce nothing useful: the pill keeps its label and only
+  fades, and a reader hears changes, not opacity. `Solving` takes a `status`
+  string — the label while busy, the outcome after — in an `.sr-only` span,
+  and the outcome changes each solve, which is what gets it read. #141
+
+- **A control transitions its colours, not everything.** `transition: 120ms`
+  is every property, and every property includes the outline: the focus ring
+  animated in from the browser's `3px currentColor` on every chip, icon
+  button and link, and the layout suite's Tab walk read it mid-flight. `EASE`
+  in `styles.ts` names the four colour properties; a new control takes that,
+  not the shorthand. The suite holds every stop to the same ring the moment
+  focus lands, so the trap fails the build rather than the review.
+
+- **A control that unmounts as it opens a trap has to say where focus goes
+  back.** `useTrap` records `document.activeElement` in its effect, which
+  runs after the commit — and the build view's _Full screen_ button is gone
+  by then, its card showing a line in place of its header, so the browser
+  has already dropped focus to the body and there is nothing to record. The
+  hook's fourth argument is where to send it instead; the build view hands
+  it a lookup for the button by name, since the one on the way back is a new
+  element.

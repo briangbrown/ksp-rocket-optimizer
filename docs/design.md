@@ -393,7 +393,9 @@ target. An optional `aside` sits at the header's right in both states,
 beside the fold's button rather than inside it, so it may be a control: the
 brief's Δv budget, the build section's tabs. Beside a summary or an aside
 the heading holds its line and the rest wraps. Sections are `<section
-aria-labelledby>`. `busy` is the first-run state: the heading over a line the
+aria-labelledby>` named by an `h2` — `h3` with `level={3}`, for one inside
+another: the brief's folds, the setup sheet's tech tree — so the outline
+never skips and a reader can jump by heading (#141). `busy` is the first-run state: the heading over a line the
 summary's height (`.skel`, breathing; still under reduced motion), no fold and
 no children, `aria-busy` — the page has its shape before it has its numbers
 (#139). Not for: grouping fields inside the brief (that is a `Field` group
@@ -554,18 +556,28 @@ measurable ones at both viewports and both themes.
   negative margin gives back to the line, so the line does not.
 - **Keyboard**: everything a click reaches, Tab reaches, in reading order.
   Escape closes the topmost thing that can close. Arrow keys move within a
-  `Choice` and along the staging scrubber.
-- **Focus**: the `amber` 2 px ring, offset 2, on every surface — including a
-  filled planet button, where it needs a `panel` halo to be seen.
+  `Choice` and along the staging scrubber. A sheet and the full-screen
+  overlay hold focus while they are up and give it back when they close —
+  `useTrap`, one hook for both.
+- **Focus**: the `amber` 2 px ring, offset 2, on `:focus-visible` whatever
+  the element — a filled planet button, an inverted chip, the parts table's
+  scroll box. The offset is what makes it a halo: two pixels of the surface
+  behind show between the control and the ring. The layout suite walks the
+  Tab order and holds every stop to the same ring.
 - **Contrast**: per the tables in Colour. `axe-core` with the contrast rule on
   is the check.
 - **Not colour alone**: every severity has its icon; a cut has its scissors; a
   selected chip inverts, it does not just tint.
 - **Not hover alone**: every tooltip has a touch path; nothing appears only on
   hover.
-- **Names**: every `IconButton` has an `aria-label`; every `Section` is a
-  landmark with a heading; the solving state is a live region; the canvases
-  carry a text alternative naming the step and the figures beside them.
+- **Names**: every `IconButton` has an `aria-label`; the page is a `main`
+  with a `footer` after it and nothing outside a landmark; every `Section`
+  is a region named by its `h2`; the solving state is a `role="status"`
+  region off screen, carrying the pill's words while it runs and the craft
+  and its liftoff mass after — or that nothing solved; each canvas's host is
+  `role="img"`, named for the view, the craft, the step and the figures
+  under it; a cut names the leg it follows. `axe-core` with every rule on
+  is the check, at both viewports and in both themes.
 - **Motion**: see above.
 - **Zoom**: numeric inputs are 16 px on the phone so iOS does not zoom on
   focus; the page never needs horizontal scroll at 320 px.

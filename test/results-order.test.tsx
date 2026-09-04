@@ -47,8 +47,8 @@ describe("the results", () => {
     );
     expect(route?.textContent).toContain("7 legs · 7,216 m/s · one span");
     await openFold("Where it goes");
-    const cut = [...document.querySelectorAll("button")].find(
-      (b) => b.getAttribute("aria-label") === "Add staging event",
+    const cut = [...document.querySelectorAll("button")].find((b) =>
+      b.getAttribute("aria-label")?.startsWith("Add staging event"),
     );
     await click(cut);
     await settle();

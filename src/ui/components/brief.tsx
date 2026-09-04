@@ -158,6 +158,7 @@ function Brief(p: BriefProps) {
           beneath the destination, which is the thing you came to change. */}
       <Section
         bare
+        level={3}
         heading="Launching from"
         summary={p.origin}
         open={p.originOpen}
@@ -304,6 +305,7 @@ function Brief(p: BriefProps) {
           the inputs above for a row. */}
       <Section
         bare
+        level={3}
         heading="More options"
         open={p.moreOpen}
         onToggle={p.onToggleMore}
