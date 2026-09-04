@@ -66,7 +66,13 @@ Changing a number here is changing a measurement.
   every visible triangle with the top node at y = 0; welds the texture seams
   (the game splits a vertex wherever one runs, and unwelded each seam is a
   crack the simplifier may not close); and simplifies by quadric edge
-  collapse — Garland and Heckbert — to about five hundred vertices, eight
+  collapse — Garland and Heckbert, in the memoryless form of Lindstrom and
+  Turk, where an edge is priced against the planes round it as they stand
+  rather than a quadric accumulated over its history, which drifts on a long
+  chain of collapses; the local quadric's own minimiser is refused when it
+  lands farther from the edge than the edge is long, since the planes round
+  one edge are often nearly coplanar and the solution then a needle out of
+  the surface — the Boar grew one — to about five hundred vertices, eight
   for the big clusters, with the boundary loops weighted so a lip does not
   creep inward, a collapse that would flip a face refused, and **the turn a
   collapse puts on its faces priced into the cost** (`TURN` in the tool):

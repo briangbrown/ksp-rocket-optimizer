@@ -15,10 +15,10 @@
    which objects are a jettisonable shroud; walk each mesh's transform tree with
    the root's own placement dropped (it is where the prefab sat in the Unity
    scene, and the game discards it); take every visible triangle in world space
-   with the top node at y = 0; weld the seams; and simplify by quadric edge
-   collapse to a few hundred vertices, which keeps the silhouette and the
-   bells — two, four, off-axis, whatever the part has — and the lips, and
-   drops the panel lines and the bolt heads.
+   with the top node at y = 0; weld the seams; and simplify by memoryless
+   quadric edge collapse to a few hundred vertices, which keeps the silhouette
+   and the bells — two, four, off-axis, whatever the part has — and the lips,
+   and drops the panel lines and the bolt heads.
    Millimetres, as integers. .claude/rules/part-data.md has the story.
 
    Plain Node, no dependencies: the zip is read with zlib, the .mu with a
@@ -718,10 +718,11 @@ function weld(verts, tris) {
   return { verts: out, faces };
 }
 
-/* Quadric error metric edge collapse, after Garland and Heckbert. Every
-   vertex carries the sum of the squared-distance quadrics of the planes of
-   its faces; an edge's cost is that sum evaluated at the best point for the
-   merged vertex, and the cheapest edge goes first. Flat and gently curved
+/* Quadric error metric edge collapse, after Garland and Heckbert, in the
+   memoryless form of Lindstrom and Turk: an edge's cost is the sum of the
+   squared-distance quadrics of the planes of the faces round its ends, as
+   they stand now, evaluated at the best point for the merged vertex, and the
+   cheapest edge goes first. Flat and gently curved
    regions empty out while sharp features stay, which is what a bell wants:
    the lip survives, the curve between throat and lip loses its rings, and
    what is left renders smooth under crease-split normals. Boundary edges —
@@ -844,58 +845,67 @@ function simplify(verts0, tris, target, extent) {
   const V = verts.map((v) => [...v]);
   const alive = new Array(n).fill(true);
   const version = new Array(n).fill(0);
-  const Q = Array.from({ length: n }, () => new Array(10).fill(0));
   const F = faces.map((f) => [...f]);
   const facesOf = Array.from({ length: n }, () => new Set());
   F.forEach((f, i) => f.forEach((v) => facesOf[v].add(i)));
-  const edgeCount = new Map();
-  const ekey = (a, b) => (a < b ? a * n + b : b * n + a);
-  for (let i = 0; i < F.length; i++) {
-    const [a, b, c] = F[i];
-    const p = plane(V[a], V[b], V[c]);
-    if (!p) continue;
-    const q = quadric(p, p[4]);
-    for (const v of F[i]) Q[v] = qadd(Q[v], q);
-    for (const [u, w] of [
-      [a, b],
-      [b, c],
-      [c, a],
-    ])
-      edgeCount.set(ekey(u, w), (edgeCount.get(ekey(u, w)) ?? 0) + 1);
-  }
-  /* Boundary constraint: for an edge with one face, the plane through the
-     edge perpendicular to that face, weighted like a very large face. */
-  for (let i = 0; i < F.length; i++) {
-    const [a, b, c] = F[i];
-    for (const [u, w] of [
-      [a, b],
-      [b, c],
-      [c, a],
-    ])
-      if (edgeCount.get(ekey(u, w)) === 1) {
-        const p = plane(V[a], V[b], V[c]);
-        if (!p) continue;
-        const ex = V[w][0] - V[u][0],
-          ey = V[w][1] - V[u][1],
-          ez = V[w][2] - V[u][2];
-        /* normal of the constraint plane = edge × face normal */
-        let nx = ey * p[2] - ez * p[1],
-          ny = ez * p[0] - ex * p[2],
-          nz = ex * p[1] - ey * p[0];
-        const l = Math.hypot(nx, ny, nz);
-        if (l < 1e-12) continue;
-        nx /= l;
-        ny /= l;
-        nz /= l;
-        const q = quadric(
+  const heap = new Heap();
+
+  /* Memoryless, after Lindstrom and Turk: no vertex carries a quadric from
+     collapse to collapse. The cost of collapsing an edge is measured against
+     the planes of the faces round its two ends as they stand now — the
+     surface as it is, not as it was twenty collapses ago. An accumulated
+     quadric drifts: a vertex ends up judged against planes that no longer
+     exist, and on a long chain of collapses, a cylinder losing its rings one
+     by one, the drift is what pulls the surface off its true position.
+     Boundary edges — a bell's open lip, a plate's rim — get a heavy plane
+     perpendicular to their one face, so the outline does not creep inward;
+     only edges touching the collapse's ends can be boundaries here, and all
+     the faces on those edges are in the local set, so the count is exact. */
+  const local = (a, b) => {
+    const set = new Set([...facesOf[a], ...facesOf[b]]);
+    let q = new Array(10).fill(0);
+    const edges = new Map();
+    for (const fi of set) {
+      const f = F[fi];
+      const p = plane(V[f[0]], V[f[1]], V[f[2]]);
+      if (!p) continue;
+      q = qadd(q, quadric(p, p[4]));
+      for (const [u, w] of [
+        [f[0], f[1]],
+        [f[1], f[2]],
+        [f[2], f[0]],
+      ]) {
+        if (u !== a && u !== b && w !== a && w !== b) continue;
+        const k = u < w ? `${u},${w}` : `${w},${u}`;
+        const e = edges.get(k);
+        if (e) e.n++;
+        else edges.set(k, { n: 1, u, w, p });
+      }
+    }
+    for (const { n: count, u, w, p } of edges.values()) {
+      if (count !== 1) continue;
+      const ex = V[w][0] - V[u][0],
+        ey = V[w][1] - V[u][1],
+        ez = V[w][2] - V[u][2];
+      let nx = ey * p[2] - ez * p[1],
+        ny = ez * p[0] - ex * p[2],
+        nz = ex * p[1] - ey * p[0];
+      const l = Math.hypot(nx, ny, nz);
+      if (l < 1e-12) continue;
+      nx /= l;
+      ny /= l;
+      nz /= l;
+      q = qadd(
+        q,
+        quadric(
           [nx, ny, nz, -(nx * V[u][0] + ny * V[u][1] + nz * V[u][2])],
           1e3 * Math.hypot(ex, ey, ez),
-        );
-        Q[u] = qadd(Q[u], q);
-        Q[w] = qadd(Q[w], q);
-      }
-  }
-  const heap = new Heap();
+        ),
+      );
+    }
+    return q;
+  };
+
   /* The turn a collapse puts on the faces round its ends, as area × (1 −
      cos θ): a quadric measures distance, and merging two ring vertices on a
      cylinder moves the surface very little while turning its facets a lot —
@@ -922,20 +932,31 @@ function simplify(verts0, tris, target, extent) {
     return turn;
   };
   const propose = (a, b) => {
-    const q = qadd(Q[a], Q[b]);
+    const q = local(a, b);
     let best = null,
       cost = Infinity;
-    const opt = qmin(q);
-    for (const c of [
-      opt,
-      V[a],
-      V[b],
-      [
-        (V[a][0] + V[b][0]) / 2,
-        (V[a][1] + V[b][1]) / 2,
-        (V[a][2] + V[b][2]) / 2,
-      ],
-    ]) {
+    /* The minimiser of a local quadric can be a long way off: the planes
+       round one edge are often nearly coplanar, the system nearly singular,
+       and the solution a needle out of the surface. A candidate farther from
+       the edge than the edge is long is refused; the endpoints and the
+       midpoint remain. */
+    const len = Math.hypot(
+      V[a][0] - V[b][0],
+      V[a][1] - V[b][1],
+      V[a][2] - V[b][2],
+    );
+    const mid = [
+      (V[a][0] + V[b][0]) / 2,
+      (V[a][1] + V[b][1]) / 2,
+      (V[a][2] + V[b][2]) / 2,
+    ];
+    let opt = qmin(q);
+    if (
+      opt &&
+      Math.hypot(opt[0] - mid[0], opt[1] - mid[1], opt[2] - mid[2]) > len
+    )
+      opt = null;
+    for (const c of [opt, V[a], V[b], mid]) {
       if (!c) continue;
       const t = turnOf(a, b, c);
       if (t === Infinity) continue;
@@ -948,7 +969,18 @@ function simplify(verts0, tris, target, extent) {
     if (best)
       heap.push({ cost, a, b, pos: best, va: version[a], vb: version[b] });
   };
-  for (const k of edgeCount.keys()) propose(Math.floor(k / n), k % n);
+  const seen = new Set();
+  for (const f of F)
+    for (const [u, w] of [
+      [f[0], f[1]],
+      [f[1], f[2]],
+      [f[2], f[0]],
+    ]) {
+      const k = u < w ? u * n + w : w * n + u;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      propose(u, w);
+    }
   /* Stop on faces, not vertices. A collapse takes one vertex and two faces,
      so F − 2V is conserved — and the game's meshes are not manifold (double
      sided skins, loose shells), so F starts below 2V and counting vertices
@@ -969,7 +1001,6 @@ function simplify(verts0, tris, target, extent) {
     if (turnOf(a, b, e.pos) === Infinity) continue;
     /* Collapse b into a at the new position. */
     V[a] = e.pos;
-    Q[a] = qadd(Q[a], Q[b]);
     alive[b] = false;
     for (const fi of facesOf[b]) {
       const f = F[fi];
@@ -985,7 +1016,14 @@ function simplify(verts0, tris, target, extent) {
     }
     facesOf[b].clear();
     version[a]++;
-    for (const u of neighbours(a)) propose(a, u);
+    /* Every edge round a is re-priced against the surface as it now stands,
+       and so is every edge round a's neighbours, since their faces moved. */
+    const near = neighbours(a);
+    for (const u of near) {
+      propose(a, u);
+      version[u]++;
+      for (const w of neighbours(u)) if (w !== a) propose(u, w);
+    }
   }
   /* Renumber what survived. */
   const map = new Map();

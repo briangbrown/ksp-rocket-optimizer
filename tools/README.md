@@ -39,8 +39,9 @@ ReStock's `@PART` patches for the parts ReStock remodels (a model swap, a
 rescale, variants); walks each mesh's transform tree with the root's own
 placement dropped, because that is where the prefab sat in the Unity scene
 and the game discards it; takes every visible triangle in world space with
-the top node at y = 0; welds the texture seams; and simplifies by quadric
-edge collapse to about five hundred vertices (eight for the big clusters),
+the top node at y = 0; welds the texture seams; and simplifies by memoryless
+quadric edge collapse (each edge priced against the surface as it stands, not
+a quadric accumulated over its history) to about five hundred vertices (eight for the big clusters),
 boundary loops protected so a bell's lip keeps its radius, face flips refused,
 and the turn a collapse puts on its faces priced into its cost so the smooth
 surfaces keep their rings and the budget is spent on bolts and struts — the
