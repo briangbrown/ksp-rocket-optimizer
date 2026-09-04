@@ -1,5 +1,5 @@
 # pack-engines.ps1 — engine meshes and configs from a KSP install, for
-# tools/engine-profiles.mjs. No textures.
+# tools/engine-meshes.mjs. No textures.
 #
 #   powershell -ExecutionPolicy Bypass -File .\pack-engines.ps1
 #   powershell -ExecutionPolicy Bypass -File .\pack-engines.ps1 -Root "D:\Steam\steamapps\common\Kerbal Space Program"

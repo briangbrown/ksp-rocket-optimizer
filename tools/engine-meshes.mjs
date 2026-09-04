@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-/* Measure every engine's shape from a KSP install's meshes.
+/* Simplified meshes of every engine, from a KSP install's own.
 
-     node tools/engine-profiles.mjs ksp-engine-models.zip          # writes src/data/engine-profiles.json
-     node tools/engine-profiles.mjs ksp-engine-models.zip --check  # exits 1 if the committed file differs
+     node tools/engine-meshes.mjs ksp-engine-models.zip          # writes public/engines/
+     node tools/engine-meshes.mjs ksp-engine-models.zip --check  # exits 1 if the committed files differ
 
    The zip is what tools/pack-engines.ps1 makes from the install: the `.mu`
    meshes and `.cfg` configs on every path with "Engine" in it, ReStock's
@@ -10,27 +10,34 @@
 
    For each engine in src/data/parts.json, under stock art and again under
    ReStock's patches: find its part config (by the `slug` parts.json carries,
-   else by title, else by nickname); read which meshes it uses at what scale,
-   which variant is the default and which objects that variant hides, and which
-   objects are a jettisonable shroud; walk each mesh's transform tree with the
-   root's own placement dropped (it is where the prefab sat in the Unity scene,
-   and the game discards it); sample the triangle edges — a tube has vertices
-   only on its end rings — into height bins below the top node, keeping the
-   outermost radius in each; find the bells by the thrust transforms in the
-   lower half whose hull shows notches between them at the base, and measure
-   each about its own axis. Metres. .claude/rules/part-data.md has the story.
+   else by title, else by nickname); read which meshes the part uses at what
+   scale, which variant is the default and which objects that variant hides, and
+   which objects are a jettisonable shroud; walk each mesh's transform tree with
+   the root's own placement dropped (it is where the prefab sat in the Unity
+   scene, and the game discards it); take every visible triangle in world space
+   with the top node at y = 0; and simplify by clustering vertices onto a grid
+   sized so a few hundred remain, which keeps the silhouette and the bells —
+   two, four, off-axis, whatever the part has — and drops the panel lines.
+   Millimetres, as integers. .claude/rules/part-data.md has the story.
 
    Plain Node, no dependencies: the zip is read with zlib, the .mu with a
    DataView. #85 */
-import { readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { inflateRawSync } from "node:zlib";
 import { dirname, join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
-const BINS = 32;
-const ANG = 36;
+/* Vertices to keep per engine. Enough for a bell to read as a bell at the
+   sixty or so pixels the drawing gives it, and for four to read as four. */
+const TARGET = 300;
 
 /* ------------------------------------------------------------------ zip */
 function unzip(buf) {
@@ -661,44 +668,87 @@ function eulerQuat([dx, dy, dz]) {
   return qm(qm(qy, qx), qz);
 }
 
-/* Walk the tree, collecting world-space points and thrust transforms. With
-   `step` set, every triangle edge is sampled at that pitch as well as its
-   ends — a tube has vertices only on its end rings. */
-function walk(obj, M, hidden, thrustNames, out, step, parentHidden = false) {
+/* Walk the tree, collecting every visible triangle in world space. */
+function walk(obj, M, hidden, out, parentHidden = false) {
   const W = mul(M, trs(obj.pos, obj.rot, obj.scale));
   const off = parentHidden || hidden.has(obj.name);
-  if (!off && thrustNames.has(obj.name)) out.thrusts.push(apply(W, [0, 0, 0]));
   if (!off)
     for (const mesh of obj.meshes) {
       const wv = mesh.verts.map((v) => apply(W, v));
-      out.pts.push(...wv);
-      if (step === null) continue;
-      const seen = new Set();
+      const base = out.verts.length;
+      out.verts.push(...wv);
       for (const sub of mesh.tris)
         for (const [a, b, c] of sub)
-          for (const [i, j] of [
-            [a, b],
-            [b, c],
-            [c, a],
-          ]) {
-            const key = i < j ? i * 1e7 + j : j * 1e7 + i;
-            if (seen.has(key)) continue;
-            seen.add(key);
-            const p = wv[i],
-              q = wv[j];
-            const n = Math.trunc(Math.abs(q[1] - p[1]) / step);
-            for (let k = 1; k <= n; k++) {
-              const t = k / (n + 1);
-              out.pts.push([
-                p[0] + (q[0] - p[0]) * t,
-                p[1] + (q[1] - p[1]) * t,
-                p[2] + (q[2] - p[2]) * t,
-              ]);
-            }
-          }
+          out.tris.push([base + a, base + b, base + c]);
     }
-  for (const ch of obj.children)
-    walk(ch, W, hidden, thrustNames, out, step, off);
+  for (const ch of obj.children) walk(ch, W, hidden, out, off);
+}
+
+/* Vertex clustering: every vertex snaps to the cell of a grid, each cell
+   becomes one vertex at the mean of what fell in it, and a triangle whose
+   corners share a cell is gone. The grid pitch is searched for the one that
+   leaves about TARGET vertices. Crude beside an edge-collapse decimator, and
+   right for this: the shapes are drawn a few pixels wide and what matters is
+   that the silhouette and the count of bells survive, which a grid keeps. */
+function cluster(verts, tris, pitch) {
+  const cell = new Map();
+  const index = new Array(verts.length);
+  for (let i = 0; i < verts.length; i++) {
+    const [x, y, z] = verts[i];
+    const key = `${Math.floor(x / pitch)},${Math.floor(y / pitch)},${Math.floor(z / pitch)}`;
+    let c = cell.get(key);
+    if (!c) {
+      c = { i: cell.size, sum: [0, 0, 0], n: 0 };
+      cell.set(key, c);
+    }
+    c.sum[0] += x;
+    c.sum[1] += y;
+    c.sum[2] += z;
+    c.n++;
+    index[i] = c.i;
+  }
+  const out = new Array(cell.size);
+  for (const c of cell.values()) out[c.i] = c.sum.map((v) => v / c.n);
+  const seen = new Set();
+  const faces = [];
+  for (const [a, b, c] of tris) {
+    const [i, j, k] = [index[a], index[b], index[c]];
+    if (i === j || j === k || i === k) continue;
+    /* The same three corners in any order is the same face. */
+    const key = [i, j, k].sort((p, q) => p - q).join(",");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    faces.push([i, j, k]);
+  }
+  /* Drop vertices no face uses, renumbering. */
+  const used = new Map();
+  const v2 = [];
+  const f2 = faces.map((f) =>
+    f.map((i) => {
+      if (!used.has(i)) {
+        used.set(i, v2.length);
+        v2.push(out[i]);
+      }
+      return used.get(i);
+    }),
+  );
+  return { verts: v2, faces: f2 };
+}
+
+function simplify(verts, tris, extent) {
+  let lo = extent / 400,
+    hi = extent / 4,
+    best = null;
+  for (let it = 0; it < 24; it++) {
+    const pitch = Math.sqrt(lo * hi);
+    const r = cluster(verts, tris, pitch);
+    if (r.verts.length > TARGET) lo = pitch;
+    else {
+      hi = pitch;
+      best = r;
+    }
+  }
+  return best ?? cluster(verts, tris, hi);
 }
 
 function measure(part, zip) {
@@ -708,7 +758,7 @@ function measure(part, zip) {
     const v = part.variants.find((x) => x.name === base) ?? part.variants[0];
     for (const [k, on] of Object.entries(v.toggles)) if (!on) hidden.add(k);
   }
-  const models = [];
+  const out = { verts: [], tris: [] };
   for (const m of part.models) {
     const buf = zip.read(m.model);
     if (!buf) {
@@ -717,149 +767,70 @@ function measure(part, zip) {
       return { error: `no mesh ${m.model}` };
     }
     const rs = part.rescale;
-    models.push({
-      obj: readMu(buf),
-      M: trs(
+    walk(
+      readMu(buf),
+      trs(
         m.position.map((c) => c * rs),
         eulerQuat(m.rotation),
-        m.scale.map((s) => s * rs),
+        m.scale.map((x) => x * rs),
       ),
-    });
-  }
-  const collect = (step) => {
-    const out = { pts: [], thrusts: [] };
-    for (const { obj, M } of models)
-      walk(obj, M, hidden, new Set(part.thrust), out, step);
-    return out;
-  };
-  let { pts } = collect(null);
-  if (!pts.length) return { error: "no visible vertices" };
-  const ys0 = pts.map((p) => p[1]);
-  const span0 = Math.max(...ys0) - Math.min(...ys0);
-  const out = collect(Math.max(1e-6, span0 / BINS / 2));
-  pts = out.pts;
-  const ys = pts.map((p) => p[1]);
-  const y0 = Math.min(...ys),
-    y1 = Math.max(...ys);
-  const span = Math.max(1e-9, y1 - y0);
-  const bin = (y) => Math.min(BINS - 1, Math.trunc(((y - y0) / span) * BINS));
-  const prof = new Array(BINS).fill(0);
-  const hull = Array.from({ length: BINS }, () => new Array(ANG).fill(0));
-  for (const [x, y, z] of pts) {
-    const b = bin(y);
-    const r = Math.hypot(x, z);
-    if (r > prof[b]) prof[b] = r;
-    const a =
-      Math.trunc(((Math.atan2(z, x) + Math.PI) / (2 * Math.PI)) * ANG) % ANG;
-    if (r > hull[b][a]) hull[b][a] = r;
-  }
-  /* One ring at this height, or notches between bells? */
-  const continuity = (b) => {
-    const rs = hull[b].filter((r) => r > 0);
-    return rs.length >= ANG / 2 && Math.max(...rs) > 0
-      ? Math.min(...rs) / Math.max(...rs)
-      : 1.0;
-  };
-  const seen = new Map();
-  for (const t of out.thrusts) {
-    if ((t[1] - y0) / span > 0.45) continue;
-    seen.set(`${t[0].toFixed(2)},${t[2].toFixed(2)}`, t);
-  }
-  let bells = [...seen.values()];
-  let split = null;
-  if (bells.length > 1) {
-    const notched = Array.from(
-      { length: BINS },
-      (_, b) => continuity(b) < 0.72,
+      hidden,
+      out,
     );
-    for (let b = BINS - 1; b >= 0; b--) {
-      let all = true;
-      for (let i = 0; i <= b; i++)
-        if (prof[i] > 0 && !notched[i]) {
-          all = false;
-          break;
-        }
-      if (all) split = b;
-    }
-    if (split === null || split >= BINS - 2) {
-      bells = bells.slice(0, 1);
-      split = null;
-    }
   }
-  const yOf = (i) => y1 - (y0 + (i + 0.5) * (span / BINS));
-  const perBell = [];
-  if (split !== null)
-    for (const [bx, , bz] of bells) {
-      const pb = new Array(BINS).fill(0);
-      for (const [x, y, z] of pts) {
-        const b = bin(y);
-        if (b > split) continue;
-        let k = 0;
-        for (let i = 1; i < bells.length; i++)
-          if (
-            Math.hypot(x - bells[i][0], z - bells[i][2]) <
-            Math.hypot(x - bells[k][0], z - bells[k][2])
-          )
-            k = i;
-        if (bells[k][0] !== bx || bells[k][2] !== bz) continue;
-        const d = Math.hypot(x - bx, z - bz);
-        if (d > pb[b]) pb[b] = d;
-      }
-      const profile = [];
-      for (let i = split; i >= 0; i--) profile.push([yOf(i), pb[i]]);
-      perBell.push({ x: bx, z: bz, profile });
-    }
-  const profile = [];
-  for (let i = BINS - 1; i >= 0; i--) profile.push([yOf(i), prof[i]]);
-  return {
-    ymin: y0,
-    ymax: y1,
-    height: y1 - y0,
-    nodeTop:
-      part.nodeTop === null ? null : part.nodeTop * part.rescale * part.scale,
-    n: Math.max(1, bells.length),
-    bellTop: split === null ? null : y1 - (y0 + (split + 1) * (span / BINS)),
-    profile,
-    bells: perBell,
-  };
+  if (!out.verts.length) return { error: "no visible vertices" };
+  const ys = out.verts.map((v) => v[1]);
+  const ymax = Math.max(...ys),
+    ymin = Math.min(...ys);
+  /* The top node is where the tank sits; the model is drawn from it down. */
+  const top =
+    part.nodeTop === null
+      ? ymax
+      : Math.min(ymax, part.nodeTop * part.rescale * part.scale);
+  const verts = out.verts.map(([x, y, z]) => [x, y - top, z]);
+  const extent = Math.max(
+    top - ymin,
+    2 * Math.max(...verts.map(([x, , z]) => Math.hypot(x, z))),
+  );
+  const s = simplify(verts, out.tris, extent);
+  /* What shows, measured on the simplified mesh so the drawing fills the box
+     it is scaled into: the height from the node down, and the radius of
+     anything below the node. Clustering moves the extremes a little. */
+  let w = 0,
+    low = 0;
+  for (const [x, y, z] of s.verts) {
+    /* Judged as the file will carry it, in millimetres: a vertex that rounds
+       to the node is below it. */
+    if (Math.round(y * 1000) <= 0) w = Math.max(w, Math.hypot(x, z));
+    low = Math.min(low, y);
+  }
+  return { h: -low, w: 2 * w, ...s };
 }
 
 /* ------------------------------------------------------------------ export */
-/* Rounded to the centimetre, as Python's round() would: half to even is the
-   same as half away from zero except on exact halves, which a float rarely is. */
-const R = (v) => Math.round(v * 100) / 100 + 0;
-function exportOne(v) {
-  const cut = v.nodeTop !== null && v.nodeTop < v.ymax ? v.ymax - v.nodeTop : 0;
-  const profile = v.profile
-    .filter(([y]) => y >= cut - 1e-9)
-    .map(([y, r]) => [R(y - cut), R(r)]);
-  const h = R(v.height - cut);
-  profile[0][0] = 0;
-  profile[profile.length - 1][0] = h;
-  const out = {
-    h,
-    w: R(2 * Math.max(...profile.map(([, r]) => r))),
-    n: v.n,
-    profile,
+const mm = (v) => Math.round(v * 1000);
+function exportOne(m) {
+  return {
+    h: Math.round(m.h * 1000) / 1000,
+    w: Math.round(m.w * 1000) / 1000,
+    /* x, y, z per vertex, millimetres; y is 0 at the top node and negative below. */
+    v: m.verts.flatMap(([x, y, z]) => [mm(x), mm(y), mm(z)]),
+    i: m.faces.flat(),
   };
-  if (v.n > 1 && v.bells.length) {
-    out.bellTop = R(v.bellTop - cut);
-    out.bells = v.bells.map((b) => ({
-      x: R(b.x),
-      z: R(b.z),
-      profile: b.profile
-        .filter(([y]) => y >= cut - 1e-9)
-        .map(([y, r]) => [R(y - cut), R(r)]),
-    }));
-  }
-  return out;
 }
+
+/* A title as a file name: lower case, hyphens. */
+const slug = (title) =>
+  title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 
 function main() {
   const [zipPath, ...flags] = process.argv.slice(2);
   if (!zipPath) {
     console.error(
-      "usage: node tools/engine-profiles.mjs <ksp-engine-models.zip> [--check]",
+      "usage: node tools/engine-meshes.mjs <ksp-engine-models.zip> [--check]",
     );
     process.exit(2);
   }
@@ -887,40 +858,55 @@ function main() {
       tables[art][e.n] = exportOne(m);
     }
   }
-  const sortKeys = (o) =>
-    Object.fromEntries(
-      Object.keys(o)
-        .sort()
-        .map((k) => [k, o[k]]),
-    );
-  const stock = sortKeys(tables.stock);
-  const rs = {};
-  for (const [k, v] of Object.entries(tables.restock))
-    if (!(k in stock) || JSON.stringify(v) !== JSON.stringify(stock[k]))
-      rs[k] = v;
-  const data = {
-    about:
-      "Measured from the install's .mu meshes by tools/engine-profiles.mjs: each engine's outer radius against height below its top node, in metres, and each bell of a cluster on its own axis. `restock` holds only the engines ReStock remodels.",
-    stock,
-    restock: sortKeys(rs),
-  };
-  const text = JSON.stringify(data);
-  const target = join(REPO, "src/data/engine-profiles.json");
+  /* One file an engine, and the ReStock file only where ReStock remodelled
+     it; index.json says which titles have which. */
+  const files = new Map();
+  const index = { stock: {}, restock: {} };
+  for (const [k, v] of Object.entries(tables.stock).sort()) {
+    index.stock[k] = `stock/${slug(k)}.json`;
+    files.set(index.stock[k], JSON.stringify(v));
+  }
+  for (const [k, v] of Object.entries(tables.restock).sort()) {
+    if (JSON.stringify(v) === JSON.stringify(tables.stock[k])) continue;
+    index.restock[k] = `restock/${slug(k)}.json`;
+    files.set(index.restock[k], JSON.stringify(v));
+  }
+  files.set(
+    "index.json",
+    JSON.stringify({
+      about:
+        "Simplified copies of the install's engine meshes, by tools/engine-meshes.mjs: per file, vertices in millimetres with the top node at y = 0, triangle indices, and the height and width of what shows below the node. The renderer fetches an engine's file when it first draws it. restock lists only the engines ReStock remodels.",
+      ...index,
+    }),
+  );
+  const dir = join(REPO, "public/engines");
   for (const u of unmeasured) console.error("unmeasured:", u);
+  const bytes = [...files.values()].reduce((a, t) => a + t.length, 0);
   console.error(
-    `stock ${Object.keys(stock).length}, restock ${Object.keys(rs).length} remodelled`,
+    `stock ${Object.keys(index.stock).length}, restock ${Object.keys(index.restock).length} remodelled, ${files.size} files, ${(bytes / 1024).toFixed(0)} KB`,
   );
   if (flags.includes("--check")) {
-    const have = JSON.stringify(JSON.parse(readFileSync(target, "utf8")));
-    if (have !== text) {
-      console.error("src/data/engine-profiles.json differs from the install");
-      process.exit(1);
+    let differ = 0;
+    for (const [name, text] of files) {
+      const path = join(dir, name);
+      if (
+        !existsSync(path) ||
+        JSON.stringify(JSON.parse(readFileSync(path, "utf8"))) !== text
+      ) {
+        console.error("differs:", name);
+        differ++;
+      }
     }
-    console.error("src/data/engine-profiles.json matches the install");
+    if (differ) process.exit(1);
+    console.error("public/engines matches the install");
     return;
   }
-  writeFileSync(target, text + "\n");
-  console.error(`wrote ${target} — run \`npm run format\` to lay it out`);
+  if (existsSync(dir)) rmSync(dir, { recursive: true });
+  for (const [name, text] of files) {
+    mkdirSync(dirname(join(dir, name)), { recursive: true });
+    writeFileSync(join(dir, name), text + "\n");
+  }
+  console.error(`wrote ${files.size} files under ${dir}`);
 }
 
 main();

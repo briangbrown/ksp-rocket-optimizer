@@ -1,5 +1,4 @@
 import geometryData from "../data/geometry.json";
-import engineProfiles from "../data/engine-profiles.json";
 import { diaOf, isRadial } from "./parts.js";
 import type { PartBase, Tank } from "./catalogue.js";
 import type { Expansions } from "./constants.js";
@@ -100,33 +99,6 @@ type ArtTables = {
 };
 const ART: Readonly<Record<"stock" | "restock", ArtTables>> = geometryData;
 
-/* How each engine is drawn: its outer radius against height, measured from the
-   install's meshes — `tools/engine-profiles.mjs` reads the .mu files and the
-   part configs, walks the transform tree of the default variant with the
-   shroud hidden, and bins the triangle edges by height below the top node.
-   Metres, from the node down. A cluster's bells are each measured about their
-   own thrust transform, and `n` is how many the hull has notches between — a
-   count of transforms alone would make the RAPIER four. `restock` holds only
-   the engines ReStock remodels; the rest read the stock entry under either
-   art. #85 */
-type EngineProfile = {
-  h: number;
-  w: number;
-  n: number;
-  /* [y from the top node, outer radius], top to base. */
-  profile: ReadonlyArray<ReadonlyArray<number>>;
-  bellTop?: number;
-  bells?: ReadonlyArray<{
-    x: number;
-    z: number;
-    profile: ReadonlyArray<ReadonlyArray<number>>;
-  }>;
-};
-const PROFILES: {
-  stock: Readonly<Record<string, EngineProfile>>;
-  restock: Readonly<Record<string, EngineProfile>>;
-} = engineProfiles;
-
 /* ReStock's art, matching the application's own default. A caller that never
    says otherwise gets the install both baselines were measured in. */
 let art: ArtTables = ART.restock;
@@ -149,9 +121,10 @@ const PART_H = (n: string) => art.PART_H[n];
    badly wrong — diaOf falls back to 1.25 m for anything with no stack profile,
    so a Twitch was being charged 1.23 m² of frontal area against a true 0.07. */
 const PART_A = (n: string) => art.PART_A[n];
-/* The engine's measured profile under the live art. */
-const engineShape = (n: string): EngineProfile | undefined =>
-  (art === ART.restock ? PROFILES.restock[n] : undefined) ?? PROFILES.stock[n];
+/* Which art is live, for the renderer's engine meshes — the same choice
+   `useArt` made for the geometry tables. #85 */
+const artName = (): "stock" | "restock" =>
+  art === ART.restock ? "restock" : "stock";
 const areaOf = (part: { n: string }, fallback: number) => {
   const a = PART_A(part.n);
   return a !== undefined ? a : fallback;
@@ -544,8 +517,8 @@ export {
   SPAN,
   areaOf,
   clusterSpan,
+  artName,
   engineLen,
-  engineShape,
   heightOf,
   packFor,
   packShapes,
@@ -560,5 +533,3 @@ export {
   tankStackLen,
   widthOf,
 };
-
-export type { EngineProfile };

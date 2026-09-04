@@ -51,26 +51,28 @@ Changing a number here is changing a measurement.
   installed 22 titles name two parts; the rest of the duplicates are engine
   plates, which have no cube in any install and so cannot disagree.
 
-- **`engine-profiles.json` is measured from the meshes, and the tool that
-  measures it is in the repository.** The drag cubes carry a height and a face
-  area and nothing about a bell; the shapes live in the install's `.mu`
-  files, which `tools/engine-profiles.mjs` reads directly — the part configs
-  for which mesh, at what scale, in which default variant, with which shroud
-  hidden; ReStock's patches for the parts it remodels; then the transform
-  tree walked and the triangle edges binned by height below the top node
-  (a tube has vertices only on its end rings; binning vertices alone reads
-  the wall between as radius zero — the first pass drew every engine as
-  diamonds on a thread). The root object's transform is dropped, as the
-  game drops it: it is where the prefab sat in the Unity scene, and left in
-  it put the Cub twenty-nine metres off its own axis. A cluster's bells are
-  each measured about their own thrust transform, and `n` is how many the
-  hull has notches between at the base — a count of transforms alone would
-  make the RAPIER four, and the two by the Cherenkov's mount belong to a
-  variant. What the meshes settled against what the parts are said to be
-  modelled on: the stock Poodle is a twin (the 1.9 revamp), the ReStock one
-  too, the Kodiak is four chambers, the Bobcat two. `tools/README.md` has
-  the packing script for the install and the run; the `FL-S1200` is the one
-  engine unmeasured, being a tank in the pack's terms.
+- **The engines are drawn from simplified copies of the game's meshes, and the
+  tool that makes them is in the repository.** `public/engines/<art>/<title>.json`,
+  one file an engine, made by `tools/engine-meshes.mjs` from a zip
+  `tools/pack-engines.ps1` packs on the machine with the install (`tools/README.md`
+  is the procedure). The drag cubes carry a height and a face area and nothing
+  about a bell, and a radius-against-height profile — the first attempt — is
+  a body of revolution, which two bells or four can never be; the mesh is
+  the shape. The tool reads the part configs for which mesh, at what scale,
+  in which default variant, with which shroud hidden; ReStock's patches for
+  the parts it remodels; walks the transform tree with the root's own
+  transform dropped, as the game drops it (left in, the Cub sat twenty-nine
+  metres off its axis — it is where the prefab sat in the Unity scene); takes
+  every visible triangle with the top node at y = 0; and simplifies by
+  clustering vertices onto a grid sized to leave about three hundred, which
+  keeps the silhouette and the bells and drops the panel lines. Millimetres,
+  as integers. ReStock's engines carry a collar above the node that sits
+  inside the tank; it stays, hidden by the tank. Under `public/`, not
+  `src/data/`: a rocket needs three or four engines, and fetching those is
+  cheaper than shipping eighty in the renderer's chunk — nothing here crosses
+  the seam. Prettier leaves the folder alone (`.prettierignore`) because laid
+  out the files would be ten times the bytes. The `FL-S1200` is the one
+  engine unmeasured, being a tank in the pack's terms; it draws as the drum.
 
 - **Six parts have no measurement anywhere.** The Nerv and the five engine
   plates carry `DRAG_CUBE { procedural = True }` — KSP computes them at runtime

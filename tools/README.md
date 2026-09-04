@@ -7,10 +7,10 @@ two halves: something to run on the machine with the install, and something
 to run here on what it produced. `CLAUDE.md` and `.claude/rules/part-data.md`
 say what the numbers mean once they are in.
 
-## Engine profiles — `src/data/engine-profiles.json`
+## Engine meshes — `public/engines/`
 
-How each engine is drawn: its outer radius against height, measured off the
-`.mu` meshes, with each bell of a cluster measured about its own axis. #85
+How each engine is drawn: a simplified copy of its mesh in the game, one
+file an engine, fetched by the renderer when the engine is first drawn. #85
 
 1. On the machine with the install, from a PowerShell prompt in the KSP root
    (the folder with `GameData` in it):
@@ -23,12 +23,12 @@ How each engine is drawn: its outer radius against height, measured off the
 
 2. Here:
 
-       node tools/engine-profiles.mjs path/to/ksp-engine-models.zip
-       npm run format
+       node tools/engine-meshes.mjs path/to/ksp-engine-models.zip
 
-   It reports what it could not measure and rewrites the JSON. With
+   It reports what it could not measure and rewrites `public/engines/`. With
    `--check` it compares instead and exits 1 on a difference, which is how to
-   tell whether a game or mod update moved a shape.
+   tell whether a game or mod update moved a shape. Prettier ignores the
+   folder on purpose; do not lay the files out.
 
 What it does, in one paragraph, and why each step is there: it finds each
 engine's part config (by the `slug` `parts.json` carries, else the title,
@@ -36,15 +36,16 @@ else the nickname — one stock title has a typo in the game's own file), reads
 which meshes the part uses at what scale, which variant is the default and
 what that variant hides, and which objects are a jettisonable shroud; applies
 ReStock's `@PART` patches for the parts ReStock remodels (a model swap, a
-rescale, variants, a thrust transform); walks each mesh's transform tree with
-the root's own placement dropped, because that is where the prefab sat in the
-Unity scene and the game discards it; samples the triangle edges into height
-bins below the top node, because a tube has vertices only on its end rings
-and binning vertices alone reads the wall as radius zero; and decides how
-many bells there are from the thrust transforms in the lower half _and_
-whether the hull at the base has notches between them, because the RAPIER
-has four transforms inside one bell.
+rescale, variants); walks each mesh's transform tree with the root's own
+placement dropped, because that is where the prefab sat in the Unity scene
+and the game discards it; takes every visible triangle in world space with
+the top node at y = 0; and simplifies by clustering vertices onto a grid whose
+pitch is searched for the one that leaves about three hundred — crude beside
+an edge-collapse decimator, and right for shapes drawn a few pixels wide,
+where what has to survive is the silhouette and the count of bells. The
+oldest stock files carry an undocumented word after the root transform; the
+reader skips word by word past it, as taniwha's does.
 
 Plain Node, no dependencies. The `.mu` reader is this repository's own,
-written from the format; the numbers it produces are measurements, and the
+written from the format; the files it produces are measurements, and the
 part-data rules apply to them.

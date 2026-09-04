@@ -1,11 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { DATA } from "../../core/catalogue.js";
-import {
-  engineLen,
-  engineShape,
-  useArt,
-  widthOf,
-} from "../../core/geometry.js";
+import { engineLen, useArt, widthOf } from "../../core/geometry.js";
 import { extentOf } from "../../core/model.js";
 import { diaOf, isRadial } from "../../core/parts.js";
 import { canRender3D } from "./build.jsx";
@@ -18,7 +13,7 @@ import type { ModelPart } from "../../core/model.js";
 /* Every engine in the catalogue, drawn under a tank of its own mount
    diameter, by the renderer the build view uses — so what is judged here is
    what the application draws, outlines and all. For looking at
-   src/data/engine-profiles.json against the parts it stands for, one at a
+   public/engines against the parts it stands for, one at a
    time, and saying which are wrong. Not linked from the application. #85
 
    One canvas for all of them, laid out as a grid in the elevation's own
@@ -41,7 +36,6 @@ type Cell = {
   name: string;
   nick: string;
   sz: string;
-  bells: number;
   radial: boolean;
   x: number;
   base: number;
@@ -98,7 +92,6 @@ function layout(per: number, rowsPer: number): Array<Group> {
           y: base,
           r: Math.min(er, CELL_W / 2 - 0.1),
           h: eh,
-          shape: engineShape(e.n),
         });
         parts.push({
           role: "tank",
@@ -112,7 +105,6 @@ function layout(per: number, rowsPer: number): Array<Group> {
           name: e.n,
           nick: nickOf(e.n),
           sz: e.sz.join("/"),
-          bells: engineShape(e.n)?.n ?? 1,
           radial: isRadial(e),
           x,
           base,
@@ -197,9 +189,9 @@ function EngineGallery() {
       </h1>
       <p className="body" style={{ margin: "0 0 14px", maxWidth: 640 }}>
         Each engine drawn by the build view's renderer from its entry in{" "}
-        <span className="figure">engine-profiles.json</span>, under a tank of
-        its own mount diameter and scaled so every tank is the same width.
-        Sorted by mount, then mass. The number is for saying which one.
+        <span className="figure">public/engines</span>, under a tank of its own
+        mount diameter and scaled so every tank is the same width. Sorted by
+        mount, then mass. The number is for saying which one.
       </p>
       <div
         style={{
@@ -288,7 +280,6 @@ function EngineGallery() {
                   <span style={{ fontWeight: 600 }}>{c.nick}</span>
                   <div style={{ color: C.dim }}>
                     {c.sz}
-                    {c.bells > 1 ? ` · ${c.bells} bells` : ""}
                     {c.radial ? " · radial" : ""}
                   </div>
                 </div>

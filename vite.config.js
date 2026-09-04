@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: { host: true },
   /* Two pages: the application, and the engine gallery at /gallery.html —
-     a review page for src/data/engine-profiles.json, not linked from the
+     a review page for public/engines, not linked from the
      application and carrying nothing it needs. #85 */
   build: {
     rolldownOptions: {

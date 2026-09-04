@@ -1,5 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  BufferAttribute,
+  BufferGeometry,
   CylinderGeometry,
   DepthTexture,
   LatheGeometry,
@@ -18,9 +20,9 @@ import {
   WebGLRenderer,
 } from "three";
 import type { ShaderMaterial } from "three";
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { extentOf } from "../../core/model.js";
-import { cameraFor, engineBells, engineProfile, viewOf } from "../views.js";
+import { cameraFor, viewOf } from "../views.js";
+import { artName } from "../../core/geometry.js";
 import { fills, palette } from "../tokens.js";
 import {
   compositeMaterial,
@@ -32,7 +34,7 @@ import {
 } from "./shaders.js";
 import type { ModelPart } from "../../core/model.js";
 import type { Theme } from "../tokens.js";
-import type { Extent, Measured, Profile } from "../views.js";
+import type { Extent } from "../views.js";
 import type { Offset } from "../separation.js";
 
 /* The build model, drawn.
@@ -65,6 +67,7 @@ import type { Offset } from "../separation.js";
    surface id marks it. */
 const SEGMENTS = 40;
 const CREASE_ANGLE = 30;
+const ENGINE_CREASE = 60;
 
 /* The profile of a part that tapers, revolved to make it.
 
@@ -98,33 +101,84 @@ function taperedProfile(rBase: number, rTop: number, h: number) {
   ];
 }
 
-/* An engine from its measured profile: the body revolved on the axis, with
-   the bell in the same shell where there is one, and a cluster's bells
-   revolved separately and stood where the mesh has them. Merged into one
-   geometry, because a part is one mesh: the id buffer names parts by mesh
-   index and a separation moves a part's three pieces together, so an engine
-   in five geometries would be five parts to both. The profiles are
-   `views.ts`'s, held on numbers there. #85 */
-const lathe = (pts: Profile) =>
-  new LatheGeometry(
-    pts.map(([r, y]) => new Vector2(r, y)),
-    SEGMENTS,
-  );
+/* An engine from a simplified copy of the game's own mesh — one file an
+   engine under public/engines/, made by tools/engine-meshes.mjs, fetched the
+   first time an engine is drawn and kept. Millimetres with the top node at
+   y = 0, so it hangs from the top of the box the model gave the engine,
+   scaled uniformly to fit the box: the height the model measured from the
+   same mesh's drag cube, the width from its face area, so the two scales
+   agree within a few percent and the smaller keeps the drawing inside what
+   the solver sized. A cluster is simply the mesh — two bells, four, off-axis,
+   whatever the part has — which is what a profile revolved about the axis
+   could never be. Flat-shaded: a clustered mesh's vertex normals would
+   blotch. Until the file lands the engine is the cylinder it always was, and
+   `onMeshes` is how the view learns to draw again. #85 */
+type EngineMesh = {
+  h: number;
+  w: number;
+  v: ReadonlyArray<number>;
+  i: ReadonlyArray<number>;
+};
+type MeshIndex = {
+  stock: Readonly<Record<string, string>>;
+  restock: Readonly<Record<string, string>>;
+};
+/* Relative to the page, so the application and the gallery — both at the
+   root — find the same files under public/. */
+const MESH_BASE = "engines/";
+const meshes = new Map<string, EngineMesh | null>();
+let meshIndex: Promise<MeshIndex | null> | null = null;
+const meshListeners = new Set<() => void>();
+const onMeshes = (cb: () => void) => {
+  meshListeners.add(cb);
+  return () => void meshListeners.delete(cb);
+};
+const meshUrl = async (title: string) => {
+  meshIndex ??= fetch(`${MESH_BASE}index.json`)
+    .then((r) => (r.ok ? (r.json() as Promise<MeshIndex>) : null))
+    .catch(() => null);
+  const ix = await meshIndex;
+  if (!ix) return null;
+  const file =
+    (artName() === "restock" ? ix.restock[title] : undefined) ??
+    ix.stock[title];
+  return file ? MESH_BASE + file : null;
+};
+/* The mesh if it has arrived; starts it on its way if not. `null` in the
+   cache is an engine that has none — the drum, and no asking again. */
+function engineMesh(title: string): EngineMesh | undefined {
+  const key = `${artName()}/${title}`;
+  if (meshes.has(key)) return meshes.get(key) ?? undefined;
+  meshes.set(key, null);
+  (async () => {
+    const url = await meshUrl(title);
+    const m = url
+      ? await fetch(url)
+          .then((r) => (r.ok ? (r.json() as Promise<EngineMesh>) : null))
+          .catch(() => null)
+      : null;
+    if (!m) return;
+    meshes.set(key, m);
+    for (const cb of meshListeners) cb();
+  })();
+  return undefined;
+}
 
-function engineGeometry(R: number, H: number, m: Measured) {
-  const bells = engineBells(R, H, m);
-  const body = engineProfile(R, H, m);
-  const pieces = [
-    ...(body.length > 2 ? [lathe(body)] : []),
-    ...bells
-      .filter((b) => b.profile.length > 2)
-      .map((b) => lathe(b.profile).translate(b.x, 0, b.z)),
-  ];
-  if (pieces.length === 0) return new CylinderGeometry(R, R, H, SEGMENTS);
-  if (pieces.length === 1) return pieces[0];
-  const merged = mergeGeometries(pieces);
-  for (const g of pieces) g.dispose();
-  return merged;
+function engineGeometry(R: number, H: number, m: EngineMesh) {
+  const s = Math.min(H / m.h, R / (m.w / 2)) / 1000;
+  const pos = new Float32Array(m.v.length);
+  for (let k = 0; k < m.v.length; k += 3) {
+    pos[k] = m.v[k] * s;
+    pos[k + 1] = m.v[k + 1] * s + H / 2;
+    pos[k + 2] = m.v[k + 2] * s;
+  }
+  const g = new BufferGeometry();
+  g.setAttribute("position", new BufferAttribute(pos, 3));
+  g.setIndex([...m.i]);
+  const flat = g.toNonIndexed();
+  g.dispose();
+  flat.computeVertexNormals();
+  return flat;
 }
 
 /* The dash period of a hidden edge, in CSS pixels — scaled to device pixels
@@ -213,6 +267,10 @@ export default function ThreeView({
   const host = useRef<HTMLDivElement | null>(null);
   const gl = useRef<WebGLRenderer | null>(null);
   const built = useRef<Built | null>(null);
+  /* Bumped when an engine's mesh arrives, so the build below runs again
+     with it. */
+  const [meshTick, setMeshTick] = useState(0);
+  useEffect(() => onMeshes(() => setMeshTick((t) => t + 1)), []);
 
   const bufW = buffer ? buffer.w : width;
   const bufH = buffer ? buffer.h : height;
@@ -314,8 +372,8 @@ export default function ThreeView({
 
     for (const [i, p] of parts.entries()) {
       const geo =
-        p.role === "engine" && p.shape
-          ? engineGeometry(p.r, p.h, p.shape)
+        p.role === "engine" && engineMesh(p.part.n)
+          ? engineGeometry(p.r, p.h, engineMesh(p.part.n)!)
           : p.rTop === undefined
             ? new CylinderGeometry(p.r, p.r, p.h, SEGMENTS)
             : new LatheGeometry(taperedProfile(p.r, p.rTop, p.h), SEGMENTS);
@@ -332,8 +390,13 @@ export default function ThreeView({
       const mesh = new Mesh(geo, mat);
       meshes.push(mesh);
       group.add(mesh);
+      /* A simplified mesh is creases all over; on an engine only the sharp
+         ones — the lip, a plate's edge — are lines. */
       const line = new LineSegments(
-        new EdgesGeometry(geo, CREASE_ANGLE),
+        new EdgesGeometry(
+          geo,
+          p.role === "engine" ? ENGINE_CREASE : CREASE_ANGLE,
+        ),
         creaseMat,
       );
       lines.push(line);
@@ -411,7 +474,7 @@ export default function ThreeView({
       renderer.setRenderTarget(null);
       for (const o of owned) o.dispose();
     };
-  }, [parts, view, color, bufW, bufH, theme]);
+  }, [parts, view, color, bufW, bufH, theme, meshTick]);
 
   /* ---------------------------- painted often ----------------------------
 

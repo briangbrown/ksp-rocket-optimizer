@@ -177,16 +177,22 @@ them.
   in `src/core/signature.ts` plus the payload diameter — a re-solve that
   returns the same rocket is not an arrival. #138
 
-- **An engine is one mesh, however many bells.** The id buffer names a part
-  by its mesh index and a separation moves a part's fill, crease and ghost
-  together by that index, so a Mammoth drawn as a body and four bells in five
-  geometries would be five parts to both. `engineGeometry` merges them with
-  `mergeGeometries` from three's examples; a `LatheGeometry` and a
-  `CylinderGeometry` both index, which is what the merge needs. The shapes
-  are `views.ts`'s — `engineProfile`, `engineBells`, `shell` — built from
-  the measured skin in `src/data/engine-profiles.json` and held on numbers
-  in `test/engine-profiles.test.ts`. The skin is the measurement; the wall
-  the shell adds inside it is the one drawn thing. #85
+- **An engine is the game's own mesh, simplified, fetched when first drawn.**
+  `engineMesh` in `three-view.tsx` keeps a module-level cache keyed by art
+  and title; a miss starts the fetch (`public/engines/index.json`, then the
+  file) and returns nothing, so the engine draws as the cylinder it always
+  was, and when the file lands every mounted view is told (`onMeshes`) and
+  re-keys its build effect on `meshTick`. `null` in the cache is an engine
+  with no file — no asking again. The mesh is flat-shaded (`toNonIndexed` +
+  `computeVertexNormals`): a clustered mesh's smooth normals blotch. Its
+  crease threshold is `ENGINE_CREASE`, 60°, not the 30° a cylinder's cap
+  wants — a simplified mesh is small creases all over and only the sharp ones
+  are lines. Scaled uniformly to the box the model gave it, hanging from the
+  top; the model's height came from the same mesh's drag cube and its width
+  from its face area, so the two fits agree within a few percent and the
+  smaller keeps the drawing inside what the solver sized. jsdom never mounts
+  a `ThreeView`, so nothing under `test/` fetches; the visual suite serves
+  `dist/`, where `public/` has been copied. #85
 
 - **A lathe faces its surface by the direction of travel.** Walked from the
   bottom up the outside, the triangles face out — `taperedProfile`'s
