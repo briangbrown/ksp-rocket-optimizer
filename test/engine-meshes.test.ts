@@ -56,40 +56,41 @@ describe("the engine meshes", () => {
   });
 
   it("are small meshes hanging from the top node, inside their own width", () => {
+    /* One assertion a file, over a plain loop: an expect per index across
+       eighty files is three hundred thousand of them, and CI's runner took
+       past five seconds over it. */
     for (const [n, file] of [
       ...Object.entries(index.stock),
       ...Object.entries(index.restock),
     ]) {
-      const at = (what: string) => `${n} (${file}): ${what}`;
-      expect(statSync(`${DIR}/${file}`).size, at("bytes")).toBeLessThan(BYTES);
       const m = load(file);
-      expect(m.h, at("height")).toBeGreaterThan(0);
-      expect(m.w, at("width")).toBeGreaterThan(0);
-      expect(m.v.length % 3, at("vertices")).toBe(0);
-      expect(m.i.length % 3, at("triangles")).toBe(0);
       const nv = m.v.length / 3;
-      expect(nv, at("too many vertices")).toBeLessThanOrEqual(VERTICES);
-      expect(nv, at("too few vertices")).toBeGreaterThan(8);
-      for (const k of m.i) {
-        expect(k, at("index")).toBeGreaterThanOrEqual(0);
-        expect(k, at("index past the vertices")).toBeLessThan(nv);
-      }
+      const faults: Array<string> = [];
+      if (!(m.h > 0)) faults.push("height");
+      if (!(m.w > 0)) faults.push("width");
+      if (m.v.length % 3) faults.push("vertices not triples");
+      if (m.i.length % 3) faults.push("indices not triples");
+      if (nv > VERTICES) faults.push(`${nv} vertices`);
+      if (nv <= 8) faults.push("too few vertices");
+      if (statSync(`${DIR}/${file}`).size >= BYTES)
+        faults.push("too many bytes");
+      let badIndex = 0;
+      for (const k of m.i) if (!(k >= 0 && k < nv)) badIndex++;
+      if (badIndex) faults.push(`${badIndex} indices past the vertices`);
+      /* Below the node, nothing wider than the width; above it, the collar
+         that sits inside the tank may be anything. */
+      let wide = 0;
       let low = 0;
+      const limit = (m.w / 2) * 1000 + 2;
       for (let k = 0; k < m.v.length; k += 3) {
-        const [x, y, z] = [m.v[k], m.v[k + 1], m.v[k + 2]];
-        low = Math.min(low, y);
-        /* Below the node, nothing wider than the width; above it, the
-           collar that sits inside the tank may be anything. */
-        if (y <= 0)
-          expect(
-            Math.hypot(x, z),
-            at("wider than its width"),
-          ).toBeLessThanOrEqual((m.w / 2) * 1000 + 2);
+        const y = m.v[k + 1];
+        if (y < low) low = y;
+        if (y <= 0 && Math.hypot(m.v[k], m.v[k + 2]) > limit) wide++;
       }
-      expect(-low, at("height disagrees with the vertices")).toBeCloseTo(
-        m.h * 1000,
-        -1,
-      );
+      if (wide) faults.push(`${wide} vertices wider than the width`);
+      if (Math.abs(-low - m.h * 1000) > 5)
+        faults.push(`height ${m.h} against vertices ${-low / 1000}`);
+      expect(faults, `${n} (${file})`).toEqual([]);
     }
   });
 
