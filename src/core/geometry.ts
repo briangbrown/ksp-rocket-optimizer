@@ -1,5 +1,5 @@
 import geometryData from "../data/geometry.json";
-import engineShapes from "../data/engine-shapes.json";
+import engineProfiles from "../data/engine-profiles.json";
 import { diaOf, isRadial } from "./parts.js";
 import type { PartBase, Tank } from "./catalogue.js";
 import type { Expansions } from "./constants.js";
@@ -100,33 +100,32 @@ type ArtTables = {
 };
 const ART: Readonly<Record<"stock" | "restock", ArtTables>> = geometryData;
 
-/* How each engine is drawn, as proportions of the envelope the solver sized it
-   at — `g.ed` across and `engineLen` tall — so whatever the drawing does it
-   stays inside what the drag model and the slenderness limit were measured on.
-   `n` bells packed by `SPAN` inside that width; `plate` a full-width section
-   at the top (a mounting plate, a solid motor's casing, the Twin-Boar's tank);
-   `body` the housing under it as [radius, height]; and each bell leaving the
-   body at `throat` of its own radius and reaching `exit` of it at the lip. A
-   throat wider than the exit is a converging cone, which is how the Dart's
-   aerospike reads.
-
-   Authored, not measured — the one table in `src/data/` that is. The install's
-   meshes carry the shapes and are not published; what is known about each
-   part is what it is modelled on, and that is what these say: a Terrier is a
-   thin body under a wide bell, a Mammoth is four bells under a plate, the
-   ReStock Poodle is the four-chamber RD-0124. `.claude/rules/part-data.md`
-   has the terms. #85 */
-type Nozzle = {
+/* How each engine is drawn: its outer radius against height, measured from the
+   install's meshes — `tools/engine-profiles.mjs` reads the .mu files and the
+   part configs, walks the transform tree of the default variant with the
+   shroud hidden, and bins the triangle edges by height below the top node.
+   Metres, from the node down. A cluster's bells are each measured about their
+   own thrust transform, and `n` is how many the hull has notches between — a
+   count of transforms alone would make the RAPIER four. `restock` holds only
+   the engines ReStock remodels; the rest read the stock entry under either
+   art. #85 */
+type EngineProfile = {
+  h: number;
+  w: number;
   n: number;
-  plate: number;
-  body: ReadonlyArray<number>;
-  throat: number;
-  exit: number;
+  /* [y from the top node, outer radius], top to base. */
+  profile: ReadonlyArray<ReadonlyArray<number>>;
+  bellTop?: number;
+  bells?: ReadonlyArray<{
+    x: number;
+    z: number;
+    profile: ReadonlyArray<ReadonlyArray<number>>;
+  }>;
 };
-const SHAPES: {
-  shapes: Readonly<Record<string, Nozzle>>;
-  restock: Readonly<Record<string, Nozzle>>;
-} = engineShapes;
+const PROFILES: {
+  stock: Readonly<Record<string, EngineProfile>>;
+  restock: Readonly<Record<string, EngineProfile>>;
+} = engineProfiles;
 
 /* ReStock's art, matching the application's own default. A caller that never
    says otherwise gets the install both baselines were measured in. */
@@ -150,10 +149,9 @@ const PART_H = (n: string) => art.PART_H[n];
    badly wrong — diaOf falls back to 1.25 m for anything with no stack profile,
    so a Twitch was being charged 1.23 m² of frontal area against a true 0.07. */
 const PART_A = (n: string) => art.PART_A[n];
-/* The engine's drawn proportions under the live art: ReStock's remodels that
-   change the count of bells override the stock entry. */
-const engineShape = (n: string): Nozzle | undefined =>
-  (art === ART.restock ? SHAPES.restock[n] : undefined) ?? SHAPES.shapes[n];
+/* The engine's measured profile under the live art. */
+const engineShape = (n: string): EngineProfile | undefined =>
+  (art === ART.restock ? PROFILES.restock[n] : undefined) ?? PROFILES.stock[n];
 const areaOf = (part: { n: string }, fallback: number) => {
   const a = PART_A(part.n);
   return a !== undefined ? a : fallback;
@@ -563,4 +561,4 @@ export {
   widthOf,
 };
 
-export type { Nozzle };
+export type { EngineProfile };

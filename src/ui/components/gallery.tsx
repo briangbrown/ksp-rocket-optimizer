@@ -98,7 +98,7 @@ function layout(per: number, rowsPer: number): Array<Group> {
           y: base,
           r: Math.min(er, CELL_W / 2 - 0.1),
           h: eh,
-          nozzle: engineShape(e.n),
+          shape: engineShape(e.n),
         });
         parts.push({
           role: "tank",
@@ -197,9 +197,9 @@ function EngineGallery() {
       </h1>
       <p className="body" style={{ margin: "0 0 14px", maxWidth: 640 }}>
         Each engine drawn by the build view's renderer from its entry in{" "}
-        <span className="figure">engine-shapes.json</span>, under a tank of its
-        own mount diameter and scaled so every tank is the same width. Sorted by
-        mount, then mass. The number is for saying which one.
+        <span className="figure">engine-profiles.json</span>, under a tank of
+        its own mount diameter and scaled so every tank is the same width.
+        Sorted by mount, then mass. The number is for saying which one.
       </p>
       <div
         style={{

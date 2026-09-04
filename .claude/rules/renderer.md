@@ -182,11 +182,11 @@ them.
   together by that index, so a Mammoth drawn as a body and four bells in five
   geometries would be five parts to both. `engineGeometry` merges them with
   `mergeGeometries` from three's examples; a `LatheGeometry` and a
-  `CylinderGeometry` both index, which is what the merge needs. The profiles
-  are `views.ts`'s — `engineProfile`, `bellProfile`, `engineLayout` — held
-  on numbers in `test/engine-shapes.test.ts`, and `views.ts` keeps its own
-  copy of `SPAN` rather than import the solver into the bundle that draws;
-  the same test holds the two tables equal. #85
+  `CylinderGeometry` both index, which is what the merge needs. The shapes
+  are `views.ts`'s — `engineProfile`, `engineBells`, `shell` — built from
+  the measured skin in `src/data/engine-profiles.json` and held on numbers
+  in `test/engine-profiles.test.ts`. The skin is the measurement; the wall
+  the shell adds inside it is the one drawn thing. #85
 
 - **A lathe faces its surface by the direction of travel.** Walked from the
   bottom up the outside, the triangles face out — `taperedProfile`'s

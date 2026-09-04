@@ -13,7 +13,7 @@ import {
 } from "./geometry.js";
 import { diaOf, isRadial } from "./parts.js";
 import type { Coupler, Engine, Shroud, Tank } from "./catalogue.js";
-import type { Nozzle } from "./geometry.js";
+import type { EngineProfile } from "./geometry.js";
 import type {
   BoosterPart,
   Boosters,
@@ -34,10 +34,9 @@ type Shape = {
   r: number;
   h: number;
   rTop?: number;
-  /* How an engine is drawn inside its cylinder: bells, plate and body as
-     proportions of `r` and `h`, from the part table. Absent, it is the
-     cylinder. #85 */
-  nozzle?: Nozzle;
+  /* How an engine is drawn inside its cylinder: its measured profile, and
+     its bells where it has more than one. Absent, it is the cylinder. #85 */
+  shape?: EngineProfile;
   stage?: number;
   /* Which radial booster this part is bolted to, counted from 1 across the
      whole model. What a shape *is* is its role — a booster's tank is a tank,
@@ -141,7 +140,7 @@ function stageParts(
           y,
           r: g.ed / 2,
           h: g.engine,
-          nozzle: engineShape(sol.engine.n),
+          shape: engineShape(sol.engine.n),
         });
       }
   }
@@ -412,7 +411,7 @@ function stageParts(
           y,
           r: bd / 2,
           h: eh,
-          nozzle: engineShape(b.part.n),
+          shape: engineShape(b.part.n),
         });
         y += eh;
       }

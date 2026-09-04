@@ -20,13 +20,7 @@ import {
 import type { ShaderMaterial } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { extentOf } from "../../core/model.js";
-import {
-  bellProfile,
-  cameraFor,
-  engineLayout,
-  engineProfile,
-  viewOf,
-} from "../views.js";
+import { cameraFor, engineBells, engineProfile, viewOf } from "../views.js";
 import { fills, palette } from "../tokens.js";
 import {
   compositeMaterial,
@@ -38,8 +32,7 @@ import {
 } from "./shaders.js";
 import type { ModelPart } from "../../core/model.js";
 import type { Theme } from "../tokens.js";
-import type { Extent, Profile } from "../views.js";
-import { ringPositions } from "../../core/geometry.js";
+import type { Extent, Measured, Profile } from "../views.js";
 import type { Offset } from "../separation.js";
 
 /* The build model, drawn.
@@ -105,36 +98,32 @@ function taperedProfile(rBase: number, rTop: number, h: number) {
   ];
 }
 
-/* An engine from its proportions: the plate and housing revolved on the axis,
-   with the bell in the same profile where there is one, and a cluster's bells
-   revolved separately and stood at the same ring positions the solver spaces a
-   cluster by. Merged into one geometry, because a part is one mesh: the id
-   buffer names parts by mesh index and a separation moves a part's three
-   pieces together, so an engine in five geometries would be five parts to
-   both. The profiles are `views.ts`'s, held on numbers there. #85 */
+/* An engine from its measured profile: the body revolved on the axis, with
+   the bell in the same shell where there is one, and a cluster's bells
+   revolved separately and stood where the mesh has them. Merged into one
+   geometry, because a part is one mesh: the id buffer names parts by mesh
+   index and a separation moves a part's three pieces together, so an engine
+   in five geometries would be five parts to both. The profiles are
+   `views.ts`'s, held on numbers there. #85 */
 const lathe = (pts: Profile) =>
   new LatheGeometry(
     pts.map(([r, y]) => new Vector2(r, y)),
     SEGMENTS,
   );
 
-function engineGeometry(
-  R: number,
-  H: number,
-  noz: Parameters<typeof engineLayout>[2],
-) {
-  const body = lathe(engineProfile(R, H, noz));
-  const L = engineLayout(R, H, noz);
-  if (L.n === 1) return body;
-  const bells = ringPositions(L.n).map(([ux, uz]) =>
-    lathe(bellProfile(L.rb, L.hb, noz.throat, noz.exit, L.y0)).translate(
-      ux * L.offset,
-      0,
-      uz * L.offset,
-    ),
-  );
-  const merged = mergeGeometries([body, ...bells]);
-  for (const g of [body, ...bells]) g.dispose();
+function engineGeometry(R: number, H: number, m: Measured) {
+  const bells = engineBells(R, H, m);
+  const body = engineProfile(R, H, m);
+  const pieces = [
+    ...(body.length > 2 ? [lathe(body)] : []),
+    ...bells
+      .filter((b) => b.profile.length > 2)
+      .map((b) => lathe(b.profile).translate(b.x, 0, b.z)),
+  ];
+  if (pieces.length === 0) return new CylinderGeometry(R, R, H, SEGMENTS);
+  if (pieces.length === 1) return pieces[0];
+  const merged = mergeGeometries(pieces);
+  for (const g of pieces) g.dispose();
   return merged;
 }
 
@@ -325,8 +314,8 @@ export default function ThreeView({
 
     for (const [i, p] of parts.entries()) {
       const geo =
-        p.role === "engine" && p.nozzle
-          ? engineGeometry(p.r, p.h, p.nozzle)
+        p.role === "engine" && p.shape
+          ? engineGeometry(p.r, p.h, p.shape)
           : p.rTop === undefined
             ? new CylinderGeometry(p.r, p.r, p.h, SEGMENTS)
             : new LatheGeometry(taperedProfile(p.r, p.rTop, p.h), SEGMENTS);

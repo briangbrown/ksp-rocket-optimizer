@@ -147,14 +147,14 @@ describe("the build model", () => {
     expect(bad.slice(0, 8), `${bad.length} overlapping pairs`).toEqual([]);
   }, 300_000);
 
-  it("draws every engine from its shape table entry", () => {
+  it("draws every engine from its measured profile", () => {
     /* #85: an engine with no entry falls back to the drum. The table is held
-       complete against the catalogue in test/engine-shapes.test.ts; this is
-       that the model actually carries it, on both branches that push one. */
+       complete against the catalogue in test/engine-profiles.test.ts; this
+       is that the model actually carries it, on both branches that push one. */
     for (const { name, parts } of MODELS)
       for (const p of parts)
         if (p.role === "engine")
-          expect(p.nozzle, `${name}: ${p.part.n} has no nozzle`).toBeDefined();
+          expect(p.shape, `${name}: ${p.part.n} has no profile`).toBeDefined();
   });
 
   it("stays inside the width the solver sized the stage at", async () => {
