@@ -15,9 +15,10 @@
    which objects are a jettisonable shroud; walk each mesh's transform tree with
    the root's own placement dropped (it is where the prefab sat in the Unity
    scene, and the game discards it); take every visible triangle in world space
-   with the top node at y = 0; and simplify by clustering vertices onto a grid
-   sized so a few hundred remain, which keeps the silhouette and the bells —
-   two, four, off-axis, whatever the part has — and drops the panel lines.
+   with the top node at y = 0; weld the seams; and simplify by quadric edge
+   collapse to a few hundred vertices, which keeps the silhouette and the
+   bells — two, four, off-axis, whatever the part has — and the lips, and
+   drops the panel lines and the bolt heads.
    Millimetres, as integers. .claude/rules/part-data.md has the story.
 
    Plain Node, no dependencies: the zip is read with zlib, the .mu with a
@@ -35,9 +36,9 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
-/* Vertices to keep per engine. Enough for a bell to read as a bell at the
-   sixty or so pixels the drawing gives it, and for four to read as four. */
-const TARGET = 300;
+/* Vertices to keep per engine, and per big cluster. */
+const TARGET = 400;
+const BIG = 600;
 
 /* ------------------------------------------------------------------ zip */
 function unzip(buf) {
@@ -684,71 +685,310 @@ function walk(obj, M, hidden, out, parentHidden = false) {
   for (const ch of obj.children) walk(ch, W, hidden, out, off);
 }
 
-/* Vertex clustering: every vertex snaps to the cell of a grid, each cell
-   becomes one vertex at the mean of what fell in it, and a triangle whose
-   corners share a cell is gone. The grid pitch is searched for the one that
-   leaves about TARGET vertices. Crude beside an edge-collapse decimator, and
-   right for this: the shapes are drawn a few pixels wide and what matters is
-   that the silhouette and the count of bells survive, which a grid keeps. */
-function cluster(verts, tris, pitch) {
-  const cell = new Map();
+/* ------------------------------------------------------------------ simplify */
+/* Weld: the game's meshes split a vertex wherever a texture seam runs, so
+   the same corner is several vertices. One per position, or every seam
+   would be a crack the simplifier is not allowed to close. */
+function weld(verts, tris) {
+  const at = new Map();
   const index = new Array(verts.length);
+  const out = [];
   for (let i = 0; i < verts.length; i++) {
-    const [x, y, z] = verts[i];
-    const key = `${Math.floor(x / pitch)},${Math.floor(y / pitch)},${Math.floor(z / pitch)}`;
-    let c = cell.get(key);
-    if (!c) {
-      c = { i: cell.size, sum: [0, 0, 0], n: 0 };
-      cell.set(key, c);
+    const key = verts[i].map((c) => Math.round(c * 1e4)).join(",");
+    let k = at.get(key);
+    if (k === undefined) {
+      k = out.length;
+      at.set(key, k);
+      out.push(verts[i]);
     }
-    c.sum[0] += x;
-    c.sum[1] += y;
-    c.sum[2] += z;
-    c.n++;
-    index[i] = c.i;
+    index[i] = k;
   }
-  const out = new Array(cell.size);
-  for (const c of cell.values()) out[c.i] = c.sum.map((v) => v / c.n);
-  const seen = new Set();
   const faces = [];
   for (const [a, b, c] of tris) {
     const [i, j, k] = [index[a], index[b], index[c]];
-    if (i === j || j === k || i === k) continue;
-    /* The same three corners in any order is the same face. */
-    const key = [i, j, k].sort((p, q) => p - q).join(",");
-    if (seen.has(key)) continue;
-    seen.add(key);
-    faces.push([i, j, k]);
+    if (i !== j && j !== k && i !== k) faces.push([i, j, k]);
   }
-  /* Drop vertices no face uses, renumbering. */
-  const used = new Map();
-  const v2 = [];
-  const f2 = faces.map((f) =>
-    f.map((i) => {
-      if (!used.has(i)) {
-        used.set(i, v2.length);
-        v2.push(out[i]);
-      }
-      return used.get(i);
-    }),
-  );
-  return { verts: v2, faces: f2 };
+  return { verts: out, faces };
 }
 
-function simplify(verts, tris, extent) {
-  let lo = extent / 400,
-    hi = extent / 4,
-    best = null;
-  for (let it = 0; it < 24; it++) {
-    const pitch = Math.sqrt(lo * hi);
-    const r = cluster(verts, tris, pitch);
-    if (r.verts.length > TARGET) lo = pitch;
-    else {
-      hi = pitch;
-      best = r;
+/* Quadric error metric edge collapse, after Garland and Heckbert. Every
+   vertex carries the sum of the squared-distance quadrics of the planes of
+   its faces; an edge's cost is that sum evaluated at the best point for the
+   merged vertex, and the cheapest edge goes first. Flat and gently curved
+   regions empty out while sharp features stay, which is what a bell wants:
+   the lip survives, the curve between throat and lip loses its rings, and
+   what is left renders smooth under crease-split normals. Boundary edges —
+   a bell's open lip, a plate's rim — carry a heavy quadric perpendicular to
+   the face along the edge, so the outline does not creep inward; a collapse
+   that would flip a face is refused. */
+const plane = ([ax, ay, az], [bx, by, bz], [cx, cy, cz]) => {
+  const ux = bx - ax,
+    uy = by - ay,
+    uz = bz - az;
+  const vx = cx - ax,
+    vy = cy - ay,
+    vz = cz - az;
+  let nx = uy * vz - uz * vy,
+    ny = uz * vx - ux * vz,
+    nz = ux * vy - uy * vx;
+  const l = Math.hypot(nx, ny, nz);
+  if (l < 1e-12) return null;
+  nx /= l;
+  ny /= l;
+  nz /= l;
+  return [nx, ny, nz, -(nx * ax + ny * ay + nz * az), l / 2];
+};
+/* A quadric as its ten distinct coefficients. */
+const quadric = ([a, b, c, d], w = 1) => [
+  a * a * w,
+  a * b * w,
+  a * c * w,
+  a * d * w,
+  b * b * w,
+  b * c * w,
+  b * d * w,
+  c * c * w,
+  c * d * w,
+  d * d * w,
+];
+const qadd = (p, q) => p.map((v, i) => v + q[i]);
+const qeval = ([aa, ab, ac, ad, bb, bc, bd, cc, cd, dd], [x, y, z]) =>
+  aa * x * x +
+  2 * ab * x * y +
+  2 * ac * x * z +
+  2 * ad * x +
+  bb * y * y +
+  2 * bc * y * z +
+  2 * bd * y +
+  cc * z * z +
+  2 * cd * z +
+  dd;
+/* The point that minimises a quadric, if it is well posed. */
+function qmin([aa, ab, ac, ad, bb, bc, bd, cc, cd]) {
+  const det =
+    aa * (bb * cc - bc * bc) -
+    ab * (ab * cc - bc * ac) +
+    ac * (ab * bc - bb * ac);
+  if (Math.abs(det) < 1e-12) return null;
+  const x =
+    -(
+      ad * (bb * cc - bc * bc) -
+      ab * (bd * cc - bc * cd) +
+      ac * (bd * bc - bb * cd)
+    ) / det;
+  const y =
+    -(
+      aa * (bd * cc - bc * cd) -
+      ad * (ab * cc - bc * ac) +
+      ac * (ab * cd - bd * ac)
+    ) / det;
+  const z =
+    -(
+      aa * (bb * cd - bd * bc) -
+      ab * (ab * cd - bd * ac) +
+      ad * (ab * bc - bb * ac)
+    ) / det;
+  return [x, y, z];
+}
+
+class Heap {
+  constructor() {
+    this.a = [];
+  }
+  push(e) {
+    const a = this.a;
+    a.push(e);
+    let i = a.length - 1;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (a[p].cost <= a[i].cost) break;
+      [a[p], a[i]] = [a[i], a[p]];
+      i = p;
     }
   }
-  return best ?? cluster(verts, tris, hi);
+  pop() {
+    const a = this.a;
+    const top = a[0];
+    const last = a.pop();
+    if (a.length) {
+      a[0] = last;
+      let i = 0;
+      for (;;) {
+        const l = 2 * i + 1,
+          r = l + 1;
+        let m = i;
+        if (l < a.length && a[l].cost < a[m].cost) m = l;
+        if (r < a.length && a[r].cost < a[m].cost) m = r;
+        if (m === i) break;
+        [a[m], a[i]] = [a[i], a[m]];
+        i = m;
+      }
+    }
+    return top;
+  }
+  get size() {
+    return this.a.length;
+  }
+}
+
+function simplify(verts0, tris, target) {
+  const { verts, faces } = weld(verts0, tris);
+  const n = verts.length;
+  const V = verts.map((v) => [...v]);
+  const alive = new Array(n).fill(true);
+  const version = new Array(n).fill(0);
+  const Q = Array.from({ length: n }, () => new Array(10).fill(0));
+  const F = faces.map((f) => [...f]);
+  const facesOf = Array.from({ length: n }, () => new Set());
+  F.forEach((f, i) => f.forEach((v) => facesOf[v].add(i)));
+  const edgeCount = new Map();
+  const ekey = (a, b) => (a < b ? a * n + b : b * n + a);
+  for (let i = 0; i < F.length; i++) {
+    const [a, b, c] = F[i];
+    const p = plane(V[a], V[b], V[c]);
+    if (!p) continue;
+    const q = quadric(p, p[4]);
+    for (const v of F[i]) Q[v] = qadd(Q[v], q);
+    for (const [u, w] of [
+      [a, b],
+      [b, c],
+      [c, a],
+    ])
+      edgeCount.set(ekey(u, w), (edgeCount.get(ekey(u, w)) ?? 0) + 1);
+  }
+  /* Boundary constraint: for an edge with one face, the plane through the
+     edge perpendicular to that face, weighted like a very large face. */
+  for (let i = 0; i < F.length; i++) {
+    const [a, b, c] = F[i];
+    for (const [u, w] of [
+      [a, b],
+      [b, c],
+      [c, a],
+    ])
+      if (edgeCount.get(ekey(u, w)) === 1) {
+        const p = plane(V[a], V[b], V[c]);
+        if (!p) continue;
+        const ex = V[w][0] - V[u][0],
+          ey = V[w][1] - V[u][1],
+          ez = V[w][2] - V[u][2];
+        /* normal of the constraint plane = edge × face normal */
+        let nx = ey * p[2] - ez * p[1],
+          ny = ez * p[0] - ex * p[2],
+          nz = ex * p[1] - ey * p[0];
+        const l = Math.hypot(nx, ny, nz);
+        if (l < 1e-12) continue;
+        nx /= l;
+        ny /= l;
+        nz /= l;
+        const q = quadric(
+          [nx, ny, nz, -(nx * V[u][0] + ny * V[u][1] + nz * V[u][2])],
+          1e3 * Math.hypot(ex, ey, ez),
+        );
+        Q[u] = qadd(Q[u], q);
+        Q[w] = qadd(Q[w], q);
+      }
+  }
+  const heap = new Heap();
+  const propose = (a, b) => {
+    const q = qadd(Q[a], Q[b]);
+    let best = null,
+      cost = Infinity;
+    const opt = qmin(q);
+    for (const c of [
+      opt,
+      V[a],
+      V[b],
+      [
+        (V[a][0] + V[b][0]) / 2,
+        (V[a][1] + V[b][1]) / 2,
+        (V[a][2] + V[b][2]) / 2,
+      ],
+    ]) {
+      if (!c) continue;
+      const e = qeval(q, c);
+      if (e < cost) {
+        cost = e;
+        best = c;
+      }
+    }
+    heap.push({ cost, a, b, pos: best, va: version[a], vb: version[b] });
+  };
+  for (const k of edgeCount.keys()) propose(Math.floor(k / n), k % n);
+  /* Stop on faces, not vertices. A collapse takes one vertex and two faces,
+     so F − 2V is conserved — and the game's meshes are not manifold (double
+     sided skins, loose shells), so F starts below 2V and counting vertices
+     down to the target runs the faces out first: the Mammoth reached 600
+     vertices with 231 faces left. */
+  let facesAlive = F.filter(Boolean).length;
+  const neighbours = (v) => {
+    const s = new Set();
+    for (const f of facesOf[v]) for (const u of F[f]) if (u !== v) s.add(u);
+    return s;
+  };
+  while (facesAlive > 2 * target && heap.size) {
+    const e = heap.pop();
+    const { a, b } = e;
+    if (!alive[a] || !alive[b] || version[a] !== e.va || version[b] !== e.vb)
+      continue;
+    /* Would moving a or b to the new point turn any face over? */
+    let flips = false;
+    for (const v of [a, b])
+      for (const fi of facesOf[v]) {
+        const f = F[fi];
+        if (f.includes(a) && f.includes(b)) continue; // this face collapses away
+        const before = plane(V[f[0]], V[f[1]], V[f[2]]);
+        const moved = f.map((u) => (u === v ? e.pos : V[u]));
+        const after = plane(moved[0], moved[1], moved[2]);
+        if (
+          !before ||
+          !after ||
+          before[0] * after[0] + before[1] * after[1] + before[2] * after[2] <
+            0.2
+        ) {
+          flips = true;
+          break;
+        }
+      }
+    if (flips) continue;
+    /* Collapse b into a at the new position. */
+    V[a] = e.pos;
+    Q[a] = qadd(Q[a], Q[b]);
+    alive[b] = false;
+    for (const fi of facesOf[b]) {
+      const f = F[fi];
+      if (f.includes(a)) {
+        facesOf[a].delete(fi);
+        for (const u of f) if (u !== b) facesOf[u].delete(fi);
+        F[fi] = null;
+        facesAlive--;
+        continue;
+      }
+      F[fi] = f.map((u) => (u === b ? a : u));
+      facesOf[a].add(fi);
+    }
+    facesOf[b].clear();
+    version[a]++;
+    for (const u of neighbours(a)) propose(a, u);
+  }
+  /* Renumber what survived. */
+  const map = new Map();
+  const outV = [];
+  const outF = [];
+  for (const f of F) {
+    if (!f) continue;
+    const [i, j, k] = f;
+    if (i === j || j === k || i === k) continue;
+    outF.push(
+      f.map((v) => {
+        if (!map.has(v)) {
+          map.set(v, outV.length);
+          outV.push(V[v]);
+        }
+        return map.get(v);
+      }),
+    );
+  }
+  return { verts: outV, faces: outF };
 }
 
 function measure(part, zip) {
@@ -788,11 +1028,10 @@ function measure(part, zip) {
       ? ymax
       : Math.min(ymax, part.nodeTop * part.rescale * part.scale);
   const verts = out.verts.map(([x, y, z]) => [x, y - top, z]);
-  const extent = Math.max(
-    top - ymin,
-    2 * Math.max(...verts.map(([x, , z]) => Math.hypot(x, z))),
-  );
-  const s = simplify(verts, out.tris, extent);
+  /* The budget: enough for a bell to read as a bell at the sixty or so
+     pixels the drawing gives it; more for the big clusters, which have
+     four of them and a plate. */
+  const s = simplify(verts, out.tris, out.verts.length > 15000 ? BIG : TARGET);
   /* What shows, measured on the simplified mesh so the drawing fills the box
      it is scaled into: the height from the node down, and the radius of
      anything below the node. Clustering moves the extremes a little. */

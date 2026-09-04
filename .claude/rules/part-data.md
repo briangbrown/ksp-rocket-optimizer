@@ -63,9 +63,14 @@ Changing a number here is changing a measurement.
   the parts it remodels; walks the transform tree with the root's own
   transform dropped, as the game drops it (left in, the Cub sat twenty-nine
   metres off its axis — it is where the prefab sat in the Unity scene); takes
-  every visible triangle with the top node at y = 0; and simplifies by
-  clustering vertices onto a grid sized to leave about three hundred, which
-  keeps the silhouette and the bells and drops the panel lines. Millimetres,
+  every visible triangle with the top node at y = 0; welds the texture seams
+  (the game splits a vertex wherever one runs, and unwelded each seam is a
+  crack the simplifier may not close); and simplifies by quadric edge
+  collapse — Garland and Heckbert — to four hundred vertices, six for the
+  big clusters, with the boundary loops weighted so a lip does not creep
+  inward and a collapse that would flip a face refused. The first pass was
+  vertex clustering onto a grid, and it drew lumps: not curvature-aware, not
+  normal-preserving, slivers everywhere, and flat-shaded on top. Millimetres,
   as integers. ReStock's engines carry a collar above the node that sits
   inside the tank; it stays, hidden by the tank. Under `public/`, not
   `src/data/`: a rocket needs three or four engines, and fetching those is

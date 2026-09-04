@@ -21,6 +21,7 @@ import {
 } from "three";
 import type { ShaderMaterial } from "three";
 import { extentOf } from "../../core/model.js";
+import { toCreasedNormals } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { cameraFor, viewOf } from "../views.js";
 import { artName } from "../../core/geometry.js";
 import { fills, palette } from "../tokens.js";
@@ -67,7 +68,7 @@ import type { Offset } from "../separation.js";
    surface id marks it. */
 const SEGMENTS = 40;
 const CREASE_ANGLE = 30;
-const ENGINE_CREASE = 60;
+const ENGINE_CREASE = 45;
 
 /* The profile of a part that tapers, revolved to make it.
 
@@ -110,8 +111,7 @@ function taperedProfile(rBase: number, rTop: number, h: number) {
    agree within a few percent and the smaller keeps the drawing inside what
    the solver sized. A cluster is simply the mesh — two bells, four, off-axis,
    whatever the part has — which is what a profile revolved about the axis
-   could never be. Flat-shaded: a clustered mesh's vertex normals would
-   blotch. Until the file lands the engine is the cylinder it always was, and
+   could never be. Until the file lands the engine is the cylinder it always was, and
    `onMeshes` is how the view learns to draw again. #85 */
 type EngineMesh = {
   h: number;
@@ -175,10 +175,13 @@ function engineGeometry(R: number, H: number, m: EngineMesh) {
   const g = new BufferGeometry();
   g.setAttribute("position", new BufferAttribute(pos, 3));
   g.setIndex([...m.i]);
-  const flat = g.toNonIndexed();
+  /* Smooth across a curve, split at an edge: normals are averaged between
+     faces that meet at less than the crease angle and kept apart at more,
+     so a bell shades as a curve and its lip stays a line. The same angle
+     decides which edges the crease pass draws. */
+  const creased = toCreasedNormals(g, (ENGINE_CREASE * Math.PI) / 180);
   g.dispose();
-  flat.computeVertexNormals();
-  return flat;
+  return creased;
 }
 
 /* The dash period of a hidden edge, in CSS pixels — scaled to device pixels

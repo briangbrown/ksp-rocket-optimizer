@@ -183,11 +183,12 @@ them.
   file) and returns nothing, so the engine draws as the cylinder it always
   was, and when the file lands every mounted view is told (`onMeshes`) and
   re-keys its build effect on `meshTick`. `null` in the cache is an engine
-  with no file — no asking again. The mesh is flat-shaded (`toNonIndexed` +
-  `computeVertexNormals`): a clustered mesh's smooth normals blotch. Its
-  crease threshold is `ENGINE_CREASE`, 60°, not the 30° a cylinder's cap
-  wants — a simplified mesh is small creases all over and only the sharp ones
-  are lines. Scaled uniformly to the box the model gave it, hanging from the
+  with no file — no asking again. Its normals are `toCreasedNormals` at
+  `ENGINE_CREASE`, 45°: averaged where faces meet at less than that, so a
+  bell shades as a curve, split where they meet at more, so a lip stays a
+  line — and the crease pass draws edges at the same angle, so a line
+  appears exactly where the shading breaks. Not the 30° a cylinder's cap
+  wants: a simplified mesh has many small angles that are not edges. Scaled uniformly to the box the model gave it, hanging from the
   top; the model's height came from the same mesh's drag cube and its width
   from its face area, so the two fits agree within a few percent and the
   smaller keeps the drawing inside what the solver sized. jsdom never mounts

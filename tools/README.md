@@ -39,10 +39,11 @@ ReStock's `@PART` patches for the parts ReStock remodels (a model swap, a
 rescale, variants); walks each mesh's transform tree with the root's own
 placement dropped, because that is where the prefab sat in the Unity scene
 and the game discards it; takes every visible triangle in world space with
-the top node at y = 0; and simplifies by clustering vertices onto a grid whose
-pitch is searched for the one that leaves about three hundred — crude beside
-an edge-collapse decimator, and right for shapes drawn a few pixels wide,
-where what has to survive is the silhouette and the count of bells. The
+the top node at y = 0; welds the texture seams; and simplifies by quadric
+edge collapse to four hundred vertices (six for the big clusters), boundary
+loops protected so a bell's lip keeps its radius, face flips refused — the
+curve between throat and lip loses its rings and renders smooth under the
+renderer's crease-split normals, while the lip stays a line. The
 oldest stock files carry an undocumented word after the root transform; the
 reader skips word by word past it, as taniwha's does.
 
