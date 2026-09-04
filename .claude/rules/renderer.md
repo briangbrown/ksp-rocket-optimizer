@@ -43,6 +43,29 @@ them.
   camera absorbs it, which is why what stays has an offset of exactly zero at
   both ends.
 
+- **Hidden lines are lines, from ids — never a surface pass.** Until #85
+  what lay behind the front surface was drawn again through it: a wash that
+  deepened as the surface turned away, and a dashed band where its normal
+  went edge-on. That was a veil over every curved surface, a band whose
+  width followed curvature so it went faint where a facet merely grazed the
+  threshold, and two bands side by side on a hidden cylinder — its near and
+  far turns both pass. The hidden lines now come from where the visible ones
+  do: `peelIdMaterial` renders the ids again, dropping every fragment no
+  deeper than the front's depth at its pixel, so the depth test keeps the
+  second layer exactly; the composite edge-detects that buffer one-sided and
+  dashes it; the hidden creases of the revolved parts are drawn dashed
+  through the fill's depth with `GreaterDepth` (`ghostLineMaterial`). Three
+  things it has to leave out, each found on a screenshot: a hidden edge
+  within two pixels of the front's own linework (at a rim the back face is
+  within the peel's epsilon of the front, and the hidden layer ends a pixel
+  inside the silhouette — a dashed twin of it); a hidden edge where the
+  hidden id is the front's own (the meshes are hollow, and a part's inner
+  wall is what a peel finds behind its outer one — not a hidden line); and
+  the engines' hidden creases (a simplified truss is edges all over). The
+  plan view peels nothing: looking up, the engines hide the tanks by design.
+  What remains of the wash is `HIDDEN_WASH`, a uniform breath of tint
+  wherever another part is behind, so the x-ray still reads as one.
+
 - **A WebGL canvas drawn once needs `preserveDrawingBuffer`.** `ThreeView`
   renders a frame when the rocket or the view changes and never on a loop,
   because the cameras do not move. The drawing buffer is cleared once it has
@@ -176,6 +199,36 @@ them.
   time is a nervous drawing. Which design it is comes from `missionSignature`
   in `src/core/signature.ts` plus the payload diameter — a re-solve that
   returns the same rocket is not an arrival. #138
+
+- **An engine is the game's own mesh, simplified, fetched when first drawn.**
+  `engineMesh` in `three-view.tsx` keeps a module-level cache keyed by art
+  and title; a miss starts the fetch (`public/engines/index.json`, then the
+  file) and returns nothing, so the engine draws as the cylinder it always
+  was, and when the file lands every mounted view is told (`onMeshes`) and
+  re-keys its build effect on `meshTick`. `null` in the cache is an engine
+  with no file — no asking again. Its normals are `toCreasedNormals` at
+  `ENGINE_CREASE`, 70°: averaged where faces meet at less than that, so a
+  bell shades as a curve, split where they meet at more, so a lip stays a
+  line — and the crease pass draws edges at the same angle, so a line
+  appears exactly where the shading breaks. Not the 30° a cylinder's cap
+  wants: a ring of six facets meets at sixty, and no engine has a real edge
+  shallower than a right angle. Scaled uniformly to the box the model gave it, hanging from the
+  top; the model's height came from the same mesh's drag cube and its width
+  from its face area, so the two fits agree within a few percent and the
+  smaller keeps the drawing inside what the solver sized. jsdom never mounts
+  a `ThreeView`, so nothing under `test/` fetches; the visual suite serves
+  `dist/`, where `public/` has been copied. #85
+
+- **A lathe faces its surface by the direction of travel.** Walked from the
+  bottom up the outside, the triangles face out — `taperedProfile`'s
+  convention. A bell is hollow so the plan view can look up into it, and its
+  profile therefore starts on the axis inside the throat, comes down the
+  inside, turns at the lip and goes back up the outside: down the inside
+  faces in, up the outside faces out, and both are front faces to the camera
+  that sees them. Reverse either run and that surface culls to nothing with
+  no error. Zero-length segments — a plate of no height, a body as wide as
+  its bell — make degenerate triangles the crease pass draws as stray lines;
+  `tidy` drops them. #85
 
 - **The scrubber and the stepper drive the same pair.** While the range
   input is held, `scrub` (a position in steps, `2.4` being forty percent of

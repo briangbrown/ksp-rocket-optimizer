@@ -1,5 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  BufferAttribute,
+  BufferGeometry,
   CylinderGeometry,
   DepthTexture,
   LatheGeometry,
@@ -19,13 +21,16 @@ import {
 } from "three";
 import type { ShaderMaterial } from "three";
 import { extentOf } from "../../core/model.js";
+import { toCreasedNormals } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { cameraFor, viewOf } from "../views.js";
+import { artName } from "../../core/geometry.js";
 import { fills, palette } from "../tokens.js";
 import {
   compositeMaterial,
-  ghostMaterial,
+  ghostLineMaterial,
   goochMaterial,
   idMaterial,
+  peelIdMaterial,
   lineOf,
   panelClear,
 } from "./shaders.js";
@@ -64,6 +69,7 @@ import type { Offset } from "../separation.js";
    surface id marks it. */
 const SEGMENTS = 40;
 const CREASE_ANGLE = 30;
+const ENGINE_CREASE = 70;
 
 /* The profile of a part that tapers, revolved to make it.
 
@@ -95,6 +101,90 @@ function taperedProfile(rBase: number, rTop: number, h: number) {
     ...arc(rTop - f, y1 - f, 0, Math.PI / 2),
     new Vector2(0, y1),
   ];
+}
+
+/* An engine from a simplified copy of the game's own mesh — one file an
+   engine under public/engines/, made by tools/engine-meshes.mjs, fetched the
+   first time an engine is drawn and kept. Millimetres with the top node at
+   y = 0, so it hangs from the top of the box the model gave the engine,
+   scaled uniformly to fit the box: the height the model measured from the
+   same mesh's drag cube, the width from its face area, so the two scales
+   agree within a few percent and the smaller keeps the drawing inside what
+   the solver sized. A cluster is simply the mesh — two bells, four, off-axis,
+   whatever the part has — which is what a profile revolved about the axis
+   could never be. Until the file lands the engine is the cylinder it always was, and
+   `onMeshes` is how the view learns to draw again. #85 */
+type EngineMesh = {
+  h: number;
+  w: number;
+  v: ReadonlyArray<number>;
+  i: ReadonlyArray<number>;
+};
+type MeshIndex = {
+  stock: Readonly<Record<string, string>>;
+  restock: Readonly<Record<string, string>>;
+};
+/* Relative to the page, so the application and the gallery — both at the
+   root — find the same files under public/. */
+const MESH_BASE = "engines/";
+const meshes = new Map<string, EngineMesh | null>();
+let meshIndex: Promise<MeshIndex | null> | null = null;
+const meshListeners = new Set<() => void>();
+const onMeshes = (cb: () => void) => {
+  meshListeners.add(cb);
+  return () => void meshListeners.delete(cb);
+};
+const meshUrl = async (title: string) => {
+  meshIndex ??= fetch(`${MESH_BASE}index.json`)
+    .then((r) => (r.ok ? (r.json() as Promise<MeshIndex>) : null))
+    .catch(() => null);
+  const ix = await meshIndex;
+  if (!ix) return null;
+  const file =
+    (artName() === "restock" ? ix.restock[title] : undefined) ??
+    ix.stock[title];
+  return file ? MESH_BASE + file : null;
+};
+/* The mesh if it has arrived; starts it on its way if not. `null` in the
+   cache is an engine that has none — the drum, and no asking again. */
+function engineMesh(title: string): EngineMesh | undefined {
+  const key = `${artName()}/${title}`;
+  if (meshes.has(key)) return meshes.get(key) ?? undefined;
+  meshes.set(key, null);
+  (async () => {
+    const url = await meshUrl(title);
+    const m = url
+      ? await fetch(url)
+          .then((r) => (r.ok ? (r.json() as Promise<EngineMesh>) : null))
+          .catch(() => null)
+      : null;
+    if (!m) return;
+    meshes.set(key, m);
+    for (const cb of meshListeners) cb();
+  })();
+  return undefined;
+}
+
+function engineGeometry(R: number, H: number, m: EngineMesh) {
+  const s = Math.min(H / m.h, R / (m.w / 2)) / 1000;
+  const pos = new Float32Array(m.v.length);
+  for (let k = 0; k < m.v.length; k += 3) {
+    pos[k] = m.v[k] * s;
+    pos[k + 1] = m.v[k + 1] * s + H / 2;
+    pos[k + 2] = m.v[k + 2] * s;
+  }
+  const g = new BufferGeometry();
+  g.setAttribute("position", new BufferAttribute(pos, 3));
+  g.setIndex([...m.i]);
+  /* Smooth across a curve, split at an edge: normals are averaged between
+     faces that meet at less than the crease angle and kept apart at more,
+     so a bell shades as a curve and its lip stays a line. Seventy degrees:
+     no engine has a real edge that shallow, and a ring of six facets meets
+     at sixty. The same angle decides which edges the crease pass
+     draws. */
+  const creased = toCreasedNormals(g, (ENGINE_CREASE * Math.PI) / 180);
+  g.dispose();
+  return creased;
 }
 
 /* The dash period of a hidden edge, in CSS pixels — scaled to device pixels
@@ -149,11 +239,13 @@ const AXIS = new Vector3();
 type Built = {
   scene: Scene;
   group: Group;
-  ghost: Group | null;
+  peelMats: Array<ShaderMaterial>;
+  hidTarget: WebGLRenderTarget;
+  ghostLine: ShaderMaterial;
+  creaseMat: LineBasicMaterial;
   creases: Group;
   meshes: Array<Mesh>;
   lines: Array<LineSegments>;
-  ghosts: Array<Mesh>;
   idMats: Array<ShaderMaterial>;
   fillMats: Array<ShaderMaterial>;
   quadScene: Scene;
@@ -183,6 +275,10 @@ export default function ThreeView({
   const host = useRef<HTMLDivElement | null>(null);
   const gl = useRef<WebGLRenderer | null>(null);
   const built = useRef<Built | null>(null);
+  /* Bumped when an engine's mesh arrives, so the build below runs again
+     with it. */
+  const [meshTick, setMeshTick] = useState(0);
+  useEffect(() => onMeshes(() => setMeshTick((t) => t + 1)), []);
 
   const bufW = buffer ? buffer.w : width;
   const bufH = buffer ? buffer.h : height;
@@ -264,16 +360,7 @@ export default function ThreeView({
        move all three of a part's pieces together. */
     const meshes: Array<Mesh> = [];
     const lines: Array<LineSegments> = [];
-    const ghosts: Array<Mesh> = [];
-    /* Drawn only where the opaque pass was hidden, so this is the far side of
-       the rocket and nothing else. Not built for the plan: looking up from
-       underneath, the engines hide the tanks above them by design, and that is
-       what the view is for. #71 */
-    const ghost = view === "plan" ? null : new Group();
-    if (ghost) {
-      ghost.visible = false;
-      scene.add(ghost);
-    }
+    const peelMats: Array<ShaderMaterial> = [];
     /* Creases are their own group so the id pass can hide them in one call —
        and so the meshes stay index-aligned with their materials, which they
        would not be if lines were interleaved among them. */
@@ -284,9 +371,11 @@ export default function ThreeView({
 
     for (const [i, p] of parts.entries()) {
       const geo =
-        p.rTop === undefined
-          ? new CylinderGeometry(p.r, p.r, p.h, SEGMENTS)
-          : new LatheGeometry(taperedProfile(p.r, p.rTop, p.h), SEGMENTS);
+        p.role === "engine" && engineMesh(p.part.n)
+          ? engineGeometry(p.r, p.h, engineMesh(p.part.n)!)
+          : p.rTop === undefined
+            ? new CylinderGeometry(p.r, p.r, p.h, SEGMENTS)
+            : new LatheGeometry(taperedProfile(p.r, p.rTop, p.h), SEGMENTS);
       const mat = goochMaterial(
         p.role === "booster" ? color : fill[p.role] || pal.dim,
         pal,
@@ -300,23 +389,17 @@ export default function ThreeView({
       const mesh = new Mesh(geo, mat);
       meshes.push(mesh);
       group.add(mesh);
+      /* A simplified mesh is creases all over; on an engine only the sharp
+         ones — the lip, a plate's edge — are lines. */
       const line = new LineSegments(
-        new EdgesGeometry(geo, CREASE_ANGLE),
+        new EdgesGeometry(
+          geo,
+          p.role === "engine" ? ENGINE_CREASE : CREASE_ANGLE,
+        ),
         creaseMat,
       );
       lines.push(line);
       creases.add(line);
-      if (ghost) {
-        const gm = ghostMaterial(
-          p.role === "booster" ? color : fill[p.role] || pal.dim,
-          DASH_PERIOD * renderer.getPixelRatio(),
-          pal,
-        );
-        const back = new Mesh(geo, gm);
-        ghosts.push(back);
-        ghost.add(back);
-        owned.push(gm);
-      }
       const id = idMaterial(i);
       idMats.push(id);
       fillMats.push(mat);
@@ -340,7 +423,25 @@ export default function ThreeView({
       depthTexture: depth,
     });
     const fillTarget = new WebGLRenderTarget(bw, bh, { samples: 4 });
-    owned.push(idTarget, fillTarget, depth);
+    /* The layer behind: ids again, of what the front hid, with a depth of
+       its own so the nearest of it wins. */
+    const hidDepth = new DepthTexture(bw, bh);
+    const hidTarget = new WebGLRenderTarget(bw, bh, {
+      minFilter: NearestFilter,
+      magFilter: NearestFilter,
+      depthTexture: hidDepth,
+    });
+    for (let i = 0; i < parts.length; i++) {
+      const pm = peelIdMaterial(i, depth);
+      pm.uniforms.size.value.set(bw, bh);
+      peelMats.push(pm);
+      owned.push(pm);
+    }
+    const ghostLine = ghostLineMaterial(
+      pal,
+      DASH_PERIOD * renderer.getPixelRatio(),
+    );
+    owned.push(idTarget, fillTarget, depth, hidTarget, hidDepth, ghostLine);
 
     const quadMat = compositeMaterial(pal);
     const quadGeo = new PlaneGeometry(2, 2);
@@ -357,12 +458,14 @@ export default function ThreeView({
     built.current = {
       scene,
       group,
-      ghost,
       creases,
       meshes,
       lines,
-      ghosts,
       idMats,
+      peelMats,
+      hidTarget,
+      ghostLine,
+      creaseMat,
       fillMats,
       quadScene,
       quadMat,
@@ -379,7 +482,7 @@ export default function ThreeView({
       renderer.setRenderTarget(null);
       for (const o of owned) o.dispose();
     };
-  }, [parts, view, color, bufW, bufH, theme]);
+  }, [parts, view, color, bufW, bufH, theme, meshTick]);
 
   /* ---------------------------- painted often ----------------------------
 
@@ -420,7 +523,7 @@ export default function ThreeView({
     camera.lookAt(0, mid, 0);
 
     /* Every part where the separation has got it to. All three of a part's
-       pieces — its surface, its creases and its ghost — move together, which
+       pieces — its surface and its creases — move together, which
        is what the parallel arrays above are for. */
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
@@ -433,7 +536,7 @@ export default function ThreeView({
          around it. A part on the axis has no direction to lean in. */
       const r = Math.hypot(p.x, p.z);
       if (tilt && r > 1e-9) AXIS.set(p.z / r, 0, -p.x / r);
-      for (const obj of [b.meshes[i], b.lines[i], b.ghosts[i]]) {
+      for (const obj of [b.meshes[i], b.lines[i]]) {
         if (!obj) continue;
         obj.position.set(x, y, z);
         if (tilt && r > 1e-9) obj.quaternion.setFromAxisAngle(AXIS, tilt);
@@ -445,7 +548,6 @@ export default function ThreeView({
        without the creases: a line drawn into the id buffer is a false part,
        and every one of them would come back as an outline of its own. */
     b.creases.visible = false;
-    if (b.ghost) b.ghost.visible = false;
     for (let i = 0; i < parts.length; i++) b.meshes[i].material = b.idMats[i];
     renderer.setRenderTarget(b.idTarget);
     renderer.setClearColor(0x000000, 1);
@@ -461,25 +563,48 @@ export default function ThreeView({
     renderer.clear();
     renderer.render(b.scene, camera);
 
-    /* Then what is behind it, over the top. A separate render rather than a
-       group in the one above, because three sorts transparent objects after
-       opaque ones but still writes them into the same depth pass — and this
-       wants the finished depth buffer to test against, not a partial one. */
-    if (b.ghost) {
-      b.ghost.visible = true;
-      b.group.visible = false;
+    /* Then the layer behind: ids of what the front hid, peeled against the
+       front's depth, into a buffer of their own. The plan looks up from
+       underneath, where the engines hide the tanks by design and that is what
+       the view is for; it draws no hidden lines. */
+    const peel = view !== "plan";
+    renderer.setRenderTarget(b.hidTarget);
+    renderer.setClearColor(0x000000, 1);
+    renderer.clear();
+    if (peel) {
       b.creases.visible = false;
+      for (let i = 0; i < parts.length; i++)
+        b.meshes[i].material = b.peelMats[i];
+      renderer.render(b.scene, camera);
+      /* And the hidden creases, dashed, through the fill's depth: a crease
+         behind the surface that hid it fails the ordinary test and passes
+         this one. */
+      b.creases.visible = true;
+      b.group.visible = false;
+      /* The cylinders' creases only — a tank seam, a cap — and not the
+         engines': a simplified truss is edges all over, and every hidden one
+         dashed was a thicket where a bell should be. */
+      for (let i = 0; i < parts.length; i++) {
+        b.lines[i].material = b.ghostLine;
+        b.lines[i].visible = parts[i].role !== "engine";
+      }
+      renderer.setRenderTarget(b.fillTarget);
       renderer.autoClear = false;
       renderer.render(b.scene, camera);
       renderer.autoClear = true;
+      for (const l of b.lines) {
+        l.material = b.creaseMat;
+        l.visible = true;
+      }
       b.group.visible = true;
-      b.ghost.visible = false;
     }
 
     /* And the lines, over the top, straight to the canvas. */
     b.quadMat.uniforms.tColor.value = b.fillTarget.texture;
     b.quadMat.uniforms.tId.value = b.idTarget.texture;
     b.quadMat.uniforms.tDepth.value = b.depth;
+    b.quadMat.uniforms.tHid.value = b.hidTarget.texture;
+    b.quadMat.uniforms.dash.value = DASH_PERIOD * renderer.getPixelRatio();
     b.quadMat.uniforms.texel.value.set(1 / b.bw, 1 / b.bh);
     b.quadMat.uniforms.camNear.value = cam.near;
     b.quadMat.uniforms.camFar.value = cam.far;

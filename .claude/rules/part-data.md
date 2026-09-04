@@ -51,6 +51,48 @@ Changing a number here is changing a measurement.
   installed 22 titles name two parts; the rest of the duplicates are engine
   plates, which have no cube in any install and so cannot disagree.
 
+- **The engines are drawn from simplified copies of the game's meshes, and the
+  tool that makes them is in the repository.** `public/engines/<art>/<title>.json`,
+  one file an engine, made by `tools/engine-meshes.mjs` from a zip
+  `tools/pack-engines.ps1` packs on the machine with the install (`tools/README.md`
+  is the procedure). The drag cubes carry a height and a face area and nothing
+  about a bell, and a radius-against-height profile — the first attempt — is
+  a body of revolution, which two bells or four can never be; the mesh is
+  the shape. The tool reads the part configs for which mesh, at what scale,
+  in which default variant, with which shroud hidden; ReStock's patches for
+  the parts it remodels; walks the transform tree with the root's own
+  transform dropped, as the game drops it (left in, the Cub sat twenty-nine
+  metres off its axis — it is where the prefab sat in the Unity scene); takes
+  every visible triangle with the top node at y = 0; welds the texture seams
+  (the game splits a vertex wherever one runs, and unwelded each seam is a
+  crack the simplifier may not close); and simplifies by quadric edge
+  collapse — Garland and Heckbert, in the memoryless form of Lindstrom and
+  Turk, where an edge is priced against the planes round it as they stand
+  rather than a quadric accumulated over its history, which drifts on a long
+  chain of collapses; the local quadric's own minimiser is refused when it
+  lands farther from the edge than the edge is long, since the planes round
+  one edge are often nearly coplanar and the solution then a needle out of
+  the surface — the Boar grew one — to about five hundred vertices, eight
+  for the big clusters, with the boundary loops weighted so a lip does not
+  creep inward, a collapse that would flip a face refused, and **the turn a
+  collapse puts on its faces priced into the cost** (`TURN` in the tool):
+  a quadric measures distance, and merging two ring vertices on a cylinder
+  moves the surface very little while turning its facets a lot, so left to
+  the quadric alone a sixteen-segment ring became eight and every facet an
+  edge to the shading. Priced, the budget goes to the bolts, pipes and
+  struts — all turn and no size — and the smooth surfaces keep their rings.
+  Forbidden outright instead of priced, it pinned a Mammoth at nine
+  thousand vertices. The first pass was
+  vertex clustering onto a grid, and it drew lumps: not curvature-aware, not
+  normal-preserving, slivers everywhere, and flat-shaded on top. Millimetres,
+  as integers. ReStock's engines carry a collar above the node that sits
+  inside the tank; it stays, hidden by the tank. Under `public/`, not
+  `src/data/`: a rocket needs three or four engines, and fetching those is
+  cheaper than shipping eighty in the renderer's chunk — nothing here crosses
+  the seam. Prettier leaves the folder alone (`.prettierignore`) because laid
+  out the files would be ten times the bytes. The `FL-S1200` is the one
+  engine unmeasured, being a tank in the pack's terms; it draws as the drum.
+
 - **Six parts have no measurement anywhere.** The Nerv and the five engine
   plates carry `DRAG_CUBE { procedural = True }` — KSP computes them at runtime
   because the shroud varies with what is mounted inside. They fall back by
