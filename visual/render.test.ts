@@ -409,8 +409,13 @@ describe("the build view, in a browser", () => {
     const mid = await read(ELEVATION);
     expect(mid.hash, "the drawing did not move").not.toBe(before.hash);
 
-    /* And it stops. Two samples a good way apart, after it should be over. */
-    await new Promise((r) => setTimeout(r, 1200));
+    /* And it stops: once the view says nothing is in motion, two samples a
+       good way apart agree. Waiting on `data-motion` rather than the clock —
+       the transition is 800 ms of animation time, and on CI's software
+       renderer a frame can be most of that, so a sample taken at a fixed
+       1.5 s read the last frame still landing: "never settled", on main
+       and on a branch that had not touched the build view. #141 */
+    await settle(page);
     const done = await read(ELEVATION);
     await new Promise((r) => setTimeout(r, 300));
     const still = await read(ELEVATION);
