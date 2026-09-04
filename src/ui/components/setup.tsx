@@ -49,6 +49,8 @@ type SetupProps = {
      solve cost — the sheet's foot. */
   search: SearchStats | null;
   configText: string;
+  /* The design as a link, where the browser can make one. #140 */
+  linkFor?: () => Promise<string>;
   onLoad: (text: string) => { bad: boolean; msg: string };
 };
 
@@ -73,6 +75,7 @@ function Setup({
   onTheme,
   search,
   configText,
+  linkFor,
   onLoad,
 }: SetupProps) {
   /* Which node shows its parts. One at a time: the tree is long enough
@@ -269,7 +272,12 @@ function Setup({
       </Section>
 
       <div style={{ borderTop: `1px solid ${C.rule}`, margin: "14px 0" }} />
-      <Config search={search} text={configText} onLoad={onLoad} />
+      <Config
+        search={search}
+        text={configText}
+        linkFor={linkFor}
+        onLoad={onLoad}
+      />
 
       <div style={{ borderTop: `1px solid ${C.rule}`, margin: "14px 0" }} />
       {/* Where the numbers come from and where they are still approximate.

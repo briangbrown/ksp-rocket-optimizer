@@ -17,12 +17,18 @@ import { missionHardware } from "../core/parts.js";
 import { stageParts } from "../core/performance.js";
 import { withDeps } from "../core/tech.js";
 import { Brief } from "./components/brief.jsx";
-import { IconButton, Sheet, useWide } from "./components/primitives.jsx";
+import {
+  IconButton,
+  Sheet,
+  useNote,
+  useWide,
+} from "./components/primitives.jsx";
 import { Results, RouteSection } from "./components/results.jsx";
 import { Setup } from "./components/setup.jsx";
 import { JumpBar } from "./components/jump.jsx";
 import { Solving, Veil } from "./components/solving.jsx";
 import { parseConfig } from "./config.js";
+import { canLink, fromLink, toLink } from "./link.js";
 import { briefLine, craftName } from "./format.js";
 import { STYLES } from "./styles.js";
 import { loadRoster, saveRoster } from "./storage.js";
@@ -167,6 +173,9 @@ export default function KSPMissionPlanner() {
       unlocked.has("Fuel Systems"),
     [unlocked],
   );
+  /* What the page has to say about the design as a whole — a link that did
+     not load, a link copied — at the top of *Your rocket*. #140 */
+  const [note, setNote, noteFade] = useNote();
   useEffect(() => {
     let live = true;
     (async () => {
@@ -179,6 +188,26 @@ export default function KSPMissionPlanner() {
         if (typeof v.needGimbal === "boolean") setNeedGimbal(v.needGimbal);
         if (v.theme === "system" || v.theme === "dark" || v.theme === "light")
           setThemePref(v.theme);
+      }
+      /* A design in the address, after the roster so that it wins: the link
+         is the whole point of the visit. It goes through `applyConfig` as a
+         paste does, and like a paste it sets the roster too. A link that is
+         one but will not read is said so; a plain visit is not remarked on.
+         Then the brief is set and the page is at the rocket, which is what
+         the reader was sent. #140 */
+      const found = live ? await fromLink(location.hash) : null;
+      if (live && found) {
+        if (found.error !== undefined) {
+          setNote({ severity: "bad", title: found.error });
+        } else {
+          const r = applyConfig(found.text);
+          if (r.bad) setNote({ severity: "bad", title: r.msg });
+          else if (r.left) setNote({ severity: "info", title: r.msg });
+          setBriefOpen(false);
+          requestAnimationFrame(() =>
+            document.getElementById("rocket")?.scrollIntoView?.(),
+          );
+        }
       }
       if (live) setHydrated(true);
     })();
@@ -549,8 +578,55 @@ export default function KSPMissionPlanner() {
     if (v.splits !== undefined) setSplitBy(v.splits);
     return {
       bad: false,
+      left: r.left,
       msg: `Loaded ${r.took} settings${r.left ? `, ${r.left} left at their defaults` : ""}.`,
     };
+  };
+
+  /* The address is the design. Written on every change, replacing rather
+     than pushing so the back button is not a history of slider moves, and
+     only once the roster has loaded, or the defaults would go over a link
+     the reader arrived by before it was read. #140 */
+  useEffect(() => {
+    if (!hydrated || !canLink()) return;
+    let live = true;
+    toLink(configText).then((hash) => {
+      if (live) history.replaceState(null, "", hash);
+    });
+    return () => {
+      live = false;
+    };
+  }, [hydrated, configText]);
+
+  /* The link for the design as it stands: this page, with the hash. Built
+     on demand rather than read back from the address, which is a moment
+     behind it. */
+  const linkFor = async () => {
+    const url = new URL(location.href);
+    url.hash = await toLink(configText);
+    return url.href;
+  };
+  /* The phone's share sheet where there is one; the clipboard where not. A
+     clipboard that refuses is not the end of it — the address bar holds the
+     same link — and the callout says where to find it. */
+  const share = async () => {
+    const url = await linkFor();
+    try {
+      if (navigator.share) {
+        await navigator.share({ url, title: craft.name });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setNote({ severity: "good", title: "Link copied." });
+    } catch (e) {
+      /* Dismissing the share sheet rejects with AbortError; that is a
+         choice, not a failure. */
+      if (e instanceof Error && e.name === "AbortError") return;
+      setNote({
+        severity: "bad",
+        title: "Could not copy the link — it is in the address bar.",
+      });
+    }
   };
 
   const totalParts = stages.reduce(
@@ -679,6 +755,7 @@ export default function KSPMissionPlanner() {
       budget={budget}
       accent={dcolor}
       top={viewTop}
+      onShare={canLink() ? share : undefined}
       moreOpen={showMore}
       onToggleMore={() => setShowMore(!showMore)}
       origin={origin}
@@ -805,6 +882,7 @@ export default function KSPMissionPlanner() {
           onTheme={setThemePref}
           search={search}
           configText={configText}
+          linkFor={canLink() ? linkFor : undefined}
           onLoad={applyConfig}
         />
       </Sheet>
@@ -858,6 +936,8 @@ export default function KSPMissionPlanner() {
             stages={stages}
             ok={ok}
             first={first}
+            note={note}
+            noteStyle={noteFade}
             onCut={tryCut}
             onTech={tryTech}
             onHalve={tryHalf}

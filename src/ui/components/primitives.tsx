@@ -9,7 +9,7 @@ import {
   Plus,
   TriangleAlert,
 } from "lucide-react";
-import { BREAK, C, FONT, RADIUS, SCRIM, SPACE, Z } from "../tokens.js";
+import { BREAK, C, FONT, MOTION, RADIUS, SCRIM, SPACE, Z } from "../tokens.js";
 import type { Severity } from "../tokens.js";
 import type {
   CSSProperties,
@@ -74,6 +74,14 @@ type SectionProps = {
      rather than inside it, so it may itself be a control: the brief's Δv
      budget, or the build section's tabs. */
   aside?: ReactNode;
+  /* How far the header may hang into the card's right padding, for an
+     aside that ends in an icon button: the button's box is 44 on the phone
+     and the line it sits in is not, so without this the set brief's summary
+     lost that width and wrapped a line. On the header row, because the
+     padding is the one box around here with room in it — a negative margin
+     lower down overflows its parent, which the layout suite reads as the
+     page scrolling sideways. #140 */
+  asideReach?: number;
   /* Before the first solve has returned: the heading over a line where the
      summary will be, no fold and no children. Not blank and not a spinner —
      the page has its shape before it has its numbers. #139 */
@@ -90,6 +98,7 @@ function Section({
   style,
   gap = SPACE.lg,
   aside,
+  asideReach = 0,
   busy,
   id: anchor,
 }: SectionProps) {
@@ -186,6 +195,7 @@ function Section({
           alignItems: "center",
           gap: SPACE.md,
           marginBottom: shown && children ? gap : 0,
+          marginRight: -asideReach,
         }}
       >
         {folds ? (
@@ -910,6 +920,46 @@ function Field({
   );
 }
 
+/* A message that stands until read. A confirmation — good, or info — holds
+   for a beat, fades over `MOTION.settle` and goes; a bad one stays until the
+   next attempt, because it is asking for something. The config sheet's
+   "Loaded 21 settings" and the brief's "Link copied" are both this. The
+   third value is the style the Callout showing it takes, so the fade is the
+   same wherever it is drawn. #139, #140 */
+type Note = { severity: Severity; title: string };
+
+/* How long a confirmation stands before it starts to fade. */
+const LINGER_MS = 2400;
+
+function useNote(): [Note | null, (n: Note | null) => void, CSSProperties] {
+  const [note, setNote] = useState<Note | null>(null);
+  const [fading, setFading] = useState(false);
+  useEffect(() => {
+    if (!note || note.severity === "bad" || note.severity === "warn") return;
+    const fade = setTimeout(() => setFading(true), LINGER_MS);
+    const gone = setTimeout(() => {
+      setNote(null);
+      setFading(false);
+    }, LINGER_MS + MOTION.settle);
+    return () => {
+      clearTimeout(fade);
+      clearTimeout(gone);
+    };
+  }, [note]);
+  const set = (n: Note | null) => {
+    setFading(false);
+    setNote(n);
+  };
+  return [
+    note,
+    set,
+    {
+      opacity: fading ? 0 : 1,
+      transition: `opacity ${MOTION.settle}ms ease-in`,
+    },
+  ];
+}
+
 export {
   Callout,
   Check,
@@ -924,5 +974,7 @@ export {
   Sheet,
   Stat,
   Toggle,
+  useNote,
   useWide,
 };
+export type { Note };

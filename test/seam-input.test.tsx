@@ -26,8 +26,8 @@ vi.mock("../src/core/plan.js", async (importOriginal) => {
   };
 });
 
-const { render, cleanup } = await import("@testing-library/react");
-const { settle } = await import("./app-harness.js");
+const { render, cleanup, act } = await import("@testing-library/react");
+const { click, openBrief, settle } = await import("./app-harness.js");
 const { default: KSPMissionPlanner } = await import("../src/ui/app.jsx");
 
 /* Same walk as the seam contract's checker, kept separate rather than shared:
@@ -76,5 +76,44 @@ describe("the input the app builds", () => {
     /* structuredClone is what postMessage uses, so a worker needs this to hold
        even where JSON would be stricter than necessary. */
     expect(() => structuredClone(input)).not.toThrow();
+  }, 300_000);
+
+  /* The design as a link, #140: what one mount hands the seam, a second
+     mount opened on the first one's address hands it too. The tech and
+     excluded lists are compared as sets — the app writes `[...unlocked]`,
+     and a roster loaded from a link is iterated in the link's sorted order
+     where the default is in the catalogue's; the solver filters the
+     catalogue by membership and never reads the order. */
+  it("is the same from the link the app writes", async () => {
+    render(<KSPMissionPlanner />);
+    await settle();
+    await openBrief();
+    await click("Duna");
+    await click("Return trip");
+    await settle();
+    /* The address follows the state through an async compression; give it
+       the tick it needs. */
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    const hash = location.hash;
+    expect(hash.startsWith("#c="), "no design in the address").toBe(true);
+    const sent = calls[calls.length - 1];
+    cleanup();
+
+    calls.length = 0;
+    location.hash = hash;
+    render(<KSPMissionPlanner />);
+    await settle();
+    cleanup();
+    location.hash = "";
+    const arrived = calls[calls.length - 1];
+
+    const asSets = (i: PlanInput) => ({
+      ...i,
+      unlocked: [...i.unlocked].sort(),
+      excluded: [...i.excluded].sort(),
+    });
+    expect(asSets(arrived)).toEqual(asSets(sent));
   }, 300_000);
 });

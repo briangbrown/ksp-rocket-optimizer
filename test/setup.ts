@@ -16,11 +16,18 @@ import { beforeEach } from "vitest";
    invisible. It costs time, not correctness — nothing fails, no assertion
    changes, and the only symptom is a slow CI gate that looks like it is simply
    the price of solving rockets. A suite that genuinely wants state to survive
-   between tests has to say so, which is the right way round. */
+   between tests has to say so, which is the right way round.
+
+   And every test starts at a plain address. Since #140 the app writes the
+   design into the URL's hash and reads it back on mount, so a second mount in
+   the same file would otherwise arrive by the first one's link — the payload
+   it typed, the tier it unlocked — which is a reload, not a fresh visit. A
+   test of the link sets the hash itself. */
 beforeEach(() => {
   try {
     localStorage.clear();
+    history.replaceState(null, "", location.pathname + location.search);
   } catch {
-    /* a node-environment suite, with no storage to clear */
+    /* a node-environment suite, with no storage or address to clear */
   }
 });

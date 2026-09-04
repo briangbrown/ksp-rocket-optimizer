@@ -227,3 +227,30 @@ control shows and what it committed.
   leg _i + 1_. After the row they sit between leg _i_ and the one before: a
   slot too low everywhere, one under the launchpad and none under the final
   burn. `test/route-map.test.tsx` holds the reading order. #139
+
+- **The address is the design.** Since #140 `app.tsx` writes `configText`
+  into the URL's hash, compressed, after every change, and a mount with a
+  `#c=` hash applies it through `parseConfig` as a paste would — so a link's
+  tech list overrides the stored roster, and the roster then follows it. The
+  write waits for `hydrated`, or the default mission would overwrite the
+  link that was being read. It is `history.replaceState`, never `pushState`:
+  a change is not a page, and Back should leave the site.
+
+- **Tests start at a plain address.** jsdom shares `location` across a file,
+  so the hash one mount writes is the link the next one arrives by — three
+  `resolve-wiring` cases and the roster's remount test came back to the
+  wrong mission that way. `test/setup.ts` clears the hash before every test
+  next to `localStorage`; the remount test waits a tick before `cleanup()`
+  because the hash is written asynchronously and a reload re-applies it.
+  `CompressionStream` exists in jsdom's Node, so the link is real there;
+  `Blob.stream` does not, which is why `link.ts` builds its `ReadableStream`
+  by hand.
+
+- **A header's aside may hang into the card's padding, from the `Section`.**
+  The set brief's share button is 44 on the phone in a 28 px line: its
+  height is given back by a negative vertical margin on a wrapper, and the
+  12 of width it would otherwise cost the summary — a third line, 21 px on
+  the phone — by `asideReach`, a negative `marginRight` on the header row.
+  The row is the only box whose parent has padding to hang into; the same
+  margin on the aside span or the button's wrapper overflows the row, and
+  the layout suite reads it as the page scrolling sideways. #140
