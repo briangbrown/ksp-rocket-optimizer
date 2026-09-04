@@ -44,6 +44,59 @@ function RouteMap({
         const isCut = cuts.has(i);
         return (
           <div key={i}>
+            {/* The rows run bottom-up, launchpad last, and a cut is "after
+                leg i" — so its button goes above the leg's row, between it
+                and the leg that follows. Below the row it sat between leg i
+                and the one before, a slot too low everywhere, with one under
+                the launchpad and none under the final burn. #139 */}
+            {!leg.free && !last && (
+              <button
+                onClick={() => onToggle(i)}
+                aria-label={
+                  isCut ? "Remove staging event" : "Add staging event"
+                }
+                className="tap"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "26px 1fr",
+                  gap: 10,
+                  width: "100%",
+                  alignItems: "center",
+                  padding: "2px 0",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    color: isCut ? C.amber : C.dim,
+                  }}
+                >
+                  {isCut ? (
+                    <ScissorsLineDashed
+                      size={ICON.chip}
+                      strokeWidth={STROKE}
+                      aria-hidden
+                    />
+                  ) : (
+                    <Scissors
+                      size={ICON.chip}
+                      strokeWidth={STROKE}
+                      aria-hidden
+                    />
+                  )}
+                </div>
+                <div
+                  className="label"
+                  style={{ color: C.amber, textAlign: "left" }}
+                >
+                  {isCut &&
+                    (stagesThrough(i)
+                      ? `stage ${stagesThrough(i)} separates`
+                      : "separates here")}
+                </div>
+              </button>
+            )}
             <div
               style={{
                 display: "grid",
@@ -126,54 +179,6 @@ function RouteMap({
                 {leg.dv === 0 ? "free" : `${fmt(leg.dv)}`}
               </div>
             </div>
-            {!leg.free && !last && (
-              <button
-                onClick={() => onToggle(i)}
-                aria-label={
-                  isCut ? "Remove staging event" : "Add staging event"
-                }
-                className="tap"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "26px 1fr",
-                  gap: 10,
-                  width: "100%",
-                  alignItems: "center",
-                  padding: "2px 0",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "center",
-                    color: isCut ? C.amber : C.dim,
-                  }}
-                >
-                  {isCut ? (
-                    <ScissorsLineDashed
-                      size={ICON.chip}
-                      strokeWidth={STROKE}
-                      aria-hidden
-                    />
-                  ) : (
-                    <Scissors
-                      size={ICON.chip}
-                      strokeWidth={STROKE}
-                      aria-hidden
-                    />
-                  )}
-                </div>
-                <div
-                  className="label"
-                  style={{ color: C.amber, textAlign: "left" }}
-                >
-                  {isCut &&
-                    (stagesThrough(i)
-                      ? `stage ${stagesThrough(i)} separates`
-                      : "separates here")}
-                </div>
-              </button>
-            )}
           </div>
         );
       })}

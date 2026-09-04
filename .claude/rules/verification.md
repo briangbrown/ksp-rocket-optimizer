@@ -191,6 +191,7 @@ invisible to every baseline here.
     test/brief.test.tsx                   the brief folds, sticks and stays put
     test/brief-line.test.ts               the set brief's one line
     test/results-order.test.tsx           the build tabs, and the route folded until cut
+    test/route-map.test.tsx               each cut sits between the leg it follows and the next
     test/disclosure.test.tsx              every paragraph is behind an i, and in the DOM
     test/solving-indicator.test.tsx       the solving pill follows the visual viewport
     test/solver-client.test.ts            the worker message protocol

@@ -220,3 +220,10 @@ control shows and what it committed.
   they index a route that no longer exists. A test that adds a cut and then
   changes the destination has lost the cut, and one that needs an unsolvable
   mission after a cut made it solvable gets one that way. #139
+
+- **The route map runs bottom-up, and a cut is "after leg i".** Its rows are
+  the route reversed — launchpad last, the way a rocket is read — so the
+  scissors for cut _i_ go _before_ leg _i_'s row in the DOM, between it and
+  leg _i + 1_. After the row they sit between leg _i_ and the one before: a
+  slot too low everywhere, one under the launchpad and none under the final
+  burn. `test/route-map.test.tsx` holds the reading order. #139
