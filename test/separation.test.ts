@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { planMission } from "../src/core/plan.js";
 import { extentOf } from "../src/core/model.js";
-import { pose, separation } from "../src/ui/separation.js";
+import { arrive, assembly, pose, separation } from "../src/ui/separation.js";
 import { cameraFor, viewAxis } from "../src/ui/views.js";
 import {
   isSolved,
@@ -284,6 +284,88 @@ describe("what the camera has to reach round", () => {
           };
           /* The camera stands `dist` along the axis from what it looks at,
              which is (0, midY, 0) — the same placement three-view makes. */
+          const along = a.x * c.x + a.y * (c.y - f.midY) + a.z * c.z;
+          const rad = Math.hypot(p.h / 2, p.r);
+          const depth = cam.dist - along;
+          if (depth - rad < cam.near || depth + rad > cam.far)
+            bad.push(
+              `${view} @t=${t}: part ${i} at depth ${depth.toFixed(2)} +/- ${rad.toFixed(2)}, window ${cam.near.toFixed(2)}..${cam.far.toFixed(2)}`,
+            );
+        }
+      }
+    expect(
+      bad.slice(0, 6),
+      `${bad.length} parts outside the depth window`,
+    ).toEqual([]);
+  });
+});
+
+/* What a new design does when it first appears: the parts settle onto the pad
+   from a little above their places. The claim this rests on is the same as a
+   separation's, from the other end — the last frame of the arrival is the
+   still drawing exactly, so nothing jumps when the animation hands over to
+   the frame that stays. The camera does not move at all. #138 */
+describe("an arrival", () => {
+  const asm = assembly(model);
+
+  it("starts with every part above its place, and higher parts higher", () => {
+    const f = arrive(asm, 0);
+    for (const [i, o] of f.offsets.entries()) {
+      expect(o.y, `part ${i} does not start above its place`).toBeGreaterThan(
+        0,
+      );
+      expect(o.x).toBe(0);
+      expect(o.z).toBe(0);
+      expect(o.tilt).toBe(0);
+    }
+    /* The payload, at the top, starts the highest of all. */
+    const top = model.findIndex((p) => p.role === "payload");
+    for (const o of f.offsets)
+      expect(f.offsets[top].y).toBeGreaterThanOrEqual(o.y);
+    /* And not by much: it is a settle, not a launch played backwards. */
+    expect(f.offsets[top].y).toBeLessThan(asm.extent.height / 4);
+  });
+
+  it("settles monotonically, and is still by the end", () => {
+    let was = arrive(asm, 0).offsets.map((o) => o.y);
+    for (const t of [0.1, 0.3, 0.5, 0.7, 0.9, 1]) {
+      const now = arrive(asm, t).offsets.map((o) => o.y);
+      now.forEach((y, i) =>
+        expect(y, `part ${i} rose between frames at t=${t}`).toBeLessThan(
+          was[i] + 1e-12,
+        ),
+      );
+      was = now;
+    }
+    const last = arrive(asm, 1);
+    expect(last.settled).toBe(1);
+    for (const o of last.offsets)
+      expect(o).toEqual({ x: 0, y: 0, z: 0, tilt: 0 });
+  });
+
+  it("frames the still drawing from the first instant to the last", () => {
+    const still = extentOf(model);
+    for (const t of [0, 0.5, 1]) {
+      const f = arrive(asm, t);
+      expect(f.extent).toEqual(still);
+      expect(f.midY).toBe(still.height / 2);
+    }
+    /* At rest, the depth window is what the still drawing asks for too. */
+    const rest = arrive(asm, 1);
+    expect(rest.sweep.reach).toBe(still.reach);
+    expect(rest.sweep.height).toBeGreaterThanOrEqual(still.height);
+  });
+
+  it("puts every raised part inside the depth window it asks for", () => {
+    const bad: Array<string> = [];
+    for (const view of ["side", "plan", "iso"])
+      for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+        const f = arrive(asm, t);
+        const cam = cameraFor(view, f.extent, 0.5, f.sweep);
+        const a = viewAxis(view);
+        for (const [i, p] of model.entries()) {
+          const o = f.offsets[i];
+          const c = { x: p.x + o.x, y: p.y + p.h / 2 + o.y, z: p.z + o.z };
           const along = a.x * c.x + a.y * (c.y - f.midY) + a.z * c.z;
           const rad = Math.hypot(p.h / 2, p.r);
           const depth = cam.dist - along;

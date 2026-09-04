@@ -165,4 +165,25 @@ them.
   passed with the bug it was written for still in place. It stands the camera
   where the renderer stands it and normalises the look direction itself.
 
+- **An arrival ends where the still drawing is, to the bit.** A new design
+  settles onto the pad from a little above its place — `arrive()` in
+  `src/ui/separation.ts`, the same shape of thing as `pose()` — and at t = 1
+  every offset is exactly zero, the extent is the still's and the camera has
+  not moved, so the frame the animation hands over to is the one it ended on.
+  `test/separation.test.ts` holds that on numbers and `visual/render.test.ts`
+  on pixels. Do not let the camera take part: the arrival plays on every
+  change to the brief that changes the design, and a frame that moves each
+  time is a nervous drawing. Which design it is comes from `missionSignature`
+  in `src/core/signature.ts` plus the payload diameter — a re-solve that
+  returns the same rocket is not an arrival. #138
+
+- **The scrubber and the stepper drive the same pair.** While the range
+  input is held, `scrub` (a position in steps, `2.4` being forty percent of
+  the way from step 2 to 3) replaces `anim` as the source of the motion, and
+  `shot` is keyed on which pair is on screen either way. Letting go snaps to
+  the nearer step and clears `anim` as well as `scrub`: a separation that was
+  cancelled mid-flight leaves its last `anim` behind, and a stale `anim` is a
+  drawing stuck between two steps. The arrow keys walk whole steps through
+  `setGoal`, so the keyboard never rests between two. #138
+
 ---

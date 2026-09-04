@@ -14,7 +14,7 @@ import {
   hasSync,
 } from "../core/orbits.js";
 import { missionHardware } from "../core/parts.js";
-import { stageCost, stageParts } from "../core/performance.js";
+import { stageParts } from "../core/performance.js";
 import { withDeps } from "../core/tech.js";
 import { Brief } from "./components/brief.jsx";
 import { IconButton, Sheet, useWide } from "./components/primitives.jsx";
@@ -546,10 +546,6 @@ export default function KSPMissionPlanner() {
     };
   };
 
-  const totalCost = stages.reduce(
-    (a, x) => a + (x.sol ? stageCost(x.sol) : 0),
-    0,
-  );
   const totalParts = stages.reduce(
     (a, x) => a + (x.sol ? stageParts(x.sol) : 0),
     0,
@@ -845,7 +841,6 @@ export default function KSPMissionPlanner() {
             hardware={hardware}
             craft={craft}
             liftoff={liftoff}
-            totalCost={totalCost}
             totalParts={totalParts}
             vehicleClass={vehicleClass}
             color={dcolor}

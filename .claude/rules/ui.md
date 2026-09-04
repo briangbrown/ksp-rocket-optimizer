@@ -184,3 +184,26 @@ control shows and what it committed.
   first; running `vitest --config vitest.visual.config.js` by hand does not,
   and measures whatever was last built — a change that "had no effect" on a
   budget usually was not built.
+
+- **The build view names its motion, and the gaps count.** `data-motion` on
+  its root is what `settle` in `visual/browser.ts` waits on. It is computed in
+  render rather than read from state for the arrival's first frame — the
+  effect that starts the arrival has not run yet on the render that shows the
+  new rocket — and it stays `"staging"` through `moving`, not just `anim`,
+  because between one separation landing and the next starting there is a
+  render with nothing in flight; the phone's layout screenshot was taken in
+  that gap and showed step 2 of a walk to the pad. The demonstration's reset
+  to the pad is named too, through the `demo` ref. #138
+
+- **The scrubber lives inside the drawing row.** Under the drawings, in the
+  column with them, so where the row has a height of its own — full screen
+  and the desktop's six tenths of the window — it comes out of the drawings'
+  height (`scrubH`) rather than the page's. A range input is 24 px on the
+  desktop and 44 on the phone by the stylesheet, and the row's arithmetic has
+  to know which; that is the one place `useWide` reaches into the build view's
+  sizing. #138
+
+- **The desktop's rocket is six tenths of the window, not seven.** #138
+  asked for up to 70 dvh; at the layout suite's 900 px window that is 55 px
+  over the desktop page's height budget, and the budget is the evidence. Six
+  tenths measures 2583 against 2610. Full screen is where the rest is.

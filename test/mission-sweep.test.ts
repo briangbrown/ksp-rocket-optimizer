@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { planMission } from "../src/core/plan.js";
 import { sweepCases } from "./grid.js";
-import { missionSignature } from "./signature.js";
+import { missionSignature } from "../src/core/signature.js";
 import { stageGeom } from "../src/core/geometry.js";
 import type { PlanStage } from "../src/core/plan.js";
 

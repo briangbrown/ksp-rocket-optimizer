@@ -142,10 +142,21 @@ two layouts rather than being repositioned, so that reading order is DOM order
 on both screens (`useWide`); the set brief is stuck on its own only on the
 phone, since on the desktop the column carries it.
 
-The build view is the column's width and half the viewport tall (`clamp(300px,
-50dvh, 600px)`) instead of a fixed 300, the plan square beside the elevation
-and the pair centred in the room a pencil-shaped rocket leaves. Full screen is
-the same view at the window's size with the rail on the left. The flight
+The build view is the column's width and six tenths of the viewport tall
+(`clamp(360px, 60dvh, 900px)`) instead of a fixed 300, the plan square beside
+the elevation and the pair centred in the room a pencil-shaped rocket leaves.
+Full screen is the same view at the window's size with the rail on the left.
+The rocket is the hero of the section (#138): the craft name stands over the
+drawing in the `display` role with _Save it as_ above it and the subtitle as a
+`note`, and the headline `Stat`s — liftoff mass, stages, height, aspect, cost,
+parts, class — are the row under it, following the staging step as the drawing
+does (mass is _Liftoff mass_ on the pad and _Mass_ after; the pad's aspect is
+named beside the step's when they differ, and carries the amber). The staging
+steps are a scrubber along the foot of the drawings — a range input with a
+handle that can be held anywhere between two steps and snaps to the nearer on
+release — with the chips as the accessible form: the rail on the desktop,
+under the scrubber on the phone. #138 asked for seven tenths; six is what the
+desktop page's height budget holds, and full screen has the rest. The flight
 card's seven steps are one row, each a number in a ring with the words under
 it and a rule joining the rings; the two launch steps take the theme's accent
 on the ring. A segment's stage cards are two across, top of the rocket first,
@@ -490,12 +501,13 @@ is a list of them.
 
 Two durations and three easings, all in `tokens.ts`:
 
-| Token     | Value   | For                                                      |
-| --------- | ------- | -------------------------------------------------------- |
-| `quick`   | 120 ms  | a chip changing state, a chevron turning, a tooltip      |
-| `settle`  | 400 ms  | a fold opening, a sheet sliding, the figures counting up |
-| `STEP_MS` | 800 ms  | one staging step, stepped by hand (`build.tsx`)          |
-| `PLAY_MS` | 1600 ms | one staging step, played (`build.tsx`)                   |
+| Token       | Value   | For                                                      |
+| ----------- | ------- | -------------------------------------------------------- |
+| `quick`     | 120 ms  | a chip changing state, a chevron turning, a tooltip      |
+| `settle`    | 400 ms  | a fold opening, a sheet sliding, the figures counting up |
+| `ARRIVE_MS` | 400 ms  | a new design settling onto the pad (`build.tsx`)         |
+| `STEP_MS`   | 800 ms  | one staging step, stepped by hand (`build.tsx`)          |
+| `PLAY_MS`   | 1600 ms | one staging step, played (`build.tsx`)                   |
 
 Easings: `smooth` (`t²(3−2t)`) for anything the camera does or a panel that
 moves; `pushed` (ease-out) for a thing given one shove; `falls` (`t²`) for a
@@ -503,7 +515,12 @@ thing released. They are in `separation.ts` and are the physics, not the
 styling — do not add a fourth for a chip.
 
 What animates: state changes on controls, folds, sheets, the staging, and the
-rocket's arrival after a solve. What does not: layout — nothing reflows with a
+rocket's arrival after a solve — the parts settle from a little above their
+places (`settles`, an ease-out cubic, in `separation.ts`) with the camera
+still, the figures count up on the same curve, and only for a design the
+solver has not delivered before (`missionSignature`). On the phone the first
+design of a session then plays its staging through once and rests on the pad;
+never again. What does not: layout — nothing reflows with a
 transition, and the solving veil's fast-in slow-out is the one exception,
 because a solve that returns in 40 ms should not flash.
 

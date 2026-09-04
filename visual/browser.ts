@@ -161,8 +161,18 @@ export async function open(
 
 /* The veil is always mounted and only changes opacity, so the pulse animation
    on the dot is the honest "still solving" signal — the same reading
-   `test/app-harness.js` takes in jsdom, for the same reason. */
-export async function settle(page: Page, timeout = 120_000) {
+   `test/app-harness.js` takes in jsdom, for the same reason.
+
+   Then, unless told not to, for the build view to stop moving. It names what
+   is in motion on its root — `data-motion="arriving"` while a new design
+   settles onto the pad, `"staging"` while a separation runs — and a sample
+   taken before either has finished reads a frame of the animation as though
+   it were the drawing. The render suite asks for `motion: false` where the
+   frame in flight is the thing it wants to see. #138 */
+export async function settle(
+  page: Page,
+  { motion = true, timeout = 120_000 } = {},
+) {
   await page.waitForFunction(
     () => !document.querySelector('[style*="pulse"]'),
     { timeout, polling: 200 },
@@ -174,6 +184,11 @@ export async function settle(page: Page, timeout = 120_000) {
       polling: 200,
     },
   );
+  if (motion)
+    await page.waitForFunction(() => !document.querySelector("[data-motion]"), {
+      timeout,
+      polling: "raf",
+    });
   /* One more frame after the last state change, so what is measured is what
      was drawn for it rather than the frame before. */
   await page.evaluate(

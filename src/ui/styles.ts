@@ -65,7 +65,7 @@ ${roles.map((n) => "  " + role(n, 1)).join("\n")}
 button { font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
 button:disabled { cursor:default; }
 button:focus-visible, input:focus-visible, textarea:focus-visible { outline:2px solid ${C.amber}; outline-offset:2px; }
-input[type=range]{ accent-color:${C.amber}; width:100%; }
+input[type=range]{ accent-color:${C.amber}; width:100%; height:24px; margin:0; }
 /* A chip is a body-role button; data-on is how it shows it is selected, and
    the aria attribute beside it is how a reader hears the same thing. */
 .chip { ${face("body")}${size("body", 0)} border:1px solid ${C.edge}; border-radius:${RADIUS.sm}px;

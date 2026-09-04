@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { solveGroup, solveGroupWith } from "../src/core/solver.js";
 import { cases } from "./grid.js";
-import { signature } from "./signature.js";
+import { signature } from "../src/core/signature.js";
 import { must } from "./must.js";
 import type { ChainCandidate, Prepared } from "../src/core/solver.js";
 

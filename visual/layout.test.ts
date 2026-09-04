@@ -23,22 +23,22 @@ import type { Page } from "puppeteer";
    render.test.ts gives. */
 const BUDGET = {
   phone: {
-    height: 4180, // px, the whole page with the default mission solved and the brief set: 4095, with 2% for a different Chrome's fonts
-    words: 645, // visible words on that page — the paragraphs are behind disclosures, #135
+    height: 4180, // px, the whole page with the default mission solved and the brief set: 4090 with the rocket as the hero (#138), with 2% for a different Chrome's fonts
+    words: 633, // visible words on that page — the paragraphs are behind disclosures, #135
     tinyText: 0, // text under 12 px
-    smallBody: 60, // text under 13 px: the labels, at 12
-    targets: 0, // pressable things under 44 × 44 — of 24, #136
+    smallBody: 59, // text under 13 px: the labels, at 12
+    targets: 0, // pressable things under 44 × 44 — of 25, #136
     sideways: 0, // things wider than their box
     unreachable: 0, // targets a keyboard cannot reach
     axe: 0, // nodes axe objects to, wcag2a + wcag2aa
     folded: 860, // px, every section folded: the brief, four lines and the footer — 844, which is the viewport
   },
   desktop: {
-    height: 2610, // 2556 — the two-column shell, #137
-    words: 646,
-    tinyText: 61, // the labels, at 11
-    smallBody: 88, // labels and notes
-    targets: 0, // under 24 × 24 — of 24
+    height: 2610, // 2583 — the two-column shell (#137) with the rocket at six tenths of the window (#138)
+    words: 634,
+    tinyText: 60, // the labels, at 11
+    smallBody: 87, // labels and notes
+    targets: 0, // under 24 × 24 — of 25
     sideways: 0,
     unreachable: 0,
     axe: 0,

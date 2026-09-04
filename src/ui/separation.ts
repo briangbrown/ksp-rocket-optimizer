@@ -198,4 +198,62 @@ export function pose(sep: Separation, t: number) {
   };
 }
 
-export type { Offset, Phase, Separation };
+/* ------------------------------- an arrival -------------------------------
+
+   What a new design does when it first appears: the parts settle onto the pad
+   from a little above where they belong, the top of the stack from a little
+   higher than the bottom, so the rocket assembles rather than cuts in. The
+   camera does not move — the frame is the still drawing's from the first
+   instant — and at t = 1 every offset is exactly zero, so the last frame of
+   the arrival is the still drawing to the bit. That is the claim
+   `test/separation.test.ts` holds it to, and `visual/render.test.ts` reads
+   the pixels for. #138 */
+
+type Arrival = {
+  parts: ReadonlyArray<ModelPart>;
+  extent: Extent;
+};
+
+/* How far above its place a part starts, as a fraction of the rocket's height:
+   small, since this is a settle and not a launch in reverse. The bottom of the
+   stack starts this far up and the top twice it. */
+const RISE = 0.06;
+
+/* Decelerating into place: fast to start, and still by the end. */
+const settles = (t: number) => 1 - (1 - t) * (1 - t) * (1 - t);
+
+export function assembly(parts: ReadonlyArray<ModelPart>): Arrival {
+  return { parts, extent: extentOf(parts) };
+}
+
+export function arrive(asm: Arrival, t: number) {
+  const H = Math.max(asm.extent.height, 1e-9);
+  const left = 1 - settles(t);
+  const offsets: Array<Offset> = asm.parts.map((p) => ({
+    x: 0,
+    y: RISE * H * (1 + p.y / H) * left,
+    z: 0,
+    tilt: 0,
+  }));
+  /* The depth window reaches round the raised parts; the frame does not
+     follow them, which is the point. */
+  const midY = H / 2;
+  let halfSpan = 0;
+  asm.parts.forEach((p, i) => {
+    halfSpan = Math.max(
+      halfSpan,
+      Math.abs(p.y + offsets[i].y + p.h / 2 - midY) + p.h / 2 + p.r,
+    );
+  });
+  return {
+    offsets,
+    extent: asm.extent,
+    sweep: { height: 2 * halfSpan, reach: asm.extent.reach },
+    midY,
+    /* How far in it is, on the same curve, for the figures that count up
+       alongside: the numbers and the parts arrive together. */
+    settled: 1 - left,
+  };
+}
+
+export type { Arrival, Offset, Phase, Separation };

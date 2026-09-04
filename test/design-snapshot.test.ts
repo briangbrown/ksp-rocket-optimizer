@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { solveGroup } from "../src/core/solver.js";
 import { resetTally } from "../src/core/tally.js";
 import { cases } from "./grid.js";
-import { signature } from "./signature.js";
+import { signature } from "../src/core/signature.js";
 
 /* The design snapshot.
 
