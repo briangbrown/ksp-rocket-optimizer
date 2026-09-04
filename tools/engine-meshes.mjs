@@ -36,9 +36,16 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
-/* Vertices to keep per engine, and per big cluster. */
-const TARGET = 400;
-const BIG = 600;
+/* Vertices to keep per engine, and per big cluster — a ceiling, not a
+   goal: the turn bound below stops a curved surface short of it. */
+const TARGET = 500;
+const BIG = 800;
+/* The weight of a turn against a distance in the collapse cost, on faces
+   of area A: TURN · extent² · A · (1 − cos θ) beside A · d². At 40, a face
+   that turns fifteen degrees costs what moving it the whole part's extent
+   would — so the smooth surfaces keep their rings and the budget is spent
+   on the bolts, pipes and struts, which are all turn and no size. */
+const TURN = 40;
 
 /* ------------------------------------------------------------------ zip */
 function unzip(buf) {
@@ -831,7 +838,7 @@ class Heap {
   }
 }
 
-function simplify(verts0, tris, target) {
+function simplify(verts0, tris, target, extent) {
   const { verts, faces } = weld(verts0, tris);
   const n = verts.length;
   const V = verts.map((v) => [...v]);
@@ -889,6 +896,31 @@ function simplify(verts0, tris, target) {
       }
   }
   const heap = new Heap();
+  /* The turn a collapse puts on the faces round its ends, as area × (1 −
+     cos θ): a quadric measures distance, and merging two ring vertices on a
+     cylinder moves the surface very little while turning its facets a lot —
+     sixteen segments become eight, and every facet is then an edge to the
+     shading. Priced into the cost, scaled to the part, it is what the collapse
+     order avoids for as long as it can; forbidden outright it pinned a
+     Mammoth at nine thousand vertices, since a bolt head is all turn. A face
+     turned past a right angle is a flip, and that is refused. */
+  const turnOf = (a, b, pos) => {
+    let turn = 0;
+    for (const v of [a, b])
+      for (const fi of facesOf[v]) {
+        const f = F[fi];
+        if (f.includes(a) && f.includes(b)) continue;
+        const before = plane(V[f[0]], V[f[1]], V[f[2]]);
+        const moved = f.map((u) => (u === v ? pos : V[u]));
+        const after = plane(moved[0], moved[1], moved[2]);
+        if (!before || !after) continue;
+        const dot =
+          before[0] * after[0] + before[1] * after[1] + before[2] * after[2];
+        if (dot < 0.2) return Infinity;
+        turn += before[4] * (1 - dot);
+      }
+    return turn;
+  };
   const propose = (a, b) => {
     const q = qadd(Q[a], Q[b]);
     let best = null,
@@ -905,13 +937,16 @@ function simplify(verts0, tris, target) {
       ],
     ]) {
       if (!c) continue;
-      const e = qeval(q, c);
+      const t = turnOf(a, b, c);
+      if (t === Infinity) continue;
+      const e = qeval(q, c) + TURN * extent * extent * t;
       if (e < cost) {
         cost = e;
         best = c;
       }
     }
-    heap.push({ cost, a, b, pos: best, va: version[a], vb: version[b] });
+    if (best)
+      heap.push({ cost, a, b, pos: best, va: version[a], vb: version[b] });
   };
   for (const k of edgeCount.keys()) propose(Math.floor(k / n), k % n);
   /* Stop on faces, not vertices. A collapse takes one vertex and two faces,
@@ -930,26 +965,8 @@ function simplify(verts0, tris, target) {
     const { a, b } = e;
     if (!alive[a] || !alive[b] || version[a] !== e.va || version[b] !== e.vb)
       continue;
-    /* Would moving a or b to the new point turn any face over? */
-    let flips = false;
-    for (const v of [a, b])
-      for (const fi of facesOf[v]) {
-        const f = F[fi];
-        if (f.includes(a) && f.includes(b)) continue; // this face collapses away
-        const before = plane(V[f[0]], V[f[1]], V[f[2]]);
-        const moved = f.map((u) => (u === v ? e.pos : V[u]));
-        const after = plane(moved[0], moved[1], moved[2]);
-        if (
-          !before ||
-          !after ||
-          before[0] * after[0] + before[1] * after[1] + before[2] * after[2] <
-            0.2
-        ) {
-          flips = true;
-          break;
-        }
-      }
-    if (flips) continue;
+    /* Neighbours may have moved since this was priced; a flip is refused. */
+    if (turnOf(a, b, e.pos) === Infinity) continue;
     /* Collapse b into a at the new position. */
     V[a] = e.pos;
     Q[a] = qadd(Q[a], Q[b]);
@@ -1031,7 +1048,16 @@ function measure(part, zip) {
   /* The budget: enough for a bell to read as a bell at the sixty or so
      pixels the drawing gives it; more for the big clusters, which have
      four of them and a plate. */
-  const s = simplify(verts, out.tris, out.verts.length > 15000 ? BIG : TARGET);
+  const extent = Math.max(
+    top - ymin,
+    2 * Math.max(...verts.map(([x, , z]) => Math.hypot(x, z))),
+  );
+  const s = simplify(
+    verts,
+    out.tris,
+    out.verts.length > 15000 ? BIG : TARGET,
+    extent,
+  );
   /* What shows, measured on the simplified mesh so the drawing fills the box
      it is scaled into: the height from the node down, and the radius of
      anything below the node. Clustering moves the extremes a little. */

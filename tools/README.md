@@ -40,10 +40,12 @@ rescale, variants); walks each mesh's transform tree with the root's own
 placement dropped, because that is where the prefab sat in the Unity scene
 and the game discards it; takes every visible triangle in world space with
 the top node at y = 0; welds the texture seams; and simplifies by quadric
-edge collapse to four hundred vertices (six for the big clusters), boundary
-loops protected so a bell's lip keeps its radius, face flips refused — the
-curve between throat and lip loses its rings and renders smooth under the
-renderer's crease-split normals, while the lip stays a line. The
+edge collapse to about five hundred vertices (eight for the big clusters),
+boundary loops protected so a bell's lip keeps its radius, face flips refused,
+and the turn a collapse puts on its faces priced into its cost so the smooth
+surfaces keep their rings and the budget is spent on bolts and struts — the
+result renders smooth under the renderer's crease-split normals, with the lip
+a line. The
 oldest stock files carry an undocumented word after the root transform; the
 reader skips word by word past it, as taniwha's does.
 

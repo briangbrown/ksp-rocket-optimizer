@@ -33,8 +33,8 @@ const UNMEASURED = ["FL-S1200 Liquid Fuel Tank"];
 
 /* Vertices a file may carry and bytes it may weigh: the tool aims under the
    first, and the second is what a phone fetches before a rocket draws. */
-const VERTICES = 1000;
-const BYTES = 32_000;
+const VERTICES = 1200;
+const BYTES = 40_000;
 
 describe("the engine meshes", () => {
   it("cover every engine in the catalogue but the ones named", () => {

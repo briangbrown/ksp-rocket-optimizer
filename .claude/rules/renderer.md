@@ -184,11 +184,12 @@ them.
   was, and when the file lands every mounted view is told (`onMeshes`) and
   re-keys its build effect on `meshTick`. `null` in the cache is an engine
   with no file — no asking again. Its normals are `toCreasedNormals` at
-  `ENGINE_CREASE`, 45°: averaged where faces meet at less than that, so a
+  `ENGINE_CREASE`, 70°: averaged where faces meet at less than that, so a
   bell shades as a curve, split where they meet at more, so a lip stays a
   line — and the crease pass draws edges at the same angle, so a line
   appears exactly where the shading breaks. Not the 30° a cylinder's cap
-  wants: a simplified mesh has many small angles that are not edges. Scaled uniformly to the box the model gave it, hanging from the
+  wants: a ring of six facets meets at sixty, and no engine has a real edge
+  shallower than a right angle. Scaled uniformly to the box the model gave it, hanging from the
   top; the model's height came from the same mesh's drag cube and its width
   from its face area, so the two fits agree within a few percent and the
   smaller keeps the drawing inside what the solver sized. jsdom never mounts

@@ -68,7 +68,7 @@ import type { Offset } from "../separation.js";
    surface id marks it. */
 const SEGMENTS = 40;
 const CREASE_ANGLE = 30;
-const ENGINE_CREASE = 45;
+const ENGINE_CREASE = 70;
 
 /* The profile of a part that tapers, revolved to make it.
 
@@ -177,8 +177,10 @@ function engineGeometry(R: number, H: number, m: EngineMesh) {
   g.setIndex([...m.i]);
   /* Smooth across a curve, split at an edge: normals are averaged between
      faces that meet at less than the crease angle and kept apart at more,
-     so a bell shades as a curve and its lip stays a line. The same angle
-     decides which edges the crease pass draws. */
+     so a bell shades as a curve and its lip stays a line. Seventy degrees:
+     no engine has a real edge that shallow, and a ring of six facets meets
+     at sixty. The same angle decides which edges the crease pass
+     draws. */
   const creased = toCreasedNormals(g, (ENGINE_CREASE * Math.PI) / 180);
   g.dispose();
   return creased;

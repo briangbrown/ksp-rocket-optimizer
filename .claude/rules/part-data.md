@@ -66,9 +66,17 @@ Changing a number here is changing a measurement.
   every visible triangle with the top node at y = 0; welds the texture seams
   (the game splits a vertex wherever one runs, and unwelded each seam is a
   crack the simplifier may not close); and simplifies by quadric edge
-  collapse — Garland and Heckbert — to four hundred vertices, six for the
-  big clusters, with the boundary loops weighted so a lip does not creep
-  inward and a collapse that would flip a face refused. The first pass was
+  collapse — Garland and Heckbert — to about five hundred vertices, eight
+  for the big clusters, with the boundary loops weighted so a lip does not
+  creep inward, a collapse that would flip a face refused, and **the turn a
+  collapse puts on its faces priced into the cost** (`TURN` in the tool):
+  a quadric measures distance, and merging two ring vertices on a cylinder
+  moves the surface very little while turning its facets a lot, so left to
+  the quadric alone a sixteen-segment ring became eight and every facet an
+  edge to the shading. Priced, the budget goes to the bolts, pipes and
+  struts — all turn and no size — and the smooth surfaces keep their rings.
+  Forbidden outright instead of priced, it pinned a Mammoth at nine
+  thousand vertices. The first pass was
   vertex clustering onto a grid, and it drew lumps: not curvature-aware, not
   normal-preserving, slivers everywhere, and flat-shaded on top. Millimetres,
   as integers. ReStock's engines carry a collar above the node that sits
