@@ -186,7 +186,9 @@ invisible to every baseline here.
     test/first-run.test.tsx               the sections' shape before the first solve
     test/three-view.test.ts               the orthographic framing, on numbers
     test/seam-contract.test.ts            planMission stays serialisable
-    test/seam-input.test.tsx              what the app actually hands the seam
+    test/seam-input.test.tsx              what the app actually hands the seam, and from a link
+    test/link.test.ts                     the design as a hash: size, round trip, refusal
+    test/share.test.tsx                   arriving by a link, and sharing one
     test/resolve-wiring.test.tsx          does a control change re-solve
     test/brief.test.tsx                   the brief folds, sticks and stays put
     test/brief-line.test.ts               the set brief's one line

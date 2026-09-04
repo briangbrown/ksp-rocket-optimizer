@@ -451,7 +451,11 @@ established and the word where none is (§7). Every alert on the page is one;
 `test/boundaries.test.ts` bans an inline border in a severity colour (#139).
 Not for: confirming a click (that is the `IconButton` swapping to `Check` for
 a beat) or a status (that is the solving pill, whose edge is `edge` and whose
-dot is what says "live").
+dot is what says "live"). The one confirmation that is a `Callout` is what
+arriving by a link or sharing one did — _Link copied._, or the mission that
+loaded and what it left at its defaults — because the reader is looking at
+_Your rocket_, not at the control. Those are a `useNote`: `good` and `info`
+fade after 2.4 s, `warn` and `bad` stay.
 
 **`Field`** — a `label`, a `figure` value that can be typed, a range input, and
 a `Disclosure` for the hint. The typed value is a draft while focused
@@ -481,22 +485,23 @@ idiom not on this list adds it here first.
 alone, stroke width 1.75 throughout. Every icon-only control has an
 `aria-label` and a touch-reachable tooltip; a `title` attribute is not either.
 
-| Action                    | Icon                                                | Note                                                                               |
-| ------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| copy                      | `Copy` → `Check`                                    | the check for 1.6 s, then back                                                     |
-| load from clipboard       | `ClipboardPaste`                                    |                                                                                    |
-| share a link              | `Share2`                                            |                                                                                    |
-| setup                     | `Settings`                                          |                                                                                    |
-| fold / unfold             | `ChevronRight`                                      | rotates 90° when open                                                              |
-| close / cancel / clear    | `X`                                                 | with the count when clearing exclusions                                            |
-| cut the route here        | `Scissors` → `ScissorsLineDashed`                   | `dim` when uncut; `amber`, with the cut line, when cut — lucide has no closed pair |
-| isometric                 | `Box`                                               | a `Toggle`                                                                         |
-| play / pause the staging  | `Play` / `Pause`                                    | in use today                                                                       |
-| full screen / leave it    | `Maximize2` / `Minimize2`                           | in use today                                                                       |
-| a disclosure              | `Info`                                              |                                                                                    |
-| back to the top           | `ArrowUp`                                           | the jump bar                                                                       |
-| return to Kerbin (origin) | `Undo2` + word                                      | it is a destination, not a verb — the word stays                                   |
-| severity                  | `Info` `CircleCheck` `TriangleAlert` `OctagonAlert` | see Colour                                                                         |
+| Action                    | Icon                                                | Note                                                                                |
+| ------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| copy                      | `Copy` → `Check`                                    | the check for 1.6 s, then back                                                      |
+| copy the link             | `Link` → `Check`                                    | setup's first button, where the browser can write one; the JSON is behind _As text_ |
+| load from clipboard       | `ClipboardPaste`                                    |                                                                                     |
+| share a link              | `Share2`                                            | in the set brief; `navigator.share` where there is one, else the clipboard          |
+| setup                     | `Settings`                                          |                                                                                     |
+| fold / unfold             | `ChevronRight`                                      | rotates 90° when open                                                               |
+| close / cancel / clear    | `X`                                                 | with the count when clearing exclusions                                             |
+| cut the route here        | `Scissors` → `ScissorsLineDashed`                   | `dim` when uncut; `amber`, with the cut line, when cut — lucide has no closed pair  |
+| isometric                 | `Box`                                               | a `Toggle`                                                                          |
+| play / pause the staging  | `Play` / `Pause`                                    | in use today                                                                        |
+| full screen / leave it    | `Maximize2` / `Minimize2`                           | in use today                                                                        |
+| a disclosure              | `Info`                                              |                                                                                     |
+| back to the top           | `ArrowUp`                                           | the jump bar                                                                        |
+| return to Kerbin (origin) | `Undo2` + word                                      | it is a destination, not a verb — the word stays                                    |
+| severity                  | `Info` `CircleCheck` `TriangleAlert` `OctagonAlert` | see Colour                                                                          |
 
 Words stay where no icon is established: _Return trip_, _Gimbal_, _Solid
 boosters_, _Parachutes_ (toggles), the stage count's `auto`, the

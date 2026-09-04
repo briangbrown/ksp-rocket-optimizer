@@ -1,4 +1,4 @@
-import { Undo2 } from "lucide-react";
+import { Share2, Undo2 } from "lucide-react";
 import { PROFILES, SYS } from "../../core/orbits.js";
 import { OBJECTIVES, OBJECTIVE_HINT, fmt } from "../format.js";
 import { C, RADIUS, SHADOW, SPACE, Z } from "../tokens.js";
@@ -8,6 +8,7 @@ import {
   Disclosure,
   Field,
   ICON,
+  IconButton,
   STROKE,
   Section,
   Toggle,
@@ -27,6 +28,9 @@ type BriefProps = {
   /* The set line — briefLine in format.ts — and the Δv budget beside it. */
   line: string;
   budget: number;
+  /* The design as a link, offered once the brief is set — a decided mission
+     is the one worth sending. Absent where the browser cannot make one. #140 */
+  onShare?: () => void;
   /* The Δv accent: the destination's own hue. */
   accent: string;
   /* How far the visual viewport has been pushed down the layout one, which
@@ -108,12 +112,39 @@ function Brief(p: BriefProps) {
       open={p.open}
       onToggle={p.onToggle}
       style={stuck}
+      /* The share button's 44 hangs into the card's padding, so the set
+         line keeps the width it had. */
+      asideReach={!p.open && p.onShare ? 12 : 0}
       aside={
-        <span className="figure" style={{ color: p.accent }}>
-          {fmt(p.budget)}
-          <span className="note" style={{ color: C.dim, marginLeft: SPACE.sm }}>
-            m/s
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: SPACE.sm,
+          }}
+        >
+          <span className="figure" style={{ color: p.accent }}>
+            {fmt(p.budget)}
+            <span
+              className="note"
+              style={{ color: C.dim, marginLeft: SPACE.sm }}
+            >
+              m/s
+            </span>
           </span>
+          {/* The button is 44 on the phone in a line of text; it hangs
+              above and below the line — on a wrapper, not the button, or
+              its box overflows the row's — so the set line is no taller
+              for it. */}
+          {!p.open && p.onShare && (
+            <span style={{ display: "inline-flex", margin: "-10px 0" }}>
+              <IconButton
+                icon={Share2}
+                label="Share the link"
+                onClick={p.onShare}
+              />
+            </span>
+          )}
         </span>
       }
     >

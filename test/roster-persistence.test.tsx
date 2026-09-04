@@ -22,7 +22,7 @@ vi.mock("../src/ui/solver-client.js", () => ({
   solve: () => Promise.resolve(null),
 }));
 
-const { render, cleanup } = await import("@testing-library/react");
+const { render, cleanup, act } = await import("@testing-library/react");
 const { byText, click, openSetup, settle } = await import("./app-harness.js");
 const { DATA } = await import("../src/core/catalogue.js");
 const { withDeps } = await import("../src/core/tech.js");
@@ -120,6 +120,12 @@ describe("the roster in a browser", () => {
     await click(button("Tech tree ·"));
     await click(tierChip(2));
     const before = nodesShown();
+    /* The address follows the state a tick later, and a reload re-applies
+       what it carries — leave the tick, or the remount arrives by the link
+       to the roster as it was before the click. #140 */
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
     cleanup();
 
     await mount();

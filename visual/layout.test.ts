@@ -27,7 +27,7 @@ const BUDGET = {
     words: 633, // visible words on that page — the paragraphs are behind disclosures, #135
     tinyText: 0, // text under 12 px
     smallBody: 59, // text under 13 px: the labels, at 12
-    targets: 0, // pressable things under 44 × 44 — of 25, #136
+    targets: 0, // pressable things under 44 × 44 — of 26, #136
     sideways: 0, // things wider than their box
     unreachable: 0, // targets a keyboard cannot reach
     axe: 0, // nodes axe objects to, wcag2a + wcag2aa
@@ -38,7 +38,7 @@ const BUDGET = {
     words: 634,
     tinyText: 60, // the labels, at 11
     smallBody: 87, // labels and notes
-    targets: 0, // under 24 × 24 — of 25
+    targets: 0, // under 24 × 24 — of 26
     sideways: 0,
     unreachable: 0,
     axe: 0,

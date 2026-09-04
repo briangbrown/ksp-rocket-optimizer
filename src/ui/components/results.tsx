@@ -14,6 +14,8 @@ import {
   STROKE,
   Section,
 } from "./primitives.jsx";
+import type { CSSProperties } from "react";
+import type { Note } from "./primitives.jsx";
 import { RouteMap } from "./route.jsx";
 import { StageStack } from "./stages.jsx";
 import type { Leg } from "../../core/orbits.js";
@@ -41,6 +43,11 @@ type ResultsProps = {
   /* No solve has come back yet: the sections show their shape and nothing
      else. */
   first: boolean;
+  /* What the page has to say about the design as a whole — the link it
+     arrived by, the link just copied — over the rocket, where the
+     unsolvable callout also stands. `noteStyle` carries its fade. #140 */
+  note: Note | null;
+  noteStyle: CSSProperties;
   /* What to try when nothing solves, each absent where it cannot apply —
      every leg already cut, the payload already at its floor. */
   onCut?: () => void;
@@ -132,6 +139,13 @@ function Results(p: ResultsProps) {
         onToggle={() => setRocketOpen(!rocketOpen)}
         busy={p.first}
       >
+        {p.note && (
+          <Callout
+            severity={p.note.severity}
+            title={p.note.title}
+            style={{ marginBottom: 14, ...p.noteStyle }}
+          />
+        )}
         {/* The three things to try are buttons that try them, not a sentence
             that names them. A chip each, with the icon where one is
             established — the route's scissors, the setup's cog — and the

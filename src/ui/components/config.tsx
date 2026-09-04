@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { Check, ClipboardPaste, Copy, X } from "lucide-react";
+import { useState } from "react";
+import { Check, ClipboardPaste, Copy, Link, X } from "lucide-react";
 import { fmt } from "../format.js";
-import { C, MOTION, RADIUS, SPACE } from "../tokens.js";
-import { Callout, IconButton } from "./primitives.jsx";
+import { C, RADIUS, SPACE } from "../tokens.js";
+import { Callout, Disclosure, IconButton, useNote } from "./primitives.jsx";
 import type { Tally } from "../../core/tally.js";
 
 /* What the last solve cost, as the setup sheet reports it: the search
@@ -12,53 +12,44 @@ type SearchStats = Tally & { threads: number; ms: number };
 type ConfigProps = {
   search: SearchStats | null;
   text: string;
+  /* The design as a link, where the browser can make one. With it the copy
+     button copies the link and the text is a step further in; without it
+     the text is what there is. #140 */
+  linkFor?: () => Promise<string>;
   onLoad: (text: string) => { bad: boolean; msg: string };
 };
 
-/* How long a confirmation stands before it starts to fade. */
-const LINGER_MS = 2400;
+/* What the copy button last put on the clipboard, for the tick beside it. */
+type Copied = "link" | "text";
 
 /* Everything a run depends on, in one string. Pasting it back means we are
    looking at the same rocket rather than describing it to each other. */
-function Config({ search, text, onLoad }: ConfigProps) {
-  const [copied, setCopied] = useState(false);
-  const [shown, setShown] = useState(false);
+function Config({ search, text, linkFor, onLoad }: ConfigProps) {
+  const [copied, setCopied] = useState<Copied | null>(null);
+  /* What to select by hand when the clipboard refuses. */
+  const [shown, setShown] = useState<string | null>(null);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteText, setPasteText] = useState("");
-  const [note, setNote] = useState<{ bad: boolean; msg: string } | null>(null);
-  /* A loaded configuration is confirmed and then left alone: the callout
-     holds for a beat, fades over `MOTION.settle`, and goes. A bad paste
-     stays until the next attempt — it is asking for something. #139 */
-  const [fading, setFading] = useState(false);
-  useEffect(() => {
-    if (!note || note.bad) return;
-    const fade = setTimeout(() => setFading(true), LINGER_MS);
-    const gone = setTimeout(() => {
-      setNote(null);
-      setFading(false);
-    }, LINGER_MS + MOTION.settle);
-    return () => {
-      clearTimeout(fade);
-      clearTimeout(gone);
-    };
-  }, [note]);
+  /* A loaded configuration is confirmed and then left alone; a bad paste
+     stays until the next attempt. #139 */
+  const [note, setNote, fade] = useNote();
 
-  const copy = async () => {
+  const copy = async (what: Copied) => {
+    const value = what === "link" && linkFor ? await linkFor() : text;
     /* Clipboard access is not guaranteed here, so fall back to showing the
        text for manual selection rather than failing silently. */
     try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
+      await navigator.clipboard.writeText(value);
+      setCopied(what);
+      setTimeout(() => setCopied(null), 1600);
     } catch {
-      setShown(true);
+      setShown(value);
     }
   };
 
   const load = () => {
     const r = onLoad(pasteText);
-    setFading(false);
-    setNote(r);
+    setNote({ severity: r.bad ? "bad" : "good", title: r.msg });
     if (r.bad) return;
     setPasteOpen(false);
     setPasteText("");
@@ -119,10 +110,16 @@ function Config({ search, text, onLoad }: ConfigProps) {
             Configuration
           </span>
           <IconButton
-            icon={copied ? Check : Copy}
-            label={copied ? "Copied" : "Copy configuration"}
-            on={copied}
-            onClick={copy}
+            icon={copied === "link" ? Check : linkFor ? Link : Copy}
+            label={
+              copied === "link"
+                ? "Copied"
+                : linkFor
+                  ? "Copy link"
+                  : "Copy configuration"
+            }
+            on={copied === "link"}
+            onClick={() => copy("link")}
           />
           <IconButton
             icon={ClipboardPaste}
@@ -133,17 +130,28 @@ function Config({ search, text, onLoad }: ConfigProps) {
               setNote(null);
             }}
           />
+          {/* The text is the fallback transport, and a step further in: for
+              the chat that mangles an address, or a planner without one. */}
+          {linkFor && (
+            <Disclosure label="Sharing as text" caption="As text">
+              A design travels as a link — the one the copy button gives you,
+              and the one in the address bar. Where a link will not do, the same
+              configuration goes as text, and comes back through the load
+              button.
+              <div style={{ marginTop: SPACE.md }}>
+                <button className="chip" onClick={() => copy("text")}>
+                  {copied === "text" ? "Copied" : "Copy as text"}
+                </button>
+              </div>
+            </Disclosure>
+          )}
         </span>
       </div>
       {note && (
         <Callout
-          severity={note.bad ? "bad" : "good"}
-          title={note.msg}
-          style={{
-            marginTop: SPACE.md,
-            opacity: fading ? 0 : 1,
-            transition: `opacity ${MOTION.settle}ms ease-in`,
-          }}
+          severity={note.severity}
+          title={note.title}
+          style={{ marginTop: SPACE.md, ...fade }}
         />
       )}
       {pasteOpen && (
@@ -170,11 +178,11 @@ function Config({ search, text, onLoad }: ConfigProps) {
           </div>
         </div>
       )}
-      {shown && (
+      {shown !== null && (
         <textarea
           className="figure"
           readOnly
-          value={text}
+          value={shown}
           onFocus={(e) => e.target.select()}
           style={{ ...area, height: 84, marginTop: 10 }}
         />
