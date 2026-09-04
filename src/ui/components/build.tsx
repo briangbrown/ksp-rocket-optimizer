@@ -12,11 +12,14 @@ import { Box, Maximize, Minimize, Pause, Play } from "lucide-react";
 
 import { payloadDiaOf, stackGeometry } from "../../core/geometry.js";
 import { extentOf, modelOf } from "../../core/model.js";
+import { stageCost, stageParts } from "../../core/performance.js";
+import { missionSignature } from "../../core/signature.js";
+import { fmt } from "../format.js";
 import { framing, panelSizes } from "../views.js";
-import { pose, separation } from "../separation.js";
+import { arrive, assembly, pose, separation } from "../separation.js";
 import { C, FONT, RADIUS, SPACE, Z } from "../tokens.js";
 import type { Theme } from "../tokens.js";
-import { Choice, IconButton, useWide } from "./primitives.jsx";
+import { Choice, IconButton, Stat, useWide } from "./primitives.jsx";
 import type { ReactNode } from "react";
 import type { PlanStage } from "../../core/plan.js";
 import type { Solution } from "../../core/solution.js";
@@ -151,11 +154,20 @@ const GAP = 22;
    line loses the top and bottom of its inverted ground when selected. */
 const HEAD = 44;
 /* How tall the drawings stand when this is not full screen, on a screen too
-   narrow for a second column. Wide, the row takes half the window instead —
-   `INLINE_WIDE` — and the panels are sized from what it measures, the way
-   full screen is. Full screen is where the rest of the space is. #137 */
+   narrow for a second column: about as tall as a phone is wide, so the
+   elevation's panel is square-ish. Wide, the row takes six tenths of the
+   window instead — `INLINE_WIDE` — and the panels are sized from what it
+   measures, the way full screen is. Seven tenths was the ask (#138) and is
+   55 px over the desktop page's height budget; six holds it with the rocket
+   a third taller than before. The rest of the space is full screen's.
+   #137, #138 */
 const INLINE_H = 300;
-const INLINE_WIDE = "clamp(300px, 50dvh, 600px)";
+const INLINE_WIDE = "clamp(360px, 60dvh, 900px)";
+/* The scrubber's target, which the stylesheet sets: 24 px on the desktop and
+   44 on the phone, where `input[type=range]` is a taller box drawn round the
+   same track. It sits inside the row under the drawings, so where the row has
+   a height of its own this much of it is not theirs. */
+const SCRUB_TARGET = { wide: 24, phone: 44 };
 /* How long one stage separation takes.
 
    Two paces, because the two ways of asking for one are different questions.
@@ -166,6 +178,11 @@ const INLINE_WIDE = "clamp(300px, 50dvh, 600px)";
    in. #105 */
 const STEP_MS = 800;
 const PLAY_MS = 1600;
+/* And how long a new design takes to arrive: the parts settle onto the pad
+   from a little above their places and the figures count up alongside. Short,
+   because it plays every time the solver delivers something new, which is
+   every change to the brief. #138 */
+const ARRIVE_MS = 400;
 
 /* Motion is a preference. The stylesheet already honours it for every
    transition in the application; a separation is the same question asked of a
@@ -226,6 +243,10 @@ type BuildViewProps = {
   stages: ReadonlyArray<PlanStage>;
   payload: number;
   payloadDia: number;
+  /* What the rocket is called and which class it falls in: the name stands
+     over the drawing and the class among the figures under it. #138 */
+  craft: { name: string; sub: string };
+  vehicleClass: string;
   color: string;
   theme: Theme;
   maxAspect?: number;
@@ -235,6 +256,8 @@ function BuildView({
   stages,
   payload,
   payloadDia,
+  craft,
+  vehicleClass,
   color,
   theme,
   maxAspect = 14,
@@ -249,6 +272,12 @@ function BuildView({
   /* The transition in flight: which pair of steps, and how far through. Null
      between them, which is every frame that is not animating. */
   const [anim, setAnim] = useState<{ a: number; t: number } | null>(null);
+  /* Where the scrub handle is being held, in steps — `2.4` is forty percent of
+     the way from step 2 to step 3 — and null when nobody is holding it. #138 */
+  const [scrub, setScrub] = useState<number | null>(null);
+  /* A new design on its way in: how far through the arrival. Null once it has
+     landed, which is every frame that is not arriving. #138 */
+  const [arrival, setArrival] = useState<{ t: number } | null>(null);
   /* Locked cameras, not an orbit: a schematic that moves stops being a
      drawing. The three-quarter is the one angle that shows a ring of columns
      as a ring while still reading as an elevation. #63 step 5. */
@@ -263,6 +292,10 @@ function BuildView({
      Steps are then instant, which is what they have always been. */
   const animates = drawn && !reducedMotion();
 
+  /* Before the observer has reported, and in jsdom where it never will. */
+  const outerW = box.w || 320;
+  const railed = drawn && outerW >= WIDE;
+
   const last = Math.max(0, steps.length - 1);
   const from = Math.min(step, last);
   const want = Math.min(goal, last);
@@ -272,12 +305,73 @@ function BuildView({
      and a backward step is the same one played from the far end. */
   const lo = back ? from - 1 : from;
 
+  /* Which design this is, so a re-solve that comes back with the same rocket
+     is not a new one. The brief is re-solved on every change to it, and most
+     of those — a payload a kilogram heavier — return the design already on
+     screen; a drawing that flinched at each would be a nervous drawing. The
+     fingerprint is the mission sweep's, plus the payload's diameter, which the
+     sweep does not draw and this does. #138 */
+  const sig = useMemo(
+    () => missionSignature("", solved) + payloadDia,
+    [solved, payloadDia],
+  );
+  const lastSig = useRef<string | null>(null);
+  /* Whether the staging has been played through for the reader unasked. Once
+     a session, on the phone, where there is no rail to say what the steps are:
+     the first design arrives and then flies, and rests on the pad after. Never
+     again for the same design, and never again for the next either — once is a
+     demonstration and twice is a habit. #138 */
+  const demoed = useRef(false);
+  /* Whether the play in flight is that demonstration, which ends on the pad
+     rather than at the last step. Cleared by anything the reader does. */
+  const demo = useRef(false);
+  const railedNow = useRef(railed);
+  railedNow.current = railed;
+
+  useEffect(() => {
+    if (lastSig.current === sig) return;
+    lastSig.current = sig;
+    /* Back to the pad: the new rocket is drawn whole first, whatever step the
+       old one was at. */
+    setPlaying(false);
+    setGoal(0);
+    setStep(0);
+    setAnim(null);
+    setScrub(null);
+    demo.current = false;
+    if (!animates || !solved.length) return;
+    setArrival({ t: 0 });
+    const t0 = performance.now();
+    let id = requestAnimationFrame(function tick(now: number) {
+      const u = Math.min(1, (now - t0) / ARRIVE_MS);
+      setArrival({ t: u });
+      if (u < 1) id = requestAnimationFrame(tick);
+      else {
+        setArrival(null);
+        if (!demoed.current && !railedNow.current && steps.length > 1) {
+          demoed.current = true;
+          demo.current = true;
+          setPlaying(true);
+          setGoal(steps.length - 1);
+        }
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [sig, animates, steps.length, solved.length]);
+
   /* One at a time, and the next begins where the last committed — so a jump of
      several steps plays each separation in turn, which is what a launch does.
      #105 */
   useEffect(() => {
     if (!moving) {
       setPlaying(false);
+      /* The demonstration ends where it began, so what the reader is left
+         looking at is the rocket, not the payload alone. */
+      if (demo.current) {
+        demo.current = false;
+        setStep(0);
+        setGoal(0);
+      }
       return;
     }
     if (!animates) {
@@ -324,38 +418,67 @@ function BuildView({
      returns fresh arrays every call, and handing ThreeView a new one every
      frame would have it throw away every buffer on the card to move a part a
      metre. */
-  const base = anim ? anim.a : from;
+  /* What is between two steps, and how far: the separation in flight, or the
+     one the scrub handle is being held in. Held, the handle wins — a scrub is
+     the reader taking the film out of the projector's hands. #138 */
+  const motion =
+    scrub !== null
+      ? { a: Math.min(Math.floor(scrub), last), t: scrub - Math.floor(scrub) }
+      : anim;
+  const base = motion ? motion.a : from;
   const shot = useMemo(() => {
     const A = stepModels(solved, steps[base], payload, payloadDia);
-    if (!anim || base + 1 > last) return { A, B: null, sep: null };
+    if (!motion || base + 1 > last) return { A, B: null, sep: null };
     const B = stepModels(solved, steps[base + 1], payload, payloadDia);
     return {
       A,
       B,
       sep: separation(A.model, B.model, steps[base], steps[base + 1]),
     };
-  }, [solved, steps, base, anim !== null, last, payload, payloadDia]);
+  }, [solved, steps, base, motion !== null, last, payload, payloadDia]);
+  /* The arrival's choreography, built once for the design and not once a
+     frame, for the same reason as `shot`. */
+  const asm = useMemo(() => assembly(shot.A.model), [shot.A.model]);
 
-  if (!solved.length) return null;
+  /* Every stage solved. Short of that the whole-vehicle figures are dashes:
+     the liftoff mass of a rocket missing a stage is not a number. With none
+     solved there is no drawing at all, and the name and the dashes stand
+     over the callout that says so. */
+  const complete = solved.length > 0 && solved.length === stages.length;
+  const dash = (v: string | number) => (complete ? v : "—");
 
-  const frame = anim && shot.sep ? pose(shot.sep, anim.t) : null;
+  const frame = motion && shot.sep ? pose(shot.sep, motion.t) : null;
+  /* A new design settling onto the pad. Only ever at the pad — a separation
+     cannot be in flight during an arrival, since the arrival put the stepper
+     there — so the two never contend for the offsets. */
+  const landing = arrival && !frame ? arrive(asm, arrival.t) : null;
+  /* How far in the figures are: they count up with the parts. */
+  const settled = landing ? landing.settled : 1;
   /* The step being entered: what the figures report and which chip is lit. The
-     drawing is between two of them, and the numbers may as well lead. */
-  const at = moving ? (back ? lo : lo + 1) : from;
+     drawing is between two of them, and the numbers may as well lead. Held by
+     the handle, the nearer of the two. */
+  const at =
+    scrub !== null
+      ? Math.min(Math.round(scrub), last)
+      : moving
+        ? back
+          ? lo
+          : lo + 1
+        : from;
   const model = shot.A.model;
   const live =
-    frame && shot.B ? (back ? shot.A.live : shot.B.live) : shot.A.live;
+    frame && shot.B ? (at === base ? shot.A.live : shot.B.live) : shot.A.live;
   /* The plan shows the bottom live stage alone, so between two steps it is a
      different shape with nothing in common. It fades through rather than
      moving: out over the first half, swapped where nothing is on screen, back
      in over the second. */
   const planModel =
-    frame && shot.B && anim
-      ? anim.t < 0.5
+    frame && shot.B && motion
+      ? motion.t < 0.5
         ? shot.A.planModel
         : shot.B.planModel
       : shot.A.planModel;
-  const planFade = anim ? Math.abs(2 * anim.t - 1) : 1;
+  const planFade = motion ? Math.abs(2 * motion.t - 1) : 1;
 
   /* Twice, over two chains. `pad` is the vehicle that leaves the pad and `now`
      is what is left at this step — the same function and the same authority,
@@ -391,15 +514,16 @@ function BuildView({
   /* A floor so a very small rocket still gets a panel with room in it. */
   const wMax = Math.max(1, need.w * 2);
 
-  /* Before the observer has reported, and in jsdom where it never will. */
-  const outerW = box.w || 320;
-  const railed = drawn && outerW >= WIDE;
   const aw = railed ? outerW - RAIL - GAP : outerW;
   /* The row's height is read where the row has one of its own — full screen,
      and the wide screen's half-window — and never where it is the drawings'
      own height coming back round. */
   const sized = full || wide;
-  const ah = sized && box.h ? Math.max(1, box.h - HEAD) : INLINE_H;
+  const scrubbed = animates && steps.length > 1;
+  const scrubH = scrubbed
+    ? (wide ? SCRUB_TARGET.wide : SCRUB_TARGET.phone) + SPACE.md
+    : 0;
+  const ah = sized && box.h ? Math.max(1, box.h - HEAD - scrubH) : INLINE_H;
   const { elev, plan } = panelSizes({ aw, ah }, wMax / H, GAP);
 
   /* One header line per column, so all three labels sit on it. */
@@ -420,7 +544,9 @@ function BuildView({
       options={steps.map((st, i) => ({ value: i, label: st.label }))}
       value={at}
       onChange={(i) => {
+        demo.current = false;
         setPlaying(false);
+        setScrub(null);
         setGoal(i);
       }}
       chip={railed ? { textAlign: "left", width: "100%" } : undefined}
@@ -432,29 +558,100 @@ function BuildView({
               marginTop: 6,
               overflowY: "auto",
             }
-          : { marginBottom: 14 }
+          : undefined
       }
     />
   );
 
-  const heading = <span className="label">Staging</span>;
+  /* The stepper as a scrubber: the same steps laid along a line, with a
+     handle that can be held anywhere between two of them. Dragging it plays
+     the separation by hand; letting go snaps to the nearer step and the
+     stepper takes it from there. The arrow keys walk whole steps, as they do
+     on the chips, so the keyboard never lands between two. Only where the
+     separations animate — with nothing to scrub through, the chips are the
+     whole control. #138 */
+  const release = () => {
+    if (scrub === null) return;
+    const n = Math.min(Math.round(scrub), last);
+    setScrub(null);
+    setAnim(null);
+    setStep(n);
+    setGoal(n);
+  };
+  const scrubber = scrubbed && (
+    <input
+      type="range"
+      aria-label="Scrub the staging"
+      min={0}
+      max={last}
+      step={0.01}
+      value={scrub ?? (anim ? anim.a + anim.t : from)}
+      onPointerDown={() => {
+        demo.current = false;
+        setPlaying(false);
+      }}
+      onChange={(e) => setScrub(parseFloat(e.target.value))}
+      onPointerUp={release}
+      onPointerCancel={release}
+      onBlur={release}
+      onKeyDown={(e) => {
+        const by =
+          e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "PageUp"
+            ? 1
+            : e.key === "ArrowLeft" ||
+                e.key === "ArrowDown" ||
+                e.key === "PageDown"
+              ? -1
+              : e.key === "Home"
+                ? -last
+                : e.key === "End"
+                  ? last
+                  : 0;
+        if (!by) return;
+        e.preventDefault();
+        demo.current = false;
+        setPlaying(false);
+        setScrub(null);
+        setGoal(Math.max(0, Math.min(last, at + by)));
+      }}
+      style={{ display: "block", marginTop: SPACE.md, flexShrink: 0 }}
+    />
+  );
+
+  /* The name on the rocket. What the section used to carry as a row of
+     figures beside a name is now the drawing's own title and its own
+     caption: the name over it in the display role, the figures under it. */
+  const heading = (
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="label" style={{ marginBottom: 3 }}>
+        Save it as
+      </div>
+      <div className="display" style={{ color: C.paper, lineHeight: 1.1 }}>
+        {craft.name}
+      </div>
+      <div className="note" style={{ marginTop: 2 }}>
+        {craft.sub}
+      </div>
+    </div>
+  );
 
   const header = (
     <div
       style={{
         display: "flex",
-        alignItems: "center",
+        alignItems: "flex-end",
         gap: 10,
         marginBottom: 12,
       }}
     >
       {heading}
-      <span style={{ flex: 1 }} />
       {animates && steps.length > 1 && (
         <IconButton
           icon={playing ? Pause : Play}
           label={playing ? "Stop" : "Play the staging"}
           onClick={() => {
+            demo.current = false;
+            setScrub(null);
             if (playing) {
               /* Let the separation in flight finish rather than snapping out
                  of it halfway. */
@@ -583,72 +780,126 @@ function BuildView({
           flex: 1,
           minWidth: 0,
           display: "flex",
-          gap: GAP,
-          alignItems: "stretch",
-          justifyContent: railed ? "center" : undefined,
+          flexDirection: "column",
+          minHeight: 0,
         }}
       >
-        {panel(
-          "Elevation",
-          model,
-          angle,
-          elev,
-          buffers?.elev,
-          <IconButton
-            icon={Box}
-            label="Isometric"
-            on={angle === "iso"}
-            onClick={() => setAngle(angle === "iso" ? "side" : "iso")}
-          />,
-          1,
-          frame,
-        )}
-        {panel(
-          "Plan",
-          planModel,
-          "plan",
-          plan,
-          buffers?.plan,
-          undefined,
-          planFade,
-        )}
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: "flex",
+            gap: GAP,
+            alignItems: "stretch",
+            justifyContent: railed ? "center" : undefined,
+          }}
+        >
+          {panel(
+            "Elevation",
+            model,
+            angle,
+            elev,
+            buffers?.elev,
+            <IconButton
+              icon={Box}
+              label="Isometric"
+              on={angle === "iso"}
+              onClick={() => setAngle(angle === "iso" ? "side" : "iso")}
+            />,
+            1,
+            frame ?? landing,
+          )}
+          {panel(
+            "Plan",
+            planModel,
+            "plan",
+            plan,
+            buffers?.plan,
+            undefined,
+            planFade,
+          )}
+        </div>
+        {/* The stepper as a scrubber, along the foot of the drawings. */}
+        {scrubber}
       </div>
     </div>
   );
 
+  /* The headline figures, for the step on screen. On the pad they are the
+     whole vehicle's — the liftoff mass, every stage, what it all costs — and
+     at each step after they are what is still attached, the way the drawing
+     is. Height and slenderness are `stackGeometry`'s, not the drawing's own
+     bounds: the two agree — `test/model.test.ts` holds them to a millimetre —
+     and there is one of them, which is the point. #101, #138 */
+  /* A stage's `total` is everything above it, payload included, so the bottom
+     live stage's is the mass of what is still attached; with nothing left it
+     is the payload. */
+  const mass = live.length ? live[0].sol.total : payload;
+  const cost = live.reduce((a, x) => a + stageCost(x.sol), 0);
+  const parts = live.reduce((a, x) => a + stageParts(x.sol), 0);
+  const figures = (
+    <div
+      className="hero"
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "flex-end",
+        marginTop: SPACE.lg,
+      }}
+    >
+      <Stat
+        label={whole ? "Liftoff mass" : "Mass"}
+        value={dash(fmt(mass * settled, 1))}
+        unit="t"
+      />
+      <Stat
+        label="Stages"
+        value={dash(Math.round(live.length * settled))}
+        unit=""
+      />
+      <Stat
+        label="Height"
+        value={dash((now.h * settled).toFixed(1))}
+        unit="m"
+        small
+      />
+      <Stat
+        label="Aspect"
+        value={dash((now.ar * settled).toFixed(1))}
+        unit=":1"
+        color={complete && whole && limit === C.amber ? C.amber : undefined}
+        small
+      />
+      {!whole && (
+        <Stat
+          label="On the pad"
+          value={pad.ar.toFixed(1)}
+          unit=":1"
+          color={limit === C.amber ? C.amber : undefined}
+          small
+        />
+      )}
+      <Stat label="Cost" value={dash(fmt(cost * settled))} unit="funds" small />
+      <Stat
+        label="Parts"
+        value={dash(Math.round(parts * settled))}
+        unit=""
+        small
+      />
+      <Stat label="Class" value={vehicleClass} unit="" small />
+    </div>
+  );
+
+  /* On the phone the chips follow the drawing they name, under the scrubber;
+     on the desktop they are the rail. */
   const body = (
     <>
       {header}
-      {!railed && chips}
-      {drawn ? row : <NoWebGL />}
-      <div
-        className="figure"
-        style={{
-          display: "flex",
-          gap: GAP,
-          flexWrap: "wrap",
-          marginTop: SPACE.lg,
-          color: C.muted,
-        }}
-      >
-        <span>
-          {live.length} stage{live.length === 1 ? "" : "s"} attached
-        </span>
-        {/* From `stackGeometry`, not from the drawing's own bounds. The two
-            agree — `test/model.test.ts` holds them to a millimetre — and there
-            is one of them, which is the point. */}
-        <span>{now.h.toFixed(1)} m tall</span>
-        <span>{now.w.toFixed(2)} m across</span>
-        <span style={{ color: whole ? limit : undefined }}>
-          {now.ar.toFixed(1)}:1 aspect
-          {!whole && (
-            <span style={{ color: limit }}>
-              {" · "}
-              {pad.ar.toFixed(1)} on the pad
-            </span>
-          )}
-        </span>
-      </div>
+      {solved.length > 0 && (drawn ? row : <NoWebGL />)}
+      {solved.length > 0 && !railed && (
+        <div style={{ marginTop: SPACE.lg }}>{chips}</div>
+      )}
+      {figures}
     </>
   );
 
@@ -657,9 +908,8 @@ function BuildView({
      reader to read out and one of them to pick from, and the way back is on
      the overlay where the eye already is. */
   const placeholder = (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
       {heading}
-      <span style={{ flex: 1 }} />
       <span className="note" style={{ color: C.dim }}>
         shown full screen · Escape to come back
       </span>
@@ -678,9 +928,25 @@ function BuildView({
      Not the Fullscreen API. This is meant to run inside a Claude artifact's
      iframe, where `requestFullscreen` needs an `allow` attribute nobody here
      controls. Filling the window is the promise it can keep. */
+  /* Named while anything is in motion, so the browser suite's `settle` can
+     wait for it to stop — the arrival as much as a separation. Computed rather
+     than read from state for the arrival's first frame: a design has changed
+     when its fingerprint has, and the effect that starts the arrival has not
+     run yet on the render that shows the new rocket. #138 */
+  const arriving = arrival !== null || (animates && lastSig.current !== sig);
+  /* `moving` as well as `anim`: between one separation landing and the next
+     starting there is a render with nothing in flight, and a sample taken in
+     that gap reads a step on the way to the one asked for. The demonstration
+     is named to its last frame too, which is the reset to the pad. */
+  const motionName = arriving
+    ? "arriving"
+    : anim || moving || demo.current
+      ? "staging"
+      : undefined;
+
   return (
     <>
-      <div>{full ? placeholder : body}</div>
+      <div data-motion={motionName}>{full ? placeholder : body}</div>
       {full &&
         createPortal(
           <div

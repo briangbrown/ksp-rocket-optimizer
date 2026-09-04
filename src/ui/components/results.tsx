@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { fmt, hms } from "../format.js";
-import { C, SPACE } from "../tokens.js";
+import { SPACE } from "../tokens.js";
 import type { Theme } from "../tokens.js";
 import { BuildView } from "./build.jsx";
 import { AscentPanel, FLYING_IT, methodology } from "./flight.jsx";
 import { PartsTable } from "./parts.jsx";
-import { Callout, Choice, Disclosure, Section, Stat } from "./primitives.jsx";
+import { Callout, Choice, Disclosure, Section } from "./primitives.jsx";
 import { RouteMap } from "./route.jsx";
 import { StageStack } from "./stages.jsx";
 import type { Leg } from "../../core/orbits.js";
@@ -40,7 +40,6 @@ type ResultsProps = {
   /* The headline figures: what the rocket is called and what it comes to. */
   craft: { name: string; sub: string };
   liftoff: number;
-  totalCost: number;
   totalParts: number;
   vehicleClass: string;
   color: string;
@@ -137,71 +136,21 @@ function Results(p: ResultsProps) {
           </Callout>
         )}
 
-        {/* The name and the headline figures. Step 11 (#138) makes the rocket
-            the hero; this is the row beside it. The gap is the stylesheet's:
-            26 on desktop, and on the phone 12, with the name on a line of
-            its own, which is what lets seven figures fall on two lines
-            rather than three. #136 */}
-        <div
-          className="hero"
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "flex-end",
-            marginBottom: p.stages.some((x) => x.sol) ? SPACE.xl : 0,
-          }}
-        >
-          <div className="hero-name" style={{ maxWidth: 340 }}>
-            <div className="label" style={{ marginBottom: 3 }}>
-              Save it as
-            </div>
-            <div
-              className="body"
-              style={{ color: C.paper, fontWeight: 600, lineHeight: 1.25 }}
-            >
-              {p.craft.name}
-            </div>
-            <div className="note" style={{ marginTop: 2 }}>
-              {p.craft.sub}
-            </div>
-          </div>
-          <Stat label="Liftoff mass" value={dash(fmt(p.liftoff, 1))} unit="t" />
-          <Stat label="Stages" value={dash(p.stages.length)} unit="" />
-          <Stat
-            label="Height"
-            value={dash(p.geom.h.toFixed(1))}
-            unit="m"
-            small
-          />
-          <Stat
-            label="Aspect"
-            value={dash(p.geom.ar.toFixed(1))}
-            unit=":1"
-            color={p.ok && p.geom.ar > p.maxAspect ? C.amber : undefined}
-            small
-          />
-          <Stat
-            label="Cost"
-            value={dash(fmt(p.totalCost))}
-            unit="funds"
-            small
-          />
-          <Stat label="Parts" value={dash(p.totalParts)} unit="" small />
-          <Stat label="Class" value={p.vehicleClass} unit="" small />
-        </div>
-
-        {/* The heading lives in BuildView, with the full-screen button beside
-            it, so the overlay carries its own title. #99 */}
-        {p.stages.some((x) => x.sol) && (
-          <BuildView
-            stages={p.stages}
-            payload={p.payload}
-            payloadDia={p.payloadDia}
-            color={p.color}
-            theme={p.theme}
-            maxAspect={p.maxAspect}
-          />
-        )}
+        {/* The rocket is the hero: the name stands over the drawing and the
+            headline figures under it, both inside `BuildView`, which is also
+            where the full-screen button is, so the overlay carries its own
+            title. Where nothing solved there is no drawing, and the name and
+            a row of dashes stand over the callout above. #99, #138 */}
+        <BuildView
+          stages={p.stages}
+          payload={p.payload}
+          payloadDia={p.payloadDia}
+          craft={p.craft}
+          vehicleClass={p.vehicleClass}
+          color={p.color}
+          theme={p.theme}
+          maxAspect={p.maxAspect}
+        />
       </Section>
 
       <Section

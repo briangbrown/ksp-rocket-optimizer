@@ -96,7 +96,8 @@ async function press(label: string) {
     if (!b) throw new Error("no button labelled " + want);
     b.click();
   }, label);
-  await settle(page);
+  /* Not for the motion: the tests below sample separations in flight. */
+  await settle(page, { motion: false });
 }
 
 /* Long enough for one separation to run and settle. A step taken by clicking
@@ -330,10 +331,12 @@ describe("the build view, in a browser", () => {
     await press("Full screen");
     const big = await read(ELEVATION);
     const bigPlan = await read(PLAN);
+    /* A quarter taller, not half: the inline view takes six tenths of the
+       window since #138, so full screen has less left to add. */
     expect(
       big.css[1],
       `the elevation went from ${small.css[1]} to ${big.css[1]} px tall`,
-    ).toBeGreaterThan(small.css[1] * 1.5);
+    ).toBeGreaterThan(small.css[1] * 1.25);
     expect(bigPlan.css[0]).toBeGreaterThan(smallPlan.css[0]);
     /* Never wider than the elevation, and standing on the same line as it. */
     expect(bigPlan.css[0]).toBeLessThanOrEqual(big.css[0] + 1);
@@ -441,6 +444,134 @@ describe("the build view, in a browser", () => {
     expect(where, "it ran to the end anyway").not.toBe("Payload alone");
     await step("On the pad");
   }, 60_000);
+
+  it("draws a new design in from the pad, and lands on the still drawing", async () => {
+    /* A design the solver has not delivered before arrives: the parts settle
+       onto the pad from a little above their places over `ARRIVE_MS`, and
+       the frame it lands on is the still drawing exactly — so nothing jumps
+       when the animation hands over. The check is on pixels: a sample during
+       the arrival differs from one after, and the one after matches the
+       drawing redrawn cold. A re-solve returning the same design plays
+       nothing, which is the other half and is asserted last. #138 */
+    await step("On the pad");
+    const was = await read(ELEVATION);
+
+    /* Ask for a different rocket. The payload is on the brief, which folded
+       once the first design solved; the objective chips are on it too. */
+    await page.evaluate(() => {
+      const fold = [
+        ...document.querySelectorAll<HTMLButtonElement>("button.fold"),
+      ].find((b) =>
+        b.querySelector(".label")?.textContent?.trim().startsWith("Brief"),
+      );
+      if (fold && fold.getAttribute("aria-expanded") !== "true") fold.click();
+    });
+    /* Whichever objective is not the one lit, and back to the lit one at
+       the end. */
+    const objective = (want: "on" | "off") =>
+      page.evaluate((want: string) => {
+        const chips = [...document.querySelectorAll("button.chip")].filter(
+          (x) =>
+            ["Lightest", "Cheapest", "Fewest parts"].includes(
+              (x.textContent ?? "").trim(),
+            ),
+        );
+        const b = chips.find(
+          (x) => (x.getAttribute("data-on") === "1") === (want === "on"),
+        );
+        if (!b) throw new Error("no objective chip to press");
+        return (b.textContent ?? "").trim();
+      }, want);
+    const before = await objective("on");
+    const other = await objective("off");
+    /* Four times slower, for the sampling. SwiftShader takes a good part of
+       the arrival's 400 ms to build the new rocket's scene, and the settle is
+       a cubic that has all but stopped by three quarters of the way — so the
+       first frame it draws can be one nothing moves in. The page's clock is
+       the animation's only input: `requestAnimationFrame` hands the loop its
+       timestamp and `performance.now` starts it, and both are wrapped to run
+       slow until the test is done with them. */
+    await page.evaluate(() => {
+      const w = window as unknown as {
+        __clock?: { raf: typeof requestAnimationFrame; now: () => number };
+      };
+      const raf = window.requestAnimationFrame.bind(window);
+      const now = performance.now.bind(performance);
+      const t0 = now();
+      const slow = (t: number) => t0 + (t - t0) / 4;
+      w.__clock = { raf, now };
+      performance.now = () => slow(now());
+      window.requestAnimationFrame = (cb) => raf((t) => cb(slow(t)));
+    });
+    const restore = () =>
+      page.evaluate(() => {
+        const w = window as unknown as {
+          __clock?: { raf: typeof requestAnimationFrame; now: () => number };
+        };
+        if (!w.__clock) return;
+        window.requestAnimationFrame = w.__clock.raf;
+        performance.now = w.__clock.now;
+        delete w.__clock;
+      });
+    const choose = (label: string) =>
+      page.evaluate((want: string) => {
+        const b = [
+          ...document.querySelectorAll<HTMLButtonElement>("button.chip"),
+        ].find((x) => (x.textContent ?? "").trim() === want);
+        if (!b) throw new Error("no chip " + want);
+        b.click();
+      }, label);
+    await choose(other);
+    await page.waitForFunction(
+      () => !!document.querySelector('[data-motion="arriving"]'),
+      { timeout: 60_000, polling: "raf" },
+    );
+    /* Every frame that can be read while it is arriving. */
+    const during: Array<number> = [];
+    while (
+      await page.evaluate(
+        () => !!document.querySelector('[data-motion="arriving"]'),
+      )
+    )
+      during.push((await read(ELEVATION)).hash);
+    await settle(page);
+    const landed = await read(ELEVATION);
+    expect(landed.hash, "the design did not change").not.toBe(was.hash);
+    expect(
+      during.length,
+      "no frame was read during the arrival",
+    ).toBeGreaterThan(0);
+    expect(
+      during.filter((h) => h !== landed.hash).length,
+      `${during.length} frames read during the arrival and none moved`,
+    ).toBeGreaterThan(0);
+
+    /* The still drawing, drawn cold: the same rocket after the view has been
+       turned away and back is a scene rebuilt from nothing in motion. */
+    await press("Isometric");
+    await press("Isometric");
+    await new Promise((r) => setTimeout(r, 300));
+    const cold = await read(ELEVATION);
+    expect(landed.hash, "the arrival did not land on the still drawing").toBe(
+      cold.hash,
+    );
+
+    /* And the same design again is not an arrival. */
+    await choose(other);
+    let saw = false;
+    for (let i = 0; i < 40; i++) {
+      saw ||= await page.evaluate(
+        () => !!document.querySelector('[data-motion="arriving"]'),
+      );
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    await settle(page);
+    expect(saw, "the same design arrived again").toBe(false);
+    /* Back the way it was found. */
+    await choose(before);
+    await settle(page);
+    await restore();
+  }, 120_000);
 
   it("says nothing to the console", async () => {
     /* Last, so it reports what the whole walk above provoked. A shader that

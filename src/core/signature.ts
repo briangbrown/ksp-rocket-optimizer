@@ -1,5 +1,5 @@
-import type { PlanStage } from "../src/core/plan.js";
-import type { ChainCandidate, GroupResult } from "../src/core/solver.js";
+import type { PlanStage } from "./plan.js";
+import type { ChainCandidate, GroupResult } from "./solver.js";
 
 /* Reducing a solved design to a stable text signature.
 

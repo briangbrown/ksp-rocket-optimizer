@@ -121,11 +121,28 @@ while hidden turns every icon button's row into "scrolling sideways"; the
 `IconButton` tooltip is `display: none` until shown for this reason, not a
 styling preference.
 
-One thing it has to be told: `settle` waits for the solver, and a staging
+One thing it had to be told: `settle` waited for the solver, and a staging
 transition has nothing to do with the solver. Sampling a panel before the
 separation has finished reads a frame of the animation as though it were the
 step, which is how the plan check started failing on steps that were perfectly
-fine.
+fine. Since #138 the build view names what is in motion on its root —
+`data-motion="arriving"` while a new design settles onto the pad, `"staging"`
+from the first separation of a walk to the last frame of it, gaps between
+separations included — and `settle` waits for the attribute to go unless asked
+not to (`{ motion: false }`), which the render suite asks where the frame in
+flight is the thing it wants to see. On the phone the first design plays its
+staging through once unasked, so `settle` there is eight seconds or so of
+waiting for a film to end.
+
+The arrival check in `render.test.ts` reads the elevation on every frame it
+can while the attribute says arriving, and holds one of them to differ from
+the frame it lands on — which it holds equal to the same rocket drawn cold,
+after the view has been turned to isometric and back. SwiftShader spends a
+good part of the 400 ms building the new scene, and the settle is a cubic that
+has all but stopped by three quarters, so the test wraps `requestAnimationFrame`
+and `performance.now` to run the page's clock at a quarter speed for the
+duration; the animation has no other input. A re-solve that returns the same
+design is then held not to arrive at all.
 
 It still says nothing about a real GPU, about performance, or about a phone.
 
@@ -145,7 +162,7 @@ reach a whole branch of the slenderness constraint — so a change to it was
 invisible to every baseline here.
 
     test/grid.ts                          the configuration grid and its axes
-    test/signature.ts                     reducing a design to stable text
+    src/core/signature.ts                 reducing a design to stable text — the app compares it too, #138
     test/app-harness.ts                   driving the app in jsdom
     test/framing.ts                       whether a camera sees the whole rocket
     test/must.ts                          an expectation the compiler can read
