@@ -29,7 +29,7 @@ import { JumpBar } from "./components/jump.jsx";
 import { Solving, Veil } from "./components/solving.jsx";
 import { parseConfig } from "./config.js";
 import { canLink, fromLink, toLink } from "./link.js";
-import { briefLine, craftName } from "./format.js";
+import { briefLine, craftName, fmt } from "./format.js";
 import { STYLES } from "./styles.js";
 import { loadRoster, saveRoster } from "./storage.js";
 import {
@@ -895,7 +895,7 @@ export default function KSPMissionPlanner() {
           results scroll; the three results take the rest. The route moves
           between the two in the tree, not just on the screen, so what a
           reader is read matches what they see. #137 */}
-      <div
+      <main
         style={{
           display: "grid",
           gridTemplateColumns: wide ? "360px minmax(0,1fr)" : "minmax(0,1fr)",
@@ -931,6 +931,15 @@ export default function KSPMissionPlanner() {
           busy={busy}
           top={viewTop}
           label={`Solving ${origin} → ${dest}…`}
+          status={
+            busy
+              ? `Solving ${origin} → ${dest}…`
+              : first
+                ? ""
+                : ok
+                  ? `${craft.name}: ${fmt(liftoff, 1)} t at liftoff.`
+                  : "No solution for at least one stage."
+          }
         >
           <Results
             stages={stages}
@@ -959,8 +968,10 @@ export default function KSPMissionPlanner() {
           />
           {!wide && routeSection}
         </Solving>
+      </main>
 
-        {/* Outside <Solving> on purpose, and last on the page.
+      {/* Outside <Solving> on purpose, and last on the page — and outside
+          <main>, since it is the page's footer and not its content.
 
             Everything inside that wrapper drops to 22% opacity, greys out and
             stops taking clicks while a solve runs — which at full tech is
@@ -971,10 +982,16 @@ export default function KSPMissionPlanner() {
             The wording states the position rather than leaving it to the link:
             a working tool with a bare "licence" link invites the assumption
             that it is open source, and this one is not. */}
+      <footer
+        className="note"
+        style={{
+          maxWidth: 1500,
+          margin: "0 auto",
+          padding: `0 ${SPACE.xl}px ${SPACE.xl}px`,
+        }}
+      >
         <div
-          className="note"
           style={{
-            gridColumn: "1 / -1",
             borderTop: `1px solid ${C.rule}`,
             marginTop: 18,
             padding: "14px 2px 4px",
@@ -1000,7 +1017,7 @@ export default function KSPMissionPlanner() {
             " · Kerbal Space Program is a trademark of its owners; this is an unaffiliated fan tool."
           }
         </div>
-      </div>
+      </footer>
       <JumpBar past={headRef} />
     </div>
   );

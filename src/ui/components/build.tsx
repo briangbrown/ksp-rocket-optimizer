@@ -19,7 +19,14 @@ import { framing, panelSizes } from "../views.js";
 import { arrive, assembly, pose, separation } from "../separation.js";
 import { C, FONT, RADIUS, SPACE, Z } from "../tokens.js";
 import type { Theme } from "../tokens.js";
-import { Callout, Choice, IconButton, Stat, useWide } from "./primitives.jsx";
+import {
+  Callout,
+  Choice,
+  IconButton,
+  Stat,
+  useTrap,
+  useWide,
+} from "./primitives.jsx";
 import type { ReactNode } from "react";
 import type { PlanStage } from "../../core/plan.js";
 import type { Solution } from "../../core/solution.js";
@@ -179,6 +186,13 @@ const PLAY_MS = 1600;
    because it plays every time the solver delivers something new, which is
    every change to the brief. #138 */
 const ARRIVE_MS = 400;
+
+/* Where focus goes on leaving full screen. The card shows a line in place of
+   its header while the overlay is up, so the button that opened it unmounts
+   as it opens and focus is on the body by the time the trap looks; the one
+   there on the way back is a new element with the same name. #141 */
+const fullScreenButton = () =>
+  document.querySelector<HTMLElement>('[aria-label="Full screen"]');
 
 /* Motion is a preference. The stylesheet already honours it for every
    transition in the application; a separation is the same question asked of a
@@ -394,20 +408,12 @@ function BuildView({
     return () => cancelAnimationFrame(id);
   }, [moving, back, lo, from, animates]);
 
-  /* Escape leaves, and the page behind does not scroll while it is covered. */
-  useEffect(() => {
-    if (!full) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setFull(false);
-    };
-    const had = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = had;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [full]);
+  /* Full screen holds focus the way the setup sheet does: in on entry, Tab
+     kept inside, Escape out, the page behind not scrolling, and focus back
+     on the button that opened it. One hook for both, #141. */
+  const overlay = useRef<HTMLDivElement | null>(null);
+  const leave = useCallback(() => setFull(false), []);
+  useTrap(overlay, full, leave, fullScreenButton);
 
   /* The two models a transition runs between, and the choreography joining
      them — built once for the transition, not once a frame. `stepModels`
@@ -484,6 +490,7 @@ function BuildView({
      step: a 1.1 m pod read as 23.2 m tall. #101 */
   const pad = stackGeometry(stages, payload, payloadDia);
   const now = stackGeometry(live, payload, payloadDia);
+  const mass = live.length ? live[0].sol.total : payload;
   /* Nothing has staged away yet, so the two are the same chain and the same
      numbers. Boosters do not enter it either way: `stackGeometry` reports the
      core width, because boosters are gone by about 18 km and the limit judges
@@ -701,6 +708,14 @@ function BuildView({
     return { elev: { w: ew, h: eh }, plan: { w: pw, h: pw } };
   }, [shot.sep, angle, aw, ah]);
 
+  /* What each drawing is a picture of, for a reader who cannot see it: the
+     view, the craft, the step and the figures under it — the same ones, so
+     the alternative is the caption and not a second account of it. #141 */
+  const alt = (view: string) =>
+    `${view} of ${craft.name}, ${steps[at]?.label ?? "on the pad"}: ` +
+    `${fmt(mass, 1)} t, ${live.length} stage${live.length === 1 ? "" : "s"}, ` +
+    `${now.h.toFixed(1)} m tall`;
+
   const panel = (
     label: string,
     parts: typeof model,
@@ -725,6 +740,7 @@ function BuildView({
             height={size.h}
             color={color}
             theme={theme}
+            alt={alt(label)}
             buffer={buffer}
             extent={moves ? moves.extent : undefined}
             sweep={moves ? moves.sweep : undefined}
@@ -830,7 +846,6 @@ function BuildView({
   /* A stage's `total` is everything above it, payload included, so the bottom
      live stage's is the mass of what is still attached; with nothing left it
      is the payload. */
-  const mass = live.length ? live[0].sol.total : payload;
   const cost = live.reduce((a, x) => a + stageCost(x.sol), 0);
   const parts = live.reduce((a, x) => a + stageParts(x.sol), 0);
   const figures = (
@@ -946,9 +961,15 @@ function BuildView({
       {full &&
         createPortal(
           <div
+            ref={overlay}
+            role="dialog"
+            aria-modal
+            aria-label="Full screen"
+            tabIndex={-1}
             style={{
               position: "fixed",
               inset: 0,
+              outline: "none",
               /* The window as it is now, address bar and all: `100vh` on a
                  phone is the window with the bar gone, and the rail's foot
                  sat under it. */

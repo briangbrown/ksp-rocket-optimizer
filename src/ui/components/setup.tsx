@@ -162,6 +162,7 @@ function Setup({
       <div style={{ borderTop: `1px solid ${C.rule}`, margin: "0 0 14px" }} />
       <Section
         bare
+        level={3}
         open={open}
         onToggle={onToggle}
         gap={SPACE.xl}

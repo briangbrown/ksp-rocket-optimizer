@@ -36,6 +36,20 @@ const roleBase = (name: string) => `.${name} { ${face(name)}}`;
 
 const roles = Object.keys(TYPE);
 
+/* What a control's state change animates: its colours, and nothing else. The
+   shorthand's default is every property, which had the focus ring fading in
+   from the browser's 3 px currentColor over the same 120 ms — a ring that
+   arrives late on every chip and icon button, and one the layout suite read
+   mid-flight. #141 */
+const EASE = [
+  "color",
+  "background-color",
+  "border-color",
+  "text-decoration-color",
+]
+  .map((p) => `${p} ${MOTION.quick}ms`)
+  .join(", ");
+
 /* A palette as custom properties. `color-scheme` beside them so the native
    controls — the checkboxes, the range thumbs, the scrollbars — follow. */
 const vars = (pal: Palette, scheme: "dark" | "light") =>
@@ -64,12 +78,20 @@ ${roles.map((n) => "  " + role(n, 1)).join("\n")}
 .note { color:${C.muted}; }
 button { font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
 button:disabled { cursor:default; }
-button:focus-visible, input:focus-visible, textarea:focus-visible { outline:2px solid ${C.amber}; outline-offset:2px; }
+/* One ring, on anything that can take focus: the buttons and fields, and the
+   few plain elements with a tabindex — the parts table's scroll box, the
+   full-screen overlay. A container focus is put into rather than reached
+   opts out inline, as the sheet's panel does. #141 */
+:focus-visible { outline:2px solid ${C.amber}; outline-offset:2px; }
+h2, h3 { margin:0; }
+/* Words for a screen reader and nobody else — the solving state, as a live
+   region. Clipped rather than hidden: display:none is silent. */
+.sr-only { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 input[type=range]{ accent-color:${C.amber}; width:100%; height:24px; margin:0; }
 /* A chip is a body-role button; data-on is how it shows it is selected, and
    the aria attribute beside it is how a reader hears the same thing. */
 .chip { ${face("body")}${size("body", 0)} border:1px solid ${C.edge}; border-radius:${RADIUS.sm}px;
-        display:inline-flex; align-items:center; gap:${SPACE.xs}px; line-height:1.2; padding:5px 10px; background:${C.panel2}; color:${C.muted}; transition:${MOTION.quick}ms; }
+        display:inline-flex; align-items:center; gap:${SPACE.xs}px; line-height:1.2; padding:5px 10px; background:${C.panel2}; color:${C.muted}; transition:${EASE}; }
 .chip:disabled { opacity:.4; }
 /* Hover only where there is a pointer to hover with: a tap leaves :hover set
    on a phone until the next tap lands somewhere else. And the selected rule is
@@ -84,7 +106,7 @@ input[type=range]{ accent-color:${C.amber}; width:100%; height:24px; margin:0; }
    button already carries, shown while hovered or focused. */
 .iconbtn { position:relative; display:inline-flex; align-items:center; justify-content:center;
            width:44px; height:44px; flex-shrink:0; border-radius:${RADIUS.sm}px; color:${C.muted};
-           transition:${MOTION.quick}ms; }
+           transition:${EASE}; }
 .iconbtn:hover:not(:disabled), .iconbtn:focus-visible { color:${C.paper}; background:${C.panel2}; }
 .iconbtn:disabled { opacity:.4; }
 .iconbtn[data-on="1"] { color:${C.ink}; background:${C.paper}; }
@@ -104,7 +126,7 @@ input[type=range]{ accent-color:${C.amber}; width:100%; height:24px; margin:0; }
    words are the target and it is as tall as the square. */
 .disc { margin:-8px -6px; }
 .disc-cap { display:inline-flex; align-items:center; gap:${SPACE.xs}px; min-height:44px;
-            color:${C.muted}; transition:${MOTION.quick}ms; }
+            color:${C.muted}; transition:${EASE}; }
 .disc-cap:hover, .disc-cap:focus-visible { color:${C.paper}; }
 /* A chip's one-sentence hint, for a pointer; the group's disclosure is the
    finger's path to the same words. Hidden as the icon tooltip is, and only
@@ -236,7 +258,7 @@ ${Object.entries(SEVERITY)
    palette reads as a mistake, so they take the muted ink and earn their
    underline on hover rather than shouting by default. */
 a { color:${C.muted}; text-decoration:underline; text-decoration-color:${C.edge};
-    text-underline-offset:2px; transition:${MOTION.quick}ms; }
+    text-underline-offset:2px; transition:${EASE}; }
 a:hover { color:${C.paper}; text-decoration-color:${C.amber}; }
 @keyframes fadein { from { opacity:0; } to { opacity:1; } }
 @keyframes pulse { 0%,100% { opacity:.35; } 50% { opacity:1; } }

@@ -13,6 +13,7 @@ import { BREAK, C, FONT, MOTION, RADIUS, SCRIM, SPACE, Z } from "../tokens.js";
 import type { Severity } from "../tokens.js";
 import type {
   CSSProperties,
+  RefObject,
   KeyboardEvent,
   ReactNode,
   ComponentType,
@@ -82,6 +83,11 @@ type SectionProps = {
      lower down overflows its parent, which the layout suite reads as the
      page scrolling sideways. #140 */
   asideReach?: number;
+  /* The heading's level: 2 for a section of the page, 3 for one inside
+     another — the brief's folds, the setup sheet's. A heading element rather
+     than a styled span, so the section is a landmark a reader can jump to
+     and the outline never skips a level. #141 */
+  level?: 2 | 3;
   /* Before the first solve has returned: the heading over a line where the
      summary will be, no fold and no children. Not blank and not a spinner —
      the page has its shape before it has its numbers. #139 */
@@ -99,10 +105,12 @@ function Section({
   gap = SPACE.lg,
   aside,
   asideReach = 0,
+  level = 2,
   busy,
   id: anchor,
 }: SectionProps) {
   const id = useId();
+  const H = level === 3 ? "h3" : "h2";
   const folds = onToggle !== undefined && !busy;
   const shown = !busy && (!folds || open);
   const head = (
@@ -117,7 +125,7 @@ function Section({
       )}
       {/* Beside a summary or an aside the heading holds its line and the
           rest wraps; alone it may run as long as the tech tree's. */}
-      <span
+      <H
         className="label"
         id={id}
         style={
@@ -127,7 +135,7 @@ function Section({
         }
       >
         {heading}
-      </span>
+      </H>
       {/* The summary takes what the heading and the aside leave, and asks
           for nothing: `contain` is what keeps its words out of the row's
           intrinsic width, so the brief's aside stays beside a summary of
@@ -414,9 +422,22 @@ type SheetProps = {
   children?: ReactNode;
 };
 
-function Sheet({ open, onClose, title, children }: SheetProps) {
-  const id = useId();
-  const panel = useRef<HTMLDivElement | null>(null);
+/* Focus held inside a box while it is up: in on open, Tab wrapping from the
+   last stop to the first, Escape closing, the page behind not scrolling, and
+   back where it came from on close. The sheet and the build view's
+   full-screen overlay are both this; `onClose` is a dependency, so it has to
+   be stable — `.claude/rules/ui.md`. #141
+
+   `back` is where focus goes on close when the control it left is no longer
+   there to take it: a button that unmounts as the trap opens loses focus to
+   the body before this effect can see it, so the hook cannot work out on its
+   own where "back" was. Stable too. */
+function useTrap(
+  panel: RefObject<HTMLElement | null>,
+  open: boolean,
+  onClose: () => void,
+  back?: () => HTMLElement | null,
+) {
   useEffect(() => {
     if (!open) return;
     const was = document.activeElement;
@@ -451,9 +472,19 @@ function Sheet({ open, onClose, title, children }: SheetProps) {
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = had;
-      if (was instanceof HTMLElement) was.focus();
+      const to =
+        was instanceof HTMLElement && was !== document.body && was.isConnected
+          ? was
+          : (back?.() ?? null);
+      to?.focus();
     };
-  }, [open, onClose]);
+  }, [panel, open, onClose, back]);
+}
+
+function Sheet({ open, onClose, title, children }: SheetProps) {
+  const id = useId();
+  const panel = useRef<HTMLDivElement | null>(null);
+  useTrap(panel, open, onClose);
   if (!open) return null;
   const phone = isPhone();
   return createPortal(
@@ -507,9 +538,9 @@ function Sheet({ open, onClose, title, children }: SheetProps) {
             marginBottom: SPACE.lg,
           }}
         >
-          <span className="label" id={id}>
+          <h2 className="label" id={id}>
             {title}
-          </span>
+          </h2>
           <span style={{ flex: 1 }} />
           <button className="chip" onClick={onClose}>
             Close
@@ -975,6 +1006,7 @@ export {
   Stat,
   Toggle,
   useNote,
+  useTrap,
   useWide,
 };
 export type { Note };

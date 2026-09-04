@@ -23,6 +23,25 @@ export type Measure = {
 export const measure = (): Measure => {
   const name = (el: Element) => (el.textContent ?? "").trim().slice(0, 40);
 
+  /* A box a pixel square with its overflow hidden shows nothing: it is how
+     words are put in front of a screen reader and nobody else — the solving
+     state's live region, `.sr-only`. Its text is in `innerText` and its
+     scrollWidth is the width of the sentence, so left alone it is eleven
+     words and one thing scrolling sideways that no reader is shown. Hidden
+     for the measure and put back after. #141 */
+  const clipped = Array.from(
+    document.querySelectorAll<HTMLElement>("body *"),
+  ).filter((el) => {
+    const r = el.getBoundingClientRect();
+    return (
+      r.width + r.height > 0 &&
+      r.width <= 1 &&
+      r.height <= 1 &&
+      getComputedStyle(el).overflow === "hidden"
+    );
+  });
+  clipped.forEach((el) => (el.style.visibility = "hidden"));
+
   /* Whether an element takes part in layout and is on screen. */
   const shown = (el: Element) => {
     const r = el.getBoundingClientRect();
@@ -103,13 +122,16 @@ export const measure = (): Measure => {
       return { text: name(c), by: c.scrollWidth - c.clientWidth };
     });
 
+  /* `innerText` is what is rendered — hidden text and `<style>` do not
+     count — so this is the words a reader is shown. */
+  const words = (document.body.innerText.match(/\S+/g) ?? []).length;
+  clipped.forEach((el) => (el.style.visibility = ""));
+
   return {
     height: d.scrollHeight,
     overflow: d.scrollWidth - d.clientWidth,
     sideways,
-    /* `innerText` is what is rendered — hidden text and `<style>` do not
-       count — so this is the words a reader is shown. */
-    words: (document.body.innerText.match(/\S+/g) ?? []).length,
+    words,
     targets,
     text,
   };

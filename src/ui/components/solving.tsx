@@ -11,15 +11,23 @@ type SolvingProps = {
   busy: boolean;
   children: ReactNode;
   label: ReactNode;
+  /* The same state for a screen reader: the label while it runs, then what
+     came of it. A live region, off screen — the pill itself is a picture of
+     the state, fading in and out, and a reader is told nothing by opacity.
+     #141 */
+  status: string;
   top: number;
 };
 
-function Solving({ busy, children, label, top }: SolvingProps) {
+function Solving({ busy, children, label, status, top }: SolvingProps) {
   /* Both layers stay mounted and animate opacity, so the veil can fade out slowly
      instead of blinking away. Dimming is quick — you want to see it react — while
      coming back is gentle, which stops a fast recalculation from flashing. */
   return (
     <div style={{ position: "relative" }}>
+      <span className="sr-only" role="status">
+        {status}
+      </span>
       <div
         style={{
           position: "fixed",

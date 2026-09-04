@@ -25,7 +25,7 @@ import {
 const brief = () =>
   must(
     [...document.querySelectorAll("button[aria-expanded]")].find(
-      (b) => b.querySelector(".label")?.textContent?.trim() === "Brief",
+      (b) => b.querySelector(".label")?.textContent?.trim() === "Mission",
     ),
     "the brief's header",
   );

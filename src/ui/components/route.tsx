@@ -52,8 +52,14 @@ function RouteMap({
             {!leg.free && !last && (
               <button
                 onClick={() => onToggle(i)}
+                /* The name a reader hears: which leg the cut follows, and —
+                   once it is placed — what separates there, in the row's own
+                   words. #141 */
                 aria-label={
-                  isCut ? "Remove staging event" : "Add staging event"
+                  `${isCut ? "Remove" : "Add"} staging event after ${leg.label}` +
+                  (isCut && stagesThrough(i)
+                    ? `: stage ${stagesThrough(i)} separates`
+                    : "")
                 }
                 className="tap"
                 style={{
