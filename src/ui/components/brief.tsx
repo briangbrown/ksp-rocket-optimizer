@@ -107,7 +107,7 @@ function Brief(p: BriefProps) {
   return (
     <Section
       id="brief"
-      heading="Brief"
+      heading="Mission"
       summary={p.line}
       open={p.open}
       onToggle={p.onToggle}

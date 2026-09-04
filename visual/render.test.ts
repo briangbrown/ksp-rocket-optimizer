@@ -478,7 +478,7 @@ describe("the build view, in a browser", () => {
       const fold = [
         ...document.querySelectorAll<HTMLButtonElement>("button.fold"),
       ].find((b) =>
-        b.querySelector(".label")?.textContent?.trim().startsWith("Brief"),
+        b.querySelector(".label")?.textContent?.trim().startsWith("Mission"),
       );
       if (fold && fold.getAttribute("aria-expanded") !== "true") fold.click();
     });

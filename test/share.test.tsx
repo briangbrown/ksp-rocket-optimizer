@@ -21,7 +21,7 @@ const rocketNote = (severity: string) =>
   document.querySelector(`#rocket .callout[data-severity="${severity}"]`);
 const briefFold = () =>
   [...document.querySelectorAll("button[aria-expanded]")].find((b) =>
-    b.querySelector(".label")?.textContent?.trim().startsWith("Brief"),
+    b.querySelector(".label")?.textContent?.trim().startsWith("Mission"),
   );
 
 describe("a design as a link", () => {

@@ -71,8 +71,11 @@ describe("the page's landmarks", () => {
     }
     /* The brief's folds are inside the brief, and the sheet's section is
        inside the sheet. */
-    const by = (text: string) => hs.find((h) => h.text.startsWith(text));
-    expect(by("Brief")?.level).toBe(2);
+    /* Among the sections' headings: the h1 is "Mission Δv Planner", and
+       the mission section's heading starts the same way. */
+    const by = (text: string) =>
+      hs.find((h) => h.level > 1 && h.text.startsWith(text));
+    expect(by("Mission")?.level).toBe(2);
     expect(by("More options")?.level).toBe(3);
     expect(document.querySelector('[role="dialog"] h2')?.textContent).toBe(
       "Setup",

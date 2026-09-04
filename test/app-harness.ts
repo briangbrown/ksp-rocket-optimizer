@@ -58,7 +58,7 @@ export async function openFold(heading: string) {
   await click(b);
 }
 
-export const openBrief = () => openFold("Brief");
+export const openBrief = () => openFold("Mission");
 
 /* Setup — the install, the tech tree, the theme, the configuration — is in a
    sheet behind the header's gear. The sheet is a portal to body, so what it

@@ -52,14 +52,14 @@ const BUDGET = {
    than by the stylesheet so that reading order and DOM order agree (#137). */
 const ORDER = {
   phone: [
-    "Brief",
+    "Mission",
     "Your rocket",
     "How to build it",
     "How to fly it",
     "Where it goes",
   ],
   desktop: [
-    "Brief",
+    "Mission",
     "Where it goes",
     "Your rocket",
     "How to build it",
