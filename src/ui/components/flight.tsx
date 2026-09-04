@@ -81,6 +81,11 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
   }
   const handed = a.handT >= 0;
   const hot = a.maxQ > 40000;
+  /* Whose fault the heat is. Above 1.5 atm at the surface nothing keeps a
+     rocket under 40 kPa, and the gentlest trajectory that reaches orbit is
+     the one flown, so it is something to know about the body rather than a
+     fault in the design: `warn`, not `bad`. #139 */
+  const thick = Number(atm) > 1.5;
   /* Named as numbers rather than as truthiness, so the throttle settings below
      can be read without asking again whether they are there. */
   const limit = a.limit ?? 1;
@@ -336,7 +341,7 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
       )}
       {cored && (
         <Callout
-          severity="good"
+          severity="info"
           title={`Hold the core at ${Math.round(core * 100)}% until the boosters burn out.`}
           style={{ marginBottom: SPACE.lg }}
           more="Solids have no shutdown, so at full throttle this stack carries its apoapsis well past the mark before you can stop it. Throttling the liquid core lands the two together."
@@ -346,7 +351,7 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
       )}
       {limited && (
         <Callout
-          severity="good"
+          severity="info"
           title={`Throttled to ${Math.round(limit * 100)}% on ${limitOn}.`}
           style={{ marginBottom: SPACE.lg }}
           more="At full thrust this stack passes 40 kPa, where a real one tends to flip or shed parts. The limiter cuts fuel flow with the thrust, so the stage simply burns longer at lower thrust and loses no Δv."
@@ -357,15 +362,15 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
       )}
       {hot && (
         <Callout
-          severity="bad"
+          severity={thick ? "warn" : "bad"}
           title={`Nothing stays under 40 kPa — peak is ${(a.maxQ / 1000).toFixed(0)} kPa at ${(a.maxQalt / 1000).toFixed(1)} km.`}
           more={
-            Number(atm) > 1.5
+            thick
               ? `${atm} atm at the surface makes high dynamic pressure unavoidable, and this is the gentlest trajectory that still reaches orbit. Treat the drag figure as indicative — it is well outside where the model was checked against Kerbin ascents.`
               : "This vehicle is over-thrusted for the air it climbs through, where a real stack tends to flip or shed parts."
           }
         >
-          {Number(atm) > 1.5
+          {thick
             ? `That is ${a.bodyName} rather than your rocket.`
             : "Drop a booster, throttle the first stage back, or fly a shallower turn and accept the extra gravity loss."}
         </Callout>

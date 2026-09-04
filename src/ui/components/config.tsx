@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ClipboardPaste, Copy, X } from "lucide-react";
 import { fmt } from "../format.js";
-import { C, RADIUS, SPACE } from "../tokens.js";
-import { IconButton, SeverityMark } from "./primitives.jsx";
+import { C, MOTION, RADIUS, SPACE } from "../tokens.js";
+import { Callout, IconButton } from "./primitives.jsx";
 import type { Tally } from "../../core/tally.js";
 
 /* What the last solve cost, as the setup sheet reports it: the search
@@ -15,6 +15,9 @@ type ConfigProps = {
   onLoad: (text: string) => { bad: boolean; msg: string };
 };
 
+/* How long a confirmation stands before it starts to fade. */
+const LINGER_MS = 2400;
+
 /* Everything a run depends on, in one string. Pasting it back means we are
    looking at the same rocket rather than describing it to each other. */
 function Config({ search, text, onLoad }: ConfigProps) {
@@ -23,6 +26,22 @@ function Config({ search, text, onLoad }: ConfigProps) {
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [note, setNote] = useState<{ bad: boolean; msg: string } | null>(null);
+  /* A loaded configuration is confirmed and then left alone: the callout
+     holds for a beat, fades over `MOTION.settle`, and goes. A bad paste
+     stays until the next attempt — it is asking for something. #139 */
+  const [fading, setFading] = useState(false);
+  useEffect(() => {
+    if (!note || note.bad) return;
+    const fade = setTimeout(() => setFading(true), LINGER_MS);
+    const gone = setTimeout(() => {
+      setNote(null);
+      setFading(false);
+    }, LINGER_MS + MOTION.settle);
+    return () => {
+      clearTimeout(fade);
+      clearTimeout(gone);
+    };
+  }, [note]);
 
   const copy = async () => {
     /* Clipboard access is not guaranteed here, so fall back to showing the
@@ -38,6 +57,7 @@ function Config({ search, text, onLoad }: ConfigProps) {
 
   const load = () => {
     const r = onLoad(pasteText);
+    setFading(false);
     setNote(r);
     if (r.bad) return;
     setPasteOpen(false);
@@ -114,12 +134,18 @@ function Config({ search, text, onLoad }: ConfigProps) {
             }}
           />
         </span>
-        {note && (
-          <span className="note" style={{ color: note.bad ? C.rust : C.mint }}>
-            <SeverityMark severity={note.bad ? "bad" : "good"} /> {note.msg}
-          </span>
-        )}
       </div>
+      {note && (
+        <Callout
+          severity={note.bad ? "bad" : "good"}
+          title={note.msg}
+          style={{
+            marginTop: SPACE.md,
+            opacity: fading ? 0 : 1,
+            transition: `opacity ${MOTION.settle}ms ease-in`,
+          }}
+        />
+      )}
       {pasteOpen && (
         <div style={{ marginTop: 10 }}>
           <textarea

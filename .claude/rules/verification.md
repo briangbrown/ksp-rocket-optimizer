@@ -31,6 +31,11 @@ not enough. The text scan reads `textContent`, which includes what every
 `Disclosure` holds while closed; the initial-mount case then opens every one
 and scans again, so a bad value composed on the way in is caught too (#135).
 
+The fourth thing it does is read `solvability.txt` back: the destinations
+recorded as dashes are the ones it drives to the unsolvable callout, and it
+holds the three actions on it to be present on every one and to do what they
+say on one. A change to what is buildable moves the test with it (#139).
+
 **The model checks** stand where the panel-containment check used to. That one
 read the SVG rectangles out of jsdom and asserted every part lay inside its
 panel; #63 step 4 deleted the SVG, and jsdom has no WebGL to draw a replacement,
@@ -178,6 +183,7 @@ invisible to every baseline here.
     test/separation.test.ts               what a staging animation does, on numbers
     test/slenderness.test.ts              the limit is on the whole rocket
     test/staging-figures.test.tsx         the figures follow the staging step
+    test/first-run.test.tsx               the sections' shape before the first solve
     test/three-view.test.ts               the orthographic framing, on numbers
     test/seam-contract.test.ts            planMission stays serialisable
     test/seam-input.test.tsx              what the app actually hands the seam

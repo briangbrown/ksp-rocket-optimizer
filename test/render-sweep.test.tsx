@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { render, cleanup } from "@testing-library/react";
 import {
   byText,
   click,
+  field,
   openBrief,
   openFold,
   settle,
@@ -169,5 +171,92 @@ describe("render sweep", () => {
     }
     cleanup();
     expect(problems).toEqual([]);
+  }, 900_000);
+
+  /* Where nothing solves, the page says so once, at the top of *Your rocket*,
+     with the three things to try as buttons that try them. The destinations
+     are read off `solvability.txt` — the ones recorded as dashes — so a change
+     to what is buildable moves this with it rather than leaving it pointed at
+     a Moho that now solves. Presence is checked on every one; wiring on the
+     first, since each of the three is a re-solve of a mission that fails.
+     #139 */
+  it("offers the three things to try where nothing solves, and they do them", async () => {
+    const unsolvable = readFileSync(
+      "test/__snapshots__/solvability.txt",
+      "utf8",
+    )
+      .split("\n")
+      .filter((l) => /liftoff=—/.test(l))
+      .map((l) => l.trim().split(/\s{2,}/)[0]);
+    expect(unsolvable.length, "solvability.txt has no dashes").toBeGreaterThan(
+      0,
+    );
+
+    render(<KSPMissionPlanner />);
+    await settle();
+    await openBrief();
+
+    const alert = () =>
+      document.querySelector('#rocket .callout[data-severity="bad"]');
+    const action = (label: string) =>
+      [...(alert()?.querySelectorAll("button") ?? [])].find(
+        (b) => b.textContent.trim() === label,
+      );
+
+    for (const dest of unsolvable) {
+      await click(dest);
+      await settle();
+      expect(alert(), `${dest}: no bad callout`).toBeTruthy();
+      expect(alert()?.getAttribute("role"), dest).toBe("alert");
+      for (const l of [
+        "Cut the route",
+        "Open the tech tree",
+        "Halve the payload",
+      ])
+        expect(action(l), `${dest}: no "${l}"`).toBeTruthy();
+      expect(
+        document.querySelectorAll('#rocket .callout[data-severity="bad"]')
+          .length,
+        `${dest}: said more than once`,
+      ).toBe(1);
+    }
+
+    /* Wired. The tech tree opens in the setup sheet with the tree unfolded;
+       the cut lands on the route, whose folded summary counts it; the payload
+       halves in the brief. A cut can be what makes the mission solvable, and
+       picking a destination resets the cuts, so the payload is halved on a
+       fresh pick rather than after the cut. */
+    await click(action("Open the tech tree"));
+    const sheet = document.querySelector('[role="dialog"]');
+    expect(sheet, "the setup sheet did not open").toBeTruthy();
+    const tech = [...sheet!.querySelectorAll("button[aria-expanded]")].find(
+      (b) => /Tech tree/.test(b.textContent ?? ""),
+    );
+    expect(tech?.getAttribute("aria-expanded"), "tech tree folded").toBe(
+      "true",
+    );
+    await click(
+      [...sheet!.querySelectorAll("button")].find(
+        (b) => b.textContent.trim() === "Close",
+      ),
+    );
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+
+    expect(document.querySelector("#route")?.textContent).toMatch(/one span/);
+    await click(action("Cut the route"));
+    await settle();
+    expect(document.querySelector("#route")?.textContent).toMatch(/1 cut\b/);
+
+    await click(unsolvable[0]);
+    await settle();
+    expect(
+      alert(),
+      `${unsolvable[0]}: no bad callout on a fresh pick`,
+    ).toBeTruthy();
+    const was = Number(field("Payload delivered")!.value);
+    await click(action("Halve the payload"));
+    await settle();
+    expect(Number(field("Payload delivered")!.value)).toBeCloseTo(was / 2, 0);
+    cleanup();
   }, 900_000);
 });

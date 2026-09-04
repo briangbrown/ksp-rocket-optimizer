@@ -41,7 +41,9 @@ function Solving({ busy, children, label, top }: SolvingProps) {
             alignItems: "center",
             gap: 9,
             background: C.panel2,
-            border: `1px solid ${C.amber}`,
+            /* The dot is what says "live"; an amber edge said it a second
+               time, and a severity-coloured edge is a callout's. #139 */
+            border: `1px solid ${C.edge}`,
             borderRadius: RADIUS.sm,
             padding: "8px 14px",
             boxShadow: SHADOW.pill,

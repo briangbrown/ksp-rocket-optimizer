@@ -123,6 +123,29 @@ describe("the design tokens", () => {
   });
 });
 
+describe("the alerts", () => {
+  /* Six alert styles, none with an icon, was the state before #139. Every
+     one is a `Callout` now, and what made them alerts was a border in a
+     severity colour — so that is what is banned: an inline border in `rust`,
+     `amber` or `mint`, whichever side and however it is chosen. The stylesheet
+     is allowed to, since that is where `.callout` takes its edge from. */
+  it("draws every alert as a Callout", () => {
+    const re =
+      /border(?:Top|Bottom|Left|Right)?:\s*[`"'][^`"'\n]*\bC\.(?:rust|amber|mint)\b/;
+    const bad: Array<string> = [];
+    for (const path of files("src/ui")) {
+      if (/[\/]styles\.ts$/.test(path)) continue;
+      const src = readFileSync(path, "utf8");
+      const m = re.exec(src);
+      if (m)
+        bad.push(
+          `${path}:${src.slice(0, m.index).split("\n").length} borders in a severity colour`,
+        );
+    }
+    expect(bad, `${bad.length} hand-drawn alerts`).toEqual([]);
+  });
+});
+
 describe("what does not belong in committed code", () => {
   /* Written down under "What not to do" and enforced by nothing. A stray log in
      the solver runs 81 times a suite and once per frame in the application. */

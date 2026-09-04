@@ -257,12 +257,12 @@ themes and is the only place `ink` is a text colour.
 Four, each with an icon so that colour is never the only carrier. The icon is
 the `lucide` name.
 
-| Token  | Icon            | Dark    | Light   | Text on `panel` | For                                                              |
-| ------ | --------------- | ------- | ------- | --------------- | ---------------------------------------------------------------- |
-| `info` | `Info`          | `sky`   | `sky`   | 5.9 / 6.0       | something to know: a stage runs dry early, the core is held      |
-| `good` | `CircleCheck`   | `mint`  | `mint`  | 9.2 / 5.3       | copied, loaded, saved                                            |
-| `warn` | `TriangleAlert` | `amber` | `amber` | 8.6 / 5.5       | it works, but: slenderness, a hover margin, max Q near the limit |
-| `bad`  | `OctagonAlert`  | `rust`  | `rust`  | 5.0 / 6.0       | it does not work: no solution, never reaches orbit               |
+| Token  | Icon            | Dark    | Light   | Text on `panel` | For                                                                                                                        |
+| ------ | --------------- | ------- | ------- | --------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `info` | `Info`          | `sky`   | `sky`   | 5.9 / 6.0       | something to know: a stage runs dry early, the core is held, the throttle limiter, no WebGL, a typed value past the slider |
+| `good` | `CircleCheck`   | `mint`  | `mint`  | 9.2 / 5.3       | copied, loaded — a configuration loaded stands for a beat and fades                                                        |
+| `warn` | `TriangleAlert` | `amber` | `amber` | 8.6 / 5.5       | it works, but: slenderness, a hover margin, max Q where the atmosphere is the cause                                        |
+| `bad`  | `OctagonAlert`  | `rust`  | `rust`  | 5.0 / 6.0       | it does not work: no solution, never reaches orbit, max Q where the rocket is the cause, a bad paste                       |
 
 `amber` is also the focus ring and the range-input accent, the two places the
 palette says "this is the live thing". It is not decoration.
@@ -393,8 +393,11 @@ target. An optional `aside` sits at the header's right in both states,
 beside the fold's button rather than inside it, so it may be a control: the
 brief's Δv budget, the build section's tabs. Beside a summary or an aside
 the heading holds its line and the rest wraps. Sections are `<section
-aria-labelledby>`. Not for: grouping fields inside the brief (that is a
-`Field` group with a `label`).
+aria-labelledby>`. `busy` is the first-run state: the heading over a line the
+summary's height (`.skel`, breathing; still under reduced motion), no fold and
+no children, `aria-busy` — the page has its shape before it has its numbers
+(#139). Not for: grouping fields inside the brief (that is a `Field` group
+with a `label`).
 
 The brief is a `Section` with three rules of its own (#133). It opens as the
 form and folds itself the first time a design solves; once the reader has
@@ -441,9 +444,14 @@ first-run explanation (that is copy).
 **`Callout`** — a severity, its icon, a headline sentence, and optionally a
 `Disclosure` for the rest, in the `more` slot, standing in a third column so
 its target overflows into the callout's padding rather than the text. Sits at
-the top of the section it is about. Not for:
-confirming a click (that is the `IconButton` swapping to `Check` for a beat) or
-a status (that is the solving pill).
+the top of the section it is about. `actions` are what to do about it, as
+chips that do it, under the sentence — the unsolvable callout's _Cut the
+route_, _Open the tech tree_, _Halve the payload_, with the icon where one is
+established and the word where none is (§7). Every alert on the page is one;
+`test/boundaries.test.ts` bans an inline border in a severity colour (#139).
+Not for: confirming a click (that is the `IconButton` swapping to `Check` for
+a beat) or a status (that is the solving pill, whose edge is `edge` and whose
+dot is what says "live").
 
 **`Field`** — a `label`, a `figure` value that can be typed, a range input, and
 a `Disclosure` for the hint. The typed value is a draft while focused
