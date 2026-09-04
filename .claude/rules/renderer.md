@@ -43,6 +43,29 @@ them.
   camera absorbs it, which is why what stays has an offset of exactly zero at
   both ends.
 
+- **Hidden lines are lines, from ids — never a surface pass.** Until #85
+  what lay behind the front surface was drawn again through it: a wash that
+  deepened as the surface turned away, and a dashed band where its normal
+  went edge-on. That was a veil over every curved surface, a band whose
+  width followed curvature so it went faint where a facet merely grazed the
+  threshold, and two bands side by side on a hidden cylinder — its near and
+  far turns both pass. The hidden lines now come from where the visible ones
+  do: `peelIdMaterial` renders the ids again, dropping every fragment no
+  deeper than the front's depth at its pixel, so the depth test keeps the
+  second layer exactly; the composite edge-detects that buffer one-sided and
+  dashes it; the hidden creases of the revolved parts are drawn dashed
+  through the fill's depth with `GreaterDepth` (`ghostLineMaterial`). Three
+  things it has to leave out, each found on a screenshot: a hidden edge
+  within two pixels of the front's own linework (at a rim the back face is
+  within the peel's epsilon of the front, and the hidden layer ends a pixel
+  inside the silhouette — a dashed twin of it); a hidden edge where the
+  hidden id is the front's own (the meshes are hollow, and a part's inner
+  wall is what a peel finds behind its outer one — not a hidden line); and
+  the engines' hidden creases (a simplified truss is edges all over). The
+  plan view peels nothing: looking up, the engines hide the tanks by design.
+  What remains of the wash is `HIDDEN_WASH`, a uniform breath of tint
+  wherever another part is behind, so the x-ray still reads as one.
+
 - **A WebGL canvas drawn once needs `preserveDrawingBuffer`.** `ThreeView`
   renders a frame when the rocket or the view changes and never on a loop,
   because the cameras do not move. The drawing buffer is cleared once it has

@@ -27,9 +27,10 @@ import { artName } from "../../core/geometry.js";
 import { fills, palette } from "../tokens.js";
 import {
   compositeMaterial,
-  ghostMaterial,
+  ghostLineMaterial,
   goochMaterial,
   idMaterial,
+  peelIdMaterial,
   lineOf,
   panelClear,
 } from "./shaders.js";
@@ -238,11 +239,13 @@ const AXIS = new Vector3();
 type Built = {
   scene: Scene;
   group: Group;
-  ghost: Group | null;
+  peelMats: Array<ShaderMaterial>;
+  hidTarget: WebGLRenderTarget;
+  ghostLine: ShaderMaterial;
+  creaseMat: LineBasicMaterial;
   creases: Group;
   meshes: Array<Mesh>;
   lines: Array<LineSegments>;
-  ghosts: Array<Mesh>;
   idMats: Array<ShaderMaterial>;
   fillMats: Array<ShaderMaterial>;
   quadScene: Scene;
@@ -357,16 +360,7 @@ export default function ThreeView({
        move all three of a part's pieces together. */
     const meshes: Array<Mesh> = [];
     const lines: Array<LineSegments> = [];
-    const ghosts: Array<Mesh> = [];
-    /* Drawn only where the opaque pass was hidden, so this is the far side of
-       the rocket and nothing else. Not built for the plan: looking up from
-       underneath, the engines hide the tanks above them by design, and that is
-       what the view is for. #71 */
-    const ghost = view === "plan" ? null : new Group();
-    if (ghost) {
-      ghost.visible = false;
-      scene.add(ghost);
-    }
+    const peelMats: Array<ShaderMaterial> = [];
     /* Creases are their own group so the id pass can hide them in one call —
        and so the meshes stay index-aligned with their materials, which they
        would not be if lines were interleaved among them. */
@@ -406,17 +400,6 @@ export default function ThreeView({
       );
       lines.push(line);
       creases.add(line);
-      if (ghost) {
-        const gm = ghostMaterial(
-          p.role === "booster" ? color : fill[p.role] || pal.dim,
-          DASH_PERIOD * renderer.getPixelRatio(),
-          pal,
-        );
-        const back = new Mesh(geo, gm);
-        ghosts.push(back);
-        ghost.add(back);
-        owned.push(gm);
-      }
       const id = idMaterial(i);
       idMats.push(id);
       fillMats.push(mat);
@@ -440,7 +423,25 @@ export default function ThreeView({
       depthTexture: depth,
     });
     const fillTarget = new WebGLRenderTarget(bw, bh, { samples: 4 });
-    owned.push(idTarget, fillTarget, depth);
+    /* The layer behind: ids again, of what the front hid, with a depth of
+       its own so the nearest of it wins. */
+    const hidDepth = new DepthTexture(bw, bh);
+    const hidTarget = new WebGLRenderTarget(bw, bh, {
+      minFilter: NearestFilter,
+      magFilter: NearestFilter,
+      depthTexture: hidDepth,
+    });
+    for (let i = 0; i < parts.length; i++) {
+      const pm = peelIdMaterial(i, depth);
+      pm.uniforms.size.value.set(bw, bh);
+      peelMats.push(pm);
+      owned.push(pm);
+    }
+    const ghostLine = ghostLineMaterial(
+      pal,
+      DASH_PERIOD * renderer.getPixelRatio(),
+    );
+    owned.push(idTarget, fillTarget, depth, hidTarget, hidDepth, ghostLine);
 
     const quadMat = compositeMaterial(pal);
     const quadGeo = new PlaneGeometry(2, 2);
@@ -457,12 +458,14 @@ export default function ThreeView({
     built.current = {
       scene,
       group,
-      ghost,
       creases,
       meshes,
       lines,
-      ghosts,
       idMats,
+      peelMats,
+      hidTarget,
+      ghostLine,
+      creaseMat,
       fillMats,
       quadScene,
       quadMat,
@@ -520,7 +523,7 @@ export default function ThreeView({
     camera.lookAt(0, mid, 0);
 
     /* Every part where the separation has got it to. All three of a part's
-       pieces — its surface, its creases and its ghost — move together, which
+       pieces — its surface and its creases — move together, which
        is what the parallel arrays above are for. */
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
@@ -533,7 +536,7 @@ export default function ThreeView({
          around it. A part on the axis has no direction to lean in. */
       const r = Math.hypot(p.x, p.z);
       if (tilt && r > 1e-9) AXIS.set(p.z / r, 0, -p.x / r);
-      for (const obj of [b.meshes[i], b.lines[i], b.ghosts[i]]) {
+      for (const obj of [b.meshes[i], b.lines[i]]) {
         if (!obj) continue;
         obj.position.set(x, y, z);
         if (tilt && r > 1e-9) obj.quaternion.setFromAxisAngle(AXIS, tilt);
@@ -545,7 +548,6 @@ export default function ThreeView({
        without the creases: a line drawn into the id buffer is a false part,
        and every one of them would come back as an outline of its own. */
     b.creases.visible = false;
-    if (b.ghost) b.ghost.visible = false;
     for (let i = 0; i < parts.length; i++) b.meshes[i].material = b.idMats[i];
     renderer.setRenderTarget(b.idTarget);
     renderer.setClearColor(0x000000, 1);
@@ -561,25 +563,48 @@ export default function ThreeView({
     renderer.clear();
     renderer.render(b.scene, camera);
 
-    /* Then what is behind it, over the top. A separate render rather than a
-       group in the one above, because three sorts transparent objects after
-       opaque ones but still writes them into the same depth pass — and this
-       wants the finished depth buffer to test against, not a partial one. */
-    if (b.ghost) {
-      b.ghost.visible = true;
-      b.group.visible = false;
+    /* Then the layer behind: ids of what the front hid, peeled against the
+       front's depth, into a buffer of their own. The plan looks up from
+       underneath, where the engines hide the tanks by design and that is what
+       the view is for; it draws no hidden lines. */
+    const peel = view !== "plan";
+    renderer.setRenderTarget(b.hidTarget);
+    renderer.setClearColor(0x000000, 1);
+    renderer.clear();
+    if (peel) {
       b.creases.visible = false;
+      for (let i = 0; i < parts.length; i++)
+        b.meshes[i].material = b.peelMats[i];
+      renderer.render(b.scene, camera);
+      /* And the hidden creases, dashed, through the fill's depth: a crease
+         behind the surface that hid it fails the ordinary test and passes
+         this one. */
+      b.creases.visible = true;
+      b.group.visible = false;
+      /* The cylinders' creases only — a tank seam, a cap — and not the
+         engines': a simplified truss is edges all over, and every hidden one
+         dashed was a thicket where a bell should be. */
+      for (let i = 0; i < parts.length; i++) {
+        b.lines[i].material = b.ghostLine;
+        b.lines[i].visible = parts[i].role !== "engine";
+      }
+      renderer.setRenderTarget(b.fillTarget);
       renderer.autoClear = false;
       renderer.render(b.scene, camera);
       renderer.autoClear = true;
+      for (const l of b.lines) {
+        l.material = b.creaseMat;
+        l.visible = true;
+      }
       b.group.visible = true;
-      b.ghost.visible = false;
     }
 
     /* And the lines, over the top, straight to the canvas. */
     b.quadMat.uniforms.tColor.value = b.fillTarget.texture;
     b.quadMat.uniforms.tId.value = b.idTarget.texture;
     b.quadMat.uniforms.tDepth.value = b.depth;
+    b.quadMat.uniforms.tHid.value = b.hidTarget.texture;
+    b.quadMat.uniforms.dash.value = DASH_PERIOD * renderer.getPixelRatio();
     b.quadMat.uniforms.texel.value.set(1 / b.bw, 1 / b.bh);
     b.quadMat.uniforms.camNear.value = cam.near;
     b.quadMat.uniforms.camFar.value = cam.far;

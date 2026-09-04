@@ -6,6 +6,7 @@ import {
   ShaderMaterial,
   Vector2,
   Vector3,
+  DepthTexture,
 } from "three";
 import { rgbOf } from "../tokens.js";
 import type { Palette } from "../tokens.js";
@@ -152,6 +153,70 @@ export function idMaterial(index: number) {
   });
 }
 
+/* The id pass again, for what lies behind the front surface: a fragment no
+   deeper than the visible depth at its pixel is the front itself and is
+   dropped, and the depth test then keeps the nearest of what remains — the
+   second layer, exactly. Its ids go through the same edge detection the
+   front's do, which is what makes a hidden line a line rather than a band of
+   surface that happens to face edge-on. #85 */
+export function peelIdMaterial(index: number, depth: DepthTexture) {
+  const n = index + 1;
+  return new ShaderMaterial({
+    uniforms: {
+      id: { value: new Vector2((n & 255) / 255, (n >> 8) / 255) },
+      tDepth: { value: depth },
+      size: { value: new Vector2(1, 1) },
+    },
+    blending: NoBlending,
+    vertexShader: /* glsl */ `
+      void main() {
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform vec2 id, size;
+      uniform sampler2D tDepth;
+      void main() {
+        float front = texture2D(tDepth, gl_FragCoord.xy / size).x;
+        /* A hair behind the front, so a surface does not peel itself. */
+        if (gl_FragCoord.z <= front + ${f(PEEL_EPS)}) discard;
+        gl_FragColor = vec4(id, 0.0, 1.0);
+      }
+    `,
+  });
+}
+/* In window depth, which is linear here: the frustum is orthographic. */
+const PEEL_EPS = 0.0002;
+
+/* A hidden crease: the same line, dashed, drawn only where it failed the
+   depth test — behind the surface that hid it. `GreaterDepth` with no write is
+   the whole trick, as it was for the ghost. */
+export function ghostLineMaterial(pal: Palette, dashPeriod: number) {
+  return new ShaderMaterial({
+    uniforms: {
+      edgeColor: { value: vec3(lineOf(pal)) },
+      dash: { value: dashPeriod },
+    },
+    transparent: true,
+    depthFunc: GreaterDepth,
+    depthWrite: false,
+    vertexShader: /* glsl */ `
+      void main() {
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform vec3 edgeColor;
+      uniform float dash;
+      void main() {
+        float along = (gl_FragCoord.x + gl_FragCoord.y) / dash;
+        if (fract(along) > ${f(DASH_DUTY)}) discard;
+        gl_FragColor = vec4(edgeColor, ${f(LINE_ALPHA)});
+      }
+    `,
+  });
+}
+
 /* The pass that draws the lines.
 
    Ids alone find every silhouette in this drawing, and no depth test is
@@ -184,6 +249,8 @@ export function compositeMaterial(pal: Palette) {
       tColor: { value: null },
       tId: { value: null },
       tDepth: { value: null },
+      tHid: { value: null },
+      dash: { value: 7 },
       texel: { value: new Vector2() },
       edgeColor: { value: vec3(lineOf(pal)) },
       panel: { value: vec3(pal.panel) },
@@ -204,8 +271,9 @@ export function compositeMaterial(pal: Palette) {
     fragmentShader: /* glsl */ `
       #include <packing>
       #define CUE 0.33
-      uniform sampler2D tColor, tId, tDepth;
+      uniform sampler2D tColor, tId, tDepth, tHid;
       uniform vec2 texel;
+      uniform float dash;
       uniform vec3 edgeColor, panel;
       uniform float camNear, camFar, cueNear, cueSpan;
       varying vec2 vUv;
@@ -215,6 +283,10 @@ export function compositeMaterial(pal: Palette) {
          cleared to. */
       float idAt(vec2 uv) {
         vec4 t = texture2D(tId, uv);
+        return floor(t.r * 255.0 + 0.5) + floor(t.g * 255.0 + 0.5) * 256.0;
+      }
+      float hidAt(vec2 uv) {
+        vec4 t = texture2D(tHid, uv);
         return floor(t.r * 255.0 + 0.5) + floor(t.g * 255.0 + 0.5) * 256.0;
       }
 
@@ -247,8 +319,45 @@ export function compositeMaterial(pal: Palette) {
           if (i0 < 0.5 && idAt(vUv + off * 2.0) > 0.5) e = 1.0;
         }
 
+        /* The layer behind, the same way: where its id changes, or ends, a
+           hidden part's edge runs — its silhouette against whatever is behind
+           it, or the seam between two hidden parts. One-sided like the front's
+           lines, so a line and not two; only under a part, since nothing hides
+           behind the background; and not where the front already has a line,
+           which is where a hidden part emerges from behind the one in front. */
+        /* Only another part: the meshes are hollow, and a part's own inner
+           wall is what a peel finds behind its outer one. That is not a hidden
+           line — a hidden line is the part behind this one. */
+        float h0 = hidAt(vUv);
+        float other0 = step(0.5, h0) * step(0.5, abs(h0 - i0));
+        float e2 = 0.0;
+        if (i0 > 0.5) {
+          for (int k = 0; k < 4; k++) {
+            vec2 off = k < 2
+              ? vec2(k == 0 ? texel.x : -texel.x, 0.0)
+              : vec2(0.0, k == 2 ? texel.y : -texel.y);
+            float hn = hidAt(vUv + off);
+            float othern = step(0.5, hn) * step(0.5, abs(hn - i0));
+            if (hn - h0 > 0.5 && max(other0, othern) > 0.5) e2 = 1.0;
+            /* Not within two pixels of the front's own linework: at a rim
+               the back face lies within the peel's epsilon of the front, so
+               the hidden layer ends a pixel inside the visible silhouette and
+               would draw a dashed twin of it. */
+            if (abs(idAt(vUv + off) - i0) > 0.5) e2 = 0.0;
+            if (abs(idAt(vUv + off * 2.0) - i0) > 0.5) e2 = 0.0;
+          }
+        }
+        /* Dashed, as a drawing has always drawn a line you cannot see: on the
+           screen diagonal, so an edge of any orientation crosses the dashes. */
+        float on = step(fract((gl_FragCoord.x + gl_FragCoord.y) / dash), ${f(DASH_DUTY)});
+
         float cue = clamp((d0 - cueNear) / cueSpan, 0.0, 1.0);
         vec3 rgb = mix(c.rgb, panel, cue * CUE);
+        /* A breath of tint wherever something is behind — the same everywhere,
+           so it says "there is something here" and draws no shape of its own;
+           the shape is the dashed line's to draw. */
+        rgb = mix(rgb, edgeColor, other0 * ${f(HIDDEN_WASH)});
+        rgb = mix(rgb, edgeColor, e2 * on * ${f(LINE_ALPHA)});
         /* Lines at full strength over cued fill: the extremes belong to the
            linework, which is the whole of the Gooch argument. */
         gl_FragColor = vec4(mix(rgb, edgeColor, e), 1.0);
@@ -257,7 +366,7 @@ export function compositeMaterial(pal: Palette) {
   });
 }
 
-/* What is behind something, drawn faintly through it.
+/* What is behind something, drawn through it.
 
    A stage with parallel columns hides its rear ones behind the core seen
    side-on. Drawing them correctly is not the same as being able to see them,
@@ -265,87 +374,25 @@ export function compositeMaterial(pal: Palette) {
    a ring cannot be faked in 2D — the 3D view draws all of them and then puts
    the core in front of half.
 
-   The rule set is Diepstraten, Weiskopf and Ertl, Computer Graphics Forum 2002,
-   who derived it from how illustrators actually draw ghosted views rather than
-   from alpha blending. Two of their rules are here:
+   The rule set is Diepstraten, Weiskopf and Ertl, Computer Graphics Forum
+   2002, who derived it from how illustrators actually draw ghosted views: the
+   hidden thing is drawn as lines, the lines are dashed, and the layers are
+   capped. Until #85 this was a surface pass — the hidden geometry painted
+   again through the front with a wash that deepened as it turned away and a
+   dashed band where its normal went edge-on. That was a veil over every
+   curved surface, a band whose width followed curvature so it went faint
+   where a facet merely grazed the threshold, and two bands side by side on a
+   hidden cylinder, since its near and far turns both pass. The hidden lines
+   now come from the same place the visible ones do: the second depth layer
+   is peeled into an id buffer of its own (`peelIdMaterial`), the composite
+   edge-detects it one-sided and dashes it, and the hidden creases are drawn
+   dashed through the depth test (`ghostLineMaterial`). One layer, which is the
+   cap; a rocket is a few columns deep. What remains of the wash is a breath of
+   uniform tint wherever anything is behind, so the x-ray still reads as one.
 
-   **Transparency is view-dependent.** A surface is more opaque towards its
-   silhouette and more transparent where it faces you, so a ghosted tank keeps
-   its outline and opens up in the middle — it still reads as a tank rather than
-   as a smear. With an orthographic camera the view direction is constant, so
-   this is the z of the view-space normal and costs nothing.
-
-   **Backfaces are suppressed.** Otherwise you see the inside of the far wall of
-   the thing you are seeing through, which no illustrator draws. three.js culls
-   them by default; it is a rule being kept rather than one being implemented.
-
-   The third — that layers are capped — is left to the geometry. A rocket is a
-   few columns deep, not a few hundred.
-
-   `GreaterDepth` with no depth write is what makes it a second pass rather than
-   a transparency problem: only fragments that *failed* the opaque pass draw, so
-   this paints exactly the hidden part of the model and nothing else, over the
-   top of what hid it. #71 */
-/* How see-through the thing in front becomes. The fill underneath is opaque;
-   this is painted over it, so raising these is what makes the foreground read
-   as translucent. */
-const GHOST_MIN = 0.13;
-const GHOST_MAX = 0.46;
-const GHOST_TURN = 3.0;
-
-/* Where the ghost stops being a wash and becomes a line. A cylinder turning
-   away from the viewer runs out of facing surface quickly, so the band that
-   counts as its silhouette is narrow. */
-const EDGE_LO = 0.45;
-const EDGE_HI = 0.85;
-/* Dashes: on for a bit over half of each period, drawn on the screen diagonal
-   so an edge of any orientation crosses them. The period itself is
-   `DASH_PERIOD` in three-view.jsx, which scales it by the pixel ratio and
-   passes it in — there was a second copy of the number here, unused, which is
-   how two constants meaning the same thing start disagreeing. */
+   `HIDDEN_WASH` is that tint; `DASH_DUTY` how much of a period is drawn, on
+   the screen diagonal; `LINE_ALPHA` how dark a hidden line is against the
+   visible ones, which are full. */
+const HIDDEN_WASH = 0.06;
 const DASH_DUTY = 0.55;
 const LINE_ALPHA = 0.85;
-
-export function ghostMaterial(
-  baseHex: string,
-  dashPeriod: number,
-  pal: Palette,
-) {
-  const m = goochMaterial(baseHex, pal);
-  m.transparent = true;
-  m.depthFunc = GreaterDepth;
-  m.depthWrite = false;
-  m.polygonOffset = false;
-  m.uniforms.edgeColor = { value: vec3(lineOf(pal)) };
-  m.uniforms.dash = { value: dashPeriod };
-  m.fragmentShader = /* glsl */ `
-      uniform vec3 base, cool, warm, edgeColor;
-      uniform float dash;
-      varying vec3 vN;
-      void main() {
-        vec3 n = normalize(vN);
-        float t = 0.5 + 0.5 * dot(n, normalize(${LIGHT}));
-        vec3 dark = mix(base, cool, ${f(COOL_MIX)});
-        vec3 lit  = mix(base, warm, ${f(WARM_MIX)});
-        /* Facing the viewer is see-through; turned away is nearly solid. */
-        float edge = pow(1.0 - abs(n.z), ${f(GHOST_TURN)});
-
-        /* A hidden edge is drawn dashed, which is what a technical drawing has
-           always done with a line you cannot see. The silhouette of a cylinder
-           is where it turns away from you, so the same term that fades the fill
-           finds the line — no second pass and nothing to detect. */
-        float along = (gl_FragCoord.x + gl_FragCoord.y) / dash;
-        float on = step(fract(along), ${f(DASH_DUTY)});
-
-        /* The silhouette band belongs to the line, not to the wash. Painting
-           the wash under it too was what stopped it reading as dashed: the
-           gaps came out at nearly the alpha of the dashes, so it alternated
-           strong and less strong rather than line and nothing. */
-        float sil = smoothstep(${f(EDGE_LO)}, ${f(EDGE_HI)}, edge);
-        float wash = mix(${f(GHOST_MIN)}, ${f(GHOST_MAX)}, edge) * (1.0 - sil);
-        vec3 col = mix(mix(dark, lit, t), edgeColor, sil * on);
-        gl_FragColor = vec4(col, wash + sil * on * ${f(LINE_ALPHA)});
-      }
-    `;
-  return m;
-}
