@@ -207,6 +207,7 @@ invisible to every baseline here.
     test/mission-sweep.test.ts            what planMission actually delivers
     test/shard.test.ts                    the sharded search folds back in order
     test/asparagus.test.ts                crossfeed, on numbers: the ring sheds a pair at a time
+    test/radial-columns.test.ts           a roster with no solids still gets a liquid column, and none with the switch off
     test/manifest.test.ts                 the stage manifest accounts for every part, drop tanks included
     test/adapters.test.ts                 the adapter subsystem
     test/art-regime.test.ts               the part sizes follow the install the checkboxes describe

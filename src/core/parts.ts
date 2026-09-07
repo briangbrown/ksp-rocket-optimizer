@@ -395,13 +395,23 @@ function missionHardware(
   return { items, mass: 0 }; // your payload figure covers them
 }
 
-const RADIAL_DECOUPLER = 0.05; // TT-38K, one per booster
+/* What holds a booster on and lets it go: the TT-38K, one per booster, read
+   off the structure table so the mass charged is the mass listed. It was a
+   literal 0.05 for as long as the solver has had boosters, which is the TT-70's
+   mass under the TT-38K's name — every ring paid double for its decouplers.
+   #161 */
+const TT38K = structureData.decoupler.find(
+  (x) => x.n === "TT-38K Radial Decoupler",
+);
+if (!TT38K) throw new Error("structure.json has lost the TT-38K");
+const RADIAL_DECOUPLER = TT38K.m;
+const RADIAL_DECOUPLER_FUNDS = TT38K.cost;
 
 /* Radial stacks burn with the core and are never dropped on their own, so what
    holds them on does not have to separate — it only has to be structure. The
    lightest thing in the game that surface-attaches and offers a stack node is the
-   Cubic Octagonal Strut at 1 kg, against 50 kg for a radial decoupler. Charging
-   the decoupler was fifty times too heavy per join. */
+   Cubic Octagonal Strut at 1 kg, against 25 kg for a radial decoupler. Charging
+   the decoupler was twenty-five times too heavy per join. */
 const RADIAL_JOIN = {
   n: "Cubic Octagonal Strut",
   m: 0.001,
@@ -409,10 +419,10 @@ const RADIAL_JOIN = {
   t: "Precision Engineering",
 };
 const RADIAL_JOIN_FALLBACK = {
-  n: "TT-38K Radial Decoupler",
-  m: 0.05,
-  cost: 600,
-  t: "Advanced Construction",
+  n: TT38K.n,
+  m: TT38K.m,
+  cost: TT38K.cost,
+  t: TT38K.t,
 };
 const radialJoin = (unlocked: Roster, excluded: Excluded) =>
   (!RADIAL_JOIN.t || unlocked.has(RADIAL_JOIN.t)) &&
@@ -430,6 +440,7 @@ export {
   COUPLERS,
   PLATE_SHROUD,
   RADIAL_DECOUPLER,
+  RADIAL_DECOUPLER_FUNDS,
   RADIAL_JOIN,
   RADIAL_JOIN_FALLBACK,
   STRUCT,

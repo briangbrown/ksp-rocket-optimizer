@@ -1,5 +1,5 @@
 import { PACK_BRACE, PACK_JOIN } from "./geometry.js";
-import { RADIAL_DECOUPLER } from "./parts.js";
+import { RADIAL_DECOUPLER, RADIAL_DECOUPLER_FUNDS } from "./parts.js";
 import { DECOUPLER_FUNDS } from "./performance.js";
 import type { Coupler, Engine, Shroud, Tank } from "./catalogue.js";
 import type {
@@ -197,7 +197,13 @@ export function eachRow(sol: Solution | null | undefined, add: AddRow) {
       b.part.cost,
       (b.part.fuelM || 0) - colProp,
     );
-    add("booster-decoupler", null, b.n, RADIAL_DECOUPLER, DECOUPLER_FUNDS);
+    add(
+      "booster-decoupler",
+      null,
+      b.n,
+      RADIAL_DECOUPLER,
+      RADIAL_DECOUPLER_FUNDS,
+    );
     if (b.part.column)
       for (const x of b.part.column.list)
         add("booster-tank", x.t, b.n * x.c, x.t.dry, x.t.cost, x.t.prop);

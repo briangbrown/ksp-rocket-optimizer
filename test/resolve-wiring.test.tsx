@@ -224,11 +224,11 @@ describe("a control change re-solves", () => {
   }, 300_000);
 
   it("the roster toggles change the design", async () => {
-    /* Solid boosters and the gimbal requirement both filter the parts the
+    /* Radial boosters and the gimbal requirement both filter the parts the
        solver may use, by different routes. */
     await mount();
     const before = design();
-    await click(byText("Solid boosters allowed"));
+    await click(byText("Radial boosters allowed"));
     await settle();
     const noSrb = design();
     expect(noSrb, "disallowing boosters did not change the design").not.toBe(

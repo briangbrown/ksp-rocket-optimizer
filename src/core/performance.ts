@@ -1,6 +1,7 @@
 import curvesData from "../data/curves.json";
 import { evalCurve, ispCurve } from "./atmosphere.js";
 import { G0 } from "./constants.js";
+import { RADIAL_DECOUPLER_FUNDS } from "./parts.js";
 import type { Curve } from "./atmosphere.js";
 import type { Tank } from "./catalogue.js";
 import type { Solution } from "./solution.js";
@@ -111,13 +112,15 @@ function stageCost(c: Solution) {
   /* A liquid radial column costs its engine plus its tanks, not just the
      engine — reporting only the engine made columns look cheap, and the cost
      objective picked them over designs that were genuinely cheaper. A drop
-     tank is the same sum with nothing in the first term. */
+     tank is the same sum with nothing in the first term. The decoupler is the
+     TT-38K's own price, not the estimate a stage with no decoupler recorded
+     falls back to: the part is named, so it is priced. #161 */
   if (c.boosters)
     f +=
       c.boosters.n *
       (c.boosters.part.cost +
         (c.boosters.part.column ? c.boosters.part.column.funds || 0 : 0) +
-        DECOUPLER_FUNDS);
+        RADIAL_DECOUPLER_FUNDS);
   return f;
 }
 const stageParts = (c: Solution) =>

@@ -1,16 +1,16 @@
 Low orbit          liftoff=16.1      stages=2
-Stationary orbit   liftoff=31.6      stages=2
+Stationary orbit   liftoff=29.9      stages=2
 Moho               liftoff=—         stages=—
 Eve                liftoff=—         stages=—
-Gilly              liftoff=104.8     stages=3
-Mun                liftoff=70.6      stages=4
+Gilly              liftoff=118.1     stages=3
+Mun                liftoff=70.5      stages=4
 Minmus             liftoff=67.8      stages=2
-Duna               liftoff=147.8     stages=3
-Ike                liftoff=96.5      stages=3
-Dres               liftoff=280.3     stages=6
-Jool               liftoff=151.7     stages=3
+Duna               liftoff=125.5     stages=4
+Ike                liftoff=96.4      stages=3
+Dres               liftoff=280.0     stages=6
+Jool               liftoff=151.6     stages=3
 Laythe             liftoff=—         stages=—
 Vall               liftoff=—         stages=—
 Tylo               liftoff=—         stages=—
-Pol                liftoff=165.9     stages=5
+Pol                liftoff=289.6     stages=4
 Eeloo              liftoff=—         stages=—
