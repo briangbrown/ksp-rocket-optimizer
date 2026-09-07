@@ -1344,11 +1344,14 @@ function solveUnit(
              value is shedding empty tankage, which pays just as well in vacuum.
              In fact it pays better: up here the thrust floor is 0.8 rather than
              1.25, and it was that floor rejecting almost every drop-tank
-             configuration on the pad. */
+             configuration on the pad.
+
+             A ring is solids or liquid columns, and the switch covers both:
+             this used to ask for a solid in the roster before it would try
+             any mount at all, so a career with liquid engines and no SRBs
+             never saw a radial column unless asparagus was on. #160 */
             const wantMounts =
-              boosters &&
-              (kind === "launch" || kind === "land") &&
-              (srbs.length ? pSt > 0.1 : false);
+              boosters && (kind === "launch" || kind === "land") && pSt > 0.1;
             if (
               wantMounts ||
               (asparagus && (kind === "launch" || kind === "land"))

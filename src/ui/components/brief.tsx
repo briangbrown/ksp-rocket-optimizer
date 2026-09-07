@@ -70,7 +70,6 @@ type BriefProps = {
   onObjective: (o: Objective) => void;
   needGimbal: boolean;
   onNeedGimbal: (on: boolean) => void;
-  srbAvail: boolean;
   boosters: boolean;
   onBoosters: (on: boolean) => void;
   airDescent: boolean;
@@ -359,9 +358,8 @@ function Brief(p: BriefProps) {
                 onChange={p.onNeedGimbal}
               />
               <Toggle
-                label="Solid boosters allowed"
-                on={p.srbAvail && p.boosters}
-                disabled={!p.srbAvail}
+                label="Radial boosters allowed"
+                on={p.boosters}
                 onChange={p.onBoosters}
               />
               <Toggle

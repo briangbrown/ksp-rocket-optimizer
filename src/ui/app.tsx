@@ -488,7 +488,6 @@ export default function KSPMissionPlanner() {
     return stackGeometry(stages, payload, payloadDia);
   }, [stages, payload, payloadDia]);
 
-  const srbAvail = engines.some((e) => e.f.includes("SF") && e.fuelM > 0);
   const airDescent = route.some((l) => l.kind === "land" && l.atm);
 
   const hardware = useMemo(
@@ -788,7 +787,6 @@ export default function KSPMissionPlanner() {
       onObjective={edit(setObjective)}
       needGimbal={needGimbal}
       onNeedGimbal={edit(setNeedGimbal)}
-      srbAvail={srbAvail}
       boosters={boosters}
       onBoosters={edit(setBoosters)}
       airDescent={airDescent}

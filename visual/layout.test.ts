@@ -23,8 +23,8 @@ import type { Page } from "puppeteer";
    render.test.ts gives. */
 const BUDGET = {
   phone: {
-    height: 4180, // px, the whole page with the default mission solved and the brief set: 4090 with the rocket as the hero (#138), with 2% for a different Chrome's fonts
-    words: 633, // visible words on that page — the paragraphs are behind disclosures, #135
+    height: 4150, // px, the whole page with the default mission solved and the brief set: 4066 once the TT-38K was priced and the default rocket shrank (#161), with 2% for a different Chrome's fonts
+    words: 619, // visible words on that page — the paragraphs are behind disclosures, #135; 633 before #161
     tinyText: 0, // text under 12 px
     smallBody: 59, // text under 13 px: the labels, at 12
     targets: 0, // pressable things under 44 × 44 — of 26, #136
@@ -34,8 +34,8 @@ const BUDGET = {
     folded: 860, // px, every section folded: the brief, four lines and the footer — 844, which is the viewport
   },
   desktop: {
-    height: 2610, // 2583 — the two-column shell (#137) with the rocket at six tenths of the window (#138)
-    words: 634,
+    height: 2555, // 2529 — the two-column shell (#137) with the rocket at six tenths of the window (#138); 2583 before #161
+    words: 620, // 634 before #161
     tinyText: 60, // the labels, at 11
     smallBody: 87, // labels and notes
     targets: 0, // under 24 × 24 — of 26

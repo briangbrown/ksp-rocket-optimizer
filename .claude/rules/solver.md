@@ -47,6 +47,23 @@ before changing the thing it names.
   rule, and `test/manifest.test.ts` for the drop tank's price. A change in
   there is invisible to the 81-case grid; measure it against the sweep.
 
+- **Both baselines carry a solid in the roster, so neither can see what a
+  roster without one gets.** The design grid and the mission sweep solve at
+  tiers where the Hammer and the Flea are researched. `wantMounts` once asked
+  for a solid before it would try any mount, and a career with liquid engines
+  and no SRBs never saw a liquid radial column — invisible to every baseline,
+  because with a solid present the gate was already open.
+  `test/radial-columns.test.ts` is what pins the solid-free case. #160
+
+- **A named part is charged at its table figure, and three literals were not.**
+  The booster decoupler's mass, its price and the fallback join for radial
+  stacks all named the TT-38K and carried the TT-70's mass (0.05 t) or the
+  no-decoupler estimate (75 funds) for the life of the solver; every ring paid
+  double for its decouplers and an eighth of their price. They read
+  `structure.json` now. Pricing the part moved 39 of the 81 grid designs and
+  13 of the 16 sweep missions, and on the cost objective the walk buys fewer
+  boosters than it did — that is the price, not a regression. #161
+
 - **A solved stage is not one shape.** A boosted stage carries no `stacks`,
   `perStack`, `rejoin` or `joiner` at all — it is a single core with a ring
   bolted to the side of it, built by `boostedAscent` from a different literal
