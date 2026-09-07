@@ -3,6 +3,7 @@
 
      node tools/engine-meshes.mjs ksp-engine-models.zip          # writes public/engines/
      node tools/engine-meshes.mjs ksp-engine-models.zip --check  # exits 1 if the committed files differ
+     node tools/engine-meshes.mjs ksp-engine-models.zip --full   # writes public/engines-full/, unsimplified, for the gallery's comparison
 
    The zip is what tools/pack-engines.ps1 makes from the install: the `.mu`
    meshes and `.cfg` configs on every path with "Engine" in it, ReStock's
@@ -36,10 +37,17 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
-/* Vertices to keep per engine, and per big cluster — a ceiling, not a
-   goal: the turn bound below stops a curved surface short of it. */
-const TARGET = 500;
-const BIG = 800;
+/* The budget, in faces: one in KEEP of the welded mesh's, never fewer than
+   FLOOR — a bell has to read as a bell at the sixty or so pixels the drawing
+   gives it — and never more than CEIL, which is the Mammoth and the Corgi,
+   four bells and a plate. A fixed count was wrong in both directions: the
+   ReStock Vector is a smooth cone wrapped in forty cooling ribs, and at a
+   thousand faces the simplifier, unable to afford the ribs, ate the cone's
+   circumference around them and drew a lumpy silhouette; the Spark has
+   three thousand faces and needs no more than it has. */
+const KEEP = 6;
+const FLOOR = 1000;
+const CEIL = 3000;
 /* The weight of a turn against a distance in the collapse cost, on faces
    of area A: TURN · extent² · A · (1 − cos θ) beside A · d². At 40, a face
    that turns fifteen degrees costs what moving it the whole part's extent
@@ -839,8 +847,12 @@ class Heap {
   }
 }
 
-function simplify(verts0, tris, target, extent) {
+function simplify(verts0, tris, extent) {
   const { verts, faces } = weld(verts0, tris);
+  const target = Math.min(
+    CEIL,
+    Math.max(FLOOR, Math.round(faces.length / KEEP)),
+  );
   const n = verts.length;
   const V = verts.map((v) => [...v]);
   const alive = new Array(n).fill(true);
@@ -992,7 +1004,7 @@ function simplify(verts0, tris, target, extent) {
     for (const f of facesOf[v]) for (const u of F[f]) if (u !== v) s.add(u);
     return s;
   };
-  while (facesAlive > 2 * target && heap.size) {
+  while (facesAlive > target && heap.size) {
     const e = heap.pop();
     const { a, b } = e;
     if (!alive[a] || !alive[b] || version[a] !== e.va || version[b] !== e.vb)
@@ -1083,19 +1095,11 @@ function measure(part, zip) {
       ? ymax
       : Math.min(ymax, part.nodeTop * part.rescale * part.scale);
   const verts = out.verts.map(([x, y, z]) => [x, y - top, z]);
-  /* The budget: enough for a bell to read as a bell at the sixty or so
-     pixels the drawing gives it; more for the big clusters, which have
-     four of them and a plate. */
   const extent = Math.max(
     top - ymin,
     2 * Math.max(...verts.map(([x, , z]) => Math.hypot(x, z))),
   );
-  const s = simplify(
-    verts,
-    out.tris,
-    out.verts.length > 15000 ? BIG : TARGET,
-    extent,
-  );
+  const s = FULL ? weld(verts, out.tris) : simplify(verts, out.tris, extent);
   /* What shows, measured on the simplified mesh so the drawing fills the box
      it is scaled into: the height from the node down, and the radius of
      anything below the node. Clustering moves the extremes a little. */
@@ -1129,8 +1133,11 @@ const slug = (title) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
+let FULL = false;
+
 function main() {
   const [zipPath, ...flags] = process.argv.slice(2);
+  FULL = flags.includes("--full");
   if (!zipPath) {
     console.error(
       "usage: node tools/engine-meshes.mjs <ksp-engine-models.zip> [--check]",
@@ -1182,7 +1189,7 @@ function main() {
       ...index,
     }),
   );
-  const dir = join(REPO, "public/engines");
+  const dir = join(REPO, FULL ? "public/engines-full" : "public/engines");
   for (const u of unmeasured) console.error("unmeasured:", u);
   const bytes = [...files.values()].reduce((a, t) => a + t.length, 0);
   console.error(
@@ -1201,7 +1208,9 @@ function main() {
       }
     }
     if (differ) process.exit(1);
-    console.error("public/engines matches the install");
+    console.error(
+      `${FULL ? "public/engines-full" : "public/engines"} matches the install`,
+    );
     return;
   }
   if (existsSync(dir)) rmSync(dir, { recursive: true });

@@ -126,33 +126,36 @@ type MeshIndex = {
 };
 /* Relative to the page, so the application and the gallery — both at the
    root — find the same files under public/. */
-const MESH_BASE = "engines/";
 const meshes = new Map<string, EngineMesh | null>();
-let meshIndex: Promise<MeshIndex | null> | null = null;
+const meshIndexes = new Map<string, Promise<MeshIndex | null>>();
 const meshListeners = new Set<() => void>();
 const onMeshes = (cb: () => void) => {
   meshListeners.add(cb);
   return () => void meshListeners.delete(cb);
 };
-const meshUrl = async (title: string) => {
-  meshIndex ??= fetch(`${MESH_BASE}index.json`)
-    .then((r) => (r.ok ? (r.json() as Promise<MeshIndex>) : null))
-    .catch(() => null);
-  const ix = await meshIndex;
-  if (!ix) return null;
+const meshUrl = async (folder: string, title: string) => {
+  let ix = meshIndexes.get(folder);
+  if (!ix) {
+    ix = fetch(`${folder}/index.json`)
+      .then((r) => (r.ok ? (r.json() as Promise<MeshIndex>) : null))
+      .catch(() => null);
+    meshIndexes.set(folder, ix);
+  }
+  const index = await ix;
+  if (!index) return null;
   const file =
-    (artName() === "restock" ? ix.restock[title] : undefined) ??
-    ix.stock[title];
-  return file ? MESH_BASE + file : null;
+    (artName() === "restock" ? index.restock[title] : undefined) ??
+    index.stock[title];
+  return file ? `${folder}/${file}` : null;
 };
 /* The mesh if it has arrived; starts it on its way if not. `null` in the
    cache is an engine that has none — the drum, and no asking again. */
-function engineMesh(title: string): EngineMesh | undefined {
-  const key = `${artName()}/${title}`;
+function engineMesh(title: string, folder: string): EngineMesh | undefined {
+  const key = `${folder}/${artName()}/${title}`;
   if (meshes.has(key)) return meshes.get(key) ?? undefined;
   meshes.set(key, null);
   (async () => {
-    const url = await meshUrl(title);
+    const url = await meshUrl(folder, title);
     const m = url
       ? await fetch(url)
           .then((r) => (r.ok ? (r.json() as Promise<EngineMesh>) : null))
@@ -230,6 +233,10 @@ type ThreeViewProps = {
      own, and jsdom never mounts one, so the render suite is what holds this.
      #141 */
   alt: string;
+  /* Which folder under public/ the engine meshes come from: `engines`, the
+     simplified ones the application draws, unless the gallery asks for the
+     full ones beside them. */
+  meshes?: string;
 };
 
 /* Reused rather than allocated per part per frame. */
@@ -271,6 +278,7 @@ export default function ThreeView({
   offsets,
   theme,
   alt,
+  meshes: meshSet = "engines",
 }: ThreeViewProps) {
   const host = useRef<HTMLDivElement | null>(null);
   const gl = useRef<WebGLRenderer | null>(null);
@@ -371,8 +379,8 @@ export default function ThreeView({
 
     for (const [i, p] of parts.entries()) {
       const geo =
-        p.role === "engine" && engineMesh(p.part.n)
-          ? engineGeometry(p.r, p.h, engineMesh(p.part.n)!)
+        p.role === "engine" && engineMesh(p.part.n, meshSet)
+          ? engineGeometry(p.r, p.h, engineMesh(p.part.n, meshSet)!)
           : p.rTop === undefined
             ? new CylinderGeometry(p.r, p.r, p.h, SEGMENTS)
             : new LatheGeometry(taperedProfile(p.r, p.rTop, p.h), SEGMENTS);
@@ -482,7 +490,7 @@ export default function ThreeView({
       renderer.setRenderTarget(null);
       for (const o of owned) o.dispose();
     };
-  }, [parts, view, color, bufW, bufH, theme, meshTick]);
+  }, [parts, view, color, bufW, bufH, theme, meshTick, meshSet]);
 
   /* ---------------------------- painted often ----------------------------
 
@@ -626,6 +634,10 @@ export default function ThreeView({
     midY,
     offsets,
     theme,
+    /* A mesh that lands rebuilds the scene above; without this it was not
+       drawn until something else repainted — a view toggle, an animation
+       frame — and the gallery, which animates nothing, showed cylinders. */
+    meshTick,
   ]);
 
   /* The visible box, clipping the buffer's top-left corner. They are the same

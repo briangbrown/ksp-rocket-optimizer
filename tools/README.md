@@ -26,6 +26,9 @@ file an engine, fetched by the renderer when the engine is first drawn. #85
        node tools/engine-meshes.mjs path/to/ksp-engine-models.zip
 
    It reports what it could not measure and rewrites `public/engines/`. With
+   `--full` it writes the welded, unsimplified meshes to `public/engines-full/`
+   instead — ten megabytes, for the gallery's Simplified / Full switch and
+   nothing else; the application never fetches them. With
    `--check` it compares instead and exits 1 on a difference, which is how to
    tell whether a game or mod update moved a shape. Prettier ignores the
    folder on purpose; do not lay the files out.
@@ -41,7 +44,8 @@ placement dropped, because that is where the prefab sat in the Unity scene
 and the game discards it; takes every visible triangle in world space with
 the top node at y = 0; welds the texture seams; and simplifies by memoryless
 quadric edge collapse (each edge priced against the surface as it stands, not
-a quadric accumulated over its history) to about five hundred vertices (eight for the big clusters),
+a quadric accumulated over its history) to one face in six of the welded
+mesh, never fewer than a thousand faces nor more than three thousand,
 boundary loops protected so a bell's lip keeps its radius, face flips refused,
 and the turn a collapse puts on its faces priced into its cost so the smooth
 surfaces keep their rings and the budget is spent on bolts and struts — the

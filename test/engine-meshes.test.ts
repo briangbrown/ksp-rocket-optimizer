@@ -31,10 +31,12 @@ const engines = DATA.engines.map((e) => e.n);
    Engine, and was not in the pack. It is a tank; the drum is fine for it. */
 const UNMEASURED = ["FL-S1200 Liquid Fuel Tank"];
 
-/* Vertices a file may carry and bytes it may weigh: the tool aims under the
-   first, and the second is what a phone fetches before a rocket draws. */
-const VERTICES = 1200;
-const BYTES = 40_000;
+/* Vertices a file may carry and bytes it may weigh. The tool keeps one face
+   in six up to three thousand, and the game's meshes are not manifold, so
+   three thousand faces can be nineteen hundred vertices (the Twin-Boar); the
+   second is what a phone fetches before a rocket draws. */
+const VERTICES = 2000;
+const BYTES = 80_000;
 
 describe("the engine meshes", () => {
   it("cover every engine in the catalogue but the ones named", () => {
@@ -108,5 +110,20 @@ describe("the engine meshes", () => {
     expect(artName()).toBe("stock");
     useArt(null);
     expect(artName()).toBe("restock");
+  });
+
+  /* The gallery's Full switch draws public/engines-full/ beside the
+     simplified files; an engine in one and not the other would compare
+     against a cylinder. */
+  it("have a full copy for the gallery to compare against", () => {
+    const full = JSON.parse(
+      readFileSync("public/engines-full/index.json", "utf8"),
+    ) as typeof index;
+    expect(Object.keys(full.stock).sort()).toEqual(
+      Object.keys(index.stock).sort(),
+    );
+    expect(Object.keys(full.restock).sort()).toEqual(
+      Object.keys(index.restock).sort(),
+    );
   });
 });

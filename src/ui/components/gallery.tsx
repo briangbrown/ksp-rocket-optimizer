@@ -149,6 +149,10 @@ function projector(
 function EngineGallery() {
   const [art, setArt] = useState<"restock" | "stock">("restock");
   const [view, setView] = useState<"side" | "iso">("side");
+  /* The application draws the simplified meshes; beside them, for judging
+     what the simplifier kept, the full ones — welded, unsimplified — which
+     `node tools/engine-meshes.mjs <zip> --full` writes to public/engines-full. */
+  const [detail, setDetail] = useState<"engines" | "engines-full">("engines");
   const [width, setWidth] = useState(() =>
     Math.min(
       1100,
@@ -219,6 +223,15 @@ function EngineGallery() {
             { value: "iso", label: "Isometric" },
           ]}
         />
+        <Choice
+          label="Detail"
+          value={detail}
+          onChange={setDetail}
+          options={[
+            { value: "engines", label: "Simplified" },
+            { value: "engines-full", label: "Full" },
+          ]}
+        />
       </div>
       {!drawn && (
         <Callout
@@ -236,7 +249,7 @@ function EngineGallery() {
         const cellPx = (CELL_W / (need.w * 2 * 1.2)) * width;
         return (
           <div
-            key={`${art}-${view}-${g}`}
+            key={`${art}-${view}-${detail}-${g}`}
             style={{
               position: "relative",
               width,
@@ -253,6 +266,7 @@ function EngineGallery() {
                   height={height}
                   color={palette(theme).amber}
                   theme={theme}
+                  meshes={detail}
                   alt={`Engines ${n + 1} to ${n + grp.cells.length}, each under a tank`}
                 />
               </Suspense>

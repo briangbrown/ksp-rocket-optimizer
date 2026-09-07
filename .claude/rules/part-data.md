@@ -72,8 +72,15 @@ Changing a number here is changing a measurement.
   chain of collapses; the local quadric's own minimiser is refused when it
   lands farther from the edge than the edge is long, since the planes round
   one edge are often nearly coplanar and the solution then a needle out of
-  the surface — the Boar grew one — to about five hundred vertices, eight
-  for the big clusters, with the boundary loops weighted so a lip does not
+  the surface — the Boar grew one — to one face in six, floored at a
+  thousand faces and capped at three thousand (`KEEP`, `FLOOR`, `CEIL`). A
+  fixed count was wrong both ways: the ReStock Vector is a smooth cone under
+  forty cooling ribs, and at a thousand faces the simplifier, unable to
+  afford the ribs, ate the cone's circumference around them and drew a lumpy,
+  crossing silhouette; the Spark has three thousand faces and needs no
+  more. The gallery's Full switch draws `public/engines-full/` (the tool's
+  `--full`) beside the simplified files for judging this — with the boundary
+  loops weighted so a lip does not
   creep inward, a collapse that would flip a face refused, and **the turn a
   collapse puts on its faces priced into the cost** (`TURN` in the tool):
   a quadric measures distance, and merging two ring vertices on a cylinder
