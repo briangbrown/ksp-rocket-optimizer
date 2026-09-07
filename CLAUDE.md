@@ -10,7 +10,7 @@ changing it** — every entry is a regression a green build did not catch.
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/core/**`                       | `.claude/rules/solver.md` — shared stage solutions, the `stageGeom` / `stageSize` triangle, `fitStructure` reached from two callers, slenderness, `best` is not what is delivered |
 | the build view, shaders, `views.ts` | `.claude/rules/renderer.md` — per-frame rebuilds, `setSize`, camera basis, surface ids, GLSL                                                                                      |
-| `src/ui/**`                         | `.claude/rules/ui.md` — panel widths, callback refs, `position: fixed`, `Slider` drafts                                                                                           |
+| `src/ui/**`                         | `.claude/rules/ui.md` — panel widths, callback refs, `position: fixed`, `Field` drafts                                                                                            |
 | anything visible                    | `.claude/rules/design.md` — type roles, tokens, one idiom per job; the reference is `docs/design.md`                                                                              |
 | `src/data/**`                       | `.claude/rules/part-data.md` — measurements, not configuration                                                                                                                    |
 | `test/**`, `visual/**`              | `.claude/rules/verification.md` — what each check does                                                                                                                            |
@@ -36,18 +36,22 @@ npm run build      # production build into dist/
 npm run preview    # serve the production build
 npm test           # the whole suite — see Verification below
 npm run test:bless # accept current solver output as the new baseline
-npm run test:visual # the build view in a real browser — see Verification
+npm run test:visual # the build view drawn and the layout measured, in a real browser
+npm run typecheck  # tsc — the only type gate, see Code style
 npm run lint       # eslint, one rule: no-undef
+npm run format     # prettier; format:check verifies
 ```
 
-Node 24 or newer. **Run `npm test && npm run build` before every commit** — both
-are what CI runs.
+Node 24 or newer. **Run `npm run format:check && npm run lint && npm run
+typecheck && npm test && npm run build` before every commit** — that is what
+CI's `build` job runs, in that order; a second job runs `npm run test:visual`.
 
-`npm test` takes about a minute and a half locally and several minutes on CI. It
-is solving 81 rocket designs and mounting the app a few dozen times, not doing
+`npm test` takes about two minutes in a container and several on CI. It is
+solving 81 rocket designs and mounting the app a few dozen times, not doing
 nothing.
 
-Benchmarks are `npm run perf`, `perf:mission`, `perf:save` and `perf:compare`.
+Benchmarks are the `perf:*` scripts — `npm run perf`, `perf:mission`,
+`perf:save`, `perf:compare` and the profiling ones `perf/README.md` lists.
 Baseline on `main`, compare on the branch, **then run `npm test` and confirm the
 design snapshot has not moved** — a faster solver that picks different rockets is
 a different solver. They are deliberately outside CI; `perf/README.md` has the
@@ -63,11 +67,14 @@ Three layers, and the boundary between the first two is the point:
     src/core/   solver and physics. No React, no DOM, no imports from ui.
     src/ui/     the application
 
-**`src/core/plan.ts` is the seam.** `planMission(input, { signal, onYield })`
-takes a destination and a payload and returns solved stages. Everything crossing
-it is plain data — no `Set`, no `Map`, no object identity, no functions — so the
-solver behind it can become a Web Worker or a Rust/WASM module without the UI
-changing. `test/seam-contract.test.ts` enforces that and will fail if it slips.
+**`src/core/plan.ts` is the seam.** `planMission(input, { signal, onYield,
+fanOut })` takes a destination and a payload and returns solved stages.
+Everything crossing it is plain data — no `Set`, no `Map`, no object identity,
+no functions — which is what lets it run on a Web Worker today
+(`src/ui/solver.worker.ts`, with `fanOut` sharding the search across
+`unit.worker.ts`) and would let a Rust/WASM module stand behind it without the
+UI changing. `test/seam-contract.test.ts` enforces that and will fail if it
+slips.
 `test/boundaries.test.ts` enforces the import direction, so `core/` reaching into
 `ui/`, React or three.js fails the build rather than the review.
 
@@ -100,13 +107,16 @@ than habit:
 > section lists four rules this project deliberately breaks — read that before
 > applying anything from the rest of it.
 
-- **Inline `style={{}}` is correct here.** There is no Tailwind, no CSS file,
-  and no class-based design system. Static styling lives in a `<style>` block
-  inside the component, alongside a small set of custom classes (`card`, `chip`,
-  `disp`, `eyebrow`, `mono`). Do not introduce a styling framework.
-- **The component is a default export.** Solver functions are module-private.
-  Export something by name when a caller genuinely needs it — that is how the
-  snapshot test reaches `solveGroup` — not as a blanket convention.
+- **Inline `style={{}}` is correct here.** There is no Tailwind and no CSS
+  file. Static styling is the stylesheet in `src/ui/styles.ts`, written from
+  the tokens in `src/ui/tokens.ts` and mounted once by `app.tsx`; a component
+  names a type role (`display`, `heading`, `label`, `body`, `figure`, `note`)
+  or a token and never sets a size — `.claude/rules/design.md` has the rule.
+  Do not introduce a styling framework.
+- **The root component is a default export.** Solver functions are
+  module-private. Export something by name when a caller genuinely needs it —
+  that is how the snapshot test reaches `solveGroup` — not as a blanket
+  convention.
 - **Naming is terse and domain-flavoured** (`cdOf`, `ispAt`, `fitStructure`,
   `solveStage`, `boostedAscent`). Follow it. Do not expand these into prose.
 - **Physics constants and part tables are UPPER_SNAKE.**
@@ -129,9 +139,9 @@ Six checks: the **design snapshot** (81 configurations against a baseline), the
 the **visual suite** (`npm run test:visual`, real WebGL in headless Chrome), the
 **layout suite** (the same browser, at a phone and a desktop, holding the UI's
 budgets — page height, words, target size, type floor, overflow, keyboard
-reach, axe), and the **mission sweep** (thirteen missions through
-`planMission`). `.claude/rules/verification.md` says what each does and where
-it lives.
+reach, axe), and the **mission sweep** (sixteen missions through
+`planMission`, three of them with crossfeed on).
+`.claude/rules/verification.md` says what each does and where it lives.
 
 The layout suite's budgets are today's numbers, not targets, and a change to
 `src/ui/` says what it did to them. Lower the one you improved in the same
@@ -148,7 +158,7 @@ mission sweep is re-blessed exactly as deliberately.
 Know what none of them reach:
 
 - The design snapshot drives `solveGroup`, not `buildRoute`, `missionHardware`,
-  or the candidate walk. The mission sweep covers those, but at thirteen
+  or the candidate walk. The mission sweep covers those, but at sixteen
   configurations against the snapshot's 81 — it is a regression net, not a
   survey, and a solver change with a narrow blast radius can still slip between
   its cases.
@@ -158,10 +168,13 @@ Know what none of them reach:
   bad value. That is true of real browsers as much as jsdom. Only
   string-valued properties survive to be seen, `font-family: NaN` being the type
   case.
-- Containment is checked at the default tech tier and payload. Other rosters
-  produce different shapes and are not swept.
-- The main suite runs in jsdom, which has no worker, no visual viewport, no
-  on-screen keyboard and no IME. `npm run test:visual` covers the WebGL half in
+- The model checks — overlap, width, height, framing — run over the sweep's
+  tier-9 missions at every staging step. Other rosters, the default tier-5
+  one the app opens on included, produce different shapes and are not swept.
+- The main suite runs in jsdom, which has no `Worker`, no visual viewport, no
+  on-screen keyboard and no IME. Every test therefore solves in-process; the
+  worker protocol and the sharded fold-back are tested on numbers, and the real
+  worker only on the preview. `npm run test:visual` covers the WebGL half in
   a real browser and measures the layout at a phone's width; everything else
   on that list is still checked on the Cloudflare preview, by a person, and
   the device is still the only place mobile behaviour is decided. The layout

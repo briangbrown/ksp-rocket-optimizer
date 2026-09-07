@@ -35,9 +35,9 @@ export const OBJECTIVES: ReadonlyArray<Objective> = ["mass", "cost", "parts"];
    uninteresting on a heavy one that is squat regardless. */
 const aspectFor = (payload: number) => (payload <= 1 ? 14 : Infinity);
 
-/* Stock parts only. Making History is excluded from the app entirely and
-   ReStock+ is a user toggle; pinning both off keeps the snapshot a statement
-   about the solver rather than about the part roster. */
+/* Stock parts only. Making History and ReStock+ are both user toggles in the
+   app; pinning both off keeps the snapshot a statement about the solver rather
+   than about the part roster. */
 const enginesFor = (unlocked: ReadonlySet<string>) =>
   DATA.engines.filter((e) => unlocked.has(e.t) && !e.mh && !e.rs);
 

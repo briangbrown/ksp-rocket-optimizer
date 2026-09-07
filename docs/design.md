@@ -191,10 +191,10 @@ Line height: `1.2` for `display` and `heading`, `1.5` for `body` and `note`,
 On the phone nothing renders under 12 px and nothing in `body` under 13. On
 desktop nothing under 11. The layout suite asserts both.
 
-### Where every current size goes
+### Where every pre-refresh size went
 
-The migration is a lookup. Every `fontSize` in `src/ui` today, and the role
-that replaces it:
+The migration was a lookup, done in #130; there is no `fontSize` left in
+`src/ui`. Every size the refresh started from, and the role that replaced it:
 
 | Today | Where                                                                                                                                | Becomes                                                                    |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
@@ -214,9 +214,9 @@ that replaces it:
 | 24    | `Stat`                                                                                                                               | `figure-lg`                                                                |
 | 34    | the title                                                                                                                            | `display`                                                                  |
 
-Tracking today is `.22em` (eyebrow), `.18em` (panel heads), `.14em` (cut
-label), `.08em` (profile heads), `-0.01em` (planet buttons). All caps labels
-take `.14em`; nothing else tracks.
+Tracking before the refresh was `.22em` (eyebrow), `.18em` (panel heads),
+`.14em` (cut label), `.08em` (profile heads), `-0.01em` (planet buttons). All
+caps labels take `.14em`; nothing else tracks.
 
 ### Loading
 
@@ -463,8 +463,9 @@ fade after 2.4 s, `warn` and `bad` stay.
 a `Disclosure` for the hint. The typed value is a draft while focused
 (`.claude/rules/ui.md`). Not for: anything without a numeric value.
 
-**`Stat`** — a `label` over a `figure-lg` and its unit in `note`. The six under
-the rocket. Not for: a figure in running text (that is a `figure` span).
+**`Stat`** — a `label` over a `figure-lg` and its unit in `note`. The seven
+under the rocket, and _On the pad_ beside them when the step's aspect differs.
+Not for: a figure in running text (that is a `figure` span).
 
 **`Check`** — a native checkbox with its label wrapped round it, for a list
 where several things can be on at once: the installed expansions, the parts
@@ -499,7 +500,7 @@ alone, stroke width 1.75 throughout. Every icon-only control has an
 | cut the route here        | `Scissors` → `ScissorsLineDashed`                   | `dim` when uncut; `amber`, with the cut line, when cut — lucide has no closed pair  |
 | isometric                 | `Box`                                               | a `Toggle`                                                                          |
 | play / pause the staging  | `Play` / `Pause`                                    | in use today                                                                        |
-| full screen / leave it    | `Maximize2` / `Minimize2`                           | in use today                                                                        |
+| full screen / leave it    | `Maximize` / `Minimize`                             | in use today                                                                        |
 | a disclosure              | `Info`                                              |                                                                                     |
 | back to the top           | `ArrowUp`                                           | the jump bar                                                                        |
 | return to Kerbin (origin) | `Undo2` + word                                      | it is a destination, not a verb — the word stays                                    |

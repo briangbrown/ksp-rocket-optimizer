@@ -18,9 +18,9 @@ GROUPS --> K
 
 subgraph L1["solveGroup — combinatorial, per segment"]
   direction TB
-  K["stage count k<br/>1 … ceil(Δv ÷ 2200) + 1, never past 6"] --> SPLIT
+  K["stage count k<br/>2 … ceil(Δv ÷ 2200) + 1, never past 6<br/>the (k, shares) units may run on workers — fanOut, unit.worker.ts"] --> SPLIT
   SPLIT["Δv split across stages<br/>splitShares(k) — every share pattern"] --> VAR
-  VAR["build variant — each drops one option that flatters a<br/>single stage and hurts the stack<br/>all · no liquid columns · no plates · clusters capped at 4<br/>cost tries all four, mass and parts two"] --> PICK
+  VAR["build variant — each drops one option that flatters a<br/>single stage and hurts the stack<br/>all · no liquid columns · no plates · clusters capped at 4<br/>cost tries all four, mass and parts one"] --> PICK
   PICK["stage heuristic<br/>cost: cost then parts · else the objective itself"] --> TOPDOWN
   TOPDOWN["walk stages top-down, i = k−1 … 0<br/>each stage's mass becomes the next one's payload"]
 end
@@ -48,15 +48,15 @@ end
 
 subgraph L3["boostedAscent — closed form, two-phase"]
   direction TB
-  BOOST["viable cores<br/>pre-filtered by liftoff TWR ≥ 0.85 g"] --> MOUNTS["mounts<br/>solid boosters · liquid radial columns at 30/45/60/90/130 s"]
-  MOUNTS --> NB["booster count 2,3,4,6,8"]
+  BOOST["viable cores<br/>pre-filtered by liftoff TWR ≥ 0.85 g"] --> MOUNTS["mounts<br/>solid boosters · liquid radial columns at 30/45/60/90/130 s<br/>asparagus on: columns to 650 s, and drop tanks"]
+  MOUNTS --> NB["booster count 2,3,4,6,8<br/>drop tanks 2,4,6 · crossfed columns 2 … 16"]
   NB --> FIT2["fitStructure — the same function"]
   FIT2 --> BISECT["bisect the core size<br/>phase A both burning, phase B core alone"]
   BISECT --> SCORE
 end
 
 SCORE --> KEEP["keep the best stage for this heuristic"]
-KEEP --> CHAIN["chain complete → score the whole stack<br/>slenderness: inside the limit always beats outside it"]
+KEEP --> CHAIN["chain complete → score the whole stack<br/>slenderness on the whole rocket, boosters excluded (#102)<br/>inside the limit always beats outside it"]
 CHAIN --> BYK["best per stage count, and best overall"]
 
 BYK --> ISLAUNCH{"is this the launch<br/>segment of an<br/>atmospheric body?"}
@@ -71,7 +71,7 @@ subgraph L4["SIMULATION — the only place anything is flown"]
   TURN --> COARSE["coarse scan<br/>kick speed 30–140 m/s × kick angle 3–25°"]
   COARSE --> REFINE["refine around the best<br/>±15 m/s × ±3°"]
   REFINE --> CORE["if solids aboard: core throttle 100% → 35%<br/>lands booster burnout near target apoapsis"]
-  CORE --> FLY["flyAscent — RK4, dt = 0.1 s<br/>real drag chain · pitch floored at the horizon<br/>cutoff only while climbing · solids burn through it<br/>coast by Kepler · circularisation integrated"]
+  CORE --> FLY["flyAscent — semi-implicit Euler, dt = 0.1 s<br/>real drag chain · pitch floored at the horizon<br/>cutoff only while climbing · solids burn through it<br/>asparagus sheds a pair at a time<br/>coast by Kepler · circularisation integrated"]
   FLY --> QCHK{"max q ≤ 40 kPa?<br/>reached orbit?"}
   QCHK -- no --> NEXTC["try the next candidate<br/>or a thrust limiter"]
   NEXTC --> TURN

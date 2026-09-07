@@ -38,11 +38,14 @@ before changing the thing it names.
   `BoosterPart.cost` is required for that reason: a pool that has nothing to
   charge has to say so. #93
 
-- **Asparagus is solved by nothing but its own test.** Drop tanks and liquid
-  columns are only built when the user asks for asparagus, and neither the
-  design grid nor the mission sweep turns it on — so that whole branch of
-  `boostedAscent` ran in no check at all until `test/manifest.test.ts` grew one.
-  A change in there is invisible to both baselines; measure it deliberately.
+- **Asparagus has three baseline rows and one rule, and the design grid is
+  not among them.** Drop tanks and liquid columns are only built when the user
+  asks for asparagus. The design snapshot never turns it on; what pins that
+  branch of `boostedAscent` is the three crossfed rows of the mission sweep
+  (#126, one per objective, with `test/mission-sweep.test.ts` holding that at
+  least one delivers a drop tank), `test/asparagus.test.ts` for the shedding
+  rule, and `test/manifest.test.ts` for the drop tank's price. A change in
+  there is invisible to the 81-case grid; measure it against the sweep.
 
 - **A solved stage is not one shape.** A boosted stage carries no `stacks`,
   `perStack`, `rejoin` or `joiner` at all — it is a single core with a ring
@@ -126,8 +129,8 @@ before changing the thing it names.
   drives `solveGroup` directly — it never enters the walk. Dropping the
   cluster-cap variant looked free by that measure and moved 11 of 128 real
   missions, nine of them dearer on the objective asked for. `npm test` now
-  covers thirteen of those through the mission sweep — but thirteen, not 128, so a
-  solver change you cannot explain still deserves a wider sweep before you
+  covers sixteen of those through the mission sweep — but sixteen, not 128, so
+  a solver change you cannot explain still deserves a wider sweep before you
   believe it is invisible.
 
 - **A variant that improves `best` can degrade what is delivered.** Same sweep:

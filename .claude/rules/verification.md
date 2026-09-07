@@ -13,9 +13,9 @@ files.
 
 **The design snapshot** solves a fixed grid of 81 configurations — three tech
 tiers, three payloads, three delta-v budgets, three objectives — and compares
-every resulting design against a committed baseline, part by part, mass to four
-decimals and delta-v to three. 66 produce a design; the other 15 are legitimately
-unbuildable at that tech level. It is the check that matters here, because the
+every resulting design against a committed baseline, part by part, every
+number to four decimals (`src/core/signature.ts`). 66 produce a design; the
+other 15 are legitimately unbuildable at that tech level. It is the check that matters here, because the
 characteristic failure in this codebase is silent — a refactor believed to be
 behaviour-preserving once altered 31 of 72 designs without erroring. It is also
 what makes the suite cost what it does; the other checks run alongside it rather
@@ -26,9 +26,9 @@ destination, objective and profile. It asserts three things: no `NaN`,
 `Infinity`, `undefined` or `null` in the rendered text; that the module loads at
 all; and that the same destinations still produce a design, recorded in
 `solvability.txt` as liftoff mass and stage count. That third assertion is the
-one that earns its keep — see the `fmt` entry below for why a text scan alone is
-not enough. The text scan reads `textContent`, which includes what every
-`Disclosure` holds while closed; the initial-mount case then opens every one
+one that earns its keep — see the `fmt` entry in `.claude/rules/ui.md` for why
+a text scan alone is not enough. The text scan reads `textContent`, which
+includes what every `Disclosure` holds while closed; the initial-mount case then opens every one
 and scans again, so a bad value composed on the way in is caught too (#135).
 
 The fourth thing it does is read `solvability.txt` back: the destinations
@@ -155,22 +155,24 @@ design is then held not to arrive at all.
 
 It still says nothing about a real GPU, about performance, or about a phone.
 
-**The mission sweep** solves thirteen whole missions through `planMission` — four
-destinations by three payloads at tier 9 — and pins the delivered stages against
-a baseline. It exists because the design snapshot reads `best` and the
-application does not: for an auto-stage-count launch, `planMission` walks `byK`
+**The mission sweep** solves sixteen whole missions through `planMission` —
+four destinations by three payloads at tier 9, one of them cut, and a 20 t Mun
+mission three times over with crossfeed on, once per objective (#126) — and
+pins the delivered stages against a baseline. It exists because the design
+snapshot reads `best` and the application does not: for an auto-stage-count launch, `planMission` walks `byK`
 cheapest-first through the ascent simulator, delivers the first candidate that
 flies, and then re-solves against the flown cost. Dropping the cluster-cap
 variant left every one of the 81 grid _designs_ untouched and moved three of
 these. Re-bless it exactly as deliberately as the design snapshot.
 
-The thirteenth is the odd one out and is there on purpose: it is cut into
-segments, which none of the other twelve are. Cuts are how a user says "this
-part flies on its own hardware", and until #102 they were also the only way to
+The cut one is the odd one out and is there on purpose: it is cut into
+segments, which none of the other plain missions are. Cuts are how a user says
+"this part flies on its own hardware", and until #102 they were also the only way to
 reach a whole branch of the slenderness constraint — so a change to it was
 invisible to every baseline here.
 
     test/grid.ts                          the configuration grid and its axes
+    test/setup.ts                         every test starts with an empty roster and a plain address
     src/core/signature.ts                 reducing a design to stable text — the app compares it too, #138
     test/app-harness.ts                   driving the app in jsdom
     test/framing.ts                       whether a camera sees the whole rocket
@@ -204,6 +206,17 @@ invisible to every baseline here.
     test/solver-client.test.ts            the worker message protocol
     test/mission-sweep.test.ts            what planMission actually delivers
     test/shard.test.ts                    the sharded search folds back in order
+    test/asparagus.test.ts                crossfeed, on numbers: the ring sheds a pair at a time
+    test/manifest.test.ts                 the stage manifest accounts for every part, drop tanks included
+    test/adapters.test.ts                 the adapter subsystem
+    test/art-regime.test.ts               the part sizes follow the install the checkboxes describe
+    test/memoisation.test.ts              every solver cache is keyed on the roster it answered for
+    test/boundaries.test.ts               core imports nothing from ui, react or three
+    test/attribution.test.tsx             the page says where the source is and what the terms are
+    test/primitives.test.tsx              the primitive components, one at a time
+    test/roster-persistence.test.tsx      the roster survives a reload
+    test/solve-failure.test.tsx           what the app does when a solve produces nothing
+    test/perf-config.test.ts              the benchmark mission and the pasted config agree
     test/__snapshots__/designs.txt        solver baseline
     test/__snapshots__/missions.txt       delivered-design baseline
     test/__snapshots__/solvability.txt    which destinations build, and how big

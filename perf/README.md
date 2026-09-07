@@ -148,9 +148,9 @@ the cores on a phone. The two differ because a phone's cores do:
 
 More threads is slower there. Four of a Tensor G3's nine cores are A510s, a
 unit takes about three times as long on one, and the pool waits on it. Append
-`?threads=N` to re-check that on another device — the search line under the
-design reports what it actually used, so a fallback to one thread cannot be
-mistaken for a poor result. **Take the best of three**: single readings on a
+`?threads=N` to re-check that on another device — the search line at the foot
+of the setup sheet reports what it actually used, so a fallback to one thread
+cannot be mistaken for a poor result. **Take the best of three**: single readings on a
 phone vary by 0.7 s, which is wider than the difference being measured.
 
     https://ksp-rocket-optimizer.pages.dev/?threads=4
@@ -206,9 +206,9 @@ prompt. `adb devices` distinguishes the two: `unauthorized` versus absent.
   focused to reload the phone bypassing cache. Both builds serve from the same
   Cloudflare project, so without this you can get the other build's bundle.
 
-**4. Record.** Click ● (Ctrl/Cmd-E). On the **phone**, tap the
-`Tech tree · … edit` bar, then under _Unlock through tier:_ tap **9**. Wait for
-the rocket — about 20 s on production. Stop.
+**4. Record.** Click ● (Ctrl/Cmd-E). On the **phone**, open setup (the gear
+in the header), expand _Tech tree_, then under _Unlock through tier:_ tap
+**9**. Wait for the rocket — about 20 s on production. Stop.
 
 A solve that long heats the phone. Leave a minute between runs, or alternate
 builds rather than running either twice in a row; thermal throttling will
@@ -279,7 +279,7 @@ frame to a plausible-looking wrong name.
 The map's `names` array is empty — this minifier does not record original
 identifiers — so names come from `sourcesContent` instead: map the frame to a
 line of original code, then scan upwards for the enclosing declaration. Nested
-closures resolve correctly, `dvOf` before its parent `boostedAscent`.
+closures resolve correctly, a closure inside `boostedAscent` before its parent.
 
 Pass the **directory** and it takes the newest profile in it, printing which.
 Do not glob: `perf/.prof/CPU.*.cpuprofile` expands to every profile you have ever
@@ -297,11 +297,11 @@ whether they agree on what the bottleneck is.
 
 - **GC share** against the container's ~3.8%. If it is materially higher, #28
   (allocations) moves ahead of #27 (root-find).
-- Whether `boostedAscent` + `dvOf` still total around 57%.
+- Whether `boostedAscent` and what it calls still total around 57%.
 - Whether the `Map`/`WeakMap` lookups added by #26 are visible.
-- Any main-thread time that is not solver work — layout, or the SVG build view
-  redrawing.
+- Any main-thread time that is not solver work — layout, or the three.js build
+  view redrawing.
 
-Worth capturing against both builds for comparison: production, and the memoised
-prototype at `perf/solver-baseline`.
+Worth capturing against both builds for comparison: production, and whatever
+branch carries the change being measured.
 ````

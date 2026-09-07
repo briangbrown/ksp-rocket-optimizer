@@ -41,7 +41,8 @@ const methodology = (a: Ascent) => {
     `Simulated from ${a.bodyName}: the atmosphere is its own stock pressure and ` +
     `temperature spline — ${atm} atm at the surface — and density and speed of ` +
     "sound fall straight out of it with nothing fitted. Isp follows a three-key " +
-    "curve pinned to each engine's vacuum and sea-level figures. Drag takes the " +
+    "curve pinned to each engine's vacuum and sea-level figures — the design " +
+    "itself was sized on the real curve where one is known. Drag takes the " +
     "widest cross-section still attached plus any live boosters, on the stock " +
     "transonic Cd hump — that part is an approximation, since the game bakes " +
     "drag cubes per part and occludes them by how you stack."
@@ -65,12 +66,12 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
         title={`This design never reaches orbit from ${a.bodyName}.`}
         more={
           <>
-            The stages above were sized on vacuum Isp, but {a.bodyName} sits at{" "}
-            {atm} atm on the surface, where engines deliver a fraction of their
-            rated thrust and efficiency. The Δv map figure already assumes
-            losses the rocket equation on its own cannot see. Add stages, choose
-            engines with a flatter Isp curve, or expect a far heavier vehicle
-            than the parts list suggests.
+            The stages above were sized on the pressure each averages over its
+            burn, but {a.bodyName} sits at {atm} atm on the surface, where
+            engines deliver a fraction of their rated thrust and efficiency. The
+            Δv map figure already assumes losses the rocket equation on its own
+            cannot see. Add stages, choose engines with a flatter Isp curve, or
+            expect a far heavier vehicle than the parts list suggests.
           </>
         }
       >
@@ -107,10 +108,12 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
     const twr = (st.mdot * st.isp(0) * 9.80665) / (m * a.veh.body.g0);
     return twr < 1 ? twr : null;
   })();
-  const limitOn =
-    a.veh.stages[0] && a.veh.stages[0].boosters
-      ? "the boosters"
-      : "the first stage";
+  const ring = a.veh.stages[0] ? a.veh.stages[0].boosters : null;
+  /* A liquid column can be throttled where a solid cannot, and the card should
+     not tell the pilot of a Mammoth column that it has no shutdown. */
+  const solid = !!ring && ring.solid;
+  const ringName = solid ? "the boosters" : "the side stacks";
+  const limitOn = ring ? ringName : "the first stage";
   const steps = [
     ...(limited
       ? [
@@ -124,7 +127,9 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
       ? [
           [
             `Fly the core at ${Math.round(core * 100)}% throttle`,
-            "boosters stay at full — they cannot be throttled",
+            solid
+              ? "boosters stay at full — they cannot be throttled"
+              : "side stacks stay at full",
           ],
         ]
       : []),
@@ -342,9 +347,13 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
       {cored && (
         <Callout
           severity="info"
-          title={`Hold the core at ${Math.round(core * 100)}% until the boosters burn out.`}
+          title={`Hold the core at ${Math.round(core * 100)}% until ${ringName} ${solid ? "burn out" : "run dry"}.`}
           style={{ marginBottom: SPACE.lg }}
-          more="Solids have no shutdown, so at full throttle this stack carries its apoapsis well past the mark before you can stop it. Throttling the liquid core lands the two together."
+          more={
+            solid
+              ? "Solids have no shutdown, so at full throttle this stack carries its apoapsis well past the mark before you can stop it. Throttling the liquid core lands the two together."
+              : "The side stacks are flown to burnout, so at full throttle this stack carries its apoapsis well past the mark before they leave. Throttling the core lands the two together."
+          }
         >
           Worth about {fmt(Math.round((a.fullThrottle || 0) - a.total))} m/s.
         </Callout>

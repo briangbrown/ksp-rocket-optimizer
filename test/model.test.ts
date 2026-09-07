@@ -186,7 +186,7 @@ describe("the build model", () => {
     /* The 3D view's containment check, run here because the models are already
        built: solving these twelve missions a second time in a second worker to
        ask one more question of the same parts is what the note above about
-       running a worker out of memory is describing. `test/three-view.test.js`
+       running a worker out of memory is describing. `test/three-view.test.ts`
        sweeps the arithmetic over extents no rocket produces; this is the same
        claim over the rockets that actually get built. #63. */
     const bad = [];

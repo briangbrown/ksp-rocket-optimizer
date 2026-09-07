@@ -11,8 +11,9 @@ section wins.
 - **"Always use named exports. Avoid default exports."**
   `KSPMissionPlanner` is a default export and stays one. The component was
   written to be droppable into a React project or pasted into a Claude
-  artifact. The named exports at the foot of a module exist for the tests and
-  are added when something needs them, not as a convention.
+  artifact; that property has since been given up, and the export shape is
+  what remains of it. The named exports at the foot of a module exist for the
+  tests and are added when something needs them, not as a convention.
 
 - **"Organise files/folders by feature. Collocate related code as close as
   possible."**
