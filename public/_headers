@@ -1,0 +1,14 @@
+# Cloudflare Pages reads this from the build output. Defence in depth for a
+# static site that loads nothing from another origin: fonts are self-hosted,
+# the only fetches are the engine meshes on this origin, and the two pages
+# have no DOM sinks. `style-src` needs 'unsafe-inline' because both HTML
+# files carry an inline <style> for @font-face and the components render
+# <style> blocks by policy; React's style={{}} goes through the CSSOM and is
+# not affected. The workers are files Vite emits on this origin. #176
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; worker-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains

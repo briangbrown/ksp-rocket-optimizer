@@ -1,0 +1,22 @@
+# Dependabot keeps the two things CI trusts current: the npm lockfile and the
+# actions pinned by commit in build.yml. Weekly and grouped, so it is one pull
+# request a week at most rather than one per package; the build check runs on
+# each as on any PR, and the design snapshot says whether a dependency moved a
+# rocket. #177
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      npm:
+        patterns: ["*"]
+    open-pull-requests-limit: 3
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]

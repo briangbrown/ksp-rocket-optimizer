@@ -56,8 +56,20 @@ const CEIL = 3000;
 const TURN = 40;
 
 /* ------------------------------------------------------------------ zip */
+/* The most one entry may inflate to. A .mu of a whole engine is a few
+   megabytes; a header that says otherwise is a corrupt or hostile zip, and
+   the answer is a named error rather than the process running out of
+   memory. #178 */
+const MAX_ENTRY = 256 * 1024 * 1024;
+
 function unzip(buf) {
-  /* The central directory is at the end; walk it for names and offsets. */
+  /* The central directory is at the end; walk it for names and offsets.
+     Every offset the file claims is checked against the file before it is
+     read: Node would throw a RangeError rather than read past the buffer,
+     but "bad central directory" says what happened. */
+  const within = (at, len, what) => {
+    if (at < 0 || at + len > buf.length) throw new Error(`bad zip: ${what}`);
+  };
   let eocd = buf.length - 22;
   while (eocd >= 0 && buf.readUInt32LE(eocd) !== 0x06054b50) eocd--;
   if (eocd < 0) throw new Error("not a zip file");
@@ -65,6 +77,7 @@ function unzip(buf) {
   let p = buf.readUInt32LE(eocd + 16);
   const files = new Map();
   for (let i = 0; i < count; i++) {
+    within(p, 46, "central directory entry");
     if (buf.readUInt32LE(p) !== 0x02014b50)
       throw new Error("bad central directory");
     const method = buf.readUInt16LE(p + 10);
@@ -73,14 +86,17 @@ function unzip(buf) {
     const xlen = buf.readUInt16LE(p + 30);
     const clen = buf.readUInt16LE(p + 32);
     const local = buf.readUInt32LE(p + 42);
+    within(p + 46, nlen, "entry name");
     /* PowerShell writes backslashes; everything here is forward. */
     const name = buf
       .toString("utf8", p + 46, p + 46 + nlen)
       .replace(/\\/g, "/");
     if (!name.endsWith("/")) {
+      within(local, 30, "local header");
       const lnlen = buf.readUInt16LE(local + 26);
       const lxlen = buf.readUInt16LE(local + 28);
       const start = local + 30 + lnlen + lxlen;
+      within(start, csize, `data of ${name}`);
       files.set(name, { method, start, csize });
     }
     p += 46 + nlen + xlen + clen;
@@ -91,7 +107,11 @@ function unzip(buf) {
       const f = files.get(name);
       if (!f) return null;
       const raw = buf.subarray(f.start, f.start + f.csize);
-      return f.method === 8 ? inflateRawSync(raw) : f.method === 0 ? raw : null;
+      return f.method === 8
+        ? inflateRawSync(raw, { maxOutputLength: MAX_ENTRY })
+        : f.method === 0
+          ? raw
+          : null;
     },
   };
 }
