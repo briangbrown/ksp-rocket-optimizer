@@ -842,9 +842,10 @@
       "ox": 88,
       "mono": 0,
       "xe": 0,
-      "t": null,
+      "t": "Fuel Systems",
       "prop": 0.8,
-      "k": 0.125
+      "k": 0.125,
+      "cost": 160
     },
     {
       "mh": 1,
@@ -856,9 +857,10 @@
       "ox": 330,
       "mono": 0,
       "xe": 0,
-      "t": null,
+      "t": "Fuel Systems",
       "prop": 3,
-      "k": 0.125
+      "k": 0.125,
+      "cost": 600
     },
     {
       "mh": 1,
@@ -870,9 +872,10 @@
       "ox": 88,
       "mono": 0,
       "xe": 0,
-      "t": null,
+      "t": "Advanced Rocketry",
       "prop": 0.8,
-      "k": 0.125
+      "k": 0.125,
+      "cost": 160
     },
     {
       "mh": 1,
@@ -884,9 +887,10 @@
       "ox": 660,
       "mono": 0,
       "xe": 0,
-      "t": null,
+      "t": "Fuel Systems",
       "prop": 6,
-      "k": 0.125
+      "k": 0.125,
+      "cost": 1200
     },
     {
       "mh": 1,
@@ -898,9 +902,10 @@
       "ox": 660,
       "mono": 0,
       "xe": 0,
-      "t": null,
+      "t": "Fuel Systems",
       "prop": 6,
-      "k": 0.13
+      "k": 0.13,
+      "cost": 1400
     },
     {
       "n": "FL-R750 RCS Fuel Tank",
@@ -954,9 +959,10 @@
       "ox": 0,
       "mono": 400,
       "xe": 0,
-      "t": null,
+      "t": "Advanced Fuel Systems",
       "prop": 1.6,
-      "k": 0.15625
+      "k": 0.15625,
+      "cost": 960
     },
     {
       "n": "FL-T100 Fuel Tank",
@@ -1024,9 +1030,10 @@
       "ox": 990,
       "mono": 0,
       "xe": 0,
-      "t": null,
+      "t": "Advanced Fuel Systems",
       "prop": 9,
-      "k": 0.125
+      "k": 0.125,
+      "cost": 1800
     },
     {
       "mh": 1,
@@ -1038,9 +1045,10 @@
       "ox": 121,
       "mono": 0,
       "xe": 0,
-      "t": null,
+      "t": "Advanced Rocketry",
       "prop": 1.1,
-      "k": 0.125
+      "k": 0.125,
+      "cost": 220
     },
     {
       "mh": 1,
@@ -1052,9 +1060,10 @@
       "ox": 242,
       "mono": 0,
       "xe": 0,
-      "t": null,
+      "t": "Fuel Systems",
       "prop": 2.2,
-      "k": 0.125
+      "k": 0.125,
+      "cost": 440
     },
     {
       "mh": 1,
@@ -1066,9 +1075,10 @@
       "ox": 495,
       "mono": 0,
       "xe": 0,
-      "t": null,
+      "t": "Fuel Systems",
       "prop": 4.5,
-      "k": 0.125
+      "k": 0.125,
+      "cost": 900
     },
     {
       "n": "Kerbodyne ADTP-2-3",
@@ -1093,10 +1103,11 @@
       "ox": 4950,
       "mono": 0,
       "xe": 0,
-      "t": null,
+      "t": "High-Performance Fuel Systems",
       "prop": 45,
       "k": 0.125,
-      "mh": 1
+      "mh": 1,
+      "cost": 9000
     },
     {
       "n": "Kerbodyne S3-14400 Tank",
@@ -1149,10 +1160,11 @@
       "ox": 3520,
       "mono": 0,
       "xe": 0,
-      "t": null,
+      "t": "High-Performance Fuel Systems",
       "prop": 32,
       "k": 0.125,
-      "mh": 1
+      "mh": 1,
+      "cost": 6400
     },
     {
       "n": "Kerbodyne S4-128 Fuel Tank",
@@ -1163,10 +1175,11 @@
       "ox": 7040,
       "mono": 0,
       "xe": 0,
-      "t": null,
+      "t": "High-Performance Fuel Systems",
       "prop": 64,
       "k": 0.125,
-      "mh": 1
+      "mh": 1,
+      "cost": 12800
     },
     {
       "n": "Kerbodyne S4-256 Fuel Tank",
@@ -1177,10 +1190,11 @@
       "ox": 14080,
       "mono": 0,
       "xe": 0,
-      "t": null,
+      "t": "High-Performance Fuel Systems",
       "prop": 128,
       "k": 0.125,
-      "mh": 1
+      "mh": 1,
+      "cost": 25600
     },
     {
       "n": "Kerbodyne S4-512 Fuel Tank",
@@ -1191,10 +1205,11 @@
       "ox": 28160,
       "mono": 0,
       "xe": 0,
-      "t": null,
+      "t": "High-Performance Fuel Systems",
       "prop": 256,
       "k": 0.125,
-      "mh": 1
+      "mh": 1,
+      "cost": 51200
     },
     {
       "n": "Kerbodyne S4-64 Fuel Tank",
@@ -1205,10 +1220,11 @@
       "ox": 3520,
       "mono": 0,
       "xe": 0,
-      "t": null,
+      "t": "High-Performance Fuel Systems",
       "prop": 32,
       "k": 0.125,
-      "mh": 1
+      "mh": 1,
+      "cost": 6400
     },
     {
       "n": "Mk0 Liquid Fuel Fuselage",
@@ -1681,10 +1697,11 @@
       "ox": 0,
       "mono": 7.5,
       "xe": 0,
-      "t": null,
+      "t": "Propulsion Systems",
       "prop": 0.03,
       "k": 0.33333,
-      "mh": 1
+      "mh": 1,
+      "cost": 30
     },
     {
       "n": "Stratus-V Roundified Monopropellant Tank",

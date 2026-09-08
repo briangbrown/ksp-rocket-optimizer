@@ -41,7 +41,8 @@ type RowPart =
   | null;
 
 /* The visitor `eachRow` hands each row to. `cost` is allowed to be missing
-   because a handful of tanks in the part tables carry no price. */
+   in case a part table row ever arrives without a price (#191 closed the
+   seventeen that did). */
 type AddRow = (
   role: Role,
   part: RowPart,
@@ -232,13 +233,11 @@ const _mass: AddRow = (_role, _part, qty, mass) => {
   _acc += qty * mass;
 };
 const _cost: AddRow = (_role, _part, qty, _mass, cost) => {
-  /* NaN rather than zero where a row has no price. What can be missing one is
-     a tank: seventeen of them carry no figure, all Making History, which the
-     app has off by default and neither baseline turns on. `stageCost` estimates
-     a price for those and this does not, so the two would disagree on such a
-     design — but only this one is read by a test, so nothing a user sees can
-     reach it. Defaulting to zero here would hide the disagreement rather than
-     fix it. */
+  /* NaN rather than zero where a row has no price. Every part has one now —
+     seventeen Making History tanks did not until #191 recorded theirs from
+     the configs, and test/parts-data.test.ts holds it — so this is the loud
+     answer for a row that arrives without one, not a case that exists.
+     Defaulting to zero would hide such a row rather than fail it. */
   _acc += qty * (cost ?? NaN);
 };
 const _count: AddRow = (_role, _part, qty) => {

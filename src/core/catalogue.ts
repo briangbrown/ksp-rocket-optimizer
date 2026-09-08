@@ -26,11 +26,13 @@ import techData from "../data/tech.json";
    part's stack diameter once and caches it here, because it was 23% of a solve
    when it did not.
 
-   `t` is nullable because a handful of tanks are available from the start and
-   the extractor wrote null for them. Every reader already guards it — `!x.t ||
-   unlocked.has(x.t)` is the shape all through `parts.js` — so the type is
-   recording what the callers already knew. Engines below narrow it back to a
-   string, since every one of them is behind a node. */
+   `t` is nullable because seventeen Making History tanks arrived without one —
+   the configs were captured from an install without the expansion and those
+   rows were filled in from elsewhere, node and price left blank. Every gate
+   reads `!!x.t && unlocked.has(x.t)` and fails closed: a part with no node is
+   not available anywhere, rather than available at every tier, which is what
+   `!x.t || …` made of it (#191). test/parts-data.test.ts names the seventeen;
+   recording their nodes from the configs is what empties that list. */
 type PartBase = {
   n: string;
   t: string | null;

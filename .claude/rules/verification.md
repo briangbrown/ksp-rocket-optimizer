@@ -206,6 +206,7 @@ invisible to every baseline here.
     test/seam-contract.test.ts            planMission stays serialisable
     test/seam-input.test.tsx              what the app actually hands the seam, and from a link
     test/routes.test.ts                   every route the app builds, hashed; the mission model's filter and Kerbol
+    test/parts-data.test.ts               every part behind a node the tree has, every tank priced
     test/link.test.ts                     the design as a hash: size, round trip, refusal
     test/share.test.tsx                   arriving by a link, and sharing one
     test/boundary.test.tsx                the error boundary clears the hash and offers a reload

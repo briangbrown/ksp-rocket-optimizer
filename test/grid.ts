@@ -42,7 +42,7 @@ const enginesFor = (unlocked: ReadonlySet<string>) =>
   DATA.engines.filter((e) => unlocked.has(e.t) && !e.mh && !e.rs);
 
 const tanksFor = (unlocked: ReadonlySet<string>) =>
-  DATA.tanks.filter((t) => (!t.t || unlocked.has(t.t)) && !t.mh && !t.rs);
+  DATA.tanks.filter((t) => !!t.t && unlocked.has(t.t) && !t.mh && !t.rs);
 
 /* One case per combination, named so a failure says which design moved. */
 export function cases() {
