@@ -38,6 +38,19 @@ describe("a design as a link", () => {
     expect(document.querySelector("canvas, table")).toBeTruthy();
   }, 120_000);
 
+  it("stays usable on a link whose fields are malformed", async () => {
+    /* `{"splits":[1]}` threw a TypeError out of the parser on mount, so the
+       app never became hydrated and sat under the solving veil for good, and
+       a reload reproduced it. #174 */
+    location.hash = await toLink(
+      'KSP-PLANNER {"dest":"Mun","payload":2.5,"splits":[1],"cuts":["x"]}',
+    );
+    render(<KSPMissionPlanner />);
+    await settle();
+    expect(document.querySelector("canvas, table")).toBeTruthy();
+    expect(rocketNote("info")?.textContent).toMatch(/left at their defaults/);
+  }, 120_000);
+
   it("arrives with the brief set and the rocket in view", async () => {
     /* A link the app itself would write: the default mission with the
        payload changed, so that loading it is visible. */

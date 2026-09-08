@@ -125,6 +125,12 @@ export async function planMission(
     : { ...own, tally };
 }
 
+/* The most stages a group is ever split into, by the auto count or by a
+   reader's split. Named here because the seam has to hold it: a stage count
+   from a link went into `Array(k)` unclamped, and 1e8 of them killed the
+   worker. #174 */
+const MAX_K = 6;
+
 /* How a candidate's score is expected to grow with the Δv it turns out to
    need: the rocket equation at an exhaust velocity of 2,500 m/s, a launch
    stage's — a little pessimistic about growth, so a candidate that fits is
@@ -232,7 +238,11 @@ async function planFor(
        Every leg `buildRoute` returns carries one. */
     const g = isLaunch ? 9.81 : Math.max(...legs.map((l) => l.g ?? NaN));
     const kind = isLaunch ? "launch" : isLand ? "land" : "space";
-    const forced = splitBy.get(key) || 0;
+    /* Clamped here as well as in parseConfig: the seam takes plain data from
+       anyone, and a count it cannot search is not one to try. */
+    const asked = splitBy.get(key) || 0;
+    const forced =
+      Number.isInteger(asked) && asked >= 1 ? Math.min(MAX_K, asked) : 0;
     /* How many stages to allow. A stage asked for much more than about two
          km/s pays compound interest: its propellant is lifted by everything
          beneath it. Measured across budgets from 3 700 to 11 600 m/s the
@@ -241,7 +251,7 @@ async function planFor(
          was set when this only planned Mun trips and cost an Eeloo mission
          300 000 funds. One spare above the estimate, since the split is rarely
          even, and never more than six: past that nothing improved. */
-    const autoK = Math.min(6, Math.max(2, Math.ceil(dv / 2200) + 1));
+    const autoK = Math.min(MAX_K, Math.max(2, Math.ceil(dv / 2200) + 1));
     const bodyName = isLaunch ? origin : legs.find((l) => l.body)?.body;
     /* What is already standing above this group. Groups are solved from the
        top of the stack downwards, so `out` holds exactly the stages over this
@@ -459,5 +469,5 @@ async function planFor(
   return { stages: out, tally: { ...TALLY } };
 }
 
-export { ascentShareOf };
+export { MAX_K, ascentShareOf };
 export type { Plan, PlanInput, PlanOpts, PlanStage };

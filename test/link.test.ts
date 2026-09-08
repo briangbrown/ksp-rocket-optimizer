@@ -85,4 +85,72 @@ describe("a design as a link", () => {
     expect(r?.error).toMatch(/did not carry a design/);
     expect((await fromLink("#c=!!!"))?.error).toMatch(/did not carry/);
   });
+
+  /* Untrusted input, #174 and #175: a link is something anyone can send.
+     Nothing in the parser may throw, every list is bounded to what the app
+     knows, and a hash that would inflate into the tab's memory is refused
+     before it is held. */
+  it("never throws on a malformed field, and leaves it at its default", () => {
+    for (const over of [
+      { splits: [1] },
+      { splits: [[0]] },
+      { splits: [["a", "b"]] },
+      { splits: [[0, 100000000]] },
+      { splits: [[0, 0]] },
+      { cuts: ["x", null, {}] },
+      { cuts: [1e9] },
+      { excluded: [1, 2, 3] },
+      { excluded: { a: 1 } },
+      { tech: ["__proto__", "constructor"] },
+      { dest: "x".repeat(1_000_000) },
+    ]) {
+      const r = parseConfig(config(over));
+      expect(r.error, JSON.stringify(over)).toBeUndefined();
+      if (r.error !== undefined) continue;
+      const key = Object.keys(over)[0] as keyof typeof r.values;
+      expect(r.values[key], `${key} taken`).toBeUndefined();
+      expect(r.left, `${key} counted as left`).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("takes a split only at a stage count the solver will search", () => {
+    const ok = parseConfig(config({ splits: [[0, 3]] }));
+    expect(ok.values?.splits?.get(0)).toBe(3);
+    const high = parseConfig(config({ splits: [[0, 7]] }));
+    expect(high.values?.splits).toBeUndefined();
+  });
+
+  it("excludes only parts the catalogue has, and never every engine", () => {
+    const one = parseConfig(
+      config({ excluded: ['LV-909 "Terrier" Liquid Fuel Engine'] }),
+    );
+    expect(one.values?.excluded?.size).toBe(1);
+    const all = parseConfig(config({ excluded: DATA.engines.map((e) => e.n) }));
+    expect(all.values?.excluded).toBeUndefined();
+    const junk = parseConfig(config({ excluded: ["not a part"] }));
+    expect(junk.values?.excluded).toBeUndefined();
+  });
+
+  it("refuses a hash that would inflate past the cap, without holding it", async () => {
+    /* 5 MB of one letter deflates to a few kilobytes: a shareable address
+       aimed at the tab's memory. */
+    const bomb = await toLink(
+      "KSP-PLANNER " + JSON.stringify({ dest: "A".repeat(5_000_000) }),
+    );
+    expect(bomb.length).toBeLessThan(8192);
+    const r = await fromLink(bomb);
+    expect(r?.error).toMatch(/did not carry a design/);
+  });
+
+  it("refuses a hash too long to be a design", async () => {
+    const r = await fromLink("#c=" + "A".repeat(20_000));
+    expect(r?.error).toMatch(/did not carry a design/);
+  });
+
+  it("encodes a large configuration rather than throwing", async () => {
+    const hash = await toLink(
+      "KSP-PLANNER " + JSON.stringify({ dest: "B".repeat(300_000) }),
+    );
+    expect(hash.startsWith("#c=")).toBe(true);
+  });
 });

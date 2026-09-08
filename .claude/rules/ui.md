@@ -298,3 +298,19 @@ control shows and what it committed.
   hook's fourth argument is where to send it instead; the build view hands
   it a lookup for the button by name, since the one on the way back is a new
   element.
+
+- **A link is untrusted input, and `parseConfig` may not throw.** `#c=` is
+  something anyone can send. Every list field is checked element by element
+  against what the app knows — parts the catalogue has, nodes the tree has,
+  stage counts the solver will search (`MAX_K`), whole numbers in range —
+  and bounded; `excluded` may never name every engine, because a link's
+  roster is saved and the next visit would be unsolvable. The whole reader
+  runs inside a try, and a throw is the "does not parse" error: a
+  `TypeError` out of `new Map` on `{"splits":[1]}` escaped to the mount
+  effect, `hydrated` never became true, and the page sat under the solving
+  veil until the hash was edited by hand. `Boundary` in `main.tsx` is the
+  last line — it clears the hash and offers a reload — and `fromLink`
+  refuses a hash over `MAX_HASH` or one that inflates past `MAX_INFLATED`,
+  reading the stream piece by piece so the bomb is never held. Tests:
+  `test/link.test.ts`, `test/share.test.tsx`, `test/boundary.test.tsx`. #174
+  #175

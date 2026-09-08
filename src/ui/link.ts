@@ -79,25 +79,58 @@ function unpackTech(cfg: Packed): Packed {
 /* The configuration string's two halves: the tag and the JSON after it. */
 const TAG = "KSP-PLANNER ";
 
+/* How long a hash may be and how much it may inflate to. A real design is
+   under two kilobytes of hash and a few of text; 200 MB of one letter
+   deflates to 200 KB, which is a shareable address and a dead tab. Both
+   bounds are generous and both are read before the whole result is held. #175 */
+const MAX_HASH = 8192;
+const MAX_INFLATED = 256 * 1024;
+
 /* One chunk through a compression stream and back out as bytes. A
    `ReadableStream` built by hand rather than `Blob.stream()`, which jsdom's
-   Blob does not have. */
-async function pipe(bytes: Uint8Array, stream: GenericTransformStream) {
+   Blob does not have. Read piece by piece rather than buffered whole, so a
+   result past `cap` is refused as it arrives. */
+async function pipe(
+  bytes: Uint8Array,
+  stream: GenericTransformStream,
+  cap = Infinity,
+) {
   const source = new ReadableStream<Uint8Array>({
     start(c) {
       c.enqueue(bytes);
       c.close();
     },
   });
-  const out = new Response(source.pipeThrough(stream));
-  return new Uint8Array(await out.arrayBuffer());
+  const reader = source.pipeThrough(stream).getReader();
+  const chunks: Array<Uint8Array> = [];
+  let size = 0;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > cap) {
+      await reader.cancel();
+      throw new RangeError("inflates past the cap");
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(size);
+  let at = 0;
+  for (const c of chunks) {
+    out.set(c, at);
+    at += c.byteLength;
+  }
+  return out;
 }
 
-const toBase64url = (b: Uint8Array) =>
-  btoa(String.fromCharCode(...b))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+/* In pieces: spreading a large array into `fromCharCode` throws past about
+   a hundred thousand bytes. */
+const toBase64url = (b: Uint8Array) => {
+  let s = "";
+  for (let i = 0; i < b.length; i += 0x8000)
+    s += String.fromCharCode(...b.subarray(i, i + 0x8000));
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};
 
 const fromBase64url = (s: string) =>
   Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) =>
@@ -129,9 +162,11 @@ async function fromLink(hash: string): Promise<Found | null> {
         "This browser cannot read the link; the design shown is the default.",
     };
   try {
+    if (hash.length > MAX_HASH) throw new RangeError("too long to be one");
     const bytes = await pipe(
       fromBase64url(hash.slice(PREFIX.length)),
       new DecompressionStream("deflate-raw"),
+      MAX_INFLATED,
     );
     const cfg = JSON.parse(new TextDecoder().decode(bytes));
     return { text: TAG + JSON.stringify(unpackTech(cfg)) };
