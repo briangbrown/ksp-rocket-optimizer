@@ -149,8 +149,9 @@ right elevation beside them and the isometric with the rest of the row. The
 three orthographic views share one scale, so the plan's outlines sit directly
 under the elevation's and the right elevation is as tall as the front; the
 isometric frames itself. Full screen is the same sheet at the window's size
-with the rail on the left. The phone keeps the two panels — the elevation
-with the isometric toggle, the plan beside it — since four do not fit 390 px.
+with the rail on the left. The phone keeps two panels, since four do not fit
+390 px, each with a `Picker` of the four views and starting as the front and
+the plan.
 The rocket is the hero of the section (#138): the craft name stands over the
 drawing in the `display` role with _Save it as_ above it and the subtitle as a
 `note`, and the headline `Stat`s — liftoff mass, stages, height, aspect, cost,
@@ -416,6 +417,13 @@ mission is one tap away from anywhere on the page. Its line is `briefLine` in
 with the profile and trip left out when the destination is an orbit of the
 origin, because there is no arrival to describe.
 
+**`Picker`** — one of several where there is no room for the chips: a native
+`<select>` in the label's clothes, with the platform's own sheet behind it on
+a phone and a chevron over its right. Named by `aria-label`, since the value
+is what shows. The phone's two drawings each carry one, choosing between the
+front and right elevations, the isometric and the plan (#183). Not for: a
+choice with room to show every option, which is a `Choice`.
+
 **`Toggle`** — a boolean. A chip with `aria-pressed`, whose label never changes:
 _Return trip_ is on or off; it does not become _One way_. Not for: a choice
 between two named things (that is a `Choice` of two).
@@ -503,7 +511,6 @@ alone, stroke width 1.75 throughout. Every icon-only control has an
 | fold / unfold             | `ChevronRight`                                      | rotates 90° when open                                                               |
 | close / cancel / clear    | `X`                                                 | with the count when clearing exclusions                                             |
 | cut the route here        | `Scissors` → `ScissorsLineDashed`                   | `dim` when uncut; `amber`, with the cut line, when cut — lucide has no closed pair  |
-| isometric                 | `Box`                                               | a `Toggle`, on the phone only — the sheet shows it as a view (#183)                 |
 | play / pause the staging  | `Play` / `Pause`                                    | in use today                                                                        |
 | full screen / leave it    | `Maximize` / `Minimize`                             | in use today                                                                        |
 | a disclosure              | `Info`                                              |                                                                                     |

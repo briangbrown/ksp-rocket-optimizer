@@ -320,10 +320,13 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
     async () => {
       /* A tap on a phone left the button in a sticky :hover with its tooltip
          up until the next tap anywhere. Now the hover rule needs a pointer
-         and a tap runs a clock instead. The isometric toggle is the icon
-         whose tap moves focus nowhere. #184 */
-      const el = await page.$('button.iconbtn[aria-label="Isometric"]');
-      if (!el) throw new Error("no isometric toggle on the page");
+         and a tap runs a clock instead. The play button is the icon whose
+         tap moves focus nowhere — the isometric toggle it used to be went
+         with the view pickers (#183). #184 */
+      const el = await page.$(
+        'button.iconbtn[aria-label="Play the staging"], button.iconbtn[aria-label="Stop"]',
+      );
+      if (!el) throw new Error("no play button on the page");
       const tip = () =>
         el.evaluate((b) => getComputedStyle(b, "::after").display);
       await el.tap();
@@ -332,9 +335,15 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
         setTimeout(r, MOTION.linger + MOTION.settle + 300),
       );
       expect(await tip(), "tooltip still up after its clock").toBe("none");
-      await el.tap(); // back to the elevation, for the checks that follow
+      await el.tap(); // pause, and back to the pad for the checks that follow
+      await page.evaluate(() => {
+        const b = [...document.querySelectorAll("button")].find(
+          (x) => (x.textContent ?? "").trim() === "On the pad",
+        );
+        (b as HTMLElement | undefined)?.click();
+      });
       await new Promise((r) =>
-        setTimeout(r, MOTION.linger + MOTION.settle + 300),
+        setTimeout(r, MOTION.linger + MOTION.settle + 1200),
       );
     },
   );

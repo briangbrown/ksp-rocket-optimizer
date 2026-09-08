@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
+  ChevronDown,
   ChevronRight,
   CircleCheck,
   Info,
@@ -248,6 +249,64 @@ const Toggle = ({ label, on, onChange, disabled, style }: ToggleProps) => (
     {label}
   </button>
 );
+
+/* ------------------------------- Picker ------------------------------- */
+/* One of several, where there is no room for the chips: a native select in
+   the label's clothes, with the platform's own sheet behind it on a phone.
+   The phone's view pickers over the two drawings, where a `Choice` of four
+   would not fit a header line. Not for: a choice with room to show every
+   option, which is a `Choice`. #183 */
+type PickerProps<V> = {
+  /* What the control is, for a reader: shown nowhere, since the value is. */
+  label: string;
+  options: ReadonlyArray<{ value: V; label: string }>;
+  value: V;
+  onChange: (v: V) => void;
+  style?: CSSProperties;
+};
+
+function Picker<V extends string>({
+  label,
+  options,
+  value,
+  onChange,
+  style,
+}: PickerProps<V>) {
+  /* A select keeps :focus-visible after a pointer or a touch — it is
+     keyboard-operable while it has focus, so browsers draw the ring where
+     they would not on a button. So the ring stayed round the picker after a
+     tap chose a view. A choice made by pointer or touch lets the focus go
+     once it is made; one made from the keyboard keeps it, and the ring, as
+     every other stop does. The modality is what the last event before the
+     change was. */
+  const byPointer = useRef(false);
+  return (
+    <span className="picker-wrap" style={style}>
+      <select
+        className="picker label tap"
+        aria-label={label}
+        value={value}
+        onPointerDown={() => {
+          byPointer.current = true;
+        }}
+        onKeyDown={() => {
+          byPointer.current = false;
+        }}
+        onChange={(e) => {
+          onChange(e.target.value as V);
+          if (byPointer.current) e.target.blur();
+        }}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown size={ICON.chip} strokeWidth={STROKE} aria-hidden />
+    </span>
+  );
+}
 
 /* ------------------------------- Choice ------------------------------- */
 /* One of several. A radio group of chips: arrow keys move between the ones
@@ -1027,6 +1086,7 @@ export {
   Field,
   ICON,
   IconButton,
+  Picker,
   Stepper,
   STROKE,
   Section,

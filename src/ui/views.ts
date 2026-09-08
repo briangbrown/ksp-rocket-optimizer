@@ -207,37 +207,56 @@ export function cameraFor(
    it, which is what `fitOrtho` does with a panel wider than the shape in it. */
 const MIN_PANEL = 120;
 
-export function panelSizes(
+/* What a phone panel shows: a view with a shape of its own — width over
+   height in metres — or the plan, which is square. */
+type Pane = { aspect: number } | "plan";
+
+/* Two panels side by side, whichever views they hold. A view with a shape
+   takes the height it is offered and the width its proportions give it; the
+   plan is square and never wider than the view beside it — the supporting
+   drawing, and given the width it could take a pencil's plan came out two and
+   a half times the width of the elevation and read as the main one. Where
+   the two do not fit across, both shrink by the same factor so the row keeps
+   its proportions rather than one view eating the other. */
+export function pairSizes(
   { aw, ah }: { aw: number; ah: number },
-  /* The elevation's own width over its height, in metres. */
-  aspect: number,
+  a: Pane,
+  b: Pane,
   gap: number,
 ) {
   const across = Math.max(1, aw - gap);
   const tall = Math.max(1, ah);
-
-  /* The elevation takes the height it is offered: the drawing it holds is the
-     rocket. Its width follows from the model's own proportions. */
-  let eh = tall;
-  let ew = Math.max(MIN_PANEL, eh * aspect);
-
-  /* The plan is square, and never wider than the elevation. It is the
-     supporting view — what is bolted where, seen from underneath — and given
-     the width it could take, a pencil's plan came out two and a half times the
-     width of the elevation beside it and read as the main drawing. */
-  let ps = Math.min(ew, tall);
-
-  /* Where the two do not fit across, both shrink by the same factor, so the
-     row keeps its proportions rather than one view eating the other. A squat
-     stage is the case that needs it: at full height its elevation alone would
-     be wider than the window. */
-  const over = (ew + ps) / across;
+  const width = (p: Pane, other: Pane) =>
+    p === "plan"
+      ? Math.min(
+          tall,
+          other === "plan" ? tall : Math.max(MIN_PANEL, tall * other.aspect),
+        )
+      : Math.max(MIN_PANEL, tall * p.aspect);
+  let wa = width(a, b);
+  let wb = width(b, a);
+  let ha = a === "plan" ? wa : tall;
+  let hb = b === "plan" ? wb : tall;
+  const over = (wa + wb) / across;
   if (over > 1) {
-    ew /= over;
-    eh /= over;
-    ps /= over;
+    wa /= over;
+    wb /= over;
+    ha /= over;
+    hb /= over;
   }
-  return { elev: { w: ew, h: eh }, plan: { w: ps, h: ps } };
+  return { a: { w: wa, h: ha }, b: { w: wb, h: hb } };
+}
+
+/* The elevation beside the plan, which is what the phone shows until a
+   picker says otherwise. */
+export function panelSizes(
+  box: { aw: number; ah: number },
+  /* The elevation's own width over its height, in metres. */
+  aspect: number,
+  gap: number,
+) {
+  const s = pairSizes(box, { aspect }, "plan", gap);
+  return { elev: s.a, plan: s.b };
 }
 
 /* ------------------------------ the drafting sheet ------------------------------

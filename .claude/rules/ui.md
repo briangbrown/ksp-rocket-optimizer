@@ -337,7 +337,9 @@ control shows and what it committed.
   the right elevation is as tall as the front; `ThreeView` takes it as
   `scale` and skips `fitOrtho`. The plan's cell is the front's width
   whatever its own reach; that is the alignment, do not size it on its own.
-  Below 1024 — the phone, full screen included — the two panels and the
-  isometric toggle stay: four panels do not fit 390 px at 44 px targets. The
+  Below 1024 — the phone, full screen included — two panels stay, each with
+  a `Picker` of the four views (`pairSizes` sizes any pair; `panelSizes` is
+  the front-and-plan case it opens on): four panels do not fit 390 px at
+  44 px targets. The
   render suite's canvas order is front, plan, right, isometric, so its
   `ELEVATION` and `PLAN` indices did not move. #183

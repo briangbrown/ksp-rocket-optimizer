@@ -8,14 +8,14 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { Box, Maximize, Minimize, Pause, Play } from "lucide-react";
+import { Maximize, Minimize, Pause, Play } from "lucide-react";
 
 import { payloadDiaOf, stackGeometry } from "../../core/geometry.js";
 import { extentOf, modelOf } from "../../core/model.js";
 import { stageCost, stageParts } from "../../core/performance.js";
 import { missionSignature } from "../../core/signature.js";
 import { fmt } from "../format.js";
-import { framing, panelSizes, sheetSizes } from "../views.js";
+import { framing, pairSizes, sheetSizes } from "../views.js";
 import { arrive, assembly, pose, separation } from "../separation.js";
 import { C, FONT, RADIUS, SPACE, Z } from "../tokens.js";
 import type { Theme } from "../tokens.js";
@@ -26,6 +26,7 @@ import {
   Stat,
   useTrap,
   useWide,
+  Picker,
 } from "./primitives.jsx";
 import type { ReactNode } from "react";
 import type { PlanStage } from "../../core/plan.js";
@@ -289,9 +290,10 @@ function BuildView({
      landed, which is every frame that is not arriving. #138 */
   const [arrival, setArrival] = useState<{ t: number } | null>(null);
   /* Locked cameras, not an orbit: a schematic that moves stops being a
-     drawing. The three-quarter is the one angle that shows a ring of columns
-     as a ring while still reading as an elevation. #63 step 5. */
-  const [angle, setAngle] = useState("side");
+     drawing. On the phone two panels, each with a picker of the four views —
+     front and right elevations, the isometric, the plan — and the front and
+     the plan to begin with, as the sheet has them. #63 step 5, #183 */
+  const [views, setViews] = useState<[string, string]>(["side", "plan"]);
   const [full, setFull] = useState(false);
   const box = useBox();
   const wide = useWide();
@@ -513,10 +515,14 @@ function BuildView({
      would leave it drawn small in the middle of it. `framing` carries no
      three.js, so asking it costs the bundle nothing. */
   const ext = frame ? frame.extent : extentOf(model);
-  const need = framing(angle, ext);
-  const H = Math.max(0.1, need.h * 2);
-  /* A floor so a very small rocket still gets a panel with room in it. */
-  const wMax = Math.max(1, need.w * 2);
+  /* What a phone panel holding a view needs: its width over its height in
+     metres, or the plan, which is square. A floor on the width so a very
+     small rocket still gets a panel with room in it. */
+  const paneOf = (view: string, of = ext) => {
+    if (view === "plan") return "plan" as const;
+    const n = framing(view, of);
+    return { aspect: Math.max(1, n.w * 2) / Math.max(0.1, n.h * 2) };
+  };
   /* The sheet, where the layout is wide: four views at once, the three
      orthographic ones to one scale — `sheetSizes` in views.ts. The phone
      keeps the two panels and the isometric toggle: four panels do not fit
@@ -539,19 +545,63 @@ function BuildView({
     ? (wide ? SCRUB_TARGET.wide : SCRUB_TARGET.phone) + SPACE.md
     : 0;
   const ah = sized && box.h ? Math.max(1, box.h - HEAD - scrubH) : INLINE_H;
-  const { elev, plan } = panelSizes({ aw, ah }, wMax / H, GAP);
+  const pair = pairSizes({ aw, ah }, paneOf(views[0]), paneOf(views[1]), GAP);
   /* The sheet lays its own header lines out, so it is handed the row. */
   const sz = sheetSizes({ aw, ah: ah + HEAD }, needs, GAP, HEAD);
 
-  /* One header line per column, so all three labels sit on it. */
-  const head = (label: string, extra?: ReactNode) => (
+  /* One header line per column, so all the labels sit on it. A string is
+     the label; anything else — a picker — stands in its place. */
+  const head = (label: ReactNode, extra?: ReactNode) => (
     <div
       style={{ display: "flex", alignItems: "center", gap: 8, height: HEAD }}
     >
-      <span className="label">{label}</span>
+      {typeof label === "string" ? (
+        <span className="label">{label}</span>
+      ) : (
+        label
+      )}
       {extra}
     </div>
   );
+
+  /* The four views by name: the picker's word and the caption's phrase. */
+  const VIEW_OPTIONS = [
+    { value: "side", label: "Front" },
+    { value: "right", label: "Right" },
+    { value: "iso", label: "Isometric" },
+    { value: "plan", label: "Plan" },
+  ];
+  const VIEW_NAMES: Record<string, string> = {
+    side: "Front elevation",
+    right: "Right elevation",
+    iso: "Isometric view",
+    plan: "Plan from below",
+  };
+  /* A phone panel: whichever view its picker says, the plan's model where
+     it is the plan, the moving one otherwise. */
+  const picked = (i: 0 | 1) => {
+    const view = views[i];
+    const isPlan = view === "plan";
+    return panel(
+      <Picker
+        label={`View ${i + 1}`}
+        options={VIEW_OPTIONS}
+        value={view}
+        onChange={(v) =>
+          setViews((was) => (i === 0 ? [v, was[1]] : [was[0], v]))
+        }
+      />,
+      isPlan ? planModel : model,
+      view,
+      i === 0 ? pair.a : pair.b,
+      buffers?.pair[i],
+      undefined,
+      isPlan ? planFade : 1,
+      isPlan ? null : (frame ?? landing),
+      undefined,
+      VIEW_NAMES[view],
+    );
+  };
 
   /* One group whichever way it is laid out: a rail is the same choice stood
      on end, and the arrow keys walk it either way. */
@@ -711,7 +761,8 @@ function BuildView({
       w: Math.max(a.w, b.w),
       h: Math.max(a.h, b.h),
     });
-    let elev = { w: 0, h: 0 };
+    let a = { w: 0, h: 0 };
+    let b = { w: 0, h: 0 };
     let plan = { w: 0, h: 0 };
     let front = { w: 0, h: 0 };
     let right = { w: 0, h: 0 };
@@ -719,14 +770,14 @@ function BuildView({
     const planNeed = framing("plan", extentOf(planModel));
     for (let i = 0; i <= 8; i++) {
       const f = pose(shot.sep, i / 8);
-      const n = framing(angle, f.extent);
-      const two = panelSizes(
+      const two = pairSizes(
         { aw, ah },
-        Math.max(1, n.w * 2) / Math.max(0.1, n.h * 2),
+        paneOf(views[0], f.extent),
+        paneOf(views[1], f.extent),
         GAP,
       );
-      elev = grow(elev, two.elev);
-      plan = grow(plan, two.plan);
+      a = grow(a, two.a);
+      b = grow(b, two.b);
       const four = sheetSizes(
         { aw, ah: ah + HEAD },
         {
@@ -742,8 +793,8 @@ function BuildView({
       plan = grow(plan, four.plan);
       iso = grow(iso, four.iso);
     }
-    return { elev, plan, front, right, iso };
-  }, [shot.sep, angle, aw, ah, planModel]);
+    return { pair: [a, b] as const, plan, front, right, iso };
+  }, [shot.sep, views, aw, ah, planModel]);
 
   /* What each drawing is a picture of, for a reader who cannot see it: the
      view, the craft, the step and the figures under it — the same ones, so
@@ -754,7 +805,7 @@ function BuildView({
     `${now.h.toFixed(1)} m tall`;
 
   const panel = (
-    label: string,
+    label: ReactNode,
     parts: typeof model,
     view: string,
     size: { w: number; h: number },
@@ -765,7 +816,7 @@ function BuildView({
     /* The sheet's shared scale, and what to call the view to a reader who
        cannot see it, where the label alone would not say. */
     scale?: number,
-    name = label,
+    name: string = typeof label === "string" ? label : "View",
     /* Whether the drawing sits at the foot of its column. The two-panel row
        stands the plan on the elevation's base line; the sheet hangs every
        view from its header, so the right elevation's top is the front's. */
@@ -921,30 +972,8 @@ function BuildView({
             </>
           ) : (
             <>
-              {panel(
-                "Elevation",
-                model,
-                angle,
-                elev,
-                buffers?.elev,
-                <IconButton
-                  icon={Box}
-                  label="Isometric"
-                  on={angle === "iso"}
-                  onClick={() => setAngle(angle === "iso" ? "side" : "iso")}
-                />,
-                1,
-                frame ?? landing,
-              )}
-              {panel(
-                "Plan",
-                planModel,
-                "plan",
-                plan,
-                buffers?.plan,
-                undefined,
-                planFade,
-              )}
+              {picked(0)}
+              {picked(1)}
             </>
           )}
         </div>
