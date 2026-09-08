@@ -1,0 +1,47 @@
+## Kerbin → Mun land & back
+  ascent      3400  Launchpad → 80 km orbit
+  transfer     860  LKO → Mun intercept
+  capture      280  Capture → low Mun orbit
+  land         580  Descent to Mun surface
+  ascentBack   580  Ascent from Mun surface
+  transfer     860  Return transfer to Kerbin
+  aero           0  Aerobrake at Kerbin (heat shield) (free)
+
+## Kerbin → Jool orbit orbit
+  ascent      3400  Launchpad → 80 km orbit
+  transfer     950  LKO → Kerbin escape
+  transfer     980  Kerbin escape → Jool transfer
+  plane         54  Plane change 1.3° in the Sun system
+  capture      160  Capture into Jool orbit
+
+## Kerbin → Stationary orbit orbit
+  ascent      3400  Kerbin surface → low orbit
+  transfer     668  Raise apoapsis to 2,864 km
+  capture      431  Circularise, one orbit per day
+
+## Kerbin → Eeloo flyby
+  ascent      3400  Launchpad → 80 km orbit
+  transfer     950  LKO → Kerbin escape
+  transfer    1140  Kerbin escape → Eeloo transfer
+  plane        198  Plane change 6.2° in the Sun system
+
+## Mun → Minmus land & back
+  ascent       580  Mun surface → low orbit
+  transfer     243  Leave Mun
+  plane         18  Plane change 6.0° in the Kerbin system
+  capture       87  Capture → low Minmus orbit
+  land         180  Descent to Minmus surface
+  ascentBack   180  Ascent from Minmus surface
+  transfer     261  Return transfer to Mun
+  aero         228  Capture at Mun
+
+## Laythe → Kerbin land
+  ascent      2900  Laythe surface → low orbit
+  transfer     775  Leave Laythe
+  transfer    1662  Leave Jool
+  plane         54  Plane change 1.3° in the Sun system
+  capture     1934  Capture → low Kerbin orbit
+  land         612  Descent to Kerbin surface (chuted)
+
+## Duna → Low orbit orbit
+  ascent      1450  Duna surface → low orbit

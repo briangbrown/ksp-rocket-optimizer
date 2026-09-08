@@ -5,14 +5,8 @@ import { buildVehicleFor, simCached } from "../core/ascent.js";
 import { orbitAlt } from "../core/atmosphere.js";
 import { DATA } from "../core/catalogue.js";
 import { stackGeometry } from "../core/geometry.js";
-import {
-  DEST,
-  SYS,
-  bodyKey,
-  buildRoute,
-  defaultCuts,
-  hasSync,
-} from "../core/orbits.js";
+import { STATES, defaultCuts, possible, routeFor } from "../core/orbits.js";
+import type { Endpoint } from "../core/orbits.js";
 import { missionHardware } from "../core/parts.js";
 import { stageParts } from "../core/performance.js";
 import { withDeps } from "../core/tech.js";
@@ -29,7 +23,7 @@ import { JumpBar } from "./components/jump.jsx";
 import { Solving, Veil } from "./components/solving.jsx";
 import { parseConfig } from "./config.js";
 import { canLink, fromLink, toLink } from "./link.js";
-import { briefLine, craftName, fmt } from "./format.js";
+import { bodyLabel, briefLine, craftName, fmt } from "./format.js";
 import { STYLES } from "./styles.js";
 import { loadRoster, saveRoster } from "./storage.js";
 import {
@@ -80,9 +74,14 @@ function useStickyTop(margin: number) {
 }
 
 export default function KSPMissionPlanner() {
-  const [origin, setOrigin] = useState("Kerbin");
-  const [dest, setDest] = useState("Mun");
-  const [profile, setProfile] = useState("land");
+  /* The mission's two ends: a body and a state each (#188). Nearly every
+     mission starts on Kerbin's surface, so that end is the one folded away. */
+  const [from, setFrom] = useState<Endpoint>({
+    body: "Kerbin",
+    state: "surface",
+  });
+  const [to, setTo] = useState<Endpoint>({ body: "Mun", state: "surface" });
+  const origin = from.body;
   const [returning, setReturning] = useState(true); // most missions are meant to come home
   const [needGimbal, setNeedGimbal] = useState(true);
   /* What the reader asked for, and what the page is showing — the OS's
@@ -216,32 +215,9 @@ export default function KSPMissionPlanner() {
       live = false;
     };
   }, []);
-  const orbitHere = dest === "Low orbit" || dest === "Stationary orbit";
-
-  const destList = useMemo(() => {
-    const here = ["Low orbit"];
-    if (hasSync(origin)) here.push("Stationary orbit");
-    const rest =
-      origin === "Kerbin"
-        ? Object.keys(DEST).filter((d) => !/Kerbin Orbit|Keostationary/.test(d))
-        : Object.keys(SYS).filter((b) => b !== "Sun" && b !== origin);
-    return [...here, ...rest];
-  }, [origin]);
-
-  /* Jool has no surface, and a same-body orbit has no arrival, so landing
-     profiles have nothing to act on. Fall back rather than let the state go
-     stale when someone switches destination while Land is selected. */
-  const canLand = useMemo(
-    () =>
-      !orbitHere &&
-      buildRoute(dest, "land", true, origin).some((l) => l.kind === "land"),
-    [dest, origin, orbitHere],
-  );
-  const effProfile = !canLand && profile === "land" ? "orbit" : profile;
-
   const route = useMemo(
-    () => buildRoute(dest, effProfile, chutes, origin, returning, planeNow),
-    [dest, effProfile, chutes, origin, returning, planeNow],
+    () => routeFor(from, to, chutes, returning, planeNow),
+    [from, to, chutes, returning, planeNow],
   );
   const totalDv = route.reduce((s, l) => s + l.dv, 0);
   const budget = Math.round(totalDv * (1 + margin / 100) + extraDv);
@@ -501,9 +477,8 @@ export default function KSPMissionPlanner() {
     () =>
       "KSP-PLANNER " +
       JSON.stringify({
-        origin,
-        dest,
-        profile,
+        from,
+        to,
         returning,
         payload,
         payloadDia,
@@ -523,9 +498,8 @@ export default function KSPMissionPlanner() {
         splits: [...splitBy.entries()],
       }),
     [
-      origin,
-      dest,
-      profile,
+      from,
+      to,
       returning,
       payload,
       payloadDia,
@@ -556,9 +530,8 @@ export default function KSPMissionPlanner() {
        when it validated, so the two questions have the same answer — and only
        one of them narrows the type. */
     const v = r.values;
-    if (v.origin !== undefined) setOrigin(v.origin);
-    if (v.dest !== undefined) setDest(v.dest);
-    if (v.profile !== undefined) setProfile(v.profile);
+    if (v.from !== undefined) setFrom(v.from);
+    if (v.to !== undefined) setTo(v.to);
     if (v.returning !== undefined) setReturning(v.returning);
     if (v.payload !== undefined) setPayload(v.payload);
     if (v.payloadDia !== undefined) setPayloadDia(v.payloadDia);
@@ -644,25 +617,15 @@ export default function KSPMissionPlanner() {
   const craft = useMemo(
     () =>
       craftName({
-        origin,
-        dest,
-        profile: effProfile,
+        from,
+        to,
         returning,
         payload,
         objective,
         k: stages.length,
         mass: liftoff,
       }),
-    [
-      origin,
-      dest,
-      effProfile,
-      returning,
-      payload,
-      objective,
-      stages.length,
-      liftoff,
-    ],
+    [from, to, returning, payload, objective, stages.length, liftoff],
   );
 
   /* [].every() is true, so an empty stage list read as "solved" and printed the
@@ -670,10 +633,9 @@ export default function KSPMissionPlanner() {
      never empty; the async rewrite made the empty first render visible. */
   const ok = stages.length > 0 && stages.every((s) => s.sol);
   // the accent is the target's own tracking-station colour, lifted if too dark to read
-  const dcolor = (() => {
-    const k = bodyKey(dest);
-    return k && BODY_HUE[k] ? edgeOf(BODY_HUE[k], theme) : palette(theme).sky;
-  })();
+  const dcolor = BODY_HUE[to.body]
+    ? edgeOf(BODY_HUE[to.body], theme)
+    : palette(theme).sky;
 
   const setSplit = (key: number, k: number) =>
     setSplitBy((p) => {
@@ -708,23 +670,24 @@ export default function KSPMissionPlanner() {
       ? edit(() => setPayload(Math.max(0.1, Math.round(payload * 5) / 10)))
       : undefined;
 
-  /* Picking a body resets the cuts: they index the legs of a route that no
-     longer exists. A destination the new origin cannot reach falls back to
-     low orbit. */
-  const pickOrigin = (b: string) => {
-    setOrigin(b);
-    setCuts(null);
-    const valid = new Set([
-      "Low orbit",
-      ...(hasSync(b) ? ["Stationary orbit"] : []),
-      ...(b === "Kerbin"
-        ? Object.keys(DEST).filter((d) => !/Kerbin Orbit|Keostationary/.test(d))
-        : Object.keys(SYS).filter((x) => x !== "Sun" && x !== b)),
-    ]);
-    if (!valid.has(dest)) setDest("Low orbit");
+  /* Picking an end resets the cuts: they index the legs of a route that no
+     longer exists. A pair the model refuses — the same body in the same
+     state, a surface where there is none — is mended at the other end, to
+     the first state that makes it a mission. */
+  const mend = (f: Endpoint, t: Endpoint): Endpoint => {
+    if (possible(f, t) === true) return t;
+    const s = STATES.find(
+      (st) => possible(f, { body: t.body, state: st }) === true,
+    );
+    return s ? { body: t.body, state: s } : t;
   };
-  const pickDest = (d: string) => {
-    setDest(d);
+  const pickFrom = (e: Endpoint) => {
+    setFrom(e);
+    setTo(mend(e, to));
+    setCuts(null);
+  };
+  const pickTo = (e: Endpoint) => {
+    setTo(mend(from, e));
     setCuts(null);
   };
 
@@ -749,31 +712,19 @@ export default function KSPMissionPlanner() {
         setBriefOpen(!briefOpen);
       }}
       onDone={() => setBriefOpen(false)}
-      line={briefLine({
-        origin,
-        dest,
-        profile: effProfile,
-        returning,
-        payload,
-        objective,
-      })}
+      line={briefLine({ from, to, returning, payload, objective })}
       budget={budget}
       accent={dcolor}
       top={viewTop}
       onShare={canLink() ? share : undefined}
       moreOpen={showMore}
       onToggleMore={() => setShowMore(!showMore)}
-      origin={origin}
-      onOrigin={edit(pickOrigin)}
-      originOpen={showOrigin}
-      onToggleOrigin={() => setShowOrigin(!showOrigin)}
-      dest={dest}
-      destList={destList}
-      onDest={edit(pickDest)}
-      profile={effProfile}
-      canLand={canLand}
-      orbitHere={orbitHere}
-      onProfile={edit(setProfile)}
+      from={from}
+      onFrom={edit(pickFrom)}
+      fromOpen={showOrigin}
+      onToggleFrom={() => setShowOrigin(!showOrigin)}
+      to={to}
+      onTo={edit(pickTo)}
       returning={returning}
       onReturning={edit(setReturning)}
       payload={payload}
@@ -938,10 +889,10 @@ export default function KSPMissionPlanner() {
         <Solving
           busy={busy}
           top={viewTop}
-          label={`Solving ${origin} → ${dest}…`}
+          label={`Solving ${bodyLabel(from.body)} → ${bodyLabel(to.body)}…`}
           status={
             busy
-              ? `Solving ${origin} → ${dest}…`
+              ? `Solving ${bodyLabel(from.body)} → ${bodyLabel(to.body)}…`
               : first
                 ? ""
                 : ok

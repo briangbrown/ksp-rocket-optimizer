@@ -1,5 +1,5 @@
 Low orbit          liftoff=15.3      stages=2
-Stationary orbit   liftoff=29.6      stages=2
+Stationary orbit   liftoff=58.1      stages=2
 Moho               liftoff=—         stages=—
 Eve                liftoff=—         stages=—
 Gilly              liftoff=118.0     stages=3
@@ -14,3 +14,4 @@ Vall               liftoff=—         stages=—
 Tylo               liftoff=—         stages=—
 Pol                liftoff=289.5     stages=4
 Eeloo              liftoff=—         stages=—
+Kerbol orbit       liftoff=—         stages=—

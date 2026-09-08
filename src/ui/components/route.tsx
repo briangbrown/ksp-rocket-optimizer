@@ -2,6 +2,7 @@ import { Scissors, ScissorsLineDashed } from "lucide-react";
 import { fmt } from "../format.js";
 import { C, RADIUS, SYSTEMS, edgeOf, hueFor, inkOn } from "../tokens.js";
 import { Choice, ICON, STROKE } from "./primitives.jsx";
+import { bodyLabel } from "../format.js";
 import type { CSSProperties } from "react";
 import type { Leg } from "../../core/orbits.js";
 import type { PlanStage } from "../../core/plan.js";
@@ -251,7 +252,7 @@ function BodyPicker({ options, value, onPick }: BodyPickerProps) {
               data-on={o === value ? 1 : 0}
               onClick={() => onPick(o)}
             >
-              {o}
+              {bodyLabel(o)}
             </button>
           ))}
         </div>
