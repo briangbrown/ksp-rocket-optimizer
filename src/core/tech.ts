@@ -4,18 +4,34 @@ import type { TechNode } from "./catalogue.js";
 
 /* What a node unlocks, as the parts list shows it: the part's name and which
    kind of thing it is. */
-type NodePart = { name: string; kind: string };
+type NodePart = {
+  name: string;
+  kind: string;
+  /* The part's expansion flags, for `offered`: the sheet greys a part the
+     install does not carry rather than offering a box for it. */
+  src: { mh?: number; rs?: number; mhr?: number };
+};
 
 const NODE_PARTS = (() => {
   const m: Record<string, Array<NodePart>> = {};
-  const add = (n: string | null, name: string, kind: string) => {
+  const add = (
+    n: string | null,
+    name: string,
+    kind: string,
+    src: NodePart["src"] = {},
+  ) => {
     if (!n) return;
-    (m[n] = m[n] || []).push({ name, kind });
+    (m[n] = m[n] || []).push({ name, kind, src });
   };
+  const flags = (p: { mh?: number; rs?: number; mhr?: number }) => ({
+    ...(p.mh ? { mh: p.mh } : {}),
+    ...(p.rs ? { rs: p.rs } : {}),
+    ...(p.mhr ? { mhr: p.mhr } : {}),
+  });
   DATA.engines.forEach((e) =>
-    add(e.t, e.n, e.fuelM > 0 ? "booster" : "engine"),
+    add(e.t, e.n, e.fuelM > 0 ? "booster" : "engine", flags(e)),
   );
-  DATA.tanks.forEach((t) => add(t.t, t.n, "tank"));
+  DATA.tanks.forEach((t) => add(t.t, t.n, "tank", flags(t)));
   Object.entries(STRUCT).forEach(([kind, list]) =>
     list.forEach((x) => add(x.t, x.n, kind)),
   );
@@ -27,7 +43,7 @@ const NODE_PARTS = (() => {
   COUPLERS.forEach((c) => {
     if (seenCoup.has(c.n)) return;
     seenCoup.add(c.n);
-    add(c.t, c.n, "coupler");
+    add(c.t, c.n, "coupler", flags(c));
   });
 
   Object.values(m).forEach((v) =>

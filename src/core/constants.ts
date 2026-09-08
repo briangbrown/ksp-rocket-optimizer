@@ -29,5 +29,24 @@ const NONE = Object.freeze({});
 const expBits = (x: Expansions | null | undefined) =>
   x ? 1 | (x.rs ? 2 : 0) | (x.mh ? 4 : 0) : 0;
 
-export { G0, NONE, expBits };
+/* Whether an install offers a part. `mh` and `rs` say which expansion ships
+   it — either one present is enough, which is how the engine plates, shipped
+   by both, are one row. `mhr` is ReStock+'s `MHReplacement = True`: a
+   stand-in for a Making History part, which ReStock+ itself hides
+   (`TechHidden`, `category = none`) the moment the expansion is installed —
+   the Caravel is a Skiff for players without it, and a player with both
+   never sees one. So a stand-in is offered only while Making History is
+   absent. No expansions at all — a core caller with nothing to say — offers
+   everything, which is what the coupler gate always did. */
+const offered = (
+  p: { mh?: number; rs?: number; mhr?: number },
+  x: Expansions | null | undefined,
+) => {
+  if (!x) return true;
+  if (p.mhr && x.mh) return false;
+  if (!p.mh && !p.rs) return true;
+  return !!(p.mh && x.mh) || !!(p.rs && x.rs);
+};
+
+export { G0, NONE, expBits, offered };
 export type { Excluded, Expansions, Roster };

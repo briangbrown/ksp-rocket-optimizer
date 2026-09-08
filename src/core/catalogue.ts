@@ -41,6 +41,9 @@ type PartBase = {
   /* Present only on parts that come with an expansion, and only when they do. */
   mh?: number;
   rs?: number;
+  /* A ReStock+ stand-in for a Making History part, hidden by ReStock+ when
+     the expansion is installed — `offered` in constants.ts. */
+  mhr?: number;
   /* ReStock's own part id, where the part is one of theirs. */
   slug?: string;
 };
@@ -82,7 +85,9 @@ type Tank = PartBase & {
 /* A coupler fans one stack node out to `out` columns of diameter `dia`, and
    presents `top` upwards. An engine plate is one of these with `plate` set — it
    decouples at its own node, which is why a stage carrying one buys no separate
-   decoupler. `rs` marks the ones that ship with ReStock+. */
+   decoupler. `mh` and `rs` mark the ones that ship with an expansion — the
+   plates with both, being the same part in each — and `mhr` a ReStock+ row
+   that Making History hides, as on the other part types. */
 type Coupler = {
   n: string;
   out: number;
@@ -92,7 +97,9 @@ type Coupler = {
   cost: number;
   t: string;
   plate?: number;
+  mh?: number;
   rs?: number;
+  mhr?: number;
 };
 
 /* An engine plate's jettisonable shroud, in the lengths it comes in. Read from

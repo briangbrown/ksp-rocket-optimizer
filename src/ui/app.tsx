@@ -4,6 +4,7 @@ import { solve, cancelSolve } from "./solver-client.js";
 import { buildVehicleFor, simCached } from "../core/ascent.js";
 import { orbitAlt } from "../core/atmosphere.js";
 import { DATA } from "../core/catalogue.js";
+import { offered } from "../core/constants.js";
 import { stackGeometry } from "../core/geometry.js";
 import { STATES, defaultCuts, possible, routeFor } from "../core/orbits.js";
 import type { Endpoint } from "../core/orbits.js";
@@ -241,12 +242,9 @@ export default function KSPMissionPlanner() {
     () =>
       DATA.engines.filter(
         (e) =>
-          unlocked.has(e.t) &&
-          (hasMH || !e.mh) &&
-          (hasRS || !e.rs) &&
-          !excluded.has(e.n),
+          unlocked.has(e.t) && offered(e, expansions) && !excluded.has(e.n),
       ),
-    [unlocked, hasMH, hasRS, excluded],
+    [unlocked, expansions, excluded],
   );
   const EXPANSION_PARTS = useMemo(
     () => ({
@@ -270,11 +268,10 @@ export default function KSPMissionPlanner() {
              History tanks carried none and were offered at every tier. #191 */
           !!t.t &&
           unlocked.has(t.t) &&
-          (hasMH || !t.mh) &&
-          (hasRS || !t.rs) &&
+          offered(t, expansions) &&
           !excluded.has(t.n),
       ),
-    [unlocked, hasMH, hasRS, excluded],
+    [unlocked, expansions, excluded],
   );
 
   /* Cut positions (cut i = separate after leg i). The grouping itself now

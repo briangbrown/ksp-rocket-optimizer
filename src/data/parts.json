@@ -616,6 +616,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "UR-2 'Caravel' Liquid Fuel Engine",
       "m": 2,
       "dry": 2,
@@ -633,6 +634,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "UR-1 'Galleon' Liquid Fuel Engine",
       "m": 5,
       "dry": 5,
@@ -650,6 +652,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "UR-137 'Schnauzer' Liquid Fuel Engine",
       "m": 0.8,
       "dry": 0.8,
@@ -667,6 +670,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "RK-107 'Ursa' Liquid Fuel Engine",
       "m": 1.25,
       "dry": 1.25,
@@ -735,6 +739,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "RK-1 'Trash Panda' Vernier Engine",
       "m": 0.18,
       "dry": 0.18,
@@ -770,6 +775,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "TCK-2 'Castor' Solid Rocket Booster",
       "m": 51.5,
       "dry": 8,
@@ -787,6 +793,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "FL-S1200 Liquid Fuel Tank",
       "m": 0.75,
       "dry": 0.72,
@@ -1863,6 +1870,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "FL-X1800 Liquid Fuel Tank",
       "wet": 10.125,
       "dry": 1.125,
@@ -1879,6 +1887,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "FL-X900 Liquid Fuel Tank",
       "wet": 5.0625,
       "dry": 0.5625,
@@ -1895,6 +1904,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "FL-X440 Liquid Fuel Tank",
       "wet": 2.475,
       "dry": 0.275,
@@ -1911,6 +1921,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "FL-X220 Liquid Fuel Tank",
       "wet": 1.2375,
       "dry": 0.1375,
@@ -1927,6 +1938,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "FL-XA160-S Fuel Tank Adapter",
       "wet": 0.9,
       "dry": 0.1,
@@ -1943,6 +1955,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "FL-XA600 Fuel Tank Adapter",
       "wet": 3.375,
       "dry": 0.375,
@@ -1959,6 +1972,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "FL-XA160 Fuel Tank Adapter",
       "wet": 0.9,
       "dry": 0.1,
@@ -1975,6 +1989,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "FL-XA1200 Fuel Tank Adapter",
       "wet": 6.75,
       "dry": 0.75,
@@ -2055,6 +2070,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "Kerbodyne SIV-512K Liquid Fuel Tank",
       "wet": 288,
       "dry": 32,
@@ -2071,6 +2087,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "Kerbodyne SIV-256K Liquid Fuel Tank",
       "wet": 144,
       "dry": 16,
@@ -2087,6 +2104,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "Kerbodyne SIV-128K Liquid Fuel Tank",
       "wet": 72,
       "dry": 8,
@@ -2103,6 +2121,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "Kerbodyne SIV-64K Liquid Fuel Tank",
       "wet": 36,
       "dry": 4,
@@ -2119,6 +2138,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "Kerbodyne SAIV Liquid Fuel Tank Adapter",
       "wet": 36,
       "dry": 4,
@@ -2135,6 +2155,7 @@
     },
     {
       "rs": 1,
+      "mhr": 1,
       "n": "Kerbodyne SIV Fuelled Engine Adapter",
       "wet": 50.625,
       "dry": 5.625,

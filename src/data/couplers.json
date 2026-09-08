@@ -54,7 +54,8 @@
       "cost": 200,
       "t": "Advanced Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-12 Engine Plate",
@@ -65,7 +66,8 @@
       "cost": 200,
       "t": "Advanced Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-12 Engine Plate",
@@ -76,7 +78,8 @@
       "cost": 200,
       "t": "Advanced Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-18 Engine Plate",
@@ -87,7 +90,8 @@
       "cost": 250,
       "t": "Advanced Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-18 Engine Plate",
@@ -98,7 +102,8 @@
       "cost": 250,
       "t": "Advanced Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-18 Engine Plate",
@@ -109,7 +114,8 @@
       "cost": 250,
       "t": "Advanced Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-25 Engine Plate",
@@ -120,7 +126,8 @@
       "cost": 300,
       "t": "Specialized Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-25 Engine Plate",
@@ -131,7 +138,8 @@
       "cost": 300,
       "t": "Specialized Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-25 Engine Plate",
@@ -142,7 +150,8 @@
       "cost": 300,
       "t": "Specialized Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-37 Engine Plate",
@@ -153,7 +162,8 @@
       "cost": 500,
       "t": "Composites",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-37 Engine Plate",
@@ -164,7 +174,8 @@
       "cost": 500,
       "t": "Composites",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-37 Engine Plate",
@@ -175,7 +186,8 @@
       "cost": 500,
       "t": "Composites",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-50 Engine Plate",
@@ -186,7 +198,8 @@
       "cost": 700,
       "t": "Meta-Materials",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-50 Engine Plate",
@@ -197,7 +210,8 @@
       "cost": 700,
       "t": "Meta-Materials",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-50 Engine Plate",
@@ -208,7 +222,8 @@
       "cost": 700,
       "t": "Meta-Materials",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-12 Engine Plate",
@@ -219,7 +234,8 @@
       "cost": 200,
       "t": "Advanced Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-12 Engine Plate",
@@ -230,7 +246,8 @@
       "cost": 200,
       "t": "Advanced Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-12 Engine Plate",
@@ -241,7 +258,8 @@
       "cost": 200,
       "t": "Advanced Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-18 Engine Plate",
@@ -252,7 +270,8 @@
       "cost": 250,
       "t": "Advanced Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-18 Engine Plate",
@@ -263,7 +282,8 @@
       "cost": 250,
       "t": "Advanced Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-18 Engine Plate",
@@ -274,7 +294,8 @@
       "cost": 250,
       "t": "Advanced Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-25 Engine Plate",
@@ -285,7 +306,8 @@
       "cost": 300,
       "t": "Specialized Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-25 Engine Plate",
@@ -296,7 +318,8 @@
       "cost": 300,
       "t": "Specialized Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-25 Engine Plate",
@@ -307,7 +330,8 @@
       "cost": 300,
       "t": "Specialized Construction",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-37 Engine Plate",
@@ -318,7 +342,8 @@
       "cost": 500,
       "t": "Composites",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-37 Engine Plate",
@@ -329,7 +354,8 @@
       "cost": 500,
       "t": "Composites",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-37 Engine Plate",
@@ -340,7 +366,8 @@
       "cost": 500,
       "t": "Composites",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-50 Engine Plate",
@@ -351,7 +378,8 @@
       "cost": 700,
       "t": "Meta-Materials",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-50 Engine Plate",
@@ -362,7 +390,8 @@
       "cost": 700,
       "t": "Meta-Materials",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     },
     {
       "n": "EP-50 Engine Plate",
@@ -373,7 +402,8 @@
       "cost": 700,
       "t": "Meta-Materials",
       "plate": 1,
-      "rs": 1
+      "rs": 1,
+      "mh": 1
     }
   ],
   "PLATE_SHROUD": {

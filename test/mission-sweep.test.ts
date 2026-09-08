@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { planMission } from "../src/core/plan.js";
+import { offered } from "../src/core/constants.js";
+import type { Expansions } from "../src/core/constants.js";
 import { sweepCases } from "./grid.js";
 import { missionSignature } from "../src/core/signature.js";
 import { stageGeom } from "../src/core/geometry.js";
@@ -56,16 +58,26 @@ function intersecting(stages: ReadonlyArray<PlanStage>) {
    a part behind a node not in the roster, or behind no node at all, is one
    the gates should have refused. Seventeen Making History tanks carried no
    node and passed every gate (#191); the sweep pins Making History off, so
-   this is the check that catches the next one wherever it comes from. */
+   this is the check that catches the next one wherever it comes from. A part
+   the install does not offer — an expansion's with the expansion off, or a
+   ReStock+ stand-in with Making History on — is the same defect. */
 function partsOutside(
   stages: ReadonlyArray<PlanStage>,
   unlocked: ReadonlySet<string>,
+  expansions: Expansions | null,
 ) {
   const bad: Array<string> = [];
   const check = (
     what: string,
     p:
-      | { n?: string | null; t?: string | null; dropTank?: boolean }
+      | {
+          n?: string | null;
+          t?: string | null;
+          dropTank?: boolean;
+          mh?: number;
+          rs?: number;
+          mhr?: number;
+        }
       | null
       | undefined,
   ) => {
@@ -76,6 +88,8 @@ function partsOutside(
     if (p.dropTank) return;
     if (!p.t) bad.push(`${what} ${p.n} has no tech node`);
     else if (!unlocked.has(p.t)) bad.push(`${what} ${p.n} needs ${p.t}`);
+    if (!offered(p, expansions))
+      bad.push(`${what} ${p.n} is not in this install`);
   };
   stages.forEach((st, i) => {
     const s = st.sol;
@@ -112,9 +126,11 @@ describe("mission sweep", () => {
       if (res) {
         overlaps.push(...intersecting(res.stages).map((x) => `${c.name} ${x}`));
         offRoster.push(
-          ...partsOutside(res.stages, new Set(c.input.unlocked)).map(
-            (x) => `${c.name}: ${x}`,
-          ),
+          ...partsOutside(
+            res.stages,
+            new Set(c.input.unlocked),
+            c.input.expansions,
+          ).map((x) => `${c.name}: ${x}`),
         );
         if (c.input.asparagus)
           dropTanks += res.stages.filter(
