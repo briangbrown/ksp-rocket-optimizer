@@ -351,6 +351,9 @@ function BuildView({
     setAnim(null);
     setScrub(null);
     demo.current = false;
+    /* A design cut off mid-arrival would otherwise leave the root named
+       "arriving" for as long as nothing solves. */
+    setArrival(null);
     if (!animates || !solved.length) return;
     setArrival({ t: 0 });
     const t0 = performance.now();
@@ -429,7 +432,13 @@ function BuildView({
     scrub !== null
       ? { a: Math.min(Math.floor(scrub), last), t: scrub - Math.floor(scrub) }
       : anim;
-  const base = motion ? motion.a : from;
+  /* Clamped, as `from` is: a separation in flight names the step it left,
+     and when the design changes under it — to one with fewer stages, or to
+     none — that step is gone. The effect on `sig` resets the animation, but
+     only after this render, which read `steps[3]` of a one-step list and
+     threw on `.drop`. On a phone the staging plays itself through once after
+     every load, so an edit to the brief in those seconds was a blank page. */
+  const base = Math.min(motion ? motion.a : from, last);
   const shot = useMemo(() => {
     const A = stepModels(solved, steps[base], payload, payloadDia);
     if (!motion || base + 1 > last) return { A, B: null, sep: null };
