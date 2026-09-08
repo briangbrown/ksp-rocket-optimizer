@@ -413,9 +413,22 @@ touched it — opened it, or changed anything — it stays wherever they put it
 across every re-solve, until they say _Done_. Set, it is stuck to the top of
 the visual viewport, bled to the page's edges under the header, so the
 mission is one tap away from anywhere on the page. Its line is `briefLine` in
-`format.ts`: _origin → destination · profile & trip · payload · objective_,
-with the profile and trip left out when the destination is an orbit of the
+`format.ts`: _from → to · arrival & trip · payload · objective_ — the From
+end names its state only off the surface (_Kerbin low orbit →_), the arrival
+is the To state as a verb (_land_, _orbit_, _stationary orbit_, _fly-by_) —
+with the arrival left out when the destination is an orbit of the
 origin, because there is no arrival to describe.
+
+The mission itself is two ends (#188): **To** first — a `BodyPicker` of every
+body, Kerbol at its head as the one in no system, then a `Choice` of the
+state to arrive in, surface, low orbit, stationary orbit or fly-by, with what
+the body cannot offer disabled and the reasons in a note under the chips —
+and **From** folded to its line, _Kerbin, surface_, since that is where nearly
+every mission starts; open, it is the same picker and the same chips less the
+fly-by. Picking a body opens it in its surface where it has one to land on or
+start from, else its low orbit; a pair the model refuses is mended at the To
+end to the first state that is a mission. _Return trip_ means back to the
+From end, state and all.
 
 **`Picker`** — one of several where there is no room for the chips: a native
 `<select>` in the label's clothes, with the platform's own sheet behind it on

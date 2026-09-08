@@ -82,26 +82,33 @@ function scan(where: string) {
   return problems;
 }
 
-const DESTINATIONS = [
-  "Low orbit",
-  "Stationary orbit",
-  "Moho",
-  "Eve",
-  "Gilly",
-  "Mun",
-  "Minmus",
-  "Duna",
-  "Ike",
-  "Dres",
-  "Jool",
-  "Laythe",
-  "Vall",
-  "Tylo",
-  "Pol",
-  "Eeloo",
+/* Each row a To end: a body picked on the brief, then where it has to be
+   said, a state chip. The two orbits of Kerbin were pseudo-destinations
+   once; Kerbol is a body since #188 and its row is new. */
+const DESTINATIONS: ReadonlyArray<[string, string | null, string]> = [
+  ["Kerbin", "Low orbit", "Low orbit"],
+  ["Kerbin", "Stationary orbit", "Stationary orbit"],
+  ...[
+    "Moho",
+    "Eve",
+    "Gilly",
+    "Mun",
+    "Minmus",
+    "Duna",
+    "Ike",
+    "Dres",
+    "Jool",
+    "Laythe",
+    "Vall",
+    "Tylo",
+    "Pol",
+    "Eeloo",
+  ].map((b) => [b, null, b] as [string, null, string]),
+  ["Kerbol", "Low orbit", "Kerbol orbit"],
 ];
 const OBJECTIVES = ["Lightest", "Cheapest", "Fewest parts"];
-const PROFILES = ["Flyby", "Orbit", "Land"];
+/* The To end's states, as the chips say them (#188). */
+const ARRIVALS = ["Surface", "Low orbit", "Stationary orbit", "Fly-by"];
 
 describe("render sweep", () => {
   it("mounts without a bad value in the initial render", async () => {
@@ -129,12 +136,13 @@ describe("render sweep", () => {
 
     const problems = [];
     const table = [];
-    for (const dest of DESTINATIONS) {
-      await click(dest);
+    for (const [body, state, name] of DESTINATIONS) {
+      await click(body);
+      if (state) await click(state);
       await settle();
-      problems.push(...scan(`destination ${dest}`));
+      problems.push(...scan(`destination ${name}`));
       table.push(
-        `${dest.padEnd(18)} liftoff=${String(stat("Liftoff mass")).padEnd(9)} stages=${stat("Stages")}`,
+        `${name.padEnd(18)} liftoff=${String(stat("Liftoff mass")).padEnd(9)} stages=${stat("Stages")}`,
       );
     }
     cleanup();
@@ -162,12 +170,13 @@ describe("render sweep", () => {
       await settle();
       problems.push(...scan(`objective ${objective}`));
     }
-    for (const profile of PROFILES) {
-      /* Land is withdrawn where there is no surface to land on. */
-      if (!byText(profile)) continue;
-      await click(profile);
+    for (const state of ARRIVALS) {
+      /* A state the body cannot offer is disabled, not withdrawn. */
+      const chip = byText(state);
+      if (!chip || (chip as HTMLButtonElement).disabled) continue;
+      await click(state);
       await settle();
-      problems.push(...scan(`profile ${profile}`));
+      problems.push(...scan(`arriving ${state}`));
     }
     cleanup();
     expect(problems).toEqual([]);
@@ -204,7 +213,14 @@ describe("render sweep", () => {
       );
 
     for (const dest of unsolvable) {
-      await click(dest);
+      /* A row's name back to what the brief clicks: a body, then a state
+         where the row was one. */
+      const [body, state] = DESTINATIONS.find(([, , n]) => n === dest) ?? [
+        dest,
+        null,
+      ];
+      await click(body);
+      if (state) await click(state);
       await settle();
       expect(alert(), `${dest}: no bad callout`).toBeTruthy();
       expect(alert()?.getAttribute("role"), dest).toBe("alert");

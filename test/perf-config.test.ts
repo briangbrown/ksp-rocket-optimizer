@@ -32,7 +32,8 @@ describe("benchmark configuration", () => {
       "a parsed configuration",
     );
     const input = missionInput("Duna", 9);
-    expect(values.dest).toBe("Duna");
+    expect(values.to?.body).toBe("Duna");
+    expect(values.from?.body).toBe("Kerbin");
     expect(values.objective).toBe(input.objective);
     expect(values.payload).toBe(input.payload);
     expect(values.maxAspect).toBe(input.maxAspect);
