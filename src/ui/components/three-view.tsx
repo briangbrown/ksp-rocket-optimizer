@@ -180,13 +180,30 @@ function engineMesh(title: string, folder: string): EngineMesh | undefined {
   return undefined;
 }
 
-function enginePositions(R: number, H: number, m: EngineMesh) {
+function enginePositions(R: number, H: number, m: EngineMesh, face?: number) {
   const s = Math.min(H / m.h, R / (m.w / 2)) / 1000;
   const pos = new Float32Array(m.v.length);
   for (let k = 0; k < m.v.length; k += 3) {
     pos[k] = m.v[k] * s;
     pos[k + 1] = m.v[k + 1] * s + H / 2;
     pos[k + 2] = m.v[k + 2] * s;
+  }
+  /* A radial engine's file is framed on its attach point with the wall at
+     −x (tools/engine-meshes.mjs). Turn it to face the column it is bolted
+     to and stand the origin on the tank's wall, which is the near edge of
+     the cylinder that bounds the part. #164 */
+  if (face !== undefined) {
+    const th = face + Math.PI;
+    const c = Math.cos(th);
+    const sn = Math.sin(th);
+    const ox = R * Math.cos(face);
+    const oz = R * Math.sin(face);
+    for (let k = 0; k < pos.length; k += 3) {
+      const x = pos[k];
+      const z = pos[k + 2];
+      pos[k] = x * c - z * sn + ox;
+      pos[k + 2] = x * sn + z * c + oz;
+    }
   }
   return pos;
 }
@@ -429,7 +446,7 @@ export default function ThreeView({
     scene.add(ghosts);
     for (const [i, p] of parts.entries()) {
       const m = meshed(p) ? engineMesh(p.part.n, meshSet) : undefined;
-      const pos = m ? enginePositions(p.r, p.h, m) : null;
+      const pos = m ? enginePositions(p.r, p.h, m, p.face) : null;
       const profile = m
         ? null
         : p.rTop === undefined

@@ -30,6 +30,12 @@ const engines = DATA.engines.map((e) => e.n);
 /* ReStock+'s Soyuz-style tank with a motor in it lives under FuelTank, not
    Engine, and was not in the pack. It is a tank; the drum is fine for it. */
 const UNMEASURED = ["FL-S1200 Liquid Fuel Tank"];
+/* The engines whose only size is R: bolted to a wall, framed on it. */
+const RADIAL = new Set(
+  DATA.engines
+    .filter((e) => e.sz.includes("R") && e.sz.every((z) => z === "R"))
+    .map((e) => e.n),
+);
 
 /* Vertices a file may carry and bytes it may weigh. The tool keeps one face
    in six up to three thousand, and the game's meshes are not manifold, so
@@ -80,16 +86,31 @@ describe("the engine meshes", () => {
       for (const k of m.i) if (!(k >= 0 && k < nv)) badIndex++;
       if (badIndex) faults.push(`${badIndex} indices past the vertices`);
       /* Below the node, nothing wider than the width; above it, the collar
-         that sits inside the tank may be anything. */
+         that sits inside the tank may be anything. A radial engine's file
+         is framed on its attach point with the wall at −x, and its width is
+         the greater of how wide it is along the wall and how far it stands
+         out from it. #164 */
       let wide = 0;
       let low = 0;
+      let zmin = Infinity;
+      let zmax = -Infinity;
+      let xmax = 0;
       const limit = (m.w / 2) * 1000 + 2;
       for (let k = 0; k < m.v.length; k += 3) {
         const y = m.v[k + 1];
         if (y < low) low = y;
-        if (y <= 0 && Math.hypot(m.v[k], m.v[k + 2]) > limit) wide++;
+        if (RADIAL.has(n)) {
+          zmin = Math.min(zmin, m.v[k + 2]);
+          zmax = Math.max(zmax, m.v[k + 2]);
+          xmax = Math.max(xmax, m.v[k]);
+        } else if (y <= 0 && Math.hypot(m.v[k], m.v[k + 2]) > limit) wide++;
       }
       if (wide) faults.push(`${wide} vertices wider than the width`);
+      if (
+        RADIAL.has(n) &&
+        (zmax - zmin > m.w * 1000 + 4 || xmax > m.w * 1000 + 2)
+      )
+        faults.push("wider along or out from the wall than the width");
       if (Math.abs(-low - m.h * 1000) > 5)
         faults.push(`height ${m.h} against vertices ${-low / 1000}`);
       expect(faults, `${n} (${file})`).toEqual([]);

@@ -64,6 +64,11 @@ const ENGINE_LEN: Record<string, number> = {
   4: 5.0,
   R: 0,
 };
+/* How much of a radial engine hangs below the tank it is bolted to: a
+   quarter of its length. Schematic, not measured — the game lets it sit
+   anywhere on the wall, and a builder puts the bell about here so it clears
+   the tank below and the plate has wall to hold. */
+const RADIAL_HANG = 0.25;
 const engineLen = (e: PartBase) =>
   PART_H(e.n) !== undefined
     ? (PART_H(e.n) as number)
@@ -406,13 +411,25 @@ function stageGeom(sol: Solution) {
      The stage as a whole spans whichever is broader, which is what the bounding
      box and the drag area want. Sharing one number drew the engine at the ring's
      width. */
-  const engineSpan = Math.max(td, clusterSpan(perEng, ed));
+  /* A radial engine bolts to the side of the tank, so the stage spans the
+     tank and an engine either side of it, and the stack is longer only by
+     what hangs below the tank — a quarter of the engine, unless the run is
+     shorter than the engine, which then hangs from its top. It used to be
+     drawn and measured as a stack engine, a full length under the tank and
+     a cluster tiling its base. #164 */
+  const radial = isRadial(sol.engine);
+  const engineSpan = radial
+    ? td + 2 * ed
+    : Math.max(td, clusterSpan(perEng, ed));
   const span = Math.max(engineSpan, sol.packed ? sol.packed.width : 0);
   /* Where the ring of parallel stacks sits. Exposed rather than worked out
      again in the drawing — see the first entry in "Where the bodies are
      buried". */
   const ringR = stackRing(S, span);
-  const engine = engineLen(sol.engine);
+  const engineH = engineLen(sol.engine);
+  const engine = radial
+    ? Math.max(RADIAL_HANG * engineH, engineH - tank)
+    : engineH;
   const coupler = sol.coupler ? heightOf({ n: sol.coupler.n }, 0.3) : 0;
   /* The one it bought. A stage whose joint is made by the engine plate above
      it carries a fit with a quantity of zero and no part in it, and was given
@@ -441,7 +458,11 @@ function stageGeom(sol: Solution) {
     engineSpan,
     tank,
     run: tankRun(S > 1 ? sol.perStack : sol.tanks),
+    /* What the engine adds to the stack, and how long the part is. They are
+       the same number for a stack engine. */
     engine,
+    engineH,
+    radial,
     coupler,
     decoupler,
     adapters,

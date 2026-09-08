@@ -63,7 +63,14 @@ Changing a number here is changing a measurement.
   the parts it remodels; walks the transform tree with the root's own
   transform dropped, as the game drops it (left in, the Cub sat twenty-nine
   metres off its axis — it is where the prefab sat in the Unity scene); takes
-  every visible triangle with the top node at y = 0; welds the texture seams
+  every visible triangle with the top node at y = 0 — a radial engine has no
+  stack node and is framed on its `node_attach` instead, the attach point at
+  the origin and the wall at −x, its `w` the greater of its width along the
+  wall and its reach out from it; the configs do not agree on which way the
+  node's direction points (the stock Puff's is the Thud's reversed), so the
+  body's side decides, and the renderer stands the origin on the tank and
+  turns it to face the axis (`face` on the model part, #164); welds the
+  texture seams
   (the game splits a vertex wherever one runs, and unwelded each seam is a
   crack the simplifier may not close); and simplifies by quadric edge
   collapse — Garland and Heckbert, in the memoryless form of Lindstrom and

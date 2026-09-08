@@ -482,6 +482,7 @@ function partOf(node, path) {
     nodeBottom: null,
     jettison: [],
     variants: [],
+    attach: null,
     base: null,
     thrust: ["thrustTransform"],
   };
@@ -505,6 +506,14 @@ function partOf(node, path) {
       p[key.endsWith("top") ? "nodeTop" : "nodeBottom"] = Number(
         v.split(",")[1],
       );
+  }
+  /* Where a surface-attached part meets the wall it bolts to: a point and,
+     after it, a direction along the wall's normal, whose sense the configs
+     do not agree on. Positions scale with the part, like the stack nodes. */
+  const na = kv(node, "node_attach");
+  if (na) {
+    const n = na.split(",").map(Number);
+    p.attach = { pos: n.slice(0, 3), dir: n.slice(3, 6) };
   }
   for (const mod of kids(node, "MODULE")) {
     const mn = kv(mod, "name");
@@ -1058,7 +1067,7 @@ function simplify(verts0, tris, extent) {
   return { verts: outV, faces: outF };
 }
 
-function measure(part, zip) {
+function measure(part, zip, radial = false) {
   const hidden = new Set(part.jettison);
   if (part.variants.length) {
     const base = part.base ?? part.variants[0].name;
@@ -1095,6 +1104,43 @@ function measure(part, zip) {
       ? ymax
       : Math.min(ymax, part.nodeTop * part.rescale * part.scale);
   const verts = out.verts.map(([x, y, z]) => [x, y - top, z]);
+  /* A radial engine is drawn against a wall, not under a node: its file is
+     framed on its attach point, with the wall at −x. The origin is where the
+     plate meets the tank and the body runs out along +x (a cradle that wraps
+     the tank reaches a little past the origin the other way); the renderer
+     stands the origin on the tank's surface, turned to face its axis. */
+  let side = false;
+  if (radial && part.attach) {
+    const k = part.rescale * part.scale;
+    const [ax, , az] = part.attach.pos.map((c) => c * k);
+    const [dx, , dz] = part.attach.dir;
+    const len = Math.hypot(dx, dz);
+    if (len > 1e-6) {
+      /* Turn the wall direction −d onto −x. */
+      const a = Math.atan2(-dz / len, -dx / len);
+      const th = Math.PI - a;
+      const c = Math.cos(th);
+      const sn = Math.sin(th);
+      for (const v of verts) {
+        const x = v[0] - ax;
+        const z = v[2] - az;
+        v[0] = x * c - z * sn;
+        v[2] = x * sn + z * c;
+      }
+      /* The direction's sense is not the same in every config — the stock
+         Puff's points out of the part where the Thud's points in — so the
+         body decides: it stands out from the wall, and the wall is the
+         side it is not on. */
+      let cx = 0;
+      for (const v of verts) cx += v[0];
+      if (cx < 0)
+        for (const v of verts) {
+          v[0] = -v[0];
+          v[2] = -v[2];
+        }
+      side = true;
+    }
+  }
   const extent = Math.max(
     top - ymin,
     2 * Math.max(...verts.map(([x, , z]) => Math.hypot(x, z))),
@@ -1105,13 +1151,22 @@ function measure(part, zip) {
      anything below the node. Clustering moves the extremes a little. */
   let w = 0,
     low = 0;
+  /* Framed on the wall, the width is whichever is more: how wide the part is
+     along the wall, or how far it stands out from it. Either has to fit the
+     box the renderer scales it into. */
+  let zmin = Infinity,
+    zmax = -Infinity,
+    xmax = 0;
   for (const [x, y, z] of s.verts) {
     /* Judged as the file will carry it, in millimetres: a vertex that rounds
        to the node is below it. */
     if (Math.round(y * 1000) <= 0) w = Math.max(w, Math.hypot(x, z));
     low = Math.min(low, y);
+    zmin = Math.min(zmin, z);
+    zmax = Math.max(zmax, z);
+    xmax = Math.max(xmax, x);
   }
-  return { h: -low, w: 2 * w, ...s };
+  return { h: -low, w: side ? Math.max(zmax - zmin, xmax) : 2 * w, ...s };
 }
 
 /* ------------------------------------------------------------------ export */
@@ -1160,7 +1215,11 @@ function main() {
     }
     for (const art of ["stock", "restock"]) {
       const q = art === "restock" ? (restock.get(p.name) ?? p) : p;
-      const m = measure(q, zip);
+      const m = measure(
+        q,
+        zip,
+        e.sz.includes("R") && e.sz.every((z) => z === "R"),
+      );
       if (m.error) {
         unmeasured.push(`${e.n} (${art}): ${m.error}`);
         continue;
@@ -1185,7 +1244,7 @@ function main() {
     "index.json",
     JSON.stringify({
       about:
-        "Simplified copies of the install's engine meshes, by tools/engine-meshes.mjs: per file, vertices in millimetres with the top node at y = 0, triangle indices, and the height and width of what shows below the node. The renderer fetches an engine's file when it first draws it. restock lists only the engines ReStock remodels.",
+        "Simplified copies of the install's engine meshes, by tools/engine-meshes.mjs: per file, vertices in millimetres with the top node at y = 0, triangle indices, and the height and width of what shows below the node. A radial engine is framed on its attach point instead, the wall at -x. The renderer fetches an engine's file when it first draws it. restock lists only the engines ReStock remodels.",
       ...index,
     }),
   );

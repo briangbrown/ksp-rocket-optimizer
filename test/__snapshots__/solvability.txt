@@ -4,7 +4,7 @@ Moho               liftoff=—         stages=—
 Eve                liftoff=—         stages=—
 Gilly              liftoff=118.1     stages=3
 Mun                liftoff=70.5      stages=4
-Minmus             liftoff=67.8      stages=2
+Minmus             liftoff=57.2      stages=3
 Duna               liftoff=125.5     stages=4
 Ike                liftoff=96.4      stages=3
 Dres               liftoff=280.0     stages=6
