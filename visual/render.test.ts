@@ -498,9 +498,11 @@ describe("the build view, in a browser", () => {
       );
       if (fold && fold.getAttribute("aria-expanded") !== "true") fold.click();
     });
-    /* Whichever objective is not the one lit, and back to the lit one at
-       the end. */
-    const objective = (want: "on" | "off") =>
+    /* The objectives not lit, tried in turn below until one delivers a
+       rocket that draws differently — two objectives can agree on a
+       mission, and did on the default once the stack decoupler was picked
+       by size (#190) — and back to the lit one at the end. */
+    const objectives = (want: "on" | "off") =>
       page.evaluate((want: string) => {
         const chips = [...document.querySelectorAll("button.chip")].filter(
           (x) =>
@@ -508,14 +510,14 @@ describe("the build view, in a browser", () => {
               (x.textContent ?? "").trim(),
             ),
         );
-        const b = chips.find(
-          (x) => (x.getAttribute("data-on") === "1") === (want === "on"),
-        );
-        if (!b) throw new Error("no objective chip to press");
-        return (b.textContent ?? "").trim();
+        return chips
+          .filter(
+            (x) => (x.getAttribute("data-on") === "1") === (want === "on"),
+          )
+          .map((x) => (x.textContent ?? "").trim());
       }, want);
-    const before = await objective("on");
-    const other = await objective("off");
+    const [before] = await objectives("on");
+    const others = await objectives("off");
     /* Four times slower, for the sampling. SwiftShader takes a good part of
        the arrival's 400 ms to build the new rocket's scene, and the settle is
        a cubic that has all but stopped by three quarters of the way — so the
@@ -553,22 +555,38 @@ describe("the build view, in a browser", () => {
         if (!b) throw new Error("no chip " + want);
         b.click();
       }, label);
-    await choose(other);
-    await page.waitForFunction(
-      () => !!document.querySelector('[data-motion="arriving"]'),
-      { timeout: 60_000, polling: "raf" },
-    );
     /* Every frame that can be read while it is arriving. */
-    const during: Array<number> = [];
-    while (
-      await page.evaluate(
-        () => !!document.querySelector('[data-motion="arriving"]'),
-      )
-    )
-      during.push((await read(ELEVATION)).hash);
-    await settle(page);
-    const landed = await read(ELEVATION);
-    expect(landed.hash, "the design did not change").not.toBe(was.hash);
+    let during: Array<number> = [];
+    let landed = was;
+    let other = "";
+    for (const candidate of others) {
+      await choose(candidate);
+      const arrived = await page
+        .waitForFunction(
+          () => !!document.querySelector('[data-motion="arriving"]'),
+          { timeout: 60_000, polling: "raf" },
+        )
+        .then(
+          () => true,
+          () => false,
+        );
+      during = [];
+      if (arrived)
+        while (
+          await page.evaluate(
+            () => !!document.querySelector('[data-motion="arriving"]'),
+          )
+        )
+          during.push((await read(ELEVATION)).hash);
+      await settle(page);
+      landed = await read(ELEVATION);
+      other = candidate;
+      if (landed.hash !== was.hash) break;
+    }
+    expect(
+      landed.hash,
+      `no objective of ${others.join(", ")} changed the design`,
+    ).not.toBe(was.hash);
     expect(
       during.length,
       "no frame was read during the arrival",
