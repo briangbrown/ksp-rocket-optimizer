@@ -248,10 +248,17 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
           Expect to arrive slightly elliptical and trim it on the next pass.
         </Callout>
       )}
+      {a.circStaged && (
+        <Callout severity="info" style={{ marginBottom: SPACE.lg }}>
+          The stage that reaches apoapsis runs dry partway through this burn —
+          stage and keep burning; the timing above counts the stage above.
+        </Callout>
+      )}
       {a.circShort && (
         <Callout severity="warn" style={{ marginBottom: SPACE.lg }}>
-          The stage that reaches orbit runs dry partway through this burn — the
-          timing above assumes it continues on the stage above.
+          The rocket runs dry before it is circular. The orbit it reaches is
+          lower than the one asked for; the ascent cost above is what the
+          asked-for one needs.
         </Callout>
       )}
       {a.marks && a.marks.length > 2 && (
