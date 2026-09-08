@@ -227,7 +227,11 @@ function StageStack({ stages, color, splitBy, onSetSplit }: StageStackProps) {
                               <Stat
                                 inline
                                 label="TWR"
-                                value={`${sol.twr.toFixed(2)} → ${sol.twrBurnout.toFixed(2)}`}
+                                value={
+                                  sol.boosters
+                                    ? `${sol.twr.toFixed(2)} → ${sol.boosters.twrSep.toFixed(2)} → ${sol.twrBurnout.toFixed(2)}`
+                                    : `${sol.twr.toFixed(2)} → ${sol.twrBurnout.toFixed(2)}`
+                                }
                                 good={sol.twr >= s.twrMin}
                               />
                               <Stat inline label="Isp" value={`${sol.isp} s`} />

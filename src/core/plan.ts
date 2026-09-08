@@ -93,7 +93,66 @@ type PlanOpts = {
    synchronous call and never will be. */
 export async function planMission(
   input: PlanInput,
-  { signal, onYield = () => Promise.resolve(), fanOut = null }: PlanOpts = {},
+  opts: PlanOpts = {},
+): Promise<Plan | null> {
+  const own = await planFor(input, opts, input.objective);
+  if (!own || input.objective === "mass") return own;
+  /* The cost and parts objectives are minimised group by group, and a group
+     is charged nothing for the mass it hands down — a cheap, heavy upper
+     segment makes every stage beneath it dearer, and the sum comes out above
+     what the mass objective, which compounds through that mass on its own,
+     would have paid. Minmus at 6.5 t: 48,761 funds asked cheapest, 42,235
+     asked lightest. So the lightest design is planned too and delivered
+     where it measures better on the objective asked for. Twice the work for
+     those two objectives; the floor it buys is that "cheapest" is never
+     dearer than "lightest". #169 */
+  const alt = await planFor(input, opts, "mass");
+  if (!alt) return own;
+  const measure = (p: Plan) =>
+    p.stages.reduce(
+      (a, s) =>
+        a +
+        (s.sol ? (input.objective === "cost" ? s.sol.cost : s.sol.parts) : NaN),
+      0,
+    );
+  const mo = measure(own);
+  const ma = measure(alt);
+  const tally = { ...own.tally };
+  for (const k of Object.keys(tally) as Array<keyof typeof tally>)
+    tally[k] += alt.tally[k];
+  return Number.isFinite(ma) && (!Number.isFinite(mo) || ma < mo)
+    ? { ...alt, tally }
+    : { ...own, tally };
+}
+
+/* How a candidate's score is expected to grow with the Δv it turns out to
+   need: the rocket equation at an exhaust velocity of 2,500 m/s, a launch
+   stage's — a little pessimistic about growth, so a candidate that fits is
+   preferred over one that needs growing unless it is clearly lighter. */
+const GROW_VE = 2500;
+
+/* What a chain carries for the climb: the group's Δv less the legs beyond
+   the ascent, plus whatever its tanks rounded the group up to. */
+const carriedFor = (c: ChainCandidate, groupDv: number, share: number) =>
+  c.chain.reduce((a, x) => a + x.sol.dv, 0) - (groupDv - share);
+
+/* The share of a group's Δv that is the climb to orbit, margin included:
+   what the ascent simulator's total is compared against. The rest of the
+   group — a plane change, a capture, a descent cut into the same segment —
+   is not something the simulator flies, and comparing the flown ascent with
+   the whole group let a rocket 600 m/s short of orbit pass as carrying its
+   flight. #167 */
+function ascentShareOf(legs: ReadonlyArray<Leg>, margin: number) {
+  return (
+    legs.filter((l) => l.kind === "ascent").reduce((a, l) => a + l.dv, 0) *
+    (1 + margin / 100)
+  );
+}
+
+async function planFor(
+  input: PlanInput,
+  { signal, onYield = () => Promise.resolve(), fanOut = null }: PlanOpts,
+  objective: Objective,
 ): Promise<Plan | null> {
   const solve = (groupInput: GroupInput) =>
     fanOut ? solveGroupWith(groupInput, fanOut) : solveGroup(groupInput);
@@ -109,7 +168,6 @@ export async function planMission(
     maxAspect,
     expansions,
     asparagus,
-    objective,
     origin,
     boosters,
   } = input;
@@ -194,6 +252,10 @@ export async function planMission(
        the candidate walk picks a different one. Only `solved` carries `byK` —
        what the search found at every stage count — and only the walk below
        reads it, which is why the two names exist. */
+    /* The group's Δv, and the ascent's share of it, both grown together when
+       the flown ascent costs more than the map said. */
+    let groupDv = dv;
+    let share = isLaunch ? ascentShareOf(legs, margin) : 0;
     const solved = await solve({
       dv,
       payload: carried,
@@ -244,13 +306,27 @@ export async function planMission(
            could not fly it than to silently hand back something the user ruled
            out. Only when nothing compliant exists at all does an over-limit
            design get offered. */
-      const compliant = [...solved.byK].filter((x) => x && x.slim);
-      const pool = compliant.length
-        ? compliant
-        : [...solved.byK].filter(Boolean);
+      /* The best at each stage count and the runners-up behind each: the
+           closed form's favourite at a count is not always one the simulator
+           can fly to budget, and the one behind it often is. #169 */
+      const all = [...solved.byK, ...solved.alts];
+      const compliant = all.filter((x) => x && x.slim);
+      const pool = compliant.length ? compliant : all.filter(Boolean);
       const order = pool.sort((x, y) => x.chainScore - y.chainScore);
-      let flew = false;
+      /* Cheapest first, and judged on what each would cost *once grown to
+           what it flies at*: a candidate whose flown ascent exceeds the share
+           is re-solved heavier below, and its score is scaled by the rocket
+           equation for the difference before it is compared. Taking the first
+           that flew handed back a rocket that had to be grown a great deal
+           when the one behind it flew nearly to budget; taking the first that
+           fitted handed back a heavy rocket that needed no growing when a
+           lighter one needed a little. The scores are sorted, and an estimate
+           is never below its score, so the walk stops at the first candidate
+           whose score cannot beat the best estimate so far. #168 #169 */
+      let pick: ChainCandidate | null = null;
+      let bestEst = Infinity;
       for (const cand of order) {
+        if (cand.chainScore >= bestEst) break;
         await onYield();
         if (signal && signal.aborted) return null;
         const veh = buildVehicleFor(
@@ -265,16 +341,28 @@ export async function planMission(
           payloadDia,
         );
         const flown = veh && simCached(veh, orbitAlt(bodyName));
-        if (flown && flown.ok) {
-          res = cand;
-          flew = true;
-          break;
+        if (!flown || !flown.ok) continue;
+        /* The margin is a reserve: a flight that costs no more than the
+           vehicle carries for the climb — the ascent's share of the group,
+           plus whatever its tanks rounded up to — is fine as it stands. One
+           that costs more is grown to carry the margin over what it flew at,
+           which is what the re-solve below does, so that is the growth
+           estimated here. */
+        const carries = carriedFor(cand, groupDv, share);
+        const over =
+          flown.total > carries
+            ? flown.total * (1 + margin / 100) - carries
+            : 0;
+        const est = cand.chainScore * Math.exp(over / GROW_VE);
+        if (est < bestEst) {
+          bestEst = est;
+          pick = cand;
         }
       }
       /* Nothing in the compliant pool could be flown. Keep the best of them
            anyway — the design is the one the user asked for, and the flight card
            will show that the ascent could not be simulated. */
-      if (!flew && order.length) res = order[0];
+      res = pick ?? (order.length ? order[0] : res);
     }
 
     /* The map's ascent figure is a rule of thumb; the simulator knows what
@@ -299,11 +387,16 @@ export async function planMission(
         );
         const flown = veh && simCached(veh, orbitAlt(bodyName));
         if (!flown || !flown.ok) break;
-        const built = res.chain.reduce((a2, c) => a2 + c.sol.dv, 0);
-        flown.carried = built; // surfaced next to the ascent cost
-        if (flown.total <= built) break; // it carries the flight
+        /* What the vehicle carries for the climb, surfaced next to the
+           ascent cost. */
+        const carries = carriedFor(res, groupDv, share);
+        flown.carried = carries;
+        if (flown.total <= carries) break; // it carries the flight
+        const need = flown.total * (1 + margin / 100);
+        groupDv += need - carries;
+        share += need - carries;
         const grown = await solve({
-          dv: flown.total * (1 + margin / 100),
+          dv: groupDv,
           payload: carried,
           payloadDia,
           engines,
@@ -366,4 +459,5 @@ export async function planMission(
   return { stages: out, tally: { ...TALLY } };
 }
 
+export { ascentShareOf };
 export type { Plan, PlanInput, PlanOpts, PlanStage };
