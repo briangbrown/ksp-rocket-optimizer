@@ -1,6 +1,13 @@
 import { Share2, Undo2 } from "lucide-react";
-import { PROFILES, SYS } from "../../core/orbits.js";
-import { OBJECTIVES, OBJECTIVE_HINT, fmt } from "../format.js";
+import { STATES, SYS, fromReason, toReason } from "../../core/orbits.js";
+import type { Endpoint, State } from "../../core/orbits.js";
+import {
+  OBJECTIVES,
+  OBJECTIVE_HINT,
+  STATE_LABEL,
+  bodyLabel,
+  fmt,
+} from "../format.js";
 import { C, RADIUS, SHADOW, SPACE, Z } from "../tokens.js";
 import { BodyPicker } from "./route.jsx";
 import {
@@ -38,19 +45,14 @@ type BriefProps = {
   top: number;
   moreOpen: boolean;
   onToggleMore: () => void;
-  origin: string;
-  onOrigin: (b: string) => void;
-  originOpen: boolean;
-  onToggleOrigin: () => void;
-  dest: string;
-  destList: ReadonlyArray<string>;
-  onDest: (d: string) => void;
-  /* The profile in force, which is not always the one chosen: a landing
-     falls back to orbit where there is nothing to land on. */
-  profile: string;
-  canLand: boolean;
-  orbitHere: boolean;
-  onProfile: (p: string) => void;
+  /* The mission's two ends, a body and a state each (#188). The From end
+     folds to a line, since nearly every mission starts on Kerbin's surface. */
+  from: Endpoint;
+  onFrom: (e: Endpoint) => void;
+  fromOpen: boolean;
+  onToggleFrom: () => void;
+  to: Endpoint;
+  onTo: (e: Endpoint) => void;
   returning: boolean;
   onReturning: (on: boolean) => void;
   payload: number;
@@ -81,6 +83,67 @@ type BriefProps = {
    what the search is asked for — in the order you decide it. Everything here
    changes run to run, which is why none of it is saved. Once it is decided
    the card folds to a line and the page below it is all result. */
+/* Every body, the Sun first: it is in no system of its own, so the picker
+   shows it as a chip above the planets. */
+const BODIES = Object.keys(SYS);
+
+/* The state a body opens in when it is picked: its surface where it has one
+   a mission can start from or land on, else its low orbit. */
+const firstFrom = (b: string): Endpoint => ({
+  body: b,
+  state: fromReason({ body: b, state: "surface" }) === true ? "surface" : "low",
+});
+const firstTo = (from: Endpoint, b: string): Endpoint => {
+  for (const state of STATES)
+    if (toReason(from, { body: b, state }) === true) return { body: b, state };
+  return { body: b, state: "low" };
+};
+
+/* The state chips for one end, with what the body cannot do disabled and
+   why written under the group, since a hint under a pointer is not something
+   a finger can read. */
+function StateChoice({
+  label,
+  value,
+  states,
+  reason,
+  onChange,
+}: {
+  label: string;
+  value: State;
+  states: ReadonlyArray<State>;
+  reason: (s: State) => true | string;
+  onChange: (s: State) => void;
+}) {
+  const reasons = states
+    .map((s) => reason(s))
+    .filter((r): r is string => r !== true);
+  return (
+    <div style={{ margin: `${SPACE.md}px 0` }}>
+      <Choice
+        label={label}
+        value={value}
+        onChange={onChange}
+        style={{ gap: 6 }}
+        options={states.map((s) => {
+          const r = reason(s);
+          return {
+            value: s,
+            label: STATE_LABEL[s],
+            disabled: r !== true,
+            hint: r === true ? undefined : r,
+          };
+        })}
+      />
+      {reasons.length > 0 && (
+        <div className="note" style={{ marginTop: SPACE.sm }}>
+          {[...new Set(reasons)].join(". ")}.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Brief(p: BriefProps) {
   /* Set: stuck under the solving bar, bled to the page edges so the results
      scroll under it rather than past it. `top` follows the visual viewport
@@ -147,38 +210,59 @@ function Brief(p: BriefProps) {
         </span>
       }
     >
+      {/* To first: it is the thing you came to change. Every body, Kerbol
+          at the head as the one not in a system; then the state, with what
+          the body cannot do disabled and the reasons under the chips. */}
       <div className="label" style={{ marginBottom: SPACE.md }}>
-        Where to
+        To
       </div>
-      <BodyPicker value={p.dest} options={p.destList} onPick={p.onDest} />
+      <BodyPicker
+        value={p.to.body}
+        options={BODIES}
+        onPick={(b) => p.onTo(firstTo(p.from, b))}
+      />
+      <StateChoice
+        label="Arriving"
+        value={p.to.state}
+        states={STATES}
+        reason={(s) => toReason(p.from, { body: p.to.body, state: s })}
+        onChange={(s) => p.onTo({ body: p.to.body, state: s })}
+      />
 
-      {/* Almost every mission starts at Kerbin, so the full sixteen-body
-          picker is a lot of furniture for a choice nobody makes. Folded
-          beneath the destination, which is the thing you came to change. */}
+      {/* Almost every mission starts on Kerbin's surface, so the From end is
+          a lot of furniture for a choice nobody makes. Folded beneath the
+          To end; its line says where and in what state. */}
       <Section
         bare
         level={3}
-        heading="Launching from"
-        summary={p.origin}
-        open={p.originOpen}
-        onToggle={p.onToggleOrigin}
+        heading="From"
+        summary={`${bodyLabel(p.from.body)}, ${STATE_LABEL[p.from.state].toLowerCase()}`}
+        open={p.fromOpen}
+        onToggle={p.onToggleFrom}
         gap={10}
         style={{ margin: `${SPACE.lg}px 0 ${SPACE.xl}px` }}
       >
-        {p.origin !== "Kerbin" && (
+        {(p.from.body !== "Kerbin" || p.from.state !== "surface") && (
           <button
             className="chip"
             style={{ marginBottom: SPACE.md }}
-            onClick={() => p.onOrigin("Kerbin")}
+            onClick={() => p.onFrom({ body: "Kerbin", state: "surface" })}
           >
             <Undo2 size={ICON.chip} strokeWidth={STROKE} aria-hidden />
-            back to Kerbin
+            back to Kerbin's surface
           </button>
         )}
         <BodyPicker
-          value={p.origin}
-          options={Object.keys(SYS).filter((b) => b !== "Sun" && SYS[b].ascent)}
-          onPick={p.onOrigin}
+          value={p.from.body}
+          options={BODIES}
+          onPick={(b) => p.onFrom(firstFrom(b))}
+        />
+        <StateChoice
+          label="Starting in"
+          value={p.from.state}
+          states={STATES.filter((s) => s !== "flyby")}
+          reason={(s) => fromReason({ body: p.from.body, state: s })}
+          onChange={(s) => p.onFrom({ body: p.from.body, state: s })}
         />
       </Section>
 
@@ -190,44 +274,8 @@ function Brief(p: BriefProps) {
           marginBottom: SPACE.xl,
         }}
       >
-        <Choice
-          label="Mission profile"
-          value={p.profile}
-          onChange={p.onProfile}
-          style={{ gap: 6 }}
-          options={Object.entries(PROFILES).map(([k, v]) => ({
-            value: k,
-            label: v.name,
-            disabled: k === "land" && !p.canLand,
-          }))}
-        />
-        <span
-          style={{
-            width: 1,
-            alignSelf: "stretch",
-            background: C.rule,
-            margin: "0 4px",
-          }}
-        />
         <Toggle label="Return trip" on={p.returning} onChange={p.onReturning} />
       </div>
-      {!p.orbitHere && !p.canLand && (
-        <div
-          className="note"
-          style={{ marginTop: -10, marginBottom: SPACE.xl }}
-        >
-          {p.dest} has no surface to land on, so this is an orbital mission.
-        </div>
-      )}
-      {p.orbitHere && (
-        <div
-          className="note"
-          style={{ marginTop: -10, marginBottom: SPACE.xl }}
-        >
-          You are launching straight into this orbit, so there is no arrival to
-          shape — nothing to fly by, capture into, or land on.
-        </div>
-      )}
       <div
         style={{
           display: "grid",

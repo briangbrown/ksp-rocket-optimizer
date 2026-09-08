@@ -230,7 +230,7 @@ control shows and what it committed.
   rather than a page of skeletons — and `Results` draws its sections `busy`
   while it is true. Do not derive it from `stages.length`. #139
 
-- **Picking a destination resets the cuts.** `pickDest` clears them because
+- **Picking an end resets the cuts.** `pickTo` and `pickFrom` clear them because
   they index a route that no longer exists. A test that adds a cut and then
   changes the destination has lost the cut, and one that needs an unsolvable
   mission after a cut made it solvable gets one that way. #139
@@ -343,3 +343,17 @@ control shows and what it committed.
   44 px targets. The
   render suite's canvas order is front, plan, right, isometric, so its
   `ELEVATION` and `PLAN` indices did not move. #183
+
+- **The mission is two endpoints, and the brief's state is `from` and `to`.**
+  Since #188 there is no `dest`, `profile` or `origin` in the app: `from` and
+  `to` are `{ body, state }`, the route is `routeFor(from, to, …)`, and the
+  old fields survive only in `parseConfig`, which maps them onto the ends
+  (`endpointsOf`) so every saved configuration and shared link still loads.
+  A picked body opens in its surface where it has one, else its low orbit
+  (`firstFrom`, `firstTo`); a pair the model refuses is mended at the To end
+  (`mend` in app.tsx) rather than left impossible. The Sun's key is `"Sun"`
+  everywhere but the screen, where `bodyLabel` says Kerbol. The render
+  sweep's destination walk clicks a body and then a state chip, since "Low
+  orbit" is now a chip and not a destination; its Kerbol row is a dash by
+  design. The layout budgets held: the To end's seven chips replace the
+  three profile chips and the origin fold, word for word.

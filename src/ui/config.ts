@@ -1,5 +1,6 @@
 import { DATA } from "../core/catalogue.js";
-import { DEST, SYS } from "../core/orbits.js";
+import { DEST, STATES, SYS, endpointsOf, possible } from "../core/orbits.js";
+import type { Endpoint, State } from "../core/orbits.js";
 import { MAX_K } from "../core/plan.js";
 import { withDeps } from "../core/tech.js";
 import type { Expansions } from "../core/constants.js";
@@ -17,6 +18,11 @@ import type { Objective } from "../core/performance.js";
    omitted, leaving that setting at its default. A config saved before a setting
    existed still restores everything else rather than failing whole. */
 type Pasted = {
+  /* The mission's two ends (#188). `origin`, `dest` and `profile` are the
+     form every configuration and link carried before, still read and mapped
+     onto the ends, so nothing saved or shared stops working. */
+  from: { body: string; state: string };
+  to: { body: string; state: string };
   origin: string;
   dest: string;
   profile: string;
@@ -42,9 +48,8 @@ type Pasted = {
 /* What was actually taken. Every field is optional because a configuration may
    carry any subset of them, and what is missing keeps its default. */
 type ConfigValues = {
-  origin?: string;
-  dest?: string;
-  profile?: string;
+  from?: Endpoint;
+  to?: Endpoint;
   returning?: boolean;
   payload?: number;
   payloadDia?: number;
@@ -131,13 +136,43 @@ function readConfig(cfg: Pasted): ConfigParse {
   ]);
   const known = (n: string) => Object.hasOwn(DATA.nodes, n);
 
-  take("origin", bodies.includes(cfg.origin), () => cfg.origin);
-  take("dest", dests.has(cfg.dest), () => cfg.dest);
-  take(
-    "profile",
-    ["flyby", "orbit", "land"].includes(cfg.profile),
-    () => cfg.profile,
-  );
+  /* The two ends, or the old three fields mapped onto them. Whichever the
+     text carries, what comes out is a pair the model calls a mission — an
+     impossible pair is left at the defaults, as a bad field is. */
+  const endpoint = (e: unknown): Endpoint | null =>
+    e &&
+    typeof e === "object" &&
+    typeof (e as { body: unknown }).body === "string" &&
+    Object.hasOwn(SYS, (e as { body: string }).body) &&
+    STATES.includes((e as { state: State }).state)
+      ? { body: (e as Endpoint).body, state: (e as Endpoint).state }
+      : null;
+  const ends = (() => {
+    const from = endpoint(cfg.from);
+    const to = endpoint(cfg.to);
+    if (from && to) return { from, to, count: 2 };
+    const legacy =
+      bodies.includes(cfg.origin) ||
+      dests.has(cfg.dest) ||
+      ["flyby", "orbit", "land"].includes(cfg.profile);
+    if (!legacy) return null;
+    /* An old field that is present but not a body, destination or profile
+       is left at its default, and counted as left, as any bad field is. */
+    left += [
+      cfg.origin !== undefined && !bodies.includes(cfg.origin),
+      cfg.dest !== undefined && !dests.has(cfg.dest),
+      cfg.profile !== undefined &&
+        !["flyby", "orbit", "land"].includes(cfg.profile),
+    ].filter(Boolean).length;
+    const e = endpointsOf(
+      dests.has(cfg.dest) ? cfg.dest : "Mun",
+      ["flyby", "orbit", "land"].includes(cfg.profile) ? cfg.profile : "land",
+      bodies.includes(cfg.origin) ? cfg.origin : "Kerbin",
+    );
+    return e ? { from: e.from, to: e.to, count: 1 } : null;
+  })();
+  take("from", ends && possible(ends.from, ends.to) === true, () => ends!.from);
+  take("to", ends && possible(ends.from, ends.to) === true, () => ends!.to);
   take("returning", typeof cfg.returning === "boolean", () => cfg.returning);
   take("payload", num(cfg.payload, 0.01, 2000), () => cfg.payload);
   take("payloadDia", num(cfg.payloadDia, 0.1, 20), () => cfg.payloadDia);
