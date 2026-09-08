@@ -117,7 +117,13 @@ type AscentOk = {
   vCirc: number;
   circBurn: number | null;
   circProp: number | null;
+  /* The vehicle ran dry before it was circular: the orbit it reaches is lower
+     than the one asked for, and `total` says what the asked-for one would
+     have cost. */
   circShort: boolean;
+  /* A stage ran dry during the burn and the one above took over. Ordinary
+     staging, but the pilot has to do it mid-burn. */
+  circStaged: boolean;
   gLoss: number;
   dLoss: number;
   sLoss: number;
@@ -339,10 +345,12 @@ function flyAscent(veh: Vehicle, opt: AscentOpt): AscentResult {
         /* The circularisation is not an impulse. Work out how long it actually
            takes on whatever stage is still live, so the burn can be centred on
            apoapsis rather than started there. */
-        const live = veh.stages[iS];
+        let live = veh.stages[iS];
+        let liveIx = iS;
         let circBurn: number | null = null,
           circProp: number | null = null,
           circShort = false,
+          circStaged = false,
           circDv = vC - vApo;
         if (live) {
           /* The circularisation is not an impulse, and on a lofted arrival it is
@@ -361,16 +369,33 @@ function flyAscent(veh: Vehicle, opt: AscentOpt): AscentResult {
             cm = mass,
             cp = prop,
             spent = 0,
+            used = 0,
             t2 = 0;
-          const dt2 = 0.5,
-            ispV = live.isp(0),
-            ve = ispV * 9.80665;
+          const dt2 = 0.5;
+          let ve = live.isp(0) * 9.80665;
           for (; t2 < 1200; t2 += dt2) {
             const vCircHere = Math.sqrt(mu / cr);
             if (cv >= vCircHere) break;
             if (cp <= 0) {
-              circShort = true;
-              break;
+              /* This stage is spent. Drop its casing and carry on with the one
+                 above — the vehicle has it, and the closed form counted its Δv
+                 toward this orbit. The burn is short only when the last stage
+                 runs dry. Stopping here and reporting what one stage had spent
+                 costed a rocket 1,600 m/s short of orbit at 2,313 m/s, under
+                 the physical minimum, and it passed as carrying its flight.
+                 #170 */
+              const next = veh.stages[liveIx + 1];
+              if (!next) {
+                circShort = true;
+                break;
+              }
+              cm -= live.dry;
+              liveIx++;
+              live = next;
+              cp = live.prop;
+              ve = live.isp(0) * 9.80665;
+              circStaged = true;
+              continue;
             }
             const acc = (live.mdot * ve) / cm;
             const dv2 = acc * dt2;
@@ -381,10 +406,17 @@ function flyAscent(veh: Vehicle, opt: AscentOpt): AscentResult {
             cr += Math.max(0, excess) * dt2 * dt2 * 0.5 + 0;
             cm -= live.mdot * dt2;
             cp -= live.mdot * dt2;
+            used += live.mdot * dt2;
             spent += dv2;
           }
-          circDv = spent > 0 ? spent : vC - vApo;
-          circProp = mass - cm;
+          /* What the orbit needs, never what the tanks happened to hold: a burn
+             that ran dry is costed to completion — impulsively, for what is
+             left — so a rocket that cannot circularise reports an ascent at
+             least as dear as one that can, and the re-solve against the flown
+             cost sees it. #170 */
+          const left = Math.max(0, Math.sqrt(mu / cr) - cv);
+          circDv = Math.max(spent + left, vC - vApo);
+          circProp = used;
           circBurn = t2;
         }
         /* Above the atmosphere the rest of the climb is a ballistic coast — no
@@ -454,6 +486,7 @@ function flyAscent(veh: Vehicle, opt: AscentOpt): AscentResult {
           circBurn,
           circProp,
           circShort,
+          circStaged,
           gLoss,
           dLoss,
           sLoss,

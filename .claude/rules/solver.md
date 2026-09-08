@@ -166,6 +166,23 @@ before changing the thing it names.
   a solver change you cannot explain still deserves a wider sweep before you
   believe it is invisible.
 
+- **A flight's `total` is what the orbit needs, never what the tanks held.**
+  `flyAscent` integrates the circularisation on the stage live at apoapsis.
+  It used to stop when that stage ran dry and report what it had spent:
+  a Torch rocket 1,600 m/s short of circular reported a 2,313 m/s ascent —
+  under the physical minimum — and the turn search _preferred_ that flight,
+  because falling short is always cheaper than not. `planMission` then found
+  2,313 ≤ 3,762 built and delivered it. Now the burn stages up when a stage
+  runs dry (the vehicle has the stage above, and the closed form counted its
+  Δv toward this orbit — `circStaged`) and is costed to completion,
+  impulsively for whatever is left when the last stage runs dry
+  (`circShort`); `total ≥ dvUsed + vCirc − vApo` always, and
+  `test/ascent.test.ts` holds it on the simulator directly. Costed honestly,
+  the turn search found a steeper flight for the same Torch rocket that
+  circularises on one stage at 3,561 m/s. The mission sweep moved on one
+  design, Low orbit at 0.8 t: 5× Twitch at 5.32 t had been passing on a
+  truncated burn and re-solved to 7× Twitch at 8.52 t. #170
+
 - **A variant that improves `best` can degrade what is delivered.** Same sweep:
   the cluster-cap variant wins the walk on a 0.8 t Kerbin orbit launch with a
   design 7.9% dearer than what the search returns without it. Building more
