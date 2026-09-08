@@ -314,3 +314,16 @@ control shows and what it committed.
   reading the stream piece by piece so the bomb is never held. Tests:
   `test/link.test.ts`, `test/share.test.tsx`, `test/boundary.test.tsx`. #174
   #175
+
+- **The wide layout is a drafting sheet; the phone keeps two panels.** At
+  1024 and up the build view shows the front elevation over the plan from
+  below, the right elevation beside them and the isometric with the rest of
+  the row — `sheetSizes` in `views.ts` picks **one scale** for the three
+  orthographic views so the plan's outlines sit under the elevation's and
+  the right elevation is as tall as the front; `ThreeView` takes it as
+  `scale` and skips `fitOrtho`. The plan's cell is the front's width
+  whatever its own reach; that is the alignment, do not size it on its own.
+  Below 1024 — the phone, full screen included — the two panels and the
+  isometric toggle stay: four panels do not fit 390 px at 44 px targets. The
+  render suite's canvas order is front, plan, right, isometric, so its
+  `ELEVATION` and `PLAN` indices did not move. #183

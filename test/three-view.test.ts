@@ -3,6 +3,8 @@ import {
   MIN_PANEL,
   fitOrtho,
   panelSizes,
+  sheetSizes,
+  viewUp,
   viewAxis,
   viewRight,
 } from "../src/ui/views.js";
@@ -52,7 +54,7 @@ describe("the orthographic framing", () => {
        that multiplies a distance by the direction has to normalise it first,
        and the one place that did not stood the camera 14% further off than its
        far plane was told. */
-    for (const view of ["side", "plan", "iso"]) {
+    for (const view of ["side", "right", "plan", "iso"]) {
       const a = viewAxis(view);
       expect(Math.hypot(a.x, a.y, a.z), `${view} axis`).toBeCloseTo(1, 12);
     }
@@ -169,5 +171,58 @@ describe("the panels", () => {
             bad.push(`${where}: the plan is wider than the elevation`);
         }
     expect(bad.slice(0, 6), `${bad.length} boxes do not fit`).toEqual([]);
+  });
+});
+
+/* The drafting sheet, #183: front and right elevations, the plan from below
+   under the front, the isometric beside them, the three orthographic views to
+   one scale. Numbers only, like `panelSizes`. */
+describe("the drafting sheet", () => {
+  const GAP = 10;
+  const HEAD = 44;
+  const need = (height: number, reach: number, planReach = reach) => ({
+    front: { w: reach, h: height / 2 },
+    right: { w: reach, h: height / 2 },
+    plan: { w: planReach, h: planReach },
+  });
+
+  it("stands the right elevation up and looks along z", () => {
+    expect(viewUp("right").y).toBeCloseTo(1, 9);
+    expect(Math.abs(viewRight("right").z)).toBeCloseTo(1, 9);
+    expect(viewUp("side").y).toBeCloseTo(1, 9);
+  });
+
+  it("gives the plan the front elevation's width, so the two align", () => {
+    const sz = sheetSizes({ aw: 1200, ah: 700 }, need(30, 3, 1.5), GAP, HEAD);
+    expect(sz.plan.w).toBe(sz.front.w);
+    expect(sz.right.h).toBe(sz.front.h);
+    expect(sz.scale).toBeGreaterThan(0);
+  });
+
+  it("draws the three orthographic views to one scale that fits the room", () => {
+    const sz = sheetSizes({ aw: 1200, ah: 700 }, need(30, 3), GAP, HEAD);
+    /* Height: two header lines, the elevations, a gap and the plan. */
+    expect(sz.front.h + GAP + sz.plan.h + 2 * HEAD).toBeLessThanOrEqual(
+      700 + 1e-6,
+    );
+    /* Width: the two elevations leave the isometric its share. */
+    expect(sz.front.w + sz.right.w + 2 * GAP + sz.iso.w).toBeCloseTo(1200, 6);
+    expect(sz.iso.w).toBeGreaterThanOrEqual(0.4 * 1200 - 1e-6);
+    /* And the scale is one number: a metre is the same on each. */
+    expect(sz.front.h / (2 * 1.1 * 15)).toBeCloseTo(sz.scale, 6);
+    expect(sz.plan.h / (2 * 1.1 * 3)).toBeCloseTo(sz.scale, 6);
+  });
+
+  it("widens a pencil to the panel floor without breaking the alignment", () => {
+    const sz = sheetSizes({ aw: 1200, ah: 700 }, need(40, 0.3), GAP, HEAD);
+    expect(sz.front.w).toBe(MIN_PANEL);
+    expect(sz.plan.w).toBe(MIN_PANEL);
+    expect(sz.right.w).toBe(MIN_PANEL);
+  });
+
+  it("lets width bind on a squat stage, and the isometric takes the rest", () => {
+    const sz = sheetSizes({ aw: 900, ah: 700 }, need(2, 4), GAP, HEAD);
+    expect(sz.front.w + sz.right.w).toBeLessThanOrEqual(0.6 * 900 + 1e-6);
+    expect(sz.iso.h).toBe(700 - HEAD);
   });
 });

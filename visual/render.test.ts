@@ -26,8 +26,9 @@ type Lean = { left: number; right: number; ink: number };
    These are the checks that need a context, and each one is here because
    something it would have caught reached a person instead. #73
 
-   The elevation is canvas 0 and the plan is canvas 1, in the order the build
-   view lays them out. */
+   On the desktop the build view is the drafting sheet (#183): the front
+   elevation is canvas 0 and the plan, under it, canvas 1, then the right
+   elevation and the isometric — in the order the build view lays them out. */
 const ELEVATION = 0;
 const PLAN = 1;
 
@@ -127,7 +128,9 @@ const labelTops = () =>
   page.$$eval("span.label", (els) =>
     els
       .filter((e) =>
-        ["Step", "Elevation", "Plan"].includes((e.textContent ?? "").trim()),
+        ["Step", "Front", "Right", "Plan", "Isometric"].includes(
+          (e.textContent ?? "").trim(),
+        ),
       )
       .map((e) => Math.round(e.getBoundingClientRect().top)),
   );
