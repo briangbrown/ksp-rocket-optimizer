@@ -60,6 +60,15 @@ type AscentOpt = {
   target: number;
   vKick: number;
   kick: number;
+  /* How far above prograde the nose is held once prograde has caught the
+     kick attitude, radians. Zero is the classic gravity turn, which follows
+     prograde exactly; a stack near TWR 1 cannot fly that — following
+     prograde lets the velocity vector fall over faster than the thrust can
+     bend it back, and the only two-parameter turn that reaches orbit is
+     "stay vertical". Holding the nose a few degrees above prograde is what a
+     pilot does on such a stack, and what makes an earlier, larger kick
+     survivable. #10 */
+  lead?: number;
   limit?: number;
   core?: number;
   trace?: boolean;
@@ -145,6 +154,9 @@ type AscentResult = AscentOk | AscentFail;
 type Turn = AscentOk & {
   vKick: number;
   kick: number;
+  /* Degrees above prograde the nose is held after the handoff; 0 is a plain
+     gravity turn. */
+  lead: number;
   limit?: number;
   core?: number;
   fullThrottle?: number;
@@ -222,6 +234,7 @@ function flyAscent(veh: Vehicle, opt: AscentOpt): AscentResult {
 
     if (!kicked && sr >= opt.vKick) kicked = true;
     let pitch = 0;
+    const lead = opt.lead ?? 0;
     if (kicked) {
       const pro = Math.atan2(
         vr[0] * east[0] + vr[1] * east[1],
@@ -230,7 +243,7 @@ function flyAscent(veh: Vehicle, opt: AscentOpt): AscentResult {
       /* Hold the kick attitude until the velocity vector rotates up to meet it;
          from that moment on, prograde leads and the turn flies itself. That
          crossover is the handoff the pilot needs told to them. */
-      if (handT < 0 && pro >= opt.kick) {
+      if (handT < 0 && pro - lead >= opt.kick) {
         handT = t;
         handV = sr;
         handAlt = h;
@@ -238,7 +251,7 @@ function flyAscent(veh: Vehicle, opt: AscentOpt): AscentResult {
       /* Never below the horizon on the way up. Following prograde without a floor
          lets a shallow stage nose down, descend, and drive its periapsis into the
          ground while its osculating apoapsis still reads high. */
-      pitch = Math.min(Math.PI / 2, Math.max(pro, opt.kick));
+      pitch = Math.min(Math.PI / 2, Math.max(pro - lead, opt.kick));
     }
     const dir = [
       Math.cos(pitch) * up[0] + Math.sin(pitch) * east[0],
@@ -609,12 +622,23 @@ function flyAscent(veh: Vehicle, opt: AscentOpt): AscentResult {
   return { fail: "timeout" };
 }
 
+/* The leads tried, degrees above prograde. Fifteen is as far as a pilot
+   holds a nose off the marker in air without the stack going sideways. */
+const LEADS = [3, 6, 10, 15];
+
 /* Search the turn. Unconstrained, the optimum is a violent early pitchover that
    trades gravity loss for dynamic pressure the vehicle could never survive or
    hold prograde through, so cap max Q at a level people actually fly.
    Coarse pass then a local refine — a full fine grid is ~550 trajectories and
    costs most of a second, which is too slow to sit inside a live recompute. */
-function optimiseTurn(veh: Vehicle, target = 80000, qCap = 40000) {
+function optimiseTurn(
+  veh: Vehicle,
+  target = 80000,
+  qCap = 40000,
+  /* The leads to try after the two-parameter search; none for the classic
+     turn alone, which is what a test compares against. */
+  leads: ReadonlyArray<number> = LEADS,
+) {
   /* Held on an object rather than in two locals. `scan` below assigns both
      from inside a callback, and flow analysis cannot see through that — as
      plain `let`s they would still read as `null` at every use after it. */
@@ -622,23 +646,30 @@ function optimiseTurn(veh: Vehicle, target = 80000, qCap = 40000) {
     best: null,
     gentlest: null,
   };
-  const scan = (vs: Array<number>, ks: Array<number>) => {
+  const scan = (
+    vs: Array<number>,
+    ks: Array<number>,
+    leads: Array<number> = [0],
+  ) => {
     for (const vK of vs)
-      for (const kd of ks) {
-        const r = flyAscent(veh, {
-          target,
-          vKick: vK,
-          kick: (kd * Math.PI) / 180,
-        });
-        if (!r.ok) continue;
-        const c = { ...r, vKick: vK, kick: kd };
-        /* If nothing meets the q cap, fall back to the calmest trajectory, not the
+      for (const kd of ks)
+        for (const ld of leads) {
+          const r = flyAscent(veh, {
+            target,
+            vKick: vK,
+            kick: (kd * Math.PI) / 180,
+            lead: (ld * Math.PI) / 180,
+          });
+          if (!r.ok) continue;
+          const c = { ...r, vKick: vK, kick: kd, lead: ld };
+          /* If nothing meets the q cap, fall back to the calmest trajectory, not the
          cheapest — the cheapest is the most aggressive, which is the opposite of
          what you want when the vehicle is already fighting the air. */
-        if (!found.gentlest || r.maxQ < found.gentlest.maxQ) found.gentlest = c;
-        if (r.maxQ <= qCap && (!found.best || r.total < found.best.total))
-          found.best = c;
-      }
+          if (!found.gentlest || r.maxQ < found.gentlest.maxQ)
+            found.gentlest = c;
+          if (r.maxQ <= qCap && (!found.best || r.total < found.best.total))
+            found.best = c;
+        }
   };
   const range = (a: number, b: number, st: number) => {
     const o: Array<number> = [];
@@ -657,6 +688,7 @@ function optimiseTurn(veh: Vehicle, target = 80000, qCap = 40000) {
         target,
         vKick: found.gentlest.vKick,
         kick: (found.gentlest.kick * Math.PI) / 180,
+        lead: (found.gentlest.lead * Math.PI) / 180,
         limit: lim,
       });
       if (r.ok && r.maxQ <= qCap) {
@@ -664,6 +696,7 @@ function optimiseTurn(veh: Vehicle, target = 80000, qCap = 40000) {
           ...r,
           vKick: found.gentlest.vKick,
           kick: found.gentlest.kick,
+          lead: found.gentlest.lead,
           limit: lim,
         };
         break;
@@ -678,6 +711,29 @@ function optimiseTurn(veh: Vehicle, target = 80000, qCap = 40000) {
       range(Math.max(2, seed.kick - 3), seed.kick + 3, 1),
     );
 
+  /* Then the nose above prograde. A stack near TWR 1 pins the search above at
+     its corner — the latest, shallowest kick on the grid, "stay vertical" —
+     because following prograde after any real kick lets the trajectory fall
+     over. With the nose held a few degrees above prograde an earlier, larger
+     kick survives and the gravity loss comes down. Coarse round the seed at
+     each lead, then a refinement round the best, so the search stays a few
+     dozen flights rather than a third dimension over the whole grid. #10 */
+  const lean = found.best || found.gentlest;
+  if (lean && leads.length) {
+    scan(
+      range(Math.max(25, lean.vKick - 20), lean.vKick + 20, 20),
+      range(Math.max(2, lean.kick - 4), lean.kick + 4, 4),
+      [...leads],
+    );
+    const led = found.best || found.gentlest;
+    if (led && led.lead > 0)
+      scan(
+        range(Math.max(25, led.vKick - 10), led.vKick + 10, 5),
+        range(Math.max(2, led.kick - 2), led.kick + 2, 1),
+        range(Math.max(1, led.lead - 2), led.lead + 2, 1),
+      );
+  }
+
   /* With solids aboard, try throttling the core as well. The pairing that lands
      the boosters' burnout near the target apoapsis is usually far better than any
      turn alone, because it stops the stack carrying its apoapsis past the mark
@@ -690,6 +746,7 @@ function optimiseTurn(veh: Vehicle, target = 80000, qCap = 40000) {
           target,
           vKick: seedTurn.vKick,
           kick: (seedTurn.kick * Math.PI) / 180,
+          lead: (seedTurn.lead * Math.PI) / 180,
           core: cr,
         });
         if (
@@ -701,6 +758,7 @@ function optimiseTurn(veh: Vehicle, target = 80000, qCap = 40000) {
             ...r,
             vKick: seedTurn.vKick,
             kick: seedTurn.kick,
+            lead: seedTurn.lead,
             core: cr,
             fullThrottle: seedTurn.total,
           }; // what it costs without throttling
