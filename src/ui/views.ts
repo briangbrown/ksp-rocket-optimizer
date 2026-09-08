@@ -259,6 +259,11 @@ export function panelSizes(
    their centre. #183 */
 const SHEET_AIR = 1.1;
 const ISO_SHARE = 0.4;
+/* Air in pixels as well as in proportion. The outline is drawn a few device
+   pixels outward from the silhouette, and ten per cent of a 2.5 m disc at the
+   sheet's scale is two pixels: the plan's linework was clipped top and bottom
+   on a stage whose plan is one disc. Each side of every orthographic cell. */
+const SHEET_PAD = 8;
 
 type Need = { w: number; h: number };
 
@@ -276,16 +281,19 @@ export function sheetSizes(
   const ph = 2 * SHEET_AIR * need.plan.h;
   const fw = 2 * SHEET_AIR * Math.max(need.front.w, need.plan.w);
   const rw = 2 * SHEET_AIR * need.right.w;
-  const byHeight = Math.max(1, tall - 2 * head - gap) / Math.max(1e-6, eh + ph);
+  const pad = 2 * SHEET_PAD;
+  const byHeight =
+    Math.max(1, tall - 2 * head - gap - 2 * pad) / Math.max(1e-6, eh + ph);
   const byWidth =
-    Math.max(1, across * (1 - ISO_SHARE) - 2 * gap) / Math.max(1e-6, fw + rw);
+    Math.max(1, across * (1 - ISO_SHARE) - 2 * gap - 2 * pad) /
+    Math.max(1e-6, fw + rw);
   const scale = Math.min(byHeight, byWidth);
   const front = {
-    w: Math.max(MIN_PANEL, fw * scale),
-    h: Math.max(1, eh * scale),
+    w: Math.max(MIN_PANEL, fw * scale + pad),
+    h: Math.max(1, eh * scale + pad),
   };
-  const right = { w: Math.max(MIN_PANEL, rw * scale), h: front.h };
-  const plan = { w: front.w, h: Math.max(1, ph * scale) };
+  const right = { w: Math.max(MIN_PANEL, rw * scale + pad), h: front.h };
+  const plan = { w: front.w, h: Math.max(1, ph * scale + pad) };
   const iso = {
     w: Math.max(MIN_PANEL, across - front.w - right.w - 2 * gap),
     h: Math.max(1, tall - head),

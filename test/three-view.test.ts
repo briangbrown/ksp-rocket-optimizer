@@ -209,8 +209,9 @@ describe("the drafting sheet", () => {
     expect(sz.front.w + sz.right.w + 2 * GAP + sz.iso.w).toBeCloseTo(1200, 6);
     expect(sz.iso.w).toBeGreaterThanOrEqual(0.4 * 1200 - 1e-6);
     /* And the scale is one number: a metre is the same on each. */
-    expect(sz.front.h / (2 * 1.1 * 15)).toBeCloseTo(sz.scale, 6);
-    expect(sz.plan.h / (2 * 1.1 * 3)).toBeCloseTo(sz.scale, 6);
+    /* Once the fixed pixel margin for the linework is taken off. */
+    expect((sz.front.h - 16) / (2 * 1.1 * 15)).toBeCloseTo(sz.scale, 6);
+    expect((sz.plan.h - 16) / (2 * 1.1 * 3)).toBeCloseTo(sz.scale, 6);
   });
 
   it("widens a pencil to the panel floor without breaking the alignment", () => {
