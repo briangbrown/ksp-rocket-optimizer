@@ -24,7 +24,7 @@ import type { Page } from "puppeteer";
 const BUDGET = {
   phone: {
     height: 4150, // px, the whole page with the default mission solved and the brief set: 4066 once the TT-38K was priced and the default rocket shrank (#161), with 2% for a different Chrome's fonts
-    words: 619, // visible words on that page — the paragraphs are behind disclosures, #135; 633 before #161
+    words: 617, // visible words on that page — the paragraphs are behind disclosures, #135; 619 before the booster line was reworded
     tinyText: 0, // text under 12 px
     smallBody: 59, // text under 13 px: the labels, at 12
     targets: 0, // pressable things under 44 × 44 — of 26, #136
@@ -35,7 +35,7 @@ const BUDGET = {
   },
   desktop: {
     height: 2555, // 2529 — the two-column shell (#137) with the rocket at six tenths of the window (#138); 2583 before #161
-    words: 620, // 634 before #161
+    words: 618, // 620 before the booster line was reworded
     tinyText: 60, // the labels, at 11
     smallBody: 87, // labels and notes
     targets: 0, // under 24 × 24 — of 26

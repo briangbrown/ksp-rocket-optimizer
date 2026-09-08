@@ -128,7 +128,7 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
           [
             `Fly the core at ${Math.round(core * 100)}% throttle`,
             solid
-              ? "boosters stay at full — they cannot be throttled"
+              ? "a lit solid ignores the throttle lever"
               : "side stacks stay at full",
           ],
         ]
@@ -351,7 +351,7 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
           style={{ marginBottom: SPACE.lg }}
           more={
             solid
-              ? "Solids have no shutdown, so at full throttle this stack carries its apoapsis well past the mark before you can stop it. Throttling the liquid core lands the two together."
+              ? "A lit solid ignores the throttle: the limiter set in the VAB is the only hold on it, and at full throttle on the core this stack carries its apoapsis well past the mark before the boosters are gone. Throttling the liquid core lands the two together."
               : "The side stacks are flown to burnout, so at full throttle this stack carries its apoapsis well past the mark before they leave. Throttling the core lands the two together."
           }
         >
