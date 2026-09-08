@@ -234,10 +234,10 @@ Moho → Jool land  4 legs 8894 m/s 332ffd6da156
 Moho → Jool land plane-now  4 legs 10241 m/s 1d21de6747c1
 Moho → Jool land no-chutes  4 legs 8894 m/s 332ffd6da156
 Moho → Jool land no-chutes plane-now  4 legs 10241 m/s 1d21de6747c1
-Moho → Jool land & back  6 legs 14113 m/s b6e546842213
-Moho → Jool land & back plane-now  6 legs 16807 m/s 3681ab2b43b6
-Moho → Jool land & back no-chutes  6 legs 14113 m/s b6e546842213
-Moho → Jool land & back no-chutes plane-now  6 legs 16807 m/s 3681ab2b43b6
+Moho → Jool land & back  7 legs 17248 m/s 400affeddf1b
+Moho → Jool land & back plane-now  7 legs 19942 m/s f79367ecb913
+Moho → Jool land & back no-chutes  7 legs 17248 m/s 400affeddf1b
+Moho → Jool land & back no-chutes plane-now  7 legs 19942 m/s f79367ecb913
 Moho → Laythe flyby  3 legs 5759 m/s 91d87afdfe8e
 Moho → Laythe flyby plane-now  3 legs 7106 m/s 197e538d0acb
 Moho → Laythe flyby no-chutes  3 legs 5759 m/s 91d87afdfe8e
@@ -642,10 +642,10 @@ Eve → Jool land  4 legs 13598 m/s 623e56e92dbc
 Eve → Jool land plane-now  4 legs 13802 m/s 55349d800164
 Eve → Jool land no-chutes  4 legs 13598 m/s 623e56e92dbc
 Eve → Jool land no-chutes plane-now  4 legs 13802 m/s 55349d800164
-Eve → Jool land & back  6 legs 16181 m/s 726429fca3bc
-Eve → Jool land & back plane-now  6 legs 16589 m/s 06396038e451
-Eve → Jool land & back no-chutes  6 legs 16181 m/s 726429fca3bc
-Eve → Jool land & back no-chutes plane-now  6 legs 16589 m/s 06396038e451
+Eve → Jool land & back  7 legs 19196 m/s 742c93c03321
+Eve → Jool land & back plane-now  7 legs 19604 m/s c47218bf8411
+Eve → Jool land & back no-chutes  7 legs 19196 m/s 742c93c03321
+Eve → Jool land & back no-chutes plane-now  7 legs 19604 m/s c47218bf8411
 Eve → Laythe flyby  3 legs 10583 m/s cce6eadcf65a
 Eve → Laythe flyby plane-now  3 legs 10787 m/s d1b1465a6225
 Eve → Laythe flyby no-chutes  3 legs 10583 m/s cce6eadcf65a
@@ -1050,10 +1050,10 @@ Gilly → Jool land  6 legs 6295 m/s 2e6982836ba0
 Gilly → Jool land plane-now  6 legs 6499 m/s f45f9fe97648
 Gilly → Jool land no-chutes  6 legs 6295 m/s 2e6982836ba0
 Gilly → Jool land no-chutes plane-now  6 legs 6499 m/s f45f9fe97648
-Gilly → Jool land & back  8 legs 9553 m/s 4cbe9e4104c0
-Gilly → Jool land & back plane-now  8 legs 9961 m/s 6a3147cdf32b
-Gilly → Jool land & back no-chutes  8 legs 9553 m/s 4cbe9e4104c0
-Gilly → Jool land & back no-chutes plane-now  8 legs 9961 m/s 6a3147cdf32b
+Gilly → Jool land & back  9 legs 12568 m/s e5081a7659ad
+Gilly → Jool land & back plane-now  9 legs 12976 m/s 11bd391d758f
+Gilly → Jool land & back no-chutes  9 legs 12568 m/s e5081a7659ad
+Gilly → Jool land & back no-chutes plane-now  9 legs 12976 m/s 11bd391d758f
 Gilly → Laythe flyby  5 legs 3280 m/s 9413c5303db8
 Gilly → Laythe flyby plane-now  5 legs 3484 m/s 9d65aa5be758
 Gilly → Laythe flyby no-chutes  5 legs 3280 m/s 9413c5303db8
@@ -1458,10 +1458,10 @@ Kerbin → Jool orbit land  5 legs 5544 m/s c21124e9ec20
 Kerbin → Jool orbit land plane-now  5 legs 5701 m/s 0a484504d10c
 Kerbin → Jool orbit land no-chutes  5 legs 5544 m/s c21124e9ec20
 Kerbin → Jool orbit land no-chutes plane-now  5 legs 5701 m/s 0a484504d10c
-Kerbin → Jool orbit land & back  7 legs 7528 m/s acd8eec050e2
-Kerbin → Jool orbit land & back plane-now  7 legs 7842 m/s 048f026ffd03
-Kerbin → Jool orbit land & back no-chutes  7 legs 7528 m/s acd8eec050e2
-Kerbin → Jool orbit land & back no-chutes plane-now  7 legs 7842 m/s 048f026ffd03
+Kerbin → Jool orbit land & back  8 legs 7688 m/s 984d305ffeda
+Kerbin → Jool orbit land & back plane-now  8 legs 8002 m/s b431600e8bf7
+Kerbin → Jool orbit land & back no-chutes  8 legs 7688 m/s 984d305ffeda
+Kerbin → Jool orbit land & back no-chutes plane-now  8 legs 8002 m/s b431600e8bf7
 Kerbin → Laythe flyby  5 legs 6314 m/s f6ed3db627b1
 Kerbin → Laythe flyby plane-now  5 legs 6471 m/s 252bca93a974
 Kerbin → Laythe flyby no-chutes  5 legs 6314 m/s f6ed3db627b1
@@ -1818,10 +1818,10 @@ Mun → Jool land  5 legs 6097 m/s d7c73f5038a1
 Mun → Jool land plane-now  5 legs 6254 m/s d74ef392a555
 Mun → Jool land no-chutes  5 legs 6097 m/s d7c73f5038a1
 Mun → Jool land no-chutes plane-now  5 legs 6254 m/s d74ef392a555
-Mun → Jool land & back  7 legs 8887 m/s 2a4381919f4e
-Mun → Jool land & back plane-now  7 legs 9201 m/s b917cd42b71c
-Mun → Jool land & back no-chutes  7 legs 8887 m/s 2a4381919f4e
-Mun → Jool land & back no-chutes plane-now  7 legs 9201 m/s b917cd42b71c
+Mun → Jool land & back  8 legs 11842 m/s d7f5de2d6790
+Mun → Jool land & back plane-now  8 legs 12156 m/s baf5fa534e8f
+Mun → Jool land & back no-chutes  8 legs 11842 m/s d7f5de2d6790
+Mun → Jool land & back no-chutes plane-now  8 legs 12156 m/s baf5fa534e8f
 Mun → Laythe flyby  4 legs 3142 m/s 158874563e4f
 Mun → Laythe flyby plane-now  4 legs 3299 m/s b408aa348f85
 Mun → Laythe flyby no-chutes  4 legs 3142 m/s 158874563e4f
@@ -2226,10 +2226,10 @@ Minmus → Jool land  6 legs 5751 m/s 593632729932
 Minmus → Jool land plane-now  6 legs 5908 m/s ca5fb17aa699
 Minmus → Jool land no-chutes  6 legs 5751 m/s 593632729932
 Minmus → Jool land no-chutes plane-now  6 legs 5908 m/s ca5fb17aa699
-Minmus → Jool land & back  8 legs 8432 m/s 5dfd908b318d
-Minmus → Jool land & back plane-now  8 legs 8746 m/s 5773cd1b642c
-Minmus → Jool land & back no-chutes  8 legs 8432 m/s 5dfd908b318d
-Minmus → Jool land & back no-chutes plane-now  8 legs 8746 m/s 5773cd1b642c
+Minmus → Jool land & back  9 legs 11387 m/s fd70d412758f
+Minmus → Jool land & back plane-now  9 legs 11701 m/s 3d28d77a3a93
+Minmus → Jool land & back no-chutes  9 legs 11387 m/s fd70d412758f
+Minmus → Jool land & back no-chutes plane-now  9 legs 11701 m/s 3d28d77a3a93
 Minmus → Laythe flyby  5 legs 2796 m/s 3be8787a3690
 Minmus → Laythe flyby plane-now  5 legs 2953 m/s 59559218bc77
 Minmus → Laythe flyby no-chutes  5 legs 2796 m/s 3be8787a3690
@@ -2634,10 +2634,10 @@ Duna → Jool land  4 legs 5708 m/s d695fcbd2427
 Duna → Jool land plane-now  4 legs 5814 m/s c7371f1c614f
 Duna → Jool land no-chutes  4 legs 5708 m/s d695fcbd2427
 Duna → Jool land no-chutes plane-now  4 legs 5814 m/s c7371f1c614f
-Duna → Jool land & back  6 legs 7081 m/s 83fecd1c29c7
-Duna → Jool land & back plane-now  6 legs 7293 m/s df94e5c532c8
-Duna → Jool land & back no-chutes  6 legs 7081 m/s 83fecd1c29c7
-Duna → Jool land & back no-chutes plane-now  6 legs 7293 m/s df94e5c532c8
+Duna → Jool land & back  7 legs 9966 m/s d21ab795511b
+Duna → Jool land & back plane-now  7 legs 10178 m/s b522599ec957
+Duna → Jool land & back no-chutes  7 legs 9966 m/s d21ab795511b
+Duna → Jool land & back no-chutes plane-now  7 legs 10178 m/s b522599ec957
 Duna → Laythe flyby  3 legs 2823 m/s 35c58180cbef
 Duna → Laythe flyby plane-now  3 legs 2929 m/s 637033f011af
 Duna → Laythe flyby no-chutes  3 legs 2823 m/s 35c58180cbef
@@ -3018,10 +3018,10 @@ Ike → Jool land  6 legs 5039 m/s c72a8bb96ada
 Ike → Jool land plane-now  6 legs 5145 m/s 359f6cb3ae63
 Ike → Jool land no-chutes  6 legs 5039 m/s c72a8bb96ada
 Ike → Jool land no-chutes plane-now  6 legs 5145 m/s 359f6cb3ae63
-Ike → Jool land & back  8 legs 6952 m/s 0d63c9e661cc
-Ike → Jool land & back plane-now  8 legs 7164 m/s 1317c4525c00
-Ike → Jool land & back no-chutes  8 legs 6952 m/s 0d63c9e661cc
-Ike → Jool land & back no-chutes plane-now  8 legs 7164 m/s 1317c4525c00
+Ike → Jool land & back  9 legs 9837 m/s f0af6953159b
+Ike → Jool land & back plane-now  9 legs 10049 m/s d16843ff2ec4
+Ike → Jool land & back no-chutes  9 legs 9837 m/s f0af6953159b
+Ike → Jool land & back no-chutes plane-now  9 legs 10049 m/s d16843ff2ec4
 Ike → Laythe flyby  5 legs 2154 m/s 31a5b3e02469
 Ike → Laythe flyby plane-now  5 legs 2260 m/s 5e7e22972939
 Ike → Laythe flyby no-chutes  5 legs 2154 m/s 31a5b3e02469
@@ -3426,10 +3426,10 @@ Dres → Jool land  4 legs 4070 m/s f4548c48f566
 Dres → Jool land plane-now  4 legs 4256 m/s dfa00dc485a7
 Dres → Jool land no-chutes  4 legs 4070 m/s f4548c48f566
 Dres → Jool land no-chutes plane-now  4 legs 4256 m/s dfa00dc485a7
-Dres → Jool land & back  6 legs 5055 m/s 495f505ac618
-Dres → Jool land & back plane-now  6 legs 5427 m/s 7d1ee93f8650
-Dres → Jool land & back no-chutes  6 legs 5055 m/s 495f505ac618
-Dres → Jool land & back no-chutes plane-now  6 legs 5427 m/s 7d1ee93f8650
+Dres → Jool land & back  7 legs 7866 m/s f022fcd6d4b5
+Dres → Jool land & back plane-now  7 legs 8238 m/s cb7e9b618a94
+Dres → Jool land & back no-chutes  7 legs 7866 m/s f022fcd6d4b5
+Dres → Jool land & back no-chutes plane-now  7 legs 8238 m/s cb7e9b618a94
 Dres → Laythe flyby  3 legs 1259 m/s c336484b1f72
 Dres → Laythe flyby plane-now  3 legs 1445 m/s b9be25c7ac19
 Dres → Laythe flyby no-chutes  3 legs 1259 m/s c336484b1f72
@@ -3834,10 +3834,10 @@ Laythe → Jool land  4 legs 5866 m/s 01084170a425
 Laythe → Jool land plane-now  4 legs 5975 m/s e8a35049da71
 Laythe → Jool land no-chutes  4 legs 5866 m/s 01084170a425
 Laythe → Jool land no-chutes plane-now  4 legs 5975 m/s e8a35049da71
-Laythe → Jool land & back  6 legs 6970 m/s 8b359967bbff
-Laythe → Jool land & back plane-now  6 legs 7188 m/s 435a6d70b0e3
-Laythe → Jool land & back no-chutes  6 legs 6970 m/s 8b359967bbff
-Laythe → Jool land & back no-chutes plane-now  6 legs 7188 m/s 435a6d70b0e3
+Laythe → Jool land & back  7 legs 8832 m/s ad0864a88231
+Laythe → Jool land & back plane-now  7 legs 9050 m/s 837536a62d0f
+Laythe → Jool land & back no-chutes  7 legs 8832 m/s ad0864a88231
+Laythe → Jool land & back no-chutes plane-now  7 legs 9050 m/s 837536a62d0f
 Laythe → Vall flyby  2 legs 3698 m/s 0a51a4c84a6a
 Laythe → Vall flyby plane-now  2 legs 3698 m/s 0a51a4c84a6a
 Laythe → Vall flyby no-chutes  2 legs 3698 m/s 0a51a4c84a6a
@@ -4218,10 +4218,10 @@ Vall → Jool land  4 legs 3967 m/s 2faa2452ce81
 Vall → Jool land plane-now  4 legs 4092 m/s e55ed7099009
 Vall → Jool land no-chutes  4 legs 3967 m/s 2faa2452ce81
 Vall → Jool land no-chutes plane-now  4 legs 4092 m/s e55ed7099009
-Vall → Jool land & back  6 legs 5235 m/s b2bacbbb5fd1
-Vall → Jool land & back plane-now  6 legs 5485 m/s 80cea2b1f9a8
-Vall → Jool land & back no-chutes  6 legs 5235 m/s b2bacbbb5fd1
-Vall → Jool land & back no-chutes plane-now  6 legs 5485 m/s 80cea2b1f9a8
+Vall → Jool land & back  7 legs 7409 m/s dbd73e392ce2
+Vall → Jool land & back plane-now  7 legs 7659 m/s 4f8fe78931f8
+Vall → Jool land & back no-chutes  7 legs 7409 m/s dbd73e392ce2
+Vall → Jool land & back no-chutes plane-now  7 legs 7659 m/s 4f8fe78931f8
 Vall → Laythe flyby  2 legs 1240 m/s 25ba90f94799
 Vall → Laythe flyby plane-now  2 legs 1240 m/s 25ba90f94799
 Vall → Laythe flyby no-chutes  2 legs 1240 m/s 25ba90f94799
@@ -4602,10 +4602,10 @@ Tylo → Jool land  4 legs 5799 m/s 57f5a29ac808
 Tylo → Jool land plane-now  4 legs 5932 m/s eb47e4427707
 Tylo → Jool land no-chutes  4 legs 5799 m/s 57f5a29ac808
 Tylo → Jool land no-chutes plane-now  4 legs 5932 m/s eb47e4427707
-Tylo → Jool land & back  6 legs 7822 m/s ec1098d3d670
-Tylo → Jool land & back plane-now  6 legs 8088 m/s 65fc6184e627
-Tylo → Jool land & back no-chutes  6 legs 7822 m/s ec1098d3d670
-Tylo → Jool land & back no-chutes plane-now  6 legs 8088 m/s 65fc6184e627
+Tylo → Jool land & back  7 legs 10211 m/s 186a1ac7b369
+Tylo → Jool land & back plane-now  7 legs 10477 m/s 0c75b17d49f6
+Tylo → Jool land & back no-chutes  7 legs 10211 m/s 186a1ac7b369
+Tylo → Jool land & back no-chutes plane-now  7 legs 10477 m/s 0c75b17d49f6
 Tylo → Laythe flyby  2 legs 3202 m/s 38aec617a8a3
 Tylo → Laythe flyby plane-now  2 legs 3202 m/s 38aec617a8a3
 Tylo → Laythe flyby no-chutes  2 legs 3202 m/s 38aec617a8a3
@@ -4986,10 +4986,10 @@ Bop → Jool land  4 legs 3784 m/s b76f4bb45c26
 Bop → Jool land plane-now  4 legs 5325 m/s 2a99f2f50e3d
 Bop → Jool land no-chutes  4 legs 3784 m/s b76f4bb45c26
 Bop → Jool land no-chutes plane-now  4 legs 5325 m/s 2a99f2f50e3d
-Bop → Jool land & back  6 legs 4851 m/s 60cefc01831f
-Bop → Jool land & back plane-now  6 legs 7933 m/s c193a85716bc
-Bop → Jool land & back no-chutes  6 legs 4851 m/s 60cefc01831f
-Bop → Jool land & back no-chutes plane-now  6 legs 7933 m/s c193a85716bc
+Bop → Jool land & back  7 legs 7423 m/s 2d042534cdb3
+Bop → Jool land & back plane-now  7 legs 10505 m/s 9ab5b930ed63
+Bop → Jool land & back no-chutes  7 legs 7423 m/s 2d042534cdb3
+Bop → Jool land & back no-chutes plane-now  7 legs 10505 m/s 9ab5b930ed63
 Bop → Laythe flyby  3 legs 926 m/s 2f98e1d7f66a
 Bop → Laythe flyby plane-now  3 legs 1539 m/s ce35cc8ca0ff
 Bop → Laythe flyby no-chutes  3 legs 926 m/s 2f98e1d7f66a
@@ -5370,10 +5370,10 @@ Pol → Jool land  4 legs 3612 m/s 745110bba3da
 Pol → Jool land plane-now  4 legs 4010 m/s 76c3dfc7c68c
 Pol → Jool land no-chutes  4 legs 3612 m/s 745110bba3da
 Pol → Jool land no-chutes plane-now  4 legs 4010 m/s 76c3dfc7c68c
-Pol → Jool land & back  6 legs 4507 m/s b4f4f4a0c10c
-Pol → Jool land & back plane-now  6 legs 5303 m/s f9f29aff200e
-Pol → Jool land & back no-chutes  6 legs 4507 m/s b4f4f4a0c10c
-Pol → Jool land & back no-chutes plane-now  6 legs 5303 m/s f9f29aff200e
+Pol → Jool land & back  7 legs 7141 m/s 042a2fc3395b
+Pol → Jool land & back plane-now  7 legs 7937 m/s 49141f9e6e95
+Pol → Jool land & back no-chutes  7 legs 7141 m/s 042a2fc3395b
+Pol → Jool land & back no-chutes plane-now  7 legs 7937 m/s 49141f9e6e95
 Pol → Laythe flyby  3 legs 695 m/s 2842378bf115
 Pol → Laythe flyby plane-now  3 legs 886 m/s c9b7559721a1
 Pol → Laythe flyby no-chutes  3 legs 695 m/s 2842378bf115
@@ -5778,10 +5778,10 @@ Eeloo → Jool land  4 legs 3980 m/s 71a0f7d38670
 Eeloo → Jool land plane-now  4 legs 4045 m/s 005b14d23823
 Eeloo → Jool land no-chutes  4 legs 3980 m/s 71a0f7d38670
 Eeloo → Jool land no-chutes plane-now  4 legs 4045 m/s 005b14d23823
-Eeloo → Jool land & back  6 legs 4780 m/s 27587af3ea1c
-Eeloo → Jool land & back plane-now  6 legs 4910 m/s ae074b9dc78d
-Eeloo → Jool land & back no-chutes  6 legs 4780 m/s 27587af3ea1c
-Eeloo → Jool land & back no-chutes plane-now  6 legs 4910 m/s ae074b9dc78d
+Eeloo → Jool land & back  7 legs 7578 m/s 8ea8ebd4538c
+Eeloo → Jool land & back plane-now  7 legs 7708 m/s 71b6c825ca2e
+Eeloo → Jool land & back no-chutes  7 legs 7578 m/s 8ea8ebd4538c
+Eeloo → Jool land & back no-chutes plane-now  7 legs 7708 m/s 71b6c825ca2e
 Eeloo → Laythe flyby  3 legs 1182 m/s 90d5f1c895ba
 Eeloo → Laythe flyby plane-now  3 legs 1247 m/s f47978f7eb1c
 Eeloo → Laythe flyby no-chutes  3 legs 1182 m/s 90d5f1c895ba

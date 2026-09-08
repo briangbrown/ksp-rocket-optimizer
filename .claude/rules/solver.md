@@ -257,3 +257,22 @@ before changing the thing it names.
   on that identity. JSON duplicates, so a round trip returned -1 and the
   split-point lookup broke silently. Nothing in the suite could see it, because
   in-process every caller passes the shared objects.
+
+- **A mission is an endpoint to an endpoint; `buildRoute` is an adapter.**
+  `routeFor(from, to, chutes, returning, planeNow)` in `orbits.ts` builds
+  every route from a body-and-state pair — surface, low orbit, stationary
+  orbit at the From end; those or a fly-by at the To end — and `possible`
+  says which pairs are missions, with the sentence a disabled chip carries.
+  The old form (destination name, profile, origin) is mapped onto endpoints
+  by `endpointsOf`, so every caller and every saved configuration still
+  works. **`test/routes.test.ts` holds all 5,904 routes the old form could
+  ask for, hashed**; a diff there is a mission that moved and is re-blessed
+  like the design snapshot, with the before and after in the commit. Two
+  things to know: Kerbin departures still take the map's tabulated legs
+  (`DEST`, validated in play) and a start in Kerbin's low orbit drops the
+  table's ascent; and the origin's own orbits never had a return leg under
+  the old form, which the adapter preserves by passing `returning: false`
+  for them. The Sun is a body now — rotation and atmosphere from the game —
+  with a stationary orbit at about 1.77 Gm and no surface; an aerobrake is
+  credited only over a surface one could stand on, so a return to Kerbol or
+  Jool is a capture. #188
