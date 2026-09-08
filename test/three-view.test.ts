@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   MIN_PANEL,
   fitOrtho,
+  pairSizes,
   panelSizes,
   sheetSizes,
   viewUp,
@@ -225,5 +226,44 @@ describe("the drafting sheet", () => {
     const sz = sheetSizes({ aw: 900, ah: 700 }, need(2, 4), GAP, HEAD);
     expect(sz.front.w + sz.right.w).toBeLessThanOrEqual(0.6 * 900 + 1e-6);
     expect(sz.iso.h).toBe(700 - HEAD);
+  });
+});
+
+/* The phone's two panels, whichever views their pickers hold. #183 */
+describe("a pair of panels", () => {
+  const GAP = 10;
+  it("is the elevation and the plan, as panelSizes always was", () => {
+    const a = pairSizes({ aw: 1000, ah: 600 }, { aspect: 0.2 }, "plan", GAP);
+    const b = panelSizes({ aw: 1000, ah: 600 }, 0.2, GAP);
+    expect(a.a).toEqual(b.elev);
+    expect(a.b).toEqual(b.plan);
+  });
+  it("gives two elevations the height and their own widths", () => {
+    const s = pairSizes(
+      { aw: 1000, ah: 600 },
+      { aspect: 0.3 },
+      { aspect: 0.5 },
+      GAP,
+    );
+    expect(s.a.h).toBe(600);
+    expect(s.b.h).toBe(600);
+    expect(s.a.w).toBeCloseTo(180, 6);
+    expect(s.b.w).toBeCloseTo(300, 6);
+  });
+  it("keeps the plan square and no wider than the view beside it, on either side", () => {
+    const s = pairSizes({ aw: 1000, ah: 600 }, "plan", { aspect: 0.3 }, GAP);
+    expect(s.a.w).toBe(s.a.h);
+    expect(s.a.w).toBeLessThanOrEqual(s.b.w);
+  });
+  it("shrinks both together where they do not fit across", () => {
+    const s = pairSizes(
+      { aw: 400, ah: 600 },
+      { aspect: 0.6 },
+      { aspect: 0.6 },
+      GAP,
+    );
+    expect(s.a.w + s.b.w).toBeCloseTo(390, 6);
+    expect(s.a.h).toBeCloseTo(s.b.h, 6);
+    expect(s.a.h).toBeLessThan(600);
   });
 });

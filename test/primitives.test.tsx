@@ -13,6 +13,7 @@ import {
   Choice,
   Disclosure,
   IconButton,
+  Picker,
   Sheet,
   Toggle,
 } from "../src/ui/components/primitives.jsx";
@@ -27,7 +28,7 @@ import { MOTION } from "../src/ui/tokens.js";
 
 afterEach(cleanup);
 
-function Picker() {
+function Picks() {
   const [v, setV] = useState("b");
   return (
     <Choice
@@ -45,7 +46,7 @@ function Picker() {
 
 describe("Choice", () => {
   it("is a radiogroup with one chip in the Tab order and arrows between them", () => {
-    render(<Picker />);
+    render(<Picks />);
     const group = screen.getByRole("radiogroup", { name: "Letter" });
     const chips = group.querySelectorAll("button");
     expect(chips).toHaveLength(3);
@@ -58,6 +59,32 @@ describe("Choice", () => {
     /* Round the end. */
     fireEvent.keyDown(chips[2], { key: "ArrowRight" });
     expect(chips[0].getAttribute("aria-checked")).toBe("true");
+  });
+});
+
+describe("Picker", () => {
+  it("is a named select of its options that reports the one chosen", () => {
+    const seen: Array<string> = [];
+    render(
+      <Picker
+        label="View 1"
+        options={[
+          { value: "side", label: "Front" },
+          { value: "plan", label: "Plan" },
+        ]}
+        value="side"
+        onChange={(v) => seen.push(v)}
+      />,
+    );
+    const sel = screen.getByLabelText("View 1") as HTMLSelectElement;
+    expect(sel.tagName).toBe("SELECT");
+    expect([...sel.options].map((o) => o.textContent)).toEqual([
+      "Front",
+      "Plan",
+    ]);
+    expect(sel.value).toBe("side");
+    fireEvent.change(sel, { target: { value: "plan" } });
+    expect(seen).toEqual(["plan"]);
   });
 });
 

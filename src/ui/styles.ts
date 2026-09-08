@@ -100,6 +100,14 @@ input[type=range]{ accent-color:${C.amber}; width:100%; height:24px; margin:0; }
    was paper on paper. #146 */
 @media (hover: hover) { .chip:hover:not(:disabled) { border-color:${C.dim}; color:${C.paper}; } }
 .chip[data-on="1"], .chip[data-on="1"]:hover { background:${C.paper}; color:${C.ink}; border-color:${C.paper}; font-weight:600; }
+/* A select in the label's clothes: the phone's view pickers. The role's face
+   and size come from the .label class beside this one; the chevron is a
+   lucide icon over the select's right, with the pointer passed through. */
+.picker-wrap { position:relative; display:inline-flex; align-items:center; }
+.picker { appearance:none; -webkit-appearance:none; background:transparent; border:none; color:${C.dim};
+          padding:0 ${SPACE.xl}px 0 0; cursor:pointer; transition:${EASE}; }
+.picker:focus-visible, .picker:hover { color:${C.paper}; }
+.picker-wrap svg { position:absolute; right:0; pointer-events:none; color:inherit; }
 .card { background:${C.panel}; border:1px solid ${C.rule}; border-radius:${RADIUS.sm}px; }
 /* An icon-only control: a square target, 44 on the phone and 32 on desktop,
    with the icon standing in the middle of it. The tooltip is the label the
