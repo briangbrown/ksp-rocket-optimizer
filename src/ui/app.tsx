@@ -266,7 +266,10 @@ export default function KSPMissionPlanner() {
     () =>
       DATA.tanks.filter(
         (t) =>
-          (!t.t || unlocked.has(t.t)) &&
+          /* Closed: a part with no node is not available. Seventeen Making
+             History tanks carried none and were offered at every tier. #191 */
+          !!t.t &&
+          unlocked.has(t.t) &&
           (hasMH || !t.mh) &&
           (hasRS || !t.rs) &&
           !excluded.has(t.n),

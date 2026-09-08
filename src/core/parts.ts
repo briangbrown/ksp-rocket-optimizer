@@ -151,7 +151,8 @@ function couplersFor(
   return COUPLERS.filter(
     (c) =>
       c.dia === ed &&
-      (!c.t || unlocked.has(c.t)) &&
+      !!c.t &&
+      unlocked.has(c.t) &&
       !(c.rs && expansions && !expansions.rs) &&
       !(excluded && excluded.has(c.n)),
   );
@@ -180,7 +181,8 @@ const columnCoupler = (
     (c) =>
       c.dia === d &&
       c.out === n &&
-      (!c.t || unlocked.has(c.t)) &&
+      !!c.t &&
+      unlocked.has(c.t) &&
       !(excluded && excluded.has(c.n)),
   );
   return fit.length ? fit.sort((a, b) => a.m - b.m)[0] : null;
@@ -290,7 +292,7 @@ const pickStruct = (
   excluded: Excluded,
 ) => {
   let ok = STRUCT[kind].filter(
-    (x) => (!x.t || unlocked.has(x.t)) && !(excluded && excluded.has(x.n)),
+    (x) => !!x.t && unlocked.has(x.t) && !(excluded && excluded.has(x.n)),
   );
   // a drogue slows a descent, it does not land one — only fall back to it
   if (kind === "parachute" && ok.some((x) => !x.drogue))
@@ -425,7 +427,8 @@ const RADIAL_JOIN_FALLBACK = {
   t: TT38K.t,
 };
 const radialJoin = (unlocked: Roster, excluded: Excluded) =>
-  (!RADIAL_JOIN.t || unlocked.has(RADIAL_JOIN.t)) &&
+  !!RADIAL_JOIN.t &&
+  unlocked.has(RADIAL_JOIN.t) &&
   !(excluded && excluded.has(RADIAL_JOIN.n))
     ? RADIAL_JOIN
     : RADIAL_JOIN_FALLBACK;

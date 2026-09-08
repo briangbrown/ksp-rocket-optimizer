@@ -52,10 +52,57 @@ function intersecting(stages: ReadonlyArray<PlanStage>) {
   return bad;
 }
 
+/* Every part a delivered design names, against the roster it was solved for:
+   a part behind a node not in the roster, or behind no node at all, is one
+   the gates should have refused. Seventeen Making History tanks carried no
+   node and passed every gate (#191); the sweep pins Making History off, so
+   this is the check that catches the next one wherever it comes from. */
+function partsOutside(
+  stages: ReadonlyArray<PlanStage>,
+  unlocked: ReadonlySet<string>,
+) {
+  const bad: Array<string> = [];
+  const check = (
+    what: string,
+    p:
+      | { n?: string | null; t?: string | null; dropTank?: boolean }
+      | null
+      | undefined,
+  ) => {
+    if (!p || !p.n) return;
+    if (!("t" in p)) return;
+    /* A drop tank is a stand-in the pool synthesises — tankage on a radial
+       decoupler, no part of its own — and its tanks are checked as tanks. */
+    if (p.dropTank) return;
+    if (!p.t) bad.push(`${what} ${p.n} has no tech node`);
+    else if (!unlocked.has(p.t)) bad.push(`${what} ${p.n} needs ${p.t}`);
+  };
+  stages.forEach((st, i) => {
+    const s = st.sol;
+    if (!s) return;
+    check(`stage ${i} engine`, s.engine);
+    s.tanks?.list.forEach((l) => check(`stage ${i} tank`, l.t));
+    s.adapters?.parts.forEach((t) => check(`stage ${i} adapter`, t));
+    check(`stage ${i} coupler`, s.coupler);
+    check(`stage ${i} decoupler`, s.decoupler);
+    check(`stage ${i} joiner`, s.joiner);
+    check(`stage ${i} rejoin`, s.rejoin);
+    if (s.boosters) {
+      check(`stage ${i} booster`, s.boosters.part);
+      s.boosters.part.column?.list.forEach((l) =>
+        check(`stage ${i} column tank`, l.t),
+      );
+    }
+    if (s.packed) check(`stage ${i} packed tank`, s.packed.tank);
+  });
+  return bad;
+}
+
 describe("mission sweep", () => {
   it("delivers unchanged designs across destinations and payloads", async () => {
     const out = [];
     const overlaps = [];
+    const offRoster: Array<string> = [];
     let dropTanks = 0;
     for (const c of sweepCases()) {
       const res = await planMission(c.input, {
@@ -64,6 +111,11 @@ describe("mission sweep", () => {
       out.push(missionSignature(c.name, res && res.stages));
       if (res) {
         overlaps.push(...intersecting(res.stages).map((x) => `${c.name} ${x}`));
+        offRoster.push(
+          ...partsOutside(res.stages, new Set(c.input.unlocked)).map(
+            (x) => `${c.name}: ${x}`,
+          ),
+        );
         if (c.input.asparagus)
           dropTanks += res.stages.filter(
             (st) => st.sol?.boosters?.part.dropTank,
@@ -84,8 +136,10 @@ describe("mission sweep", () => {
       "no asparagus row in the sweep delivered a drop tank",
     ).toBeGreaterThan(0);
     /* Asserted before the snapshot: a design whose columns intersect is wrong
-       whatever the baseline says about it. */
+       whatever the baseline says about it — and so is one built from a part
+       the roster it was solved for does not have. #191 */
     expect(overlaps).toEqual([]);
+    expect(offRoster).toEqual([]);
     await expect(out.join("\n")).toMatchFileSnapshot(
       "./__snapshots__/missions.txt",
     );

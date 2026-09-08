@@ -111,3 +111,18 @@ Changing a number here is changing a measurement.
   plates carry `DRAG_CUBE { procedural = True }` — KSP computes them at runtime
   because the shroud varies with what is mounted inside. They fall back by
   design, in every regime, and no re-extraction will ever fill them in.
+
+- **A part with no tech node is not available, and a node's spelling is the
+  tree's.** Every gate — the tank filter in `app.tsx`, `couplersFor`,
+  `pickStruct`, `radialJoin` in `parts.ts`, `tanksFor` in `test/grid.ts` —
+  reads `!!x.t && unlocked.has(x.t)` and fails closed. It read `!x.t || …`
+  and passed anything with no node at every tier, which is how seventeen
+  Making History tanks with `t: null` — rows filled in from outside the
+  install the configs came from, price left blank too — were building S4
+  tanks on a roster that had not researched them (#191). The same test that
+  names those seventeen (`test/parts-data.test.ts`) also found the
+  TVR-2160C Mk2 Stack Quad-Coupler behind "Advanced Metalworks" where the
+  tree spells it "Advanced MetalWorks": it had never been available. A
+  node's name is a key into `tech.json`, so it is copied from there, not
+  typed. The seventeen come off the list only by recording `TechRequired`
+  and `cost` from their `.cfg` files — `tools/README.md` says what to pack.
