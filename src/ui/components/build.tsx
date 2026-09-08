@@ -1092,7 +1092,13 @@ function BuildView({
                  sat under it. */
               height: "100dvh",
               zIndex: Z.overlay,
-              background: C.ink,
+              /* The panel's colour, not the page's: the drawings clear to the
+                 panel, so on the page's ink they sat as rectangles of another
+                 shade, and full screen read as four canvases on a backdrop
+                 rather than the sheet grown to the window. On the panel they
+                 are seamless — white in the light theme, the dark theme's
+                 near-black in the dark. */
+              background: C.panel,
               /* A second root. Outside the one the application sets these on,
                  `button { font-family: inherit }` reaches the browser default
                  and every chip in here comes out in Times. */
