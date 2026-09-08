@@ -4,11 +4,13 @@ import {
   BufferGeometry,
   CylinderGeometry,
   DepthTexture,
+  DynamicDrawUsage,
   LatheGeometry,
   EdgesGeometry,
   Group,
   LineBasicMaterial,
   LineSegments,
+  Matrix4,
   Mesh,
   NearestFilter,
   OrthographicCamera,
@@ -35,6 +37,16 @@ import {
   panelClear,
 } from "./shaders.js";
 import type { ModelPart } from "../../core/model.js";
+import {
+  alongCreases,
+  chainEdges,
+  fillSegments,
+  revolvedSilhouette,
+  silhouetteEdges,
+  topologyOf,
+  vertexIds,
+} from "./hidden-lines.js";
+import type { Chain, Topology } from "./hidden-lines.js";
 import type { Theme } from "../tokens.js";
 import type { Extent } from "../views.js";
 import type { Offset } from "../separation.js";
@@ -168,7 +180,7 @@ function engineMesh(title: string, folder: string): EngineMesh | undefined {
   return undefined;
 }
 
-function engineGeometry(R: number, H: number, m: EngineMesh) {
+function enginePositions(R: number, H: number, m: EngineMesh) {
   const s = Math.min(H / m.h, R / (m.w / 2)) / 1000;
   const pos = new Float32Array(m.v.length);
   for (let k = 0; k < m.v.length; k += 3) {
@@ -176,6 +188,9 @@ function engineGeometry(R: number, H: number, m: EngineMesh) {
     pos[k + 1] = m.v[k + 1] * s + H / 2;
     pos[k + 2] = m.v[k + 2] * s;
   }
+  return pos;
+}
+function engineGeometry(pos: Float32Array, m: EngineMesh) {
   const g = new BufferGeometry();
   g.setAttribute("position", new BufferAttribute(pos, 3));
   g.setIndex([...m.i]);
@@ -239,8 +254,28 @@ type ThreeViewProps = {
   meshes?: string;
 };
 
+/* An engine on the axis, or a solid booster strapped beside it: both are
+   one part with a file under public/engines, and the booster's drum — its
+   casing and its nozzle together — is exactly the box its mesh is scaled
+   into. A liquid column is drawn part by part and its engine arrives here
+   as role "engine" already. */
+const meshed = (p: ModelPart) => p.role === "engine" || p.role === "booster";
+
+/* What a part's hidden silhouette is built from on each paint: a mesh's
+   edge topology, or a revolved part's profile as radius-height pairs. */
+type HiddenSource =
+  | { kind: "mesh"; topo: Topology }
+  | { kind: "revolved"; profile: Array<readonly [number, number]> };
+/* A part's creases chained once, so their arc length can be re-measured on
+   each paint without walking the edges again. */
+type CreaseChains = { chains: Array<Chain>; ea: Int32Array; eb: Int32Array };
+
 /* Reused rather than allocated per part per frame. */
 const AXIS = new Vector3();
+const DIR = new Vector3();
+const LOCAL = new Vector3();
+const PROJ = new Matrix4();
+const VIEWPROJ = new Matrix4();
 
 /* Everything the paint step needs, built once per rocket. */
 type Built = {
@@ -248,7 +283,12 @@ type Built = {
   group: Group;
   peelMats: Array<ShaderMaterial>;
   hidTarget: WebGLRenderTarget;
-  ghostLine: ShaderMaterial;
+  ghostCrease: Array<ShaderMaterial>;
+  ghostSil: Array<ShaderMaterial>;
+  ghosts: Group;
+  sils: Array<LineSegments>;
+  hid: Array<HiddenSource>;
+  creaseChains: Array<CreaseChains | null>;
   creaseMat: LineBasicMaterial;
   creases: Group;
   meshes: Array<Mesh>;
@@ -377,20 +417,62 @@ export default function ThreeView({
     const creaseMat = new LineBasicMaterial({ color: lineOf(pal) });
     owned.push(creaseMat);
 
-    /* An engine on the axis, or a solid booster strapped beside it: both are
-       one part with a file under public/engines, and the booster's drum —
-       its casing and its nozzle together — is exactly the box its mesh is
-       scaled into. A liquid column is drawn part by part and its engine
-       arrives here as role "engine" already. */
-    const meshed = (p: ModelPart) =>
-      p.role === "engine" || p.role === "booster";
+    /* The hidden lines are geometry of their own, rebuilt on each paint from
+       these (hidden-lines.ts): a mesh's edges and faces, or a revolved
+       part's profile. The line segments they are written into are sized
+       here for the most a part can need. */
+    const hid: Array<HiddenSource> = [];
+    const creaseChains: Array<CreaseChains | null> = [];
+    const sils: Array<LineSegments> = [];
+    const ghosts = new Group();
+    ghosts.visible = false;
+    scene.add(ghosts);
     for (const [i, p] of parts.entries()) {
       const m = meshed(p) ? engineMesh(p.part.n, meshSet) : undefined;
-      const geo = m
-        ? engineGeometry(p.r, p.h, m)
+      const pos = m ? enginePositions(p.r, p.h, m) : null;
+      const profile = m
+        ? null
         : p.rTop === undefined
-          ? new CylinderGeometry(p.r, p.r, p.h, SEGMENTS)
-          : new LatheGeometry(taperedProfile(p.r, p.rTop, p.h), SEGMENTS);
+          ? [
+              [p.r, -p.h / 2],
+              [p.r, p.h / 2],
+            ]
+          : taperedProfile(p.r, p.rTop, p.h).map((v) => [v.x, v.y]);
+      const geo =
+        m && pos
+          ? engineGeometry(pos, m)
+          : p.rTop === undefined
+            ? new CylinderGeometry(p.r, p.r, p.h, SEGMENTS)
+            : new LatheGeometry(taperedProfile(p.r, p.rTop, p.h), SEGMENTS);
+      let capacity: number;
+      if (m && pos) {
+        const topo = topologyOf(pos, m.i);
+        hid.push({ kind: "mesh", topo });
+        capacity = 2 * topo.ea.length;
+      } else {
+        const prof = profile!.map((q) => [q[0], q[1]] as const);
+        hid.push({ kind: "revolved", profile: prof });
+        capacity = 4 * prof.length;
+      }
+      const silGeo = new BufferGeometry();
+      silGeo.setAttribute(
+        "position",
+        new BufferAttribute(new Float32Array(3 * capacity), 3).setUsage(
+          DynamicDrawUsage,
+        ),
+      );
+      silGeo.setAttribute(
+        "along",
+        new BufferAttribute(new Float32Array(capacity), 1).setUsage(
+          DynamicDrawUsage,
+        ),
+      );
+      silGeo.setDrawRange(0, 0);
+      const sil = new LineSegments(silGeo);
+      sil.frustumCulled = false;
+      sils.push(sil);
+      ghosts.add(sil);
+      owned.push(silGeo);
       const mat = goochMaterial(
         p.role === "booster" ? color : fill[p.role] || pal.dim,
         pal,
@@ -406,10 +488,34 @@ export default function ThreeView({
       group.add(mesh);
       /* A simplified mesh is creases all over; on an engine only the sharp
          ones — the lip, a plate's edge — are lines. */
-      const line = new LineSegments(
-        new EdgesGeometry(geo, meshed(p) ? ENGINE_CREASE : CREASE_ANGLE),
-        creaseMat,
+      const edges = new EdgesGeometry(
+        geo,
+        meshed(p) ? ENGINE_CREASE : CREASE_ANGLE,
       );
+      const epos = edges.getAttribute("position").array as Float32Array;
+      edges.setAttribute(
+        "along",
+        new BufferAttribute(new Float32Array(epos.length / 3), 1).setUsage(
+          DynamicDrawUsage,
+        ),
+      );
+      /* Chained once: which segment follows which never changes, only how
+         long each is on the screen. Not for a mesh, whose hidden creases
+         are never drawn. */
+      if (meshed(p)) creaseChains.push(null);
+      else {
+        const ids = vertexIds(epos);
+        const n = ids.length / 2;
+        const ea = new Int32Array(n);
+        const eb = new Int32Array(n);
+        for (let k = 0; k < n; k++) {
+          ea[k] = ids[2 * k];
+          eb[k] = ids[2 * k + 1];
+        }
+        const all = Array.from({ length: n }, (_, k) => k);
+        creaseChains.push({ chains: chainEdges(ea, eb, all), ea, eb });
+      }
+      const line = new LineSegments(edges, creaseMat);
       lines.push(line);
       creases.add(line);
       const id = idMaterial(i);
@@ -449,11 +555,36 @@ export default function ThreeView({
       peelMats.push(pm);
       owned.push(pm);
     }
-    const ghostLine = ghostLineMaterial(
-      pal,
-      DASH_PERIOD * renderer.getPixelRatio(),
-    );
-    owned.push(idTarget, fillTarget, depth, hidTarget, hidDepth, ghostLine);
+    /* One pair per part: the shader compares the peeled id with its own. */
+    const texel = new Vector2(1 / bw, 1 / bh);
+    const period = DASH_PERIOD * dpr;
+    const ghostCrease: Array<ShaderMaterial> = [];
+    const ghostSil: Array<ShaderMaterial> = [];
+    for (let i = 0; i < parts.length; i++) {
+      const gc = ghostLineMaterial(
+        pal,
+        i,
+        false,
+        hidTarget.texture,
+        idTarget.texture,
+        texel,
+        period,
+      );
+      const gs = ghostLineMaterial(
+        pal,
+        i,
+        true,
+        hidTarget.texture,
+        idTarget.texture,
+        texel,
+        period,
+      );
+      ghostCrease.push(gc);
+      ghostSil.push(gs);
+      sils[i].material = gs;
+      owned.push(gc, gs);
+    }
+    owned.push(idTarget, fillTarget, depth, hidTarget, hidDepth);
 
     const quadMat = compositeMaterial(pal);
     const quadGeo = new PlaneGeometry(2, 2);
@@ -476,7 +607,12 @@ export default function ThreeView({
       idMats,
       peelMats,
       hidTarget,
-      ghostLine,
+      ghostCrease,
+      ghostSil,
+      ghosts,
+      sils,
+      hid,
+      creaseChains,
       creaseMat,
       fillMats,
       quadScene,
@@ -548,7 +684,7 @@ export default function ThreeView({
          around it. A part on the axis has no direction to lean in. */
       const r = Math.hypot(p.x, p.z);
       if (tilt && r > 1e-9) AXIS.set(p.z / r, 0, -p.x / r);
-      for (const obj of [b.meshes[i], b.lines[i]]) {
+      for (const obj of [b.meshes[i], b.lines[i], b.sils[i]]) {
         if (!obj) continue;
         obj.position.set(x, y, z);
         if (tilt && r > 1e-9) obj.quaternion.setFromAxisAngle(AXIS, tilt);
@@ -593,18 +729,84 @@ export default function ThreeView({
          this one. */
       b.creases.visible = true;
       b.group.visible = false;
-      /* The cylinders' creases only — a tank seam, a cap — and not the
-         engines': a simplified truss is edges all over, and every hidden one
-         dashed was a thicket where a bell should be. */
+      /* The hidden lines, measured along themselves. The camera's matrices
+         are what `render` would compute; they are needed a moment earlier. */
+      camera.updateMatrixWorld();
+      camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
+      b.scene.updateMatrixWorld(true);
+      VIEWPROJ.multiplyMatrices(
+        camera.projectionMatrix,
+        camera.matrixWorldInverse,
+      );
+      DIR.set(0, mid, 0).sub(camera.position).normalize();
+      const period = DASH_PERIOD * renderer.getPixelRatio();
       for (let i = 0; i < parts.length; i++) {
-        b.lines[i].material = b.ghostLine;
-        b.lines[i].visible =
-          parts[i].role !== "engine" && parts[i].role !== "booster";
+        const carrier = b.lines[i];
+        PROJ.multiplyMatrices(VIEWPROJ, carrier.matrixWorld);
+        /* The view direction in the part's own frame, tilt and all. */
+        LOCAL.copy(DIR).applyQuaternion(carrier.quaternion.clone().invert());
+        const cc = b.creaseChains[i];
+        if (cc)
+          alongCreases(
+            cc.chains,
+            carrier.geometry.getAttribute("position").array,
+            carrier.geometry.getAttribute("along") as BufferAttribute,
+            PROJ,
+            b.bw,
+            b.bh,
+            period,
+          );
+        const src = b.hid[i];
+        const sil = b.sils[i];
+        let drawn = 0;
+        if (src.kind === "mesh") {
+          const edges = silhouetteEdges(src.topo, LOCAL);
+          drawn = fillSegments(
+            chainEdges(src.topo.ea, src.topo.eb, edges),
+            src.topo.ea,
+            src.topo.eb,
+            src.topo.pos,
+            sil.geometry.getAttribute("position") as BufferAttribute,
+            sil.geometry.getAttribute("along") as BufferAttribute,
+            PROJ,
+            b.bw,
+            b.bh,
+            period,
+          );
+        } else {
+          const r = revolvedSilhouette(src.profile, LOCAL);
+          if (r) {
+            const all = Array.from({ length: r.ea.length }, (_, k) => k);
+            drawn = fillSegments(
+              chainEdges(r.ea, r.eb, all),
+              r.ea,
+              r.eb,
+              r.vert,
+              sil.geometry.getAttribute("position") as BufferAttribute,
+              sil.geometry.getAttribute("along") as BufferAttribute,
+              PROJ,
+              b.bw,
+              b.bh,
+              period,
+            );
+          }
+        }
+        sil.geometry.setDrawRange(0, drawn);
       }
+      /* The cylinders' creases — a tank seam, a cap — and not the meshes':
+         a simplified truss is edges all over, and every hidden one dashed
+         was a thicket where a bell should be. The silhouettes of every part,
+         which the shader trims to the outline of its hidden footprint. */
+      for (let i = 0; i < parts.length; i++) {
+        b.lines[i].material = b.ghostCrease[i];
+        b.lines[i].visible = !meshed(parts[i]);
+      }
+      b.ghosts.visible = true;
       renderer.setRenderTarget(b.fillTarget);
       renderer.autoClear = false;
       renderer.render(b.scene, camera);
       renderer.autoClear = true;
+      b.ghosts.visible = false;
       for (const l of b.lines) {
         l.material = b.creaseMat;
         l.visible = true;
@@ -617,7 +819,6 @@ export default function ThreeView({
     b.quadMat.uniforms.tId.value = b.idTarget.texture;
     b.quadMat.uniforms.tDepth.value = b.depth;
     b.quadMat.uniforms.tHid.value = b.hidTarget.texture;
-    b.quadMat.uniforms.dash.value = DASH_PERIOD * renderer.getPixelRatio();
     b.quadMat.uniforms.texel.value.set(1 / b.bw, 1 / b.bh);
     b.quadMat.uniforms.camNear.value = cam.near;
     b.quadMat.uniforms.camFar.value = cam.far;

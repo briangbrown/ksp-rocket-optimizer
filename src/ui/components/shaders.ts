@@ -10,6 +10,7 @@ import {
 } from "three";
 import { rgbOf } from "../tokens.js";
 import type { Palette } from "../tokens.js";
+import type { Texture } from "three";
 
 /* ----------------------------- schematic shading -----------------------------
 
@@ -188,29 +189,86 @@ export function peelIdMaterial(index: number, depth: DepthTexture) {
 /* In window depth, which is linear here: the frustum is orthographic. */
 const PEEL_EPS = 0.0002;
 
-/* A hidden crease: the same line, dashed, drawn only where it failed the
-   depth test — behind the surface that hid it. `GreaterDepth` with no write is
-   the whole trick, as it was for the ghost. */
-export function ghostLineMaterial(pal: Palette, dashPeriod: number) {
+/* A hidden line: dashed, drawn only where it failed the depth test — behind
+   the surface that hid it. `GreaterDepth` with no write is the whole trick,
+   as it was for the ghost. The dash is phased on `along`, the line's own
+   screen-space arc length (hidden-lines.ts), so every dash is the same
+   length whichever way the stroke runs; on the pixel grid it ran from two
+   pixels to thirty round one ellipse.
+
+   With `contour`, for a silhouette: kept only where the part's hidden
+   footprint ends — where the peeled id within two pixels is not this
+   part's — since a mesh's every fold is a silhouette edge, and hidden they
+   were a thicket where a drafter draws one outline. A crease is not
+   filtered: the near half of a hidden rim divides a part from itself and is
+   still a line. And not within two pixels of the front's own linework: the
+   meshes are hollow, so a bell's inner wall has a silhouette one thickness
+   behind its outer one, and a rib's fold runs into the contour — both drew
+   a dashed twin along the visible outline. */
+export function ghostLineMaterial(
+  pal: Palette,
+  index: number,
+  contour: boolean,
+  hid: Texture,
+  front: Texture,
+  texel: Vector2,
+  dashPeriod: number,
+) {
   return new ShaderMaterial({
     uniforms: {
       edgeColor: { value: vec3(lineOf(pal)) },
       dash: { value: dashPeriod },
+      tHid: { value: hid },
+      tId: { value: front },
+      texel: { value: texel },
+      id: { value: index + 1 },
     },
     transparent: true,
     depthFunc: GreaterDepth,
     depthWrite: false,
     vertexShader: /* glsl */ `
+      attribute float along;
+      varying float vAlong;
       void main() {
+        vAlong = along;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
     `,
     fragmentShader: /* glsl */ `
       uniform vec3 edgeColor;
-      uniform float dash;
+      uniform float dash, id;
+      uniform sampler2D tHid, tId;
+      uniform vec2 texel;
+      varying float vAlong;
+      float hidAt(vec2 uv) {
+        vec4 t = texture2D(tHid, uv);
+        return floor(t.r * 255.0 + 0.5) + floor(t.g * 255.0 + 0.5) * 256.0;
+      }
+      float idAt(vec2 uv) {
+        vec4 t = texture2D(tId, uv);
+        return floor(t.r * 255.0 + 0.5) + floor(t.g * 255.0 + 0.5) * 256.0;
+      }
+      bool other(vec2 uv) { return abs(hidAt(uv) - id) > 0.5; }
       void main() {
-        float along = (gl_FragCoord.x + gl_FragCoord.y) / dash;
-        if (fract(along) > ${f(DASH_DUTY)}) discard;
+        if (fract(vAlong / dash) > ${f(DASH_DUTY)}) discard;
+        ${
+          contour
+            ? /* glsl */ `
+        vec2 uv = gl_FragCoord.xy * texel;
+        bool edge = other(uv);
+        float i0 = idAt(uv);
+        bool near = false;
+        for (int k = 1; k <= 2; k++) {
+          float d = float(k);
+          vec2 dx = vec2(d * texel.x, 0.0);
+          vec2 dy = vec2(0.0, d * texel.y);
+          edge = edge || other(uv + dx) || other(uv - dx) || other(uv + dy) || other(uv - dy);
+          near = near || abs(idAt(uv + dx) - i0) > 0.5 || abs(idAt(uv - dx) - i0) > 0.5
+                      || abs(idAt(uv + dy) - i0) > 0.5 || abs(idAt(uv - dy) - i0) > 0.5;
+        }
+        if (!edge || near) discard;`
+            : ""
+        }
         gl_FragColor = vec4(edgeColor, ${f(LINE_ALPHA)});
       }
     `,
@@ -250,7 +308,6 @@ export function compositeMaterial(pal: Palette) {
       tId: { value: null },
       tDepth: { value: null },
       tHid: { value: null },
-      dash: { value: 7 },
       texel: { value: new Vector2() },
       edgeColor: { value: vec3(lineOf(pal)) },
       panel: { value: vec3(pal.panel) },
@@ -271,9 +328,9 @@ export function compositeMaterial(pal: Palette) {
     fragmentShader: /* glsl */ `
       #include <packing>
       #define CUE 0.33
+      #define OUTLINE ${OUTLINE}
       uniform sampler2D tColor, tId, tDepth, tHid;
       uniform vec2 texel;
-      uniform float dash;
       uniform vec3 edgeColor, panel;
       uniform float camNear, camFar, cueNear, cueSpan;
       varying vec2 vUv;
@@ -303,11 +360,13 @@ export function compositeMaterial(pal: Palette) {
 
         /* Two weights, which is how a drawing is inked: the outline of the
            whole object heavier than the lines inside it. The outer silhouette
-           is where a part meets the background, and it is drawn two samples
-           wide against one for everything else. Both are taken on one side of
-           the boundary only — the lower id of the pair, and the background is
-           the lowest of all, so the outline lands just outside the shape and
-           never eats into it. */
+           is where a part meets the background, and it is drawn OUTLINE
+           samples wide against one for everything else. Both are taken on
+           one side of the boundary only — the lower id of the pair, and the
+           background is the lowest of all, so the outline lands just outside
+           the shape and never eats into it. The outer one is grown along
+           eight rays rather than four so it is as wide on a diagonal edge as
+           on a square one: four rays reach a diagonal at cos 45°. */
         float e = 0.0;
         for (int k = 0; k < 4; k++) {
           vec2 off = k < 2
@@ -315,41 +374,22 @@ export function compositeMaterial(pal: Palette) {
             : vec2(0.0, k == 2 ? texel.y : -texel.y);
           /* A different part next door — or the background, which is zero. */
           if (idAt(vUv + off) - i0 > 0.5) e = 1.0;
-          /* One further out, but only where this is the outside edge. */
-          if (i0 < 0.5 && idAt(vUv + off * 2.0) > 0.5) e = 1.0;
         }
-
-        /* The layer behind, the same way: where its id changes, or ends, a
-           hidden part's edge runs — its silhouette against whatever is behind
-           it, or the seam between two hidden parts. One-sided like the front's
-           lines, so a line and not two; only under a part, since nothing hides
-           behind the background; and not where the front already has a line,
-           which is where a hidden part emerges from behind the one in front. */
-        /* Only another part: the meshes are hollow, and a part's own inner
-           wall is what a peel finds behind its outer one. That is not a hidden
-           line — a hidden line is the part behind this one. */
-        float h0 = hidAt(vUv);
-        float other0 = step(0.5, h0) * step(0.5, abs(h0 - i0));
-        float e2 = 0.0;
-        if (i0 > 0.5) {
-          for (int k = 0; k < 4; k++) {
-            vec2 off = k < 2
-              ? vec2(k == 0 ? texel.x : -texel.x, 0.0)
-              : vec2(0.0, k == 2 ? texel.y : -texel.y);
-            float hn = hidAt(vUv + off);
-            float othern = step(0.5, hn) * step(0.5, abs(hn - i0));
-            if (hn - h0 > 0.5 && max(other0, othern) > 0.5) e2 = 1.0;
-            /* Not within two pixels of the front's own linework: at a rim
-               the back face lies within the peel's epsilon of the front, so
-               the hidden layer ends a pixel inside the visible silhouette and
-               would draw a dashed twin of it. */
-            if (abs(idAt(vUv + off) - i0) > 0.5) e2 = 0.0;
-            if (abs(idAt(vUv + off * 2.0) - i0) > 0.5) e2 = 0.0;
+        if (i0 < 0.5) {
+          for (int k = 0; k < 8; k++) {
+            float a = float(k) * 0.78539816;
+            vec2 ray = vec2(cos(a), sin(a)) * texel;
+            for (int r = 2; r <= OUTLINE; r++) {
+              if (idAt(vUv + ray * float(r)) > 0.5) e = 1.0;
+            }
           }
         }
-        /* Dashed, as a drawing has always drawn a line you cannot see: on the
-           screen diagonal, so an edge of any orientation crosses the dashes. */
-        float on = step(fract((gl_FragCoord.x + gl_FragCoord.y) / dash), ${f(DASH_DUTY)});
+
+        /* The layer behind: only whether another part is there. Its lines
+           are geometry now (hidden-lines.ts), drawn dashed through the depth
+           test before this pass; this pass owes it a breath of tint. */
+        float h0 = hidAt(vUv);
+        float other0 = step(0.5, h0) * step(0.5, abs(h0 - i0));
 
         float cue = clamp((d0 - cueNear) / cueSpan, 0.0, 1.0);
         vec3 rgb = mix(c.rgb, panel, cue * CUE);
@@ -357,7 +397,6 @@ export function compositeMaterial(pal: Palette) {
            so it says "there is something here" and draws no shape of its own;
            the shape is the dashed line's to draw. */
         rgb = mix(rgb, edgeColor, other0 * ${f(HIDDEN_WASH)});
-        rgb = mix(rgb, edgeColor, e2 * on * ${f(LINE_ALPHA)});
         /* Lines at full strength over cued fill: the extremes belong to the
            linework, which is the whole of the Gooch argument. */
         gl_FragColor = vec4(mix(rgb, edgeColor, e), 1.0);
@@ -383,16 +422,24 @@ export function compositeMaterial(pal: Palette) {
    curved surface, a band whose width followed curvature so it went faint
    where a facet merely grazed the threshold, and two bands side by side on a
    hidden cylinder, since its near and far turns both pass. The hidden lines
-   now come from the same place the visible ones do: the second depth layer
-   is peeled into an id buffer of its own (`peelIdMaterial`), the composite
-   edge-detects it one-sided and dashes it, and the hidden creases are drawn
-   dashed through the depth test (`ghostLineMaterial`). One layer, which is the
-   cap; a rocket is a few columns deep. What remains of the wash is a breath of
-   uniform tint wherever anything is behind, so the x-ray still reads as one.
+   are geometry: each hidden part's silhouette and creases, chained into
+   strokes and measured along themselves (hidden-lines.ts), drawn dashed
+   through the depth test (`ghostLineMaterial`). They were found in the
+   pixels for a while — the second depth layer peeled into an id buffer
+   (`peelIdMaterial`) and edge-detected — but a pixel does not know how far
+   along its stroke it is, and the dashes, phased on the screen diagonal, ran
+   from two pixels to thirty round an ellipse. The peel stays for two things
+   a fragment can answer: whether another part is behind this pixel, which
+   is the wash, and whether a silhouette fragment is on the outline of its
+   part's hidden footprint. One layer, which is the cap; a rocket is a few
+   columns deep. What remains of the wash is a breath of uniform tint
+   wherever anything is behind, so the x-ray still reads as one.
 
-   `HIDDEN_WASH` is that tint; `DASH_DUTY` how much of a period is drawn, on
-   the screen diagonal; `LINE_ALPHA` how dark a hidden line is against the
-   visible ones, which are full. */
+   `HIDDEN_WASH` is that tint; `DASH_DUTY` how much of a period is drawn;
+   `LINE_ALPHA` how dark a hidden line is against the visible ones, which are
+   full; `OUTLINE` how many device pixels the outer silhouette is grown by,
+   against one for every line inside it. */
 const HIDDEN_WASH = 0.06;
 const DASH_DUTY = 0.55;
 const LINE_ALPHA = 0.85;
+const OUTLINE = 4;

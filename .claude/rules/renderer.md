@@ -43,28 +43,50 @@ them.
   camera absorbs it, which is why what stays has an offset of exactly zero at
   both ends.
 
-- **Hidden lines are lines, from ids — never a surface pass.** Until #85
-  what lay behind the front surface was drawn again through it: a wash that
-  deepened as the surface turned away, and a dashed band where its normal
-  went edge-on. That was a veil over every curved surface, a band whose
-  width followed curvature so it went faint where a facet merely grazed the
-  threshold, and two bands side by side on a hidden cylinder — its near and
-  far turns both pass. The hidden lines now come from where the visible ones
-  do: `peelIdMaterial` renders the ids again, dropping every fragment no
-  deeper than the front's depth at its pixel, so the depth test keeps the
-  second layer exactly; the composite edge-detects that buffer one-sided and
-  dashes it; the hidden creases of the revolved parts are drawn dashed
-  through the fill's depth with `GreaterDepth` (`ghostLineMaterial`). Three
-  things it has to leave out, each found on a screenshot: a hidden edge
-  within two pixels of the front's own linework (at a rim the back face is
-  within the peel's epsilon of the front, and the hidden layer ends a pixel
-  inside the silhouette — a dashed twin of it); a hidden edge where the
-  hidden id is the front's own (the meshes are hollow, and a part's inner
-  wall is what a peel finds behind its outer one — not a hidden line); and
-  the engines' hidden creases (a simplified truss is edges all over). The
-  plan view peels nothing: looking up, the engines hide the tanks by design.
-  What remains of the wash is `HIDDEN_WASH`, a uniform breath of tint
-  wherever another part is behind, so the x-ray still reads as one.
+- **Hidden lines are geometry, measured along themselves — never a surface
+  pass, and never phased on the pixel grid.** Until #85 what lay behind the
+  front surface was drawn again through it: a wash that deepened as the
+  surface turned away, and a dashed band where its normal went edge-on. That
+  was a veil over every curved surface, a band whose width followed
+  curvature so it went faint where a facet merely grazed the threshold, and
+  two bands side by side on a hidden cylinder — its near and far turns both
+  pass. Then for a while they were found in the pixels: `peelIdMaterial`
+  renders the ids again, dropping every fragment no deeper than the front's
+  depth at its pixel, so the depth test keeps the second layer exactly, and
+  the composite edge-detected that buffer and dashed it on `x + y`. A pixel
+  does not know how far along its stroke it is, and a dash phased on the
+  screen diagonal ran from two pixels to thirty round one ellipse — short
+  where the stroke crossed the diagonal, endless where it ran along it. No
+  screen-space trick fixes that: any per-pixel estimate of the stroke's
+  direction multiplies an absolute coordinate, so a degree of jitter is a
+  phase jump of dozens of periods. So the hidden lines are geometry
+  (`hidden-lines.ts`): a revolved part's creases from `EdgesGeometry`,
+  chained once at build by shared endpoints, and every part's silhouette —
+  a revolved part's profile stood at the two azimuths square to the view, a
+  mesh's edges whose faces face opposite ways and its open boundaries —
+  rebuilt on each paint since it follows the camera. Each stroke's
+  screen-space arc length goes into an `along` attribute the ghost shader
+  dashes by, closed loops stretched to a whole number of dashes, and the
+  lines are drawn through the fill's depth with `GreaterDepth`
+  (`ghostLineMaterial`). The peel stays for what a fragment _can_ answer:
+  whether another part is behind this pixel (`HIDDEN_WASH`, a uniform
+  breath of tint so the x-ray still reads as one), and whether a silhouette
+  fragment sits on the outline of its part's hidden footprint — a mesh's
+  every fold is a silhouette edge, and hidden they were a thicket where a
+  drafter draws one line. Two more exclusions, each found on a screenshot:
+  no silhouette within two pixels of the front's own linework (the meshes
+  are hollow, so a bell's inner wall has a silhouette one thickness behind
+  its outer one, and a rib's fold runs into the contour — a dashed twin
+  along the visible outline either way), and no hidden creases on the
+  meshes (a simplified truss is edges all over). The plan view peels
+  nothing: looking up, the engines hide the tanks by design.
+
+- **The outer silhouette is grown along eight rays, not four.** It is
+  `OUTLINE` device pixels wide against one for every line inside the shape,
+  and it is grown from the background side so it never eats into the part.
+  Four axis rays reach a diagonal edge at cos 45°, so a two-pixel outline
+  was 1.4 on every ellipse; eight rays, the diagonal ones stepped by 1/√2,
+  are within four per cent of even at every angle.
 
 - **A WebGL canvas drawn once needs `preserveDrawingBuffer`.** `ThreeView`
   renders a frame when the rocket or the view changes and never on a loop,
