@@ -589,9 +589,14 @@ export default function KSPMissionPlanner() {
   useEffect(() => {
     if (!hydrated || !canLink()) return;
     let live = true;
-    toLink(configText).then((hash) => {
-      if (live) history.replaceState(null, "", hash);
-    });
+    toLink(configText)
+      .then((hash) => {
+        if (live) history.replaceState(null, "", hash);
+      })
+      .catch(() => {
+        /* A configuration too large to encode is left unwritten; the page
+           still works and the address keeps the last good design. */
+      });
     return () => {
       live = false;
     };

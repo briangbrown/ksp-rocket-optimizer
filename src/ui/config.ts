@@ -1,5 +1,6 @@
 import { DATA } from "../core/catalogue.js";
-import { SYS } from "../core/orbits.js";
+import { DEST, SYS } from "../core/orbits.js";
+import { MAX_K } from "../core/plan.js";
 import { withDeps } from "../core/tech.js";
 import type { Expansions } from "../core/constants.js";
 import type { Objective } from "../core/performance.js";
@@ -68,6 +69,15 @@ type ConfigParse =
   | { error: string; values?: undefined; took?: undefined; left?: undefined }
   | { error?: undefined; values: ConfigValues; took: number; left: number };
 
+/* A link is untrusted input, and so is a paste: every field is checked
+   against what the app knows before it reaches state, every list is bounded,
+   and nothing in here may throw — a `TypeError` out of `new Map` on a
+   malformed field escaped to the mount effect, `hydrated` never became true,
+   and the page sat under the solving veil until the hash was edited by
+   hand. #174 */
+const MAX_LIST = 400;
+const MAX_CUTS = 64;
+
 function parseConfig(text: string): ConfigParse {
   let cfg: Pasted;
   try {
@@ -77,7 +87,18 @@ function parseConfig(text: string): ConfigParse {
   }
   if (!cfg || typeof cfg !== "object" || Array.isArray(cfg))
     return { error: "That does not parse as a configuration." };
+  try {
+    return readConfig(cfg);
+  } catch {
+    return { error: "That does not parse as a configuration." };
+  }
+}
 
+/* A whole number in a range. */
+const int = (v: unknown, lo: number, hi: number): v is number =>
+  typeof v === "number" && Number.isInteger(v) && v >= lo && v <= hi;
+
+function readConfig(cfg: Pasted): ConfigParse {
   const values: ConfigValues = {};
   let took = 0,
     left = 0;
@@ -94,13 +115,24 @@ function parseConfig(text: string): ConfigParse {
     } else left++;
   };
   const bodies = Object.keys(SYS).filter((b) => b !== "Sun" && SYS[b].ascent);
+  /* Every destination the picker can name, for any origin: the orbits, the
+     destinations table and every body. Which of them the current origin
+     offers is the picker's business; an unknown name was a blank route and a
+     string of any length in state. */
+  const dests = new Set([
+    "Low orbit",
+    "Stationary orbit",
+    ...Object.keys(DEST),
+    ...Object.keys(SYS).filter((b) => b !== "Sun"),
+  ]);
+  const parts = new Set([
+    ...DATA.engines.map((e) => e.n),
+    ...DATA.tanks.map((t) => t.n),
+  ]);
+  const known = (n: string) => Object.hasOwn(DATA.nodes, n);
 
   take("origin", bodies.includes(cfg.origin), () => cfg.origin);
-  take(
-    "dest",
-    typeof cfg.dest === "string" && cfg.dest.length > 0,
-    () => cfg.dest,
-  );
+  take("dest", dests.has(cfg.dest), () => cfg.dest);
   take(
     "profile",
     ["flyby", "orbit", "land"].includes(cfg.profile),
@@ -131,18 +163,52 @@ function parseConfig(text: string): ConfigParse {
   );
   take(
     "tech",
-    Array.isArray(cfg.tech) && cfg.tech.some((t: string) => DATA.nodes[t]),
+    Array.isArray(cfg.tech) && cfg.tech.some((t: unknown) => known(String(t))),
     () =>
       withDeps(
         DATA.nodes,
-        new Set(cfg.tech.filter((t: string) => DATA.nodes[t])),
+        new Set(
+          cfg.tech
+            .slice(0, MAX_LIST)
+            .filter(
+              (t: unknown): t is string => typeof t === "string" && known(t),
+            ),
+        ),
       ),
   );
-  take("excluded", Array.isArray(cfg.excluded), () => new Set(cfg.excluded));
-  take("cuts", cfg.cuts === null || Array.isArray(cfg.cuts), () =>
-    cfg.cuts ? new Set(cfg.cuts) : null,
+  /* Only parts the catalogue has, and never every engine: a link that
+     excluded them all was saved with the roster and made every later visit
+     unsolvable. */
+  take(
+    "excluded",
+    Array.isArray(cfg.excluded) &&
+      cfg.excluded.every(
+        (n: unknown) => typeof n === "string" && parts.has(n),
+      ) &&
+      DATA.engines.some((e) => !cfg.excluded.includes(e.n)),
+    () => new Set<string>(cfg.excluded.slice(0, MAX_LIST)),
   );
-  take("splits", Array.isArray(cfg.splits), () => new Map(cfg.splits));
+  take(
+    "cuts",
+    cfg.cuts === null ||
+      (Array.isArray(cfg.cuts) &&
+        cfg.cuts.length <= MAX_CUTS &&
+        cfg.cuts.every((i: unknown) => int(i, 0, MAX_CUTS))),
+    () => (cfg.cuts ? new Set<number>(cfg.cuts) : null),
+  );
+  take(
+    "splits",
+    Array.isArray(cfg.splits) &&
+      cfg.splits.length <= MAX_CUTS &&
+      cfg.splits.every(
+        (s: unknown) =>
+          Array.isArray(s) &&
+          s.length === 2 &&
+          int(s[0], 0, MAX_CUTS) &&
+          int(s[1], 1, MAX_K),
+      ),
+    () => new Map<number, number>(cfg.splits),
+  );
   return { values, took, left };
 }
 
