@@ -847,16 +847,21 @@ const STATES: ReadonlyArray<State> = ["surface", "low", "sync", "flyby"];
 
 /* Whether a pair of endpoints is a mission, and if not, why — the sentence
    the disabled chip carries, so the UI and the tests read one rule. */
-function possible(from: Endpoint, to: Endpoint): true | string {
+/* The From end on its own, and the To end against it: the brief disables a
+   state chip with the sentence, so each side answers for itself. */
+function fromReason(from: Endpoint): true | string {
   const f = SYS[from.body];
-  const t = SYS[to.body];
   if (!f) return `${from.body} is not a body`;
-  if (!t) return `${to.body} is not a body`;
   if (from.state === "flyby") return "A mission cannot start in a fly-by";
   if (from.state === "surface" && !f.ascent)
     return `${from.body} has no surface to start from`;
   if (from.state === "sync" && !hasSync(from.body))
     return `${from.body} has no stationary orbit`;
+  return true;
+}
+function toReason(from: Endpoint, to: Endpoint): true | string {
+  const t = SYS[to.body];
+  if (!t) return `${to.body} is not a body`;
   if (to.state === "surface" && (!t.ascent || t.noLand))
     return `${to.body} has no surface to land on`;
   if (to.state === "sync" && !hasSync(to.body))
@@ -866,6 +871,10 @@ function possible(from: Endpoint, to: Endpoint): true | string {
   if (to.body === from.body && to.state === from.state)
     return "That is where the mission starts";
   return true;
+}
+function possible(from: Endpoint, to: Endpoint): true | string {
+  const f = fromReason(from);
+  return f === true ? toReason(from, to) : f;
 }
 
 /* The two legs between a body's low orbit and its stationary one, either
@@ -909,6 +918,22 @@ function syncLegs(b: string, up: boolean): Array<Leg> {
         },
       ];
 }
+
+/* How a return arrives at its origin: an aerobrake where there is air over a
+   surface one could stand on — Kerbol's atmosphere and Jool's are not places
+   to shed speed, so a return to either is a capture. Every origin the app had
+   before had a surface. */
+const arrival = (b: string): Leg => {
+  const air = !!(SYS[b].atm && SYS[b].ascent && !SYS[b].noLand);
+  return {
+    label: air ? `Aerobrake at ${b} (heat shield)` : `Capture at ${b}`,
+    dv: air ? 0 : Math.round(vCirc(b) * 0.41),
+    kind: "aero",
+    body: b,
+    g: gOf(b),
+    free: air,
+  };
+};
 
 const ascentLeg = (b: string): Leg => ({
   label: `${b} surface → low orbit`,
@@ -969,8 +994,11 @@ function routeFor(
           : l,
       );
     if (returning) {
-      /* Back to where it began: down from stationary, off the surface, or
-         from orbit down to the surface. */
+      /* Back to where it began: down from stationary or off the surface,
+         then the arrival every return has — the aerobrake where there is air
+         over a surface, a capture where there is not — and up again to a
+         stationary start. The landing itself is uncharged, as on every other
+         return. */
       if (to.state === "sync") legs.push(...syncLegs(origin, false));
       else if (to.state === "surface")
         legs.push({
@@ -978,15 +1006,8 @@ function routeFor(
           kind: "ascentBack",
           label: `Ascent from ${origin} surface`,
         });
-      if (from.state === "sync") legs.push(...syncLegs(origin, true));
-      else if (from.state === "surface") {
-        const l = landLeg(origin);
-        legs.push(
-          chutes && l.atm
-            ? { ...l, dv: Math.round(l.dv * 0.18), chuted: true }
-            : l,
-        );
-      }
+      if (from.state === "surface") legs.push(arrival(origin));
+      else if (from.state === "sync") legs.push(...syncLegs(origin, true));
     }
     return legs;
   }
@@ -1112,24 +1133,7 @@ function routeFor(
       body: origin,
       g: gOf(origin),
     });
-    /* An aerobrake wants air over a surface one could stand on: Kerbol's
-       atmosphere and Jool's are not places to shed speed, so a return to
-       either is a capture. Every origin the app had before had a surface. */
-    const air = !!(
-      SYS[origin].atm &&
-      SYS[origin].ascent &&
-      !SYS[origin].noLand
-    );
-    back.push({
-      label: air
-        ? `Aerobrake at ${origin} (heat shield)`
-        : `Capture at ${origin}`,
-      dv: air ? 0 : Math.round(vCirc(origin) * 0.41),
-      kind: "aero",
-      body: origin,
-      g: gOf(origin),
-      free: air,
-    });
+    back.push(arrival(origin));
     /* A start in stationary orbit climbs back up to it. A start on the
        surface ends where the app always ended a return: captured, with the
        landing itself uncharged — through air it is the aerobrake, and on an
@@ -1200,6 +1204,7 @@ export {
   computedLegs,
   defaultCuts,
   endpointsOf,
+  fromReason,
   gOf,
   hasSync,
   hohmann,
@@ -1214,6 +1219,7 @@ export {
   soiR,
   STATES,
   syncR,
+  toReason,
   transferDv,
   vCirc,
 };

@@ -1,4 +1,4 @@
-import { PROFILES } from "../core/orbits.js";
+import type { Endpoint, State } from "../core/orbits.js";
 import type { Objective } from "../core/performance.js";
 
 const NAME_WORDS: Readonly<Record<string, ReadonlyArray<string>>> = {
@@ -56,10 +56,27 @@ const NAME_JOKE = [
 
 /* Everything the name is hashed from. Deterministic in all of it: the same
    mission always gets the same name, and it changes when the mission does. */
+/* The bodies by the names players use: the game's "Sun" is Kerbol. */
+const bodyLabel = (b: string) => (b === "Sun" ? "Kerbol" : b);
+
+/* The states of an endpoint, as the chips and the line say them. */
+const STATE_LABEL: Readonly<Record<State, string>> = {
+  surface: "Surface",
+  low: "Low orbit",
+  sync: "Stationary orbit",
+  flyby: "Fly-by",
+};
+/* The arrival, as the line's verb: what the profile used to say. */
+const ARRIVE_WORD: Readonly<Record<State, string>> = {
+  surface: "land",
+  low: "orbit",
+  sync: "stationary orbit",
+  flyby: "fly-by",
+};
+
 type CraftIn = {
-  origin: string;
-  dest: string;
-  profile: string;
+  from: Endpoint;
+  to: Endpoint;
   returning: boolean;
   payload: number;
   objective: string;
@@ -68,17 +85,21 @@ type CraftIn = {
 };
 
 function craftName({
-  origin,
-  dest,
-  profile,
+  from,
+  to,
   returning,
   payload,
   objective,
   k,
   mass,
 }: CraftIn) {
+  /* Seeded as the old form was — origin, destination, profile — so every
+     name a saved design had is the name it keeps. */
+  const profile =
+    to.state === "surface" ? "land" : to.state === "flyby" ? "flyby" : "orbit";
+  const dest = to.body === from.body ? STATE_LABEL[to.state] : to.body;
   const seed = [
-    origin,
+    from.body,
     dest,
     profile,
     returning,
@@ -94,9 +115,7 @@ function craftName({
   }
   const pick = (arr: ReadonlyArray<string>, salt: number) =>
     arr[Math.abs((h ^ Math.imul(salt, 2654435761)) >>> 0) % arr.length];
-  const where = String(dest)
-    .replace(/ orbit$/i, "")
-    .replace(/^Low | Orbit$/gi, "");
+  const where = bodyLabel(to.body === from.body ? from.body : to.body);
   const verb = pick(NAME_WORDS[profile] || NAME_WORDS.orbit, 1);
   const adj = pick(NAME_ADJ, 2);
   const tail = pick(NAME_TAIL, 3);
@@ -131,42 +150,36 @@ const OBJECTIVE_HINT: Readonly<Record<Objective, string>> = {
    check it — test/brief-line.test.ts walks every profile, origin and
    objective through it. */
 type BriefIn = {
-  origin: string;
-  dest: string;
-  /* The profile in force, not the one chosen: a landing falls back to orbit
-     where there is nothing to land on, and the line says what will fly. */
-  profile: string;
+  from: Endpoint;
+  to: Endpoint;
   returning: boolean;
   payload: number;
   objective: Objective;
 };
 
-function briefLine({
-  origin,
-  dest,
-  profile,
-  returning,
-  payload,
-  objective,
-}: BriefIn) {
-  /* Launching straight into an orbit of the origin: there is no arrival to
-     shape and no return leg, so neither the profile nor the trip is said. */
-  const here = dest === "Low orbit" || dest === "Stationary orbit";
+function briefLine({ from, to, returning, payload, objective }: BriefIn) {
+  /* The From end names its state only off the surface, which is where
+     nearly every mission starts. Within one body the To end is the state
+     itself and the trip is said only where there is one to make. */
+  const start =
+    bodyLabel(from.body) +
+    (from.state === "surface"
+      ? ""
+      : ` ${STATE_LABEL[from.state].toLowerCase()}`);
+  const here = to.body === from.body;
+  const end = here ? STATE_LABEL[to.state].toLowerCase() : bodyLabel(to.body);
   const kind = here
-    ? null
-    : `${(PROFILES[profile]?.name ?? profile).toLowerCase()}${returning ? " & return" : ", one way"}`;
+    ? returning
+      ? "& return"
+      : null
+    : `${ARRIVE_WORD[to.state]}${returning ? " & return" : ", one way"}`;
   const tonnes = payload.toLocaleString(undefined, {
     maximumFractionDigits: 1,
   });
   const aim = (
     OBJECTIVES.find(([k]) => k === objective)?.[1] ?? objective
   ).toLowerCase();
-  return [
-    `${origin} → ${here ? dest.toLowerCase() : dest}`,
-    kind,
-    `${tonnes} t`,
-    aim,
-  ]
+  return [`${start} → ${end}`, kind, `${tonnes} t`, aim]
     .filter(Boolean)
     .join(" · ");
 }
@@ -204,6 +217,9 @@ export {
   NAME_WORDS,
   OBJECTIVES,
   OBJECTIVE_HINT,
+  ARRIVE_WORD,
+  STATE_LABEL,
+  bodyLabel,
   briefLine,
   craftName,
   fmt,
