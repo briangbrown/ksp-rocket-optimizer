@@ -833,56 +833,190 @@ function computedLegs(origin: string, destName: string) {
   return legs;
 }
 
-function buildRoute(
-  destName: string,
-  profile: string,
+/* ------------------------------ the mission model ------------------------------
+
+   A mission is an endpoint to an endpoint: a body and a state at each end,
+   and whether it comes back. The From end can be a body's surface, its low
+   orbit or its stationary orbit; the To end those three or a fly-by. That is
+   every mission there is, and it subsumes what the app used to spell three
+   ways — a destination table, two pseudo-destinations for the origin's own
+   orbits, and a "profile" that was really the arrival state. #188 */
+type State = "surface" | "low" | "sync" | "flyby";
+type Endpoint = { body: string; state: State };
+const STATES: ReadonlyArray<State> = ["surface", "low", "sync", "flyby"];
+
+/* Whether a pair of endpoints is a mission, and if not, why — the sentence
+   the disabled chip carries, so the UI and the tests read one rule. */
+function possible(from: Endpoint, to: Endpoint): true | string {
+  const f = SYS[from.body];
+  const t = SYS[to.body];
+  if (!f) return `${from.body} is not a body`;
+  if (!t) return `${to.body} is not a body`;
+  if (from.state === "flyby") return "A mission cannot start in a fly-by";
+  if (from.state === "surface" && !f.ascent)
+    return `${from.body} has no surface to start from`;
+  if (from.state === "sync" && !hasSync(from.body))
+    return `${from.body} has no stationary orbit`;
+  if (to.state === "surface" && (!t.ascent || t.noLand))
+    return `${to.body} has no surface to land on`;
+  if (to.state === "sync" && !hasSync(to.body))
+    return `${to.body} has no stationary orbit`;
+  if (to.state === "flyby" && to.body === from.body)
+    return `A fly-by of ${to.body} from ${to.body} is not a journey`;
+  if (to.body === from.body && to.state === from.state)
+    return "That is where the mission starts";
+  return true;
+}
+
+/* The two legs between a body's low orbit and its stationary one, either
+   way up: a Hohmann in the body's own field, labelled as the app always
+   labelled its stationary-orbit destination. */
+function syncLegs(b: string, up: boolean): Array<Leg> {
+  const r2 = syncR(b);
+  const h = hohmann(b, lowR(b), r2);
+  const km = Math.round((r2 - SYS[b].R) / 1000).toLocaleString();
+  return up
+    ? [
+        {
+          label: `Raise apoapsis to ${km} km`,
+          dv: Math.round(h.out),
+          kind: "transfer",
+          body: b,
+          g: gOf(b),
+        },
+        {
+          label: "Circularise, one orbit per day",
+          dv: Math.round(h.in),
+          kind: "capture",
+          body: b,
+          g: gOf(b),
+        },
+      ]
+    : [
+        {
+          label: `Lower periapsis to low ${b} orbit`,
+          dv: Math.round(h.in),
+          kind: "transfer",
+          body: b,
+          g: gOf(b),
+        },
+        {
+          label: `Circularise in low ${b} orbit`,
+          dv: Math.round(h.out),
+          kind: "capture",
+          body: b,
+          g: gOf(b),
+        },
+      ];
+}
+
+const ascentLeg = (b: string): Leg => ({
+  label: `${b} surface → low orbit`,
+  dv: SYS[b].ascent ?? 0,
+  kind: "ascent",
+  body: b,
+  g: gOf(b),
+  atm: !!SYS[b].atm,
+});
+const landLeg = (b: string): Leg => ({
+  label: `Descent to ${b} surface`,
+  dv: SYS[b].ascent ?? 0,
+  kind: "land",
+  body: b,
+  g: gOf(b),
+  atm: !!SYS[b].atm,
+});
+
+/* Kerbin departures keep the tabulated map legs — they are what players check
+   against and they have been validated end to end. `DEST` is keyed by the
+   destination's name, with Jool, which has no surface, as "Jool orbit". */
+const tabulated = (body: string) =>
+  DEST[body]
+    ? DEST[body]
+    : DEST[`${body} orbit`]
+      ? DEST[`${body} orbit`]
+      : null;
+
+/* The legs of a mission from one endpoint to another. Every route the app
+   built before this existed comes out of here leg for leg — test/routes.test.ts
+   holds all 5,904 of them — and the endpoints the app could not express before
+   (a start in orbit, an arrival in stationary orbit, Kerbol at either end) come
+   out of the same arithmetic. */
+function routeFor(
+  from: Endpoint,
+  to: Endpoint,
   chutes: boolean,
-  origin = "Kerbin",
-  returning = false,
-  planeNow = false,
+  returning: boolean,
+  planeNow: boolean,
 ): Array<Leg> {
-  if (destName === "Low orbit" || destName === "Stationary orbit") {
-    if (!SYS[origin] || !SYS[origin].ascent) return [];
-    const legs: Array<Leg> = [
-      {
-        label: `${origin} surface → low orbit`,
-        dv: SYS[origin].ascent,
-        kind: "ascent",
-        body: origin,
-        g: gOf(origin),
-        atm: !!SYS[origin].atm,
-      },
-    ];
-    if (destName === "Stationary orbit" && hasSync(origin)) {
-      const r2 = syncR(origin),
-        h = hohmann(origin, lowR(origin), r2);
-      legs.push({
-        label: `Raise apoapsis to ${Math.round((r2 - SYS[origin].R) / 1000).toLocaleString()} km`,
-        dv: Math.round(h.out),
-        kind: "transfer",
-        body: origin,
-        g: gOf(origin),
-      });
-      legs.push({
-        label: "Circularise, one orbit per day",
-        dv: Math.round(h.in),
-        kind: "capture",
-        body: origin,
-        g: gOf(origin),
-      });
+  if (possible(from, to) !== true) return [];
+  const origin = from.body;
+
+  /* Up to the From body's low orbit. */
+  const climb: Array<Leg> = [];
+  if (from.state === "surface") climb.push(ascentLeg(origin));
+  else if (from.state === "sync") climb.push(...syncLegs(origin, false));
+
+  /* The same body: no transfer, only what lies between the two states. */
+  if (to.body === origin) {
+    let legs = [...climb];
+    if (to.state === "sync") legs.push(...syncLegs(origin, true));
+    else if (to.state === "surface") legs.push(landLeg(origin));
+    if (chutes)
+      legs = legs.map((l) =>
+        l.kind === "land" && l.atm
+          ? { ...l, dv: Math.round(l.dv * 0.18), chuted: true }
+          : l,
+      );
+    if (returning) {
+      /* Back to where it began: down from stationary, off the surface, or
+         from orbit down to the surface. */
+      if (to.state === "sync") legs.push(...syncLegs(origin, false));
+      else if (to.state === "surface")
+        legs.push({
+          ...ascentLeg(origin),
+          kind: "ascentBack",
+          label: `Ascent from ${origin} surface`,
+        });
+      if (from.state === "sync") legs.push(...syncLegs(origin, true));
+      else if (from.state === "surface") {
+        const l = landLeg(origin);
+        legs.push(
+          chutes && l.atm
+            ? { ...l, dv: Math.round(l.dv * 0.18), chuted: true }
+            : l,
+        );
+      }
     }
     return legs;
   }
-  const base =
-    origin === "Kerbin" && DEST[destName]
-      ? DEST[destName].legs.map((l) => ({ ...l }))
-      : computedLegs(origin, destName);
+
+  /* Another body. From Kerbin's surface or low orbit the map's own legs; from
+     anywhere else, Hohmann transfers through the body tree. Either way the
+     base is the way to the To body's low orbit and, where it has one, its
+     surface — the To state then keeps or drops the last of those. */
+  const table =
+    origin === "Kerbin" && from.state !== "sync" ? tabulated(to.body) : null;
+  let base: Array<Leg>;
+  if (table) {
+    base = table.legs.map((l) => ({ ...l }));
+    /* The table starts on the launchpad; a start in orbit is past that. */
+    if (from.state !== "surface")
+      base = base.filter((l) => l.kind !== "ascent");
+  } else {
+    const d = SYS[to.body];
+    base = [...climb];
+    transferDv(origin, to.body).forEach((l) =>
+      base.push({ ...l, g: gOf(l.body) }),
+    );
+    if (d.ascent && !d.noLand) base.push(landLeg(to.body));
+  }
   if (!base.length) return [];
 
   /* Inclination is charged as its own leg, placed just before capture, because
      unlike everything else in the budget its cost is set by when you burn it
      rather than how much you need. */
-  const pcs = planeChanges(origin, destName);
+  const pcs = planeChanges(origin, to.body);
   if (pcs.length) {
     const at = base.findIndex((l) => l.kind === "capture");
     const rows: Array<Leg> = pcs.map((pc) => ({
@@ -920,17 +1054,20 @@ function buildRoute(
       cheap: pc.cheap,
       costly: pc.costly,
       kind: "plane",
-      body: bodyKey(destName) || origin,
-      g: gOf(bodyKey(destName) || origin),
+      body: to.body,
+      g: gOf(to.body),
       plane: pc,
     }));
     base.splice(at < 0 ? base.length : at, 0, ...rows);
   }
   let legs = base;
 
-  if (profile === "flyby")
+  /* The To state: a fly-by never captures, an orbit never lands, and a
+     stationary orbit climbs on from the low one. */
+  if (to.state === "flyby")
     legs = legs.filter((l) => l.kind !== "capture" && l.kind !== "land");
-  else if (profile === "orbit") legs = legs.filter((l) => l.kind !== "land");
+  else if (to.state !== "surface") legs = legs.filter((l) => l.kind !== "land");
+  if (to.state === "sync") legs = legs.concat(syncLegs(to.body, true));
 
   // Parachutes / aerobraking credit on descent through an atmosphere.
   if (chutes)
@@ -945,18 +1082,19 @@ function buildRoute(
      you must break the capture burn again, and after a flyby you were never bound
      in the first place, so there is nothing to undo. */
   if (returning) {
-    const landLeg = base.find((l) => l.kind === "land");
+    const land = base.find((l) => l.kind === "land");
     const capLeg = base.find((l) => l.kind === "capture");
     const back: Array<Leg> = [];
-    if (profile === "land" && landLeg)
+    if (to.state === "sync") back.push(...syncLegs(to.body, false));
+    if (to.state === "surface" && land)
       back.push({
-        label: `Ascent from ${landLeg.body} surface`,
-        dv: landLeg.dv,
+        label: `Ascent from ${land.body} surface`,
+        dv: land.dv,
         kind: "ascentBack",
-        body: landLeg.body,
-        g: landLeg.g,
+        body: land.body,
+        g: land.g,
       });
-    else if (profile === "orbit" && capLeg)
+    else if ((to.state === "low" || to.state === "sync") && capLeg)
       back.push({
         label: `Escape ${capLeg.body} orbit`,
         dv: capLeg.dv,
@@ -974,20 +1112,72 @@ function buildRoute(
       body: origin,
       g: gOf(origin),
     });
+    /* An aerobrake wants air over a surface one could stand on: Kerbol's
+       atmosphere and Jool's are not places to shed speed, so a return to
+       either is a capture. Every origin the app had before had a surface. */
+    const air = !!(
+      SYS[origin].atm &&
+      SYS[origin].ascent &&
+      !SYS[origin].noLand
+    );
     back.push({
-      label:
-        SYS[origin] && SYS[origin].atm
-          ? `Aerobrake at ${origin} (heat shield)`
-          : `Capture at ${origin}`,
-      dv: SYS[origin] && SYS[origin].atm ? 0 : Math.round(vCirc(origin) * 0.41),
+      label: air
+        ? `Aerobrake at ${origin} (heat shield)`
+        : `Capture at ${origin}`,
+      dv: air ? 0 : Math.round(vCirc(origin) * 0.41),
       kind: "aero",
       body: origin,
       g: gOf(origin),
-      free: !!(SYS[origin] && SYS[origin].atm),
+      free: air,
     });
+    /* A start in stationary orbit climbs back up to it. A start on the
+       surface ends where the app always ended a return: captured, with the
+       landing itself uncharged — through air it is the aerobrake, and on an
+       airless body it never was charged. */
+    if (from.state === "sync") back.push(...syncLegs(origin, true));
     legs = legs.concat(back);
   }
   return legs;
+}
+
+/* The app's old way of asking — a destination name, a profile, an origin —
+   mapped onto the endpoints. Kept so every caller and every saved
+   configuration still works, and so test/routes.test.ts can hold the new
+   builder to the old routes. */
+function endpointsOf(destName: string, profile: string, origin: string) {
+  const from: Endpoint = { body: origin, state: "surface" };
+  if (destName === "Low orbit")
+    return { from, to: { body: origin, state: "low" } as Endpoint };
+  if (destName === "Stationary orbit")
+    return { from, to: { body: origin, state: "sync" } as Endpoint };
+  const body = bodyKey(destName);
+  if (!body) return null;
+  const canLand = !!SYS[body].ascent && !SYS[body].noLand;
+  const state: State =
+    destName === "Keostationary orbit"
+      ? "sync"
+      : profile === "flyby"
+        ? "flyby"
+        : profile === "land" && canLand
+          ? "surface"
+          : "low";
+  return { from, to: { body, state } };
+}
+
+function buildRoute(
+  destName: string,
+  profile: string,
+  chutes: boolean,
+  origin = "Kerbin",
+  returning = false,
+  planeNow = false,
+): Array<Leg> {
+  const e = endpointsOf(destName, profile, origin);
+  if (!e) return [];
+  /* The origin's own orbits never had a return leg; a return to where you
+     already are is the new model's to give. */
+  const same = destName === "Low orbit" || destName === "Stationary orbit";
+  return routeFor(e.from, e.to, chutes, same ? false : returning, planeNow);
 }
 
 /* No cuts to begin with: the whole mission is solved as one span and the stage
@@ -1009,6 +1199,7 @@ export {
   chainOf,
   computedLegs,
   defaultCuts,
+  endpointsOf,
   gOf,
   hasSync,
   hohmann,
@@ -1017,10 +1208,22 @@ export {
   lowR,
   mu,
   planeChanges,
+  possible,
   relInc,
+  routeFor,
   soiR,
+  STATES,
   syncR,
   transferDv,
   vCirc,
 };
-export type { Dest, Leg, LegKind, PlaneChange, Profile, SysBody };
+export type {
+  Dest,
+  Endpoint,
+  Leg,
+  LegKind,
+  PlaneChange,
+  Profile,
+  State,
+  SysBody,
+};
