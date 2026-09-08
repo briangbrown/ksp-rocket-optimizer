@@ -124,5 +124,7 @@ Changing a number here is changing a measurement.
   TVR-2160C Mk2 Stack Quad-Coupler behind "Advanced Metalworks" where the
   tree spells it "Advanced MetalWorks": it had never been available. A
   node's name is a key into `tech.json`, so it is copied from there, not
-  typed. The seventeen come off the list only by recording `TechRequired`
-  and `cost` from their `.cfg` files — `tools/README.md` says what to pack.
+  typed. The seventeen's nodes and prices were then recorded from their
+  `.cfg` files (`TechRequired`, `cost`; five nodes, Fuel Systems to
+  High-Performance Fuel Systems); `tools/README.md` says what was packed,
+  for the next row that arrives the same way.

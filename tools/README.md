@@ -60,17 +60,21 @@ part-data rules apply to them.
 
 ## Tank configs — the Making History gap
 
-Seventeen Making History tanks in `src/data/parts.json` carry no tech node and
-no price (`test/parts-data.test.ts` names them), because the configs the data
-was captured from had no MakingHistory folder. They are unavailable until
-both are recorded from the configs — the `TechRequired` and `cost` lines of
-each part's `.cfg` (#191). From a PowerShell prompt at the KSP root:
+Seventeen Making History tanks in `src/data/parts.json` carried no tech node
+and no price, because the configs the data was captured from had no
+MakingHistory folder; the gates fail closed, so such a row is unavailable
+until both are recorded from the configs — the `TechRequired` and `cost`
+lines of each part's `.cfg` (#191, recorded 2026-09). The pack that closed
+it, from a PowerShell prompt at the KSP root:
 
 ```powershell
 Compress-Archive -Path "GameData\SquadExpansion\MakingHistory\Parts\FuelTank\*.cfg" `
   -DestinationPath "$env:USERPROFILE\Desktop\mh-tanks.zip"
 ```
 
-Nothing else is needed: the values are read by hand into `parts.json`, node
-name copied from `src/data/tech.json` — the tree's spelling is the key, and
-"Advanced Metalworks" for "Advanced MetalWorks" hid a coupler for months.
+Nothing else is needed: the values are read by hand into `parts.json`, the
+config's node id mapped to the tree's name in `src/data/tech.json`
+(`highPerformanceFuelSystems` → "High-Performance Fuel Systems") — the
+tree's spelling is the key, and "Advanced Metalworks" for "Advanced
+MetalWorks" hid a coupler for months. `test/parts-data.test.ts` holds every
+part to a node the tree has.
