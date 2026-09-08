@@ -110,9 +110,13 @@ type ChainCandidate = {
   slim: boolean;
 };
 
-/* The search's answer: the best chain, and the best at each stage count.
-   `byK` is what plan.js walks — `best` is not what the user gets. */
-type GroupResult = ChainCandidate & { byK: Array<ChainCandidate> };
+/* The search's answer: the best chain, the best at each stage count, and
+   the runners-up at each (`alts`, ALTS_PER_K − 1 of them). `byK` and `alts`
+   are what plan.js walks — `best` is not what the user gets. */
+type GroupResult = ChainCandidate & {
+  byK: Array<ChainCandidate>;
+  alts: Array<ChainCandidate>;
+};
 
 /* Everything a group is searched with. `prepare` turns it into the argument a
    unit runs on; `minK` and `maxK` are read by `solveGroup` alone. */
@@ -1007,13 +1011,22 @@ function boostedAscent({
             const got = dvA + ispCore * G0 * Math.log(mB0 / coreDry);
             if (got < dv * 0.995) continue;
 
-            const twr = (nb * thr(b, pSurf) + nc * thr(c, pSurf)) / (m0 * g);
+            const thrustA = nb * thr(b, pSurf) + nc * thr(c, pSurf);
+            const twr = thrustA / (m0 * g);
             if (twr < twrMin) continue;
             /* The core has to keep flying once the boosters go. Without this the
              optimiser bolts on SRBs purely to pass the liftoff TWR check and
-             leaves a sustainer that can't hold itself up. A real sustainer can
-             sit a little under 1 by separation, already fast and climbing. */
-            if ((nc * thr(c, pSurf)) / (mB0 * g) < 0.85) continue;
+             leaves a sustainer that can't hold itself up. */
+            const hold = sustainerHolds(
+              thrustA,
+              nc * thr(c, pSurf),
+              m0,
+              mA,
+              mB0,
+              tB,
+              g,
+            );
+            if (!hold.ok) continue;
             /* Boosters that burn out in a handful of seconds are a crutch, not a stage. */
             if (dvA < dv * 0.08) continue;
 
@@ -1036,7 +1049,14 @@ function boostedAscent({
               twr,
               twrBurnout: (nc * thr(c, pSurf)) / (coreDry * g),
               burn: tB + (mp - coreBurnA) / mdotC,
-              boosters: { part: b, n: nb, burn: tB, dv: dvA, sepMass: mA },
+              boosters: {
+                part: b,
+                n: nb,
+                burn: tB,
+                dv: dvA,
+                sepMass: mA,
+                twrSep: hold.twrSep,
+              },
               /* Filled in on the next three lines. Named here so the object is
                  built once with the shape it will keep, rather than growing
                  three properties immediately afterwards. */
@@ -1174,6 +1194,42 @@ function unitsOf(minK: number, maxK: number) {
 const better = (x: ChainCandidate, y: ChainCandidate | null | undefined) =>
   !y || (x.slim !== y.slim ? x.slim : x.chainScore < y.chainScore);
 
+/* How many candidates a stage count keeps for the walk in plan.ts. One was
+   the mass objective's undoing on a 1 t low-orbit brief: its lightest
+   two-stage chain could not be flown to budget, and the 7.2 t Torch chain
+   that could — the cost objective's pick — was never in the list. Three
+   costs a few more flights on the candidates that fail, and nothing on the
+   ones that do not. #169 */
+const ALTS_PER_K = 3;
+
+/* Whether the core can keep the stack climbing once the boosters go.
+
+   A sustainer may sit a little under one by separation *if it is already
+   fast and climbing* — that was always the argument for the 0.85 floor, and
+   the floor never checked it. Six Hammers on a Mainsail lift 187 t at 1.40
+   for 24 seconds, to 1.9 km and 100 m/s, then leave the Mainsail alone at
+   0.88; the stack decelerates, straight up, for the next forty seconds and
+   pays 2,600 m/s of gravity loss for it. So: a core under one is allowed
+   only when the boost phase has given it SUSTAINER_FAST of speed — the net
+   acceleration of the boost, on its average mass, for its burn — and never
+   under SUSTAINER_MIN. Thrust in kN, mass in t, g in m/s². #168 */
+const SUSTAINER_MIN = 0.85;
+const SUSTAINER_FAST = 250;
+function sustainerHolds(
+  thrustA: number,
+  thrustC: number,
+  m0: number,
+  mA: number,
+  mB0: number,
+  tB: number,
+  g: number,
+) {
+  const twrSep = thrustC / (mB0 * g);
+  const vSep = Math.max(0, (thrustA / ((m0 + mA) / 2) - g) * tB);
+  const ok = twrSep >= 1 || (twrSep >= SUSTAINER_MIN && vSep >= SUSTAINER_FAST);
+  return { ok, twrSep, vSep };
+}
+
 /* Fold the units' candidates back into one answer. Fed the results in unit
    order, this is what the loop used to do inline. */
 function reduceUnits(
@@ -1181,12 +1237,27 @@ function reduceUnits(
 ): GroupResult | null {
   let best: ChainCandidate | null = null;
   const byK: Array<ChainCandidate> = [];
+  /* The next-best few at each stage count, in the walk's order. */
+  const top: Array<Array<ChainCandidate>> = [];
   for (const cands of results)
     for (const cand of cands ?? []) {
       if (better(cand, best)) best = cand;
       if (better(cand, byK[cand.k])) byK[cand.k] = cand;
+      const list = (top[cand.k] ??= []);
+      let i = list.length;
+      while (i > 0 && better(cand, list[i - 1])) i--;
+      if (i < ALTS_PER_K) {
+        list.splice(i, 0, cand);
+        if (list.length > ALTS_PER_K) list.pop();
+      }
     }
-  return best && { ...best, byK: byK.filter((c) => c !== undefined) };
+  return (
+    best && {
+      ...best,
+      byK: byK.filter((c) => c !== undefined),
+      alts: top.flatMap((l) => (l ? l.slice(1) : [])),
+    }
+  );
 }
 
 /* One `(k, shares)` unit: build every chain for that split and hand back the
@@ -1495,6 +1566,7 @@ export {
   solveStage,
   solveUnit,
   splitShares,
+  sustainerHolds,
 };
 export type {
   BoostOpt,

@@ -463,7 +463,14 @@ const STRAPPED: Solution = {
   n: 1,
   tanks: { list: [{ c: 2, t: S3 }], count: 2, dryMass: 4.5, prop: 36 },
   decoupler: { n: "TD-37 Decoupler", m: 0.4, cost: 800, d: 3.75, qty: 1 },
-  boosters: { part: CASTOR, n: 4, burn: 60, dv: 500, sepMass: 100 },
+  boosters: {
+    part: CASTOR,
+    n: 4,
+    burn: 60,
+    dv: 500,
+    sepMass: 100,
+    twrSep: 1.2,
+  },
 };
 
 describe("a booster beside a wide engine", () => {

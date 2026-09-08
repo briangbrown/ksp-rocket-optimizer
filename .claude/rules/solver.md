@@ -166,6 +166,56 @@ before changing the thing it names.
   a solver change you cannot explain still deserves a wider sweep before you
   believe it is invisible.
 
+- **The flown ascent is compared with what the chain carries for the
+  climb, not with the group.** A cut can put a plane change, a capture and a
+  descent in the launch group; `planMission` compared the simulator's ascent
+  with the whole group's Δv and found a rocket 600 m/s short of orbit
+  "carrying its flight". `ascentShareOf` is the ascent legs' share, margin
+  included; `carriedFor` adds what the chain's tanks rounded the group up
+  to; the re-solve grows the group by the shortfall beyond that and keeps
+  the other legs whole. The margin is a reserve — a flight within what is
+  carried stands — and a flight over it is grown to carry the margin over
+  what it flew at. Fixing this re-sized every launch whose flown ascent
+  exceeded the map's 3,400 m/s share and had been passing against the
+  group: Duna at 3.5 t (lightest) went 131 → 149 t, its old design flying
+  238 m/s over what it carried. #167
+
+- **A sustainer under one is admitted only when the boost has made it
+  fast.** The 0.85 floor's own comment said "already fast and climbing"
+  and never checked it; six Hammers on a Mainsail passed at 0.88 with the
+  stack at 100 m/s and 1.9 km, then stalled straight up for forty seconds.
+  `sustainerHolds` estimates the separation speed from the boost phase's
+  net acceleration on its average mass and requires `SUSTAINER_FAST`
+  (250 m/s) of it under one, `SUSTAINER_MIN` (0.85) regardless; `twrSep`
+  rides on `Boosters` and the stage card shows it between liftoff and
+  burnout. Every design it refuses was passing before, so what replaces one
+  is dearer or heavier: Minmus at 6.5 t (cheapest) 48,761 → 52,765 funds,
+  low orbit at 0.8 t (lightest) 5.3 → 7.0 t. Tune `SUSTAINER_FAST` with the
+  sweep, not by hand. #168
+
+- **The walk judges a candidate by what it would weigh once grown, and it
+  sees the runners-up.** `reduceUnits` keeps `ALTS_PER_K` (3) chains per
+  stage count, not one: the closed form's favourite at a count is not
+  always one the simulator flies to budget, and the one behind it often
+  is — the 7.2 t Torch chain the cost objective found on a 1 t low-orbit
+  brief was never in the mass objective's list. Candidates are flown
+  cheapest first, and one that flies over what it carries has its score
+  scaled by the rocket equation (`GROW_VE`, 2,500 m/s) for the growth the
+  re-solve will impose; the walk stops once the next score cannot beat the
+  best estimate. Taking the first that flew grew a light chain a great
+  deal when the one behind flew nearly to budget; taking the first that
+  fitted took a heavy chain over a light one that needed a little. #168
+  #169
+
+- **Cheapest is never dearer than lightest.** The cost and parts objectives
+  minimise within a group and are charged nothing for the mass handed
+  down; the mass objective compounds through it. `planMission` plans the
+  lightest design as well for those two objectives and delivers whichever
+  measures better on the one asked for — twice the work for two of the
+  three objectives, and `test/flown-cost.test.ts` holds the floor on the
+  Minmus brief that showed it (48,761 asked cheapest against 42,235 asked
+  lightest). #169
+
 - **A flight's `total` is what the orbit needs, never what the tanks held.**
   `flyAscent` integrates the circularisation on the stage live at apoapsis.
   It used to stop when that stage ran dry and report what it had spent:

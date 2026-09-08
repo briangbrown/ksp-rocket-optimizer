@@ -94,6 +94,9 @@ type Boosters = {
   burn: number;
   dv: number;
   sepMass: number;
+  /* The core's thrust-to-weight the moment the ring leaves: what the stage
+     card shows between liftoff and burnout, since the dip is there. #168 */
+  twrSep: number;
 };
 
 /* A packed ring: `r` tanks around a centre column, `levels` levels deep. Height
