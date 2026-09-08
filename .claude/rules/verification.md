@@ -130,6 +130,16 @@ while hidden turns every icon button's row into "scrolling sideways"; the
 `IconButton` tooltip is `display: none` until shown for this reason, not a
 styling preference.
 
+Two more things it holds since #184. On the phone it taps an icon and reads
+its tooltip's `display` twice, up at once and gone after `MOTION.linger` and
+a `settle`; on the desktop it opens the brief, shows the rightmost hint by a
+rule of its own — headless Chrome answers `hover: none` and will not emulate
+otherwise — and reads the viewport twice along the hint's first line of
+text where it crosses into the results column, requiring a quarter of the
+pixels to change. Palette-free on purpose: in the light theme the hint and a
+card share a ground, and a check against the hint's own colour passed with
+the fault in place.
+
 One thing it had to be told: `settle` waited for the solver, and a staging
 transition has nothing to do with the solver. Sampling a panel before the
 separation has finished reads a frame of the animation as though it were the

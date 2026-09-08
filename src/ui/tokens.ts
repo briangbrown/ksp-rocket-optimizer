@@ -194,7 +194,9 @@ const RADIUS = { none: 0, sm: 3, lg: 8, round: 999 };
 
 /* The stacking order, named. The solving pill stays above the overlay so a
    full-screen rocket about to be replaced still says so — `.claude/rules/ui.md`.
-   30 was a second pill inside the veil, gone with #136. */
+   30 was a second pill inside the veil, gone with #136. `brief` is also the
+   desktop's sticky left column: a sticky box is its own stacking context, and
+   without a z of its own its tooltips drew under the results column. #184 */
 const Z = {
   brief: 10,
   jump: 20,
@@ -205,9 +207,11 @@ const Z = {
 };
 
 /* Motion, in milliseconds. `quick` is a chip changing state or a chevron
-   turning; `settle` is a fold opening or a sheet sliding. The staging's own
-   two paces live with the build view. */
-const MOTION = { quick: 120, settle: 400 };
+   turning; `settle` is a fold opening or a sheet sliding; `linger` is how
+   long something that showed itself unasked — a confirmation, a tapped
+   icon's tooltip — stands before it starts to fade. The staging's own two
+   paces live with the build view. */
+const MOTION = { quick: 120, settle: 400, linger: 2400 };
 
 /* The two shadows, both on black whatever the theme: the solving bar's and the
    pill's, which sit over content rather than on a surface. */

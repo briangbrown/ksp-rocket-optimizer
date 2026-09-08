@@ -15,6 +15,7 @@ import type {
   CSSProperties,
   RefObject,
   KeyboardEvent,
+  PointerEvent,
   ReactNode,
   ComponentType,
 } from "react";
@@ -335,7 +336,13 @@ function Choice<V extends string | number>({
 
 /* ----------------------------- IconButton ----------------------------- */
 /* An icon, a label the reader hears and the pointer sees as a tooltip, and a
-   square target. `on` inverts it, for an icon that is also a toggle. */
+   square target. `on` inverts it, for an icon that is also a toggle.
+
+   A finger sees the tooltip too, on a clock: a tap shows it (`data-tip`
+   1), `MOTION.linger` later it starts to fade (2), and a `settle` after
+   that it is gone. Losing focus clears it at once — a sheet or an overlay
+   that the tap opened has taken the reader elsewhere. The stylesheet does the
+   drawing; this only keeps the time. #184 */
 type IconButtonProps = {
   icon: ComponentType<LucideProps>;
   label: string;
@@ -352,19 +359,43 @@ const IconButton = ({
   on,
   disabled,
   style,
-}: IconButtonProps) => (
-  <button
-    className="iconbtn"
-    aria-label={label}
-    aria-pressed={on}
-    data-on={on ? 1 : 0}
-    disabled={disabled}
-    onClick={onClick}
-    style={style}
-  >
-    <Icon size={ICON.alone} strokeWidth={STROKE} aria-hidden />
-  </button>
-);
+}: IconButtonProps) => {
+  const [tip, setTip] = useState<0 | 1 | 2>(0);
+  const timers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const clear = () => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+  };
+  useEffect(() => clear, []);
+  const tapped = (e: PointerEvent<HTMLButtonElement>) => {
+    if (e.pointerType !== "touch") return;
+    clear();
+    setTip(1);
+    timers.current = [
+      setTimeout(() => setTip(2), MOTION.linger),
+      setTimeout(() => setTip(0), MOTION.linger + MOTION.settle),
+    ];
+  };
+  return (
+    <button
+      className="iconbtn"
+      aria-label={label}
+      aria-pressed={on}
+      data-on={on ? 1 : 0}
+      data-tip={tip || undefined}
+      disabled={disabled}
+      onClick={onClick}
+      onPointerUp={tapped}
+      onBlur={() => {
+        clear();
+        setTip(0);
+      }}
+      style={style}
+    >
+      <Icon size={ICON.alone} strokeWidth={STROKE} aria-hidden />
+    </button>
+  );
+};
 
 /* ------------------------------- Stepper ------------------------------- */
 /* A small integer: the figure between a minus and a plus, each an icon
@@ -959,19 +990,16 @@ function Field({
    same wherever it is drawn. #139, #140 */
 type Note = { severity: Severity; title: string };
 
-/* How long a confirmation stands before it starts to fade. */
-const LINGER_MS = 2400;
-
 function useNote(): [Note | null, (n: Note | null) => void, CSSProperties] {
   const [note, setNote] = useState<Note | null>(null);
   const [fading, setFading] = useState(false);
   useEffect(() => {
     if (!note || note.severity === "bad" || note.severity === "warn") return;
-    const fade = setTimeout(() => setFading(true), LINGER_MS);
+    const fade = setTimeout(() => setFading(true), MOTION.linger);
     const gone = setTimeout(() => {
       setNote(null);
       setFading(false);
-    }, LINGER_MS + MOTION.settle);
+    }, MOTION.linger + MOTION.settle);
     return () => {
       clearTimeout(fade);
       clearTimeout(gone);
