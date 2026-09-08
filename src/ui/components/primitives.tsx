@@ -272,13 +272,30 @@ function Picker<V extends string>({
   onChange,
   style,
 }: PickerProps<V>) {
+  /* A select keeps :focus-visible after a pointer or a touch — it is
+     keyboard-operable while it has focus, so browsers draw the ring where
+     they would not on a button. So the ring stayed round the picker after a
+     tap chose a view. A choice made by pointer or touch lets the focus go
+     once it is made; one made from the keyboard keeps it, and the ring, as
+     every other stop does. The modality is what the last event before the
+     change was. */
+  const byPointer = useRef(false);
   return (
     <span className="picker-wrap" style={style}>
       <select
         className="picker label tap"
         aria-label={label}
         value={value}
-        onChange={(e) => onChange(e.target.value as V)}
+        onPointerDown={() => {
+          byPointer.current = true;
+        }}
+        onKeyDown={() => {
+          byPointer.current = false;
+        }}
+        onChange={(e) => {
+          onChange(e.target.value as V);
+          if (byPointer.current) e.target.blur();
+        }}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

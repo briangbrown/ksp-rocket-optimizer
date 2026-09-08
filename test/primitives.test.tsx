@@ -86,6 +86,28 @@ describe("Picker", () => {
     fireEvent.change(sel, { target: { value: "plan" } });
     expect(seen).toEqual(["plan"]);
   });
+
+  it("lets focus go after a choice by pointer, and keeps it after one by key", () => {
+    render(
+      <Picker
+        label="View 2"
+        options={[
+          { value: "side", label: "Front" },
+          { value: "plan", label: "Plan" },
+        ]}
+        value="side"
+        onChange={() => {}}
+      />,
+    );
+    const sel = screen.getByLabelText("View 2") as HTMLSelectElement;
+    sel.focus();
+    fireEvent.keyDown(sel, { key: "ArrowDown" });
+    fireEvent.change(sel, { target: { value: "plan" } });
+    expect(document.activeElement).toBe(sel);
+    fireEvent.pointerDown(sel);
+    fireEvent.change(sel, { target: { value: "side" } });
+    expect(document.activeElement).not.toBe(sel);
+  });
 });
 
 describe("Toggle", () => {
