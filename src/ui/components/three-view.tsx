@@ -377,13 +377,20 @@ export default function ThreeView({
     const creaseMat = new LineBasicMaterial({ color: lineOf(pal) });
     owned.push(creaseMat);
 
+    /* An engine on the axis, or a solid booster strapped beside it: both are
+       one part with a file under public/engines, and the booster's drum —
+       its casing and its nozzle together — is exactly the box its mesh is
+       scaled into. A liquid column is drawn part by part and its engine
+       arrives here as role "engine" already. */
+    const meshed = (p: ModelPart) =>
+      p.role === "engine" || p.role === "booster";
     for (const [i, p] of parts.entries()) {
-      const geo =
-        p.role === "engine" && engineMesh(p.part.n, meshSet)
-          ? engineGeometry(p.r, p.h, engineMesh(p.part.n, meshSet)!)
-          : p.rTop === undefined
-            ? new CylinderGeometry(p.r, p.r, p.h, SEGMENTS)
-            : new LatheGeometry(taperedProfile(p.r, p.rTop, p.h), SEGMENTS);
+      const m = meshed(p) ? engineMesh(p.part.n, meshSet) : undefined;
+      const geo = m
+        ? engineGeometry(p.r, p.h, m)
+        : p.rTop === undefined
+          ? new CylinderGeometry(p.r, p.r, p.h, SEGMENTS)
+          : new LatheGeometry(taperedProfile(p.r, p.rTop, p.h), SEGMENTS);
       const mat = goochMaterial(
         p.role === "booster" ? color : fill[p.role] || pal.dim,
         pal,
@@ -400,10 +407,7 @@ export default function ThreeView({
       /* A simplified mesh is creases all over; on an engine only the sharp
          ones — the lip, a plate's edge — are lines. */
       const line = new LineSegments(
-        new EdgesGeometry(
-          geo,
-          p.role === "engine" ? ENGINE_CREASE : CREASE_ANGLE,
-        ),
+        new EdgesGeometry(geo, meshed(p) ? ENGINE_CREASE : CREASE_ANGLE),
         creaseMat,
       );
       lines.push(line);
@@ -594,7 +598,8 @@ export default function ThreeView({
          dashed was a thicket where a bell should be. */
       for (let i = 0; i < parts.length; i++) {
         b.lines[i].material = b.ghostLine;
-        b.lines[i].visible = parts[i].role !== "engine";
+        b.lines[i].visible =
+          parts[i].role !== "engine" && parts[i].role !== "booster";
       }
       renderer.setRenderTarget(b.fillTarget);
       renderer.autoClear = false;
