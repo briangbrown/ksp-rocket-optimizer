@@ -996,5 +996,5 @@ function BuildView({
   );
 }
 
-export { BuildView, isSolved };
+export { BuildView, canRender3D, isSolved };
 export type { SolvedStage, Step };

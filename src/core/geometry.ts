@@ -121,6 +121,10 @@ const PART_H = (n: string) => art.PART_H[n];
    badly wrong — diaOf falls back to 1.25 m for anything with no stack profile,
    so a Twitch was being charged 1.23 m² of frontal area against a true 0.07. */
 const PART_A = (n: string) => art.PART_A[n];
+/* Which art is live, for the renderer's engine meshes — the same choice
+   `useArt` made for the geometry tables. #85 */
+const artName = (): "stock" | "restock" =>
+  art === ART.restock ? "restock" : "stock";
 const areaOf = (part: { n: string }, fallback: number) => {
   const a = PART_A(part.n);
   return a !== undefined ? a : fallback;
@@ -513,6 +517,7 @@ export {
   SPAN,
   areaOf,
   clusterSpan,
+  artName,
   engineLen,
   heightOf,
   packFor,
