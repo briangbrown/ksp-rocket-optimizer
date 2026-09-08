@@ -107,7 +107,8 @@ input[type=range]{ accent-color:${C.amber}; width:100%; height:24px; margin:0; }
 .iconbtn { position:relative; display:inline-flex; align-items:center; justify-content:center;
            width:44px; height:44px; flex-shrink:0; border-radius:${RADIUS.sm}px; color:${C.muted};
            transition:${EASE}; }
-.iconbtn:hover:not(:disabled), .iconbtn:focus-visible { color:${C.paper}; background:${C.panel2}; }
+.iconbtn:focus-visible, .iconbtn[data-tip] { color:${C.paper}; background:${C.panel2}; }
+@media (hover: hover) { .iconbtn:hover:not(:disabled) { color:${C.paper}; background:${C.panel2}; } }
 .iconbtn:disabled { opacity:.4; }
 .iconbtn[data-on="1"] { color:${C.ink}; background:${C.paper}; }
 /* Not merely transparent while hidden: an absolutely positioned box still
@@ -119,7 +120,14 @@ input[type=range]{ accent-color:${C.amber}; width:100%; height:24px; margin:0; }
                   text-transform:none; letter-spacing:0; color:${C.paper}; background:${C.panel2};
                   border:1px solid ${C.rule}; border-radius:${RADIUS.sm}px; padding:${SPACE.xs}px ${SPACE.md}px;
                   pointer-events:none; z-index:${Z.popover}; }
-.iconbtn:hover::after, .iconbtn:focus-visible::after { display:block; }
+.iconbtn:focus-visible::after { display:block; }
+@media (hover: hover) { .iconbtn:hover::after { display:block; } }
+/* A tap has no hover to leave, so the tooltip it shows is on a clock: shown
+   for a beat, faded over MOTION.settle, then gone — IconButton sets the
+   attribute and the timers. Hover alone was not gated, and on a phone a
+   tap left the button in a sticky :hover with its tooltip up for good. #184 */
+.iconbtn[data-tip]::after { display:block; opacity:1; transition:opacity ${MOTION.settle}ms; }
+.iconbtn[data-tip="2"]::after { opacity:0; }
 /* A disclosure's i beside a label: the same square target, its wrapper
    pulled in by negative margins so it takes 28 px of the row it sits in —
    primitives.tsx says why the wrapper and not the button. With a caption the
@@ -264,7 +272,7 @@ a:hover { color:${C.paper}; text-decoration-color:${C.amber}; }
 @keyframes pulse { 0%,100% { opacity:.35; } 50% { opacity:1; } }
 @keyframes rise { from { transform:translateY(100%); } to { transform:none; } }
 @keyframes slide { from { transform:translateX(100%); } to { transform:none; } }
-@media (prefers-reduced-motion: reduce) { * { transition:none !important; } .skel { animation:none; } }
+@media (prefers-reduced-motion: reduce) { *, *::after { transition:none !important; } .skel { animation:none; } }
 `;
 
 export { STYLES };

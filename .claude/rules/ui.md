@@ -108,6 +108,20 @@ control shows and what it committed.
   `sideways` count as its own hidden text. A `caption`ed one has no negative
   margin at all.
 
+- **The desktop's sticky column carries `Z.brief`.** A sticky box is a
+  stacking context of its own, so a tooltip's `z-index` inside it only orders
+  it against the column's other children; the results column comes later in
+  the DOM and painted over every hint that reached past the column's edge. A
+  z on the column itself is what puts the whole of it, tooltips included, in
+  front. The layout suite reads the pixel where a hint crosses over. #184
+
+- **A tooltip on a phone is on a clock.** `:hover` on a touch browser is
+  sticky — a tap sets it and nothing unsets it until the next tap — so the
+  icon tooltip's hover rule is gated on `(hover: hover)` as the chip hint's
+  always was, and a tap runs `data-tip` through shown, fading and gone on
+  `MOTION.linger` and `settle`, cleared at once on blur. Hidden is still
+  `display: none`, for the `sideways` count. #184
+
 - **`Choice`'s `hint` is a CSS tooltip, and only under a pointer.** It is
   `data-hint` rendered by `::after` under `@media (hover: hover)`, so it is
   neither in `innerText` nor in the phone's reach; the sentences it shows

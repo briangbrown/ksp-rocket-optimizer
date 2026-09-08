@@ -37,6 +37,7 @@ import {
   C,
   FONT,
   SPACE,
+  Z,
   edgeOf,
   palette,
   themeNow,
@@ -915,6 +916,10 @@ export default function KSPMissionPlanner() {
             style={{
               position: "sticky",
               top: ask.top,
+              /* Above the results column, or a tooltip reaching past the
+                 column's edge is drawn under it: sticky is a stacking
+                 context of its own, and the results come later. #184 */
+              zIndex: Z.brief,
               alignSelf: "start",
               display: "grid",
               gap: SPACE.xl,

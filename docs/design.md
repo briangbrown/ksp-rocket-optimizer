@@ -351,7 +351,7 @@ chips become `3`.
 
 | Token     | Value | What                                                                                 |
 | --------- | ----- | ------------------------------------------------------------------------------------ |
-| `brief`   | 10    | the set brief, sticky at the top                                                     |
+| `brief`   | 10    | the set brief, sticky at the top, and the desktop's sticky left column (#184)        |
 | `jump`    | 20    | the phone's jump bar                                                                 |
 | `overlay` | 40    | the full-screen build view, portaled to `body`                                       |
 | `solving` | 50    | the solving pill — above the overlay, so a rocket about to be replaced still says so |

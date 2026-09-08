@@ -315,6 +315,147 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
     await page.mouse.move(0, 0);
   });
 
+  it.skipIf(screen !== "phone")(
+    "lets a tapped icon's tooltip go on its own",
+    async () => {
+      /* A tap on a phone left the button in a sticky :hover with its tooltip
+         up until the next tap anywhere. Now the hover rule needs a pointer
+         and a tap runs a clock instead. The isometric toggle is the icon
+         whose tap moves focus nowhere. #184 */
+      const el = await page.$('button.iconbtn[aria-label="Isometric"]');
+      if (!el) throw new Error("no isometric toggle on the page");
+      const tip = () =>
+        el.evaluate((b) => getComputedStyle(b, "::after").display);
+      await el.tap();
+      expect(await tip(), "tooltip not shown on tap").toBe("block");
+      await new Promise((r) =>
+        setTimeout(r, MOTION.linger + MOTION.settle + 300),
+      );
+      expect(await tip(), "tooltip still up after its clock").toBe("none");
+      await el.tap(); // back to the elevation, for the checks that follow
+      await new Promise((r) =>
+        setTimeout(r, MOTION.linger + MOTION.settle + 300),
+      );
+    },
+  );
+
+  it.skipIf(screen !== "desktop")(
+    "draws a hint from the brief over the results column",
+    async () => {
+      /* The left column is sticky, which makes it a stacking context, and
+         the results column comes after it in the DOM: a hint reaching past
+         the column's edge was painted under the rocket. Headless Chrome
+         answers `hover: none` and will not emulate otherwise, so the hint's
+         hover rule cannot fire here; a rule of this test's own shows the
+         same box instead. The reading is the viewport twice, hint shown and
+         hidden, at points along the hint's first line of text where it lies
+         over the results: drawn on top, the glyphs change the pixels; drawn
+         under, the card is what is seen both times. Text rather than the
+         hint's ground, because in the light theme the hint and a card share
+         one; and a quarter of the points rather than all, because a line of
+         text has gaps between its letters. #184 */
+      const fold = (open: boolean) =>
+        page.evaluate((want: boolean) => {
+          const h = [...document.querySelectorAll("h2")].find(
+            (x) => x.textContent?.trim() === "Mission",
+          );
+          const b = h?.closest("button");
+          if (b instanceof HTMLElement && (b.ariaExpanded === "true") !== want)
+            b.click();
+        }, open);
+      await fold(true);
+      await new Promise((r) => setTimeout(r, MOTION.settle + 100));
+      const probe = await page.addStyleTag({
+        content: ".chip[data-hint][data-probe]::after { display:block; }",
+      });
+      const chips = await page.$$(".chip[data-hint]");
+      let points: Array<{ x: number; y: number }> = [];
+      for (const chip of chips.reverse()) {
+        points = await chip.evaluate((c) => {
+          c.scrollIntoView({ block: "center" });
+          c.setAttribute("data-probe", "1");
+          const s = getComputedStyle(c, "::after");
+          const r = c.getBoundingClientRect();
+          const results = document.querySelector("main > div:nth-child(2)");
+          if (s.display === "none" || !results) return [];
+          const px = (v: string) => parseFloat(v);
+          /* The computed width is the content box; the border box is what
+             is drawn. */
+          const right =
+            r.left +
+            px(s.width) +
+            px(s.paddingLeft) +
+            px(s.paddingRight) +
+            px(s.borderLeftWidth) +
+            px(s.borderRightWidth);
+          const from = results.getBoundingClientRect().left + 8;
+          if (right - 8 < from + 16) {
+            c.removeAttribute("data-probe");
+            return [];
+          }
+          const y = Math.round(
+            r.bottom +
+              4 +
+              px(s.borderTopWidth) +
+              px(s.paddingTop) +
+              px(s.lineHeight) / 2,
+          );
+          const out = [];
+          for (let i = 0; i < 16; i++)
+            out.push({
+              x: Math.round(from + ((right - 8 - from) * i) / 15),
+              y,
+            });
+          return out;
+        });
+        if (points.length) break;
+      }
+      if (!points.length) throw new Error("no hint reaches past the column");
+      /* The hint standing over the rocket, for a person to look at. */
+      await page.screenshot({ path: `${OUT}/${screen}-hint.png` });
+      const shot = () =>
+        page.screenshot({ encoding: "base64", captureBeyondViewport: false });
+      const shown = await shot();
+      await page.evaluate(() =>
+        document
+          .querySelectorAll("[data-probe]")
+          .forEach((c) => c.removeAttribute("data-probe")),
+      );
+      const hidden = await shot();
+      await probe.evaluate((el) => el.remove());
+      const changed = await page.evaluate(
+        async (a: string, b: string, at: Array<{ x: number; y: number }>) => {
+          const read = async (b64: string) => {
+            const img = new Image();
+            img.src = `data:image/png;base64,${b64}`;
+            await img.decode();
+            const cv = document.createElement("canvas");
+            cv.width = img.width;
+            cv.height = img.height;
+            const g = cv.getContext("2d");
+            if (!g) return [];
+            g.drawImage(img, 0, 0);
+            const k = devicePixelRatio;
+            return at.map((p) =>
+              Array.from(g.getImageData(p.x * k, p.y * k, 1, 1).data).join(","),
+            );
+          };
+          const [x, y] = await Promise.all([read(a), read(b)]);
+          return at.filter((_, i) => x[i] !== y[i]).length;
+        },
+        shown,
+        hidden,
+        points,
+      );
+      expect(
+        changed,
+        `${changed} of ${points.length} points changed when the hint was shown`,
+      ).toBeGreaterThanOrEqual(points.length / 4);
+      await fold(false);
+      await new Promise((r) => setTimeout(r, MOTION.settle + 100));
+    },
+  );
+
   it("names every icon button, and no two alike", async () => {
     /* An icon-only control is what its `aria-label` says it is — to a
        reader, and to `press()` in render.test.ts. Two with the same name

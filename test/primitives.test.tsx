@@ -1,13 +1,22 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach } from "vitest";
-import { render, cleanup, fireEvent, screen } from "@testing-library/react";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import {
+  act,
+  render,
+  cleanup,
+  fireEvent,
+  screen,
+} from "@testing-library/react";
 import { useState } from "react";
+import { Info } from "lucide-react";
 import {
   Choice,
   Disclosure,
+  IconButton,
   Sheet,
   Toggle,
 } from "../src/ui/components/primitives.jsx";
+import { MOTION } from "../src/ui/tokens.js";
 
 /* The idioms the guide promises, checked where the page does not yet use
    them. `Sheet` and `Disclosure` have no call site until the setup and the
@@ -112,6 +121,38 @@ describe("Sheet", () => {
     expect(screen.queryByRole("dialog")).not.toBeNull();
     fireEvent.click(screen.getByRole("dialog").parentElement!);
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("IconButton", () => {
+  /* A finger has no hover to leave, so the tooltip a tap shows is on a
+     clock: up at once, fading after `linger`, gone a `settle` later, and
+     cleared the moment focus goes — the sheet a tap opened has the reader.
+     The stylesheet draws it off `data-tip`; this holds the clock. #184 */
+  it("shows a tapped tooltip for a beat, then lets it go", () => {
+    vi.useFakeTimers();
+    try {
+      render(<IconButton icon={Info} label="About" onClick={() => {}} />);
+      const b = screen.getByRole("button", { name: "About" });
+      expect(b.dataset.tip).toBeUndefined();
+      fireEvent.pointerUp(b, { pointerType: "mouse" });
+      expect(
+        b.dataset.tip,
+        "a mouse click showed the tap tooltip",
+      ).toBeUndefined();
+      fireEvent.pointerUp(b, { pointerType: "touch" });
+      expect(b.dataset.tip).toBe("1");
+      act(() => vi.advanceTimersByTime(MOTION.linger));
+      expect(b.dataset.tip, "not fading after linger").toBe("2");
+      act(() => vi.advanceTimersByTime(MOTION.settle));
+      expect(b.dataset.tip, "still up after the fade").toBeUndefined();
+      fireEvent.pointerUp(b, { pointerType: "touch" });
+      expect(b.dataset.tip).toBe("1");
+      fireEvent.blur(b);
+      expect(b.dataset.tip, "held through a blur").toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
