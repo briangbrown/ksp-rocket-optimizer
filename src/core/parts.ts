@@ -296,6 +296,29 @@ const pickStruct = (
   if (kind === "parachute" && ok.some((x) => !x.drogue))
     ok = ok.filter((x) => !x.drogue);
   if (!ok.length) return null;
+  /* For a decoupler `d: null` means surface-attached — the TT-38K, the
+     TT-70, the manifold — not "fits any stack", and a radial part cannot join
+     two stacks. They are out of the pool before any size is asked for. Then
+     the exact size where one is researched, else the largest researched that
+     is no wider than the stack — a TD-25 under a 5 m Kerbodyne tank, which is
+     what a player does — else the smallest wider one. It used to admit the
+     radial parts as fitting everything, so a stack whose own size had no
+     decoupler researched was handed the TT-38K on price. #190 */
+  if (kind === "decoupler") {
+    const stack = ok.filter((x) => x.d != null);
+    if (!stack.length) return null;
+    const at = (w: number) => stack.filter((x) => x.d === w);
+    const exact = d == null ? stack : at(d);
+    let pool = exact;
+    if (!pool.length && d != null) {
+      const below = stack.filter((x) => (x.d as number) < d);
+      const above = stack.filter((x) => (x.d as number) > d);
+      pool = below.length
+        ? at(Math.max(...below.map((x) => x.d as number)))
+        : at(Math.min(...above.map((x) => x.d as number)));
+    }
+    return pool.slice().sort((a, b) => a.cost - b.cost)[0];
+  }
   const fit = d == null ? ok : ok.filter((x) => x.d === d);
   const pool = fit.length
     ? fit

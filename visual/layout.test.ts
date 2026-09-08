@@ -23,10 +23,10 @@ import type { Page } from "puppeteer";
    render.test.ts gives. */
 const BUDGET = {
   phone: {
-    height: 4150, // px, the whole page with the default mission solved and the brief set: 4066 once the TT-38K was priced and the default rocket shrank (#161), with 2% for a different Chrome's fonts
-    words: 617, // visible words on that page — the paragraphs are behind disclosures, #135; 619 before the booster line was reworded
+    height: 3825, // px, the whole page with the default mission solved and the brief set: 3749 once the stack decoupler was picked by size and the default rocket changed again (#190), 4066 after #161, with 2% for a different Chrome's fonts
+    words: 567, // visible words on that page — the paragraphs are behind disclosures, #135; 617 before #190 changed the default rocket
     tinyText: 0, // text under 12 px
-    smallBody: 59, // text under 13 px: the labels, at 12
+    smallBody: 56, // text under 13 px: the labels, at 12 — 59 before #190
     targets: 0, // pressable things under 44 × 44 — of 26, #136
     sideways: 0, // things wider than their box
     unreachable: 0, // targets a keyboard cannot reach
@@ -34,9 +34,9 @@ const BUDGET = {
     folded: 860, // px, every section folded: the brief, four lines and the footer — 844, which is the viewport
   },
   desktop: {
-    height: 2555, // 2529 — the two-column shell (#137) with the rocket at six tenths of the window (#138); 2583 before #161
-    words: 620, // 618 before the drafting sheet named its four views (#183); 620 before the booster line was reworded
-    tinyText: 60, // the labels, at 11
+    height: 2385, // 2359 — the two-column shell (#137) with the rocket at six tenths of the window (#138); 2529 before #190, 2583 before #161
+    words: 564, // 620 before #190 changed the default rocket; 618 before the drafting sheet named its four views (#183)
+    tinyText: 61, // the labels, at 11 — raised from 60 with #190: the default rocket has four stages, one more card of labels
     smallBody: 87, // labels and notes
     targets: 0, // under 24 × 24 — of 26
     sideways: 0,
@@ -357,12 +357,15 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
          answers `hover: none` and will not emulate otherwise, so the hint's
          hover rule cannot fire here; a rule of this test's own shows the
          same box instead. The reading is the viewport twice, hint shown and
-         hidden, at points along the hint's first line of text where it lies
-         over the results: drawn on top, the glyphs change the pixels; drawn
-         under, the card is what is seen both times. Text rather than the
-         hint's ground, because in the light theme the hint and a card share
-         one; and a quarter of the points rather than all, because a line of
-         text has gaps between its letters. #184 */
+         hidden, at a grid of points over the part of the hint that lies
+         over the results — its top border, its padding and its first line
+         of text: drawn on top, the hint changes the pixels; drawn under,
+         the card is what is seen both times and nothing changes anywhere.
+         Three rows rather than one, because any single row can agree with
+         what happens to be beneath it — in the light theme the hint and a
+         card share a ground, a card's own rule sits under the border on some
+         rockets, and a line of text has gaps. Device rows, because the
+         border is one CSS pixel at a fractional offset. #184 */
       const fold = (open: boolean) =>
         page.evaluate((want: boolean) => {
           const h = [...document.querySelectorAll("h2")].find(
@@ -402,19 +405,29 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
             c.removeAttribute("data-probe");
             return [];
           }
-          const y = Math.round(
-            r.bottom +
-              4 +
-              px(s.borderTopWidth) +
-              px(s.paddingTop) +
-              px(s.lineHeight) / 2,
-          );
+          /* Device pixels: the border's top edge is at a fractional CSS
+             offset, and the row one device pixel below it is border in
+             full. */
+          const k = devicePixelRatio;
+          const top = r.bottom + 4;
+          const rows = [
+            Math.floor(top * k) + 1,
+            Math.round((top + px(s.borderTopWidth) + 1) * k),
+            Math.round(
+              (top +
+                px(s.borderTopWidth) +
+                px(s.paddingTop) +
+                px(s.lineHeight) / 2) *
+                k,
+            ),
+          ];
           const out = [];
-          for (let i = 0; i < 16; i++)
-            out.push({
-              x: Math.round(from + ((right - 8 - from) * i) / 15),
-              y,
-            });
+          for (const y of rows)
+            for (let i = 0; i < 16; i++)
+              out.push({
+                x: Math.round((from + ((right - 8 - from) * i) / 15) * k),
+                y,
+              });
           return out;
         });
         if (points.length) break;
@@ -444,9 +457,8 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
             const g = cv.getContext("2d");
             if (!g) return [];
             g.drawImage(img, 0, 0);
-            const k = devicePixelRatio;
             return at.map((p) =>
-              Array.from(g.getImageData(p.x * k, p.y * k, 1, 1).data).join(","),
+              Array.from(g.getImageData(p.x, p.y, 1, 1).data).join(","),
             );
           };
           const [x, y] = await Promise.all([read(a), read(b)]);
@@ -456,6 +468,7 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
         hidden,
         points,
       );
+      /* A quarter: underneath, the count is zero. */
       expect(
         changed,
         `${changed} of ${points.length} points changed when the hint was shown`,
