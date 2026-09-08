@@ -33,6 +33,12 @@ type Shape = {
   h: number;
   rTop?: number;
   stage?: number;
+  /* For a part bolted to the side of a column — a radial engine — the
+     azimuth it faces: the direction from the part to the axis it is bolted
+     to, in the x–z plane, radians. The renderer turns the mesh so its attach
+     face looks that way and stands it on the tank's wall; the shape itself
+     is still the cylinder that bounds the part. Absent on a stack part. #164 */
+  face?: number;
   /* Which radial booster this part is bolted to, counted from 1 across the
      whole model. What a shape *is* is its role — a booster's tank is a tank,
      and is drawn like one — and where it is bolted is this. #123
@@ -121,8 +127,9 @@ function stageParts(
   let y = base;
 
   /* Engines. Each column carries its own cluster, laid out by the same
-     ringPositions the plan view uses, and turned with the column. */
-  if (g.engine > 0) {
+     ringPositions the plan view uses, and turned with the column. A radial
+     engine is placed once the tanks are, since it hangs on them. */
+  if (g.engine > 0 && !g.radial) {
     const spread = (clusterSpan(g.perEng, g.ed) - g.ed) / 2;
     for (const [cx, cz, th] of columns)
       for (const [ux, uz] of ringPositions(g.perEng)) {
@@ -238,6 +245,29 @@ function stageParts(
     }
   }
 
+  /* Radial engines: on the wall of the outermost tank, `perEng` of them round
+     each column, the bell hanging `g.engine` below the tank base and the
+     rest of the part up the wall. Half a step round from the boosters'
+     azimuths, which start at zero, so the two rings interleave. #164 */
+  if (g.radial && g.engineH > 0) {
+    const R = Math.max(g.td, g.pack ? g.pack.w : 0) / 2;
+    const r = g.ed / 2;
+    for (const [cx, cz, th] of columns)
+      for (let j = 0; j < g.perEng; j++) {
+        const a = ((j + 0.5) / g.perEng) * 2 * Math.PI + th;
+        push({
+          role: "engine",
+          part: sol.engine,
+          x: cx + Math.cos(a) * (R + r),
+          z: cz + Math.sin(a) * (R + r),
+          y: tankBase - g.engine,
+          r,
+          h: g.engineH,
+          face: a + Math.PI,
+        });
+      }
+  }
+
   /* The decoupler sits at the top of the stage, on the axis: the columns hang
      off the core through joiners rather than separating on their own. */
   if (g.decoupler > 0) {
@@ -320,10 +350,12 @@ function stageParts(
       ? g.ed
       : Math.max(g.ed, diaOf(sol.engine));
     const sections = [
+      /* Below the tanks a radial engine is only its bell, off to the side:
+         nothing on the axis to stand a booster against. */
       {
         h: g.engine,
-        reach: clusterSpan(g.perEng, engineHold) / 2,
-        draw: clusterSpan(g.perEng, g.ed) / 2,
+        reach: g.radial ? 0 : clusterSpan(g.perEng, engineHold) / 2,
+        draw: g.radial ? 0 : clusterSpan(g.perEng, g.ed) / 2,
       },
       {
         h: g.coupler,
@@ -344,7 +376,9 @@ function stageParts(
        under a 3.75 m stack, so a ring held at the tank's radius and run down
        past the engine sat 0.117 m inside it. */
     let foot = tankBase;
-    let ring = hold / 2;
+    /* Outboard of the radial engines, where the column has them: they take
+       the wall first, and the ring stands against them. */
+    let ring = hold / 2 + (g.radial ? g.ed : 0);
     for (let k = sections.length - 1; k >= 0; k--) {
       if (sections[k].h <= 0) continue;
       if (sections[k].reach < hold / 2) break;

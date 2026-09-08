@@ -21,6 +21,22 @@ before changing the thing it names.
   of something rather than sitting under it. `isRadial` is the distinction, not
   a tolerance. #109
 
+- **A radial engine is beside the tank, in `stageGeom` as in the drawing.**
+  Its stage spans the tank and an engine either side (`td + 2·ed`), and the
+  stack is longer only by what hangs below the tank — `RADIAL_HANG`, a
+  quarter of the engine's length, or the whole of the engine less the tank
+  run where the run is the shorter. `engine` is what it adds to the stack and
+  `engineH` the part's length; they are the same number for a stack engine.
+  Until #164 a Thud stage was a full Thud under the tank and two Thuds
+  tiling its base, so it was measured too slender and too narrow: the
+  snapshot moved on every tier 5 and 9 design with a Twitch or Thud stage —
+  aspect ratios fell, one Twitch stage picked a shorter tank pair it had
+  been too slender for, and a Spark stage above a Twitch stage packed into a
+  ring because the packing pass's `roomBelow` is the stage below's width,
+  which now counts its engines. The render sweep's Minmus row moved with it
+  (67.8 t in two stages to 57.2 t in three): Minmus designs at that tier
+  lift off on Thuds.
+
   Pick the example carefully: the Ant is narrower than its node in a stock
   install and in a ReStock one, and it is the only stack engine that is. The
   Mammoth was the original illustration and turned out to be reading a corrupt

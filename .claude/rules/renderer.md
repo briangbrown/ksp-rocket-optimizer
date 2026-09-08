@@ -223,6 +223,13 @@ them.
   returns the same rocket is not an arrival. #138
 
 - **An engine is the game's own mesh, simplified, fetched when first drawn.**
+  A part with `face` set — a radial engine — has its mesh turned so the wall
+  side (−x in the file) looks along `face`, the direction to the column it
+  is bolted to, and its origin stood on the near edge of the cylinder that
+  bounds it, which the model puts on the tank's wall; the drum it falls back
+  to before the file lands is that cylinder. Baked into the positions, so the
+  hidden-line topology sees the same geometry. #164
+
   `engineMesh` in `three-view.tsx` keeps a module-level cache keyed by art
   and title; a miss starts the fetch (`public/engines/index.json`, then the
   file) and returns nothing, so the engine draws as the cylinder it always

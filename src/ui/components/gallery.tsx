@@ -83,32 +83,66 @@ function layout(per: number, rowsPer: number): Array<Group> {
         const s = 2 / D;
         const x = (i - (per - 1) / 2) * CELL_W;
         const eh = engineLen(e) * s;
-        const er = (widthOf(e, D) * s) / 2;
-        parts.push({
-          role: "engine",
-          part: e,
-          x,
-          z: 0,
-          y: base,
-          r: Math.min(er, CELL_W / 2 - 0.1),
-          h: eh,
-        });
-        parts.push({
-          role: "tank",
-          x,
-          z: 0,
-          y: base + eh,
-          r: TANK_R,
-          h: TANK_H,
-        });
+        const radial = isRadial(e);
+        let top: number;
+        if (radial) {
+          /* Bolted to the tank's wall, as the model stands it: the pair
+             shifted so tank and engine together sit on the cell's centre,
+             a quarter of the engine below the tank, or the top of the
+             engine at the top of the tank where it is the taller. #164 */
+          const er = Math.min(
+            (widthOf(e, D) * s) / 2,
+            CELL_W / 2 - TANK_R - 0.1,
+          );
+          const hang = Math.max(eh / 4, eh - TANK_H);
+          parts.push({
+            role: "engine",
+            part: e,
+            x: x + TANK_R,
+            z: 0,
+            y: base,
+            r: er,
+            h: eh,
+            face: Math.PI,
+          });
+          parts.push({
+            role: "tank",
+            x: x - er,
+            z: 0,
+            y: base + hang,
+            r: TANK_R,
+            h: TANK_H,
+          });
+          top = base + hang + TANK_H;
+        } else {
+          const er = (widthOf(e, D) * s) / 2;
+          parts.push({
+            role: "engine",
+            part: e,
+            x,
+            z: 0,
+            y: base,
+            r: Math.min(er, CELL_W / 2 - 0.1),
+            h: eh,
+          });
+          parts.push({
+            role: "tank",
+            x,
+            z: 0,
+            y: base + eh,
+            r: TANK_R,
+            h: TANK_H,
+          });
+          top = base + eh + TANK_H;
+        }
         cells.push({
           name: e.n,
           nick: nickOf(e.n),
           sz: e.sz.join("/"),
-          radial: isRadial(e),
+          radial,
           x,
           base,
-          top: base + eh + TANK_H,
+          top,
           col: i,
           row: g + r,
         });
