@@ -143,7 +143,9 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
     handed
       ? [
           `Hold it until T+${hms(a.handT)}`,
-          `the prograde marker rises to meet your nose at ~${Math.round(a.handV)} m/s, ${(a.handAlt / 1000).toFixed(1)} km — switch SAS to prograde then`,
+          a.lead > 0
+            ? `the prograde marker rises to ${a.lead}° below your nose at ~${Math.round(a.handV)} m/s, ${(a.handAlt / 1000).toFixed(1)} km — keep the nose ${a.lead}° above it from then on`
+            : `the prograde marker rises to meet your nose at ~${Math.round(a.handV)} m/s, ${(a.handAlt / 1000).toFixed(1)} km — switch SAS to prograde then`,
         ]
       : [
           "Hold that attitude all the way up",

@@ -63,6 +63,39 @@ const TORCH_FULL = kerbin(
   ],
   1,
 );
+/* Six Hammers on a Mainsail under three Poodles and a Reliant, 17.8 t on
+   top: the Minmus design of #167, #168 and #10's latest case. */
+const HAMMER = engine(/Hammer/);
+const STALL: Vehicle = {
+  ...kerbin(
+    [
+      {
+        ...stage(engine(/Mainsail/), 1, 80.9 - 6 * HAMMER.fuelM, 14.3, 2.5),
+        boosters: {
+          n: 6,
+          mdot: HAMMER.fv / (HAMMER.iv * 9.80665),
+          isp: ispCurve(HAMMER.iv, HAMMER.ia, ispCut(HAMMER)),
+          prop: HAMMER.fuelM,
+          dry: HAMMER.dry,
+          wet: HAMMER.m,
+          dia: 1.25,
+          area: ((1.16 * Math.PI) / 4) * 1.25 ** 2,
+          asparagus: false,
+          solid: true,
+          pairProp: 2 * HAMMER.fuelM,
+          pairDry: 2 * HAMMER.dry,
+          pairArea: ((2 * 1.16 * Math.PI) / 4) * 1.25 ** 2,
+        },
+      },
+      /* Three Poodle columns: the drag area `stageSize` gives the stage. */
+      { ...stage(engine(/Poodle/), 3, 48, 11.4, 2.5), area: 3 * 4.9 },
+      stage(engine(/Reliant/), 1, 8.3, 2.3, 1.25),
+    ],
+    17.8,
+  ),
+  payloadArea: 1.2,
+};
+
 /* A late, shallow kick: the lofted arrival that runs the live stage dry. */
 const LOFTED = { target: 80000, vKick: 130, kick: (2 * Math.PI) / 180 };
 /* Circular at the apoapsis reached, less what it arrived with, is the least
@@ -104,6 +137,30 @@ describe("a flown ascent", () => {
     expect(r.total).toBeGreaterThan(3200);
     if (lofted.ok) expect(r.total).toBeLessThanOrEqual(lofted.total);
     expect(r.circShort).toBe(false);
+  });
+
+  it("flies the classic gravity turn when no lead is asked for", () => {
+    const plain = flyAscent(TORCH, LOFTED);
+    const zero = flyAscent(TORCH, { ...LOFTED, lead: 0 });
+    expect(zero).toEqual(plain);
+  });
+
+  it("holds the nose above prograde where that flies a stack cheaper", () => {
+    /* Six Hammers on a Mainsail, 187.5 t, TWR 1.40 for 24 s and 0.88 after:
+       the stack #10's latest case was found on. Following prograde, the only
+       turn that reaches orbit is the latest, shallowest kick on the grid;
+       with the nose held above prograde an earlier, larger kick survives. */
+    const r = optimiseTurn(STALL, 80000);
+    const plain = optimiseTurn(STALL, 80000, 40000, []);
+    expect(
+      r && r.ok && plain && plain.ok,
+      "the stack did not fly",
+    ).toBeTruthy();
+    if (!r || !r.ok || !plain || !plain.ok) return;
+    expect(plain.lead).toBe(0);
+    expect(r.lead).toBeGreaterThan(0);
+    expect(r.total).toBeLessThan(plain.total - 50);
+    expect(r.gLoss).toBeLessThan(plain.gLoss);
   });
 
   it("holds the invariant on a flight that never runs dry", () => {

@@ -42,10 +42,12 @@ Seven builds have been flown in game and compared against the prediction:
 | Minmus, 4 Kickbacks | 3539      | 3293  | +7.5%    |
 | Minmus, low TWR     | 3964      | 2750  | **+44%** |
 
-These pairs still stand as evidence about the **ascent simulator**, whose
-physics has not changed since — it has been retyped and refactored with the
-baselines byte-identical. They no longer necessarily describe what the tool
-would propose today: the pairs were flown before the adapter, plate and booster
+These pairs were flown against an earlier simulator. Since then the
+circularisation is costed to completion rather than to the tank that ran dry
+(#170) and the turn has a third parameter, the nose held above prograde,
+which is what the low-TWR row was missing (#10); both change the predicted
+column, and the pairs have not been re-flown against it. They also no longer
+necessarily describe what the tool would propose today: the pairs were flown before the adapter, plate and booster
 fitting moved (#65, #87, #88, #109, #118, #121), and the optimiser now rejects
 some stacks it used to build and picks heavier ones instead. Re-flying would be
 needed to say whether the affected builds still land this close.

@@ -216,6 +216,20 @@ before changing the thing it names.
   Minmus brief that showed it (48,761 asked cheapest against 42,235 asked
   lightest). #169
 
+- **The turn has three parameters, and the third is the nose above
+  prograde.** A stack near TWR 1 pinned the two-parameter search at its
+  corner — the latest, shallowest kick, "stay vertical" — because following
+  prograde after any real kick lets the velocity vector fall over faster
+  than the thrust bends it back. `lead` holds the nose that many degrees
+  above prograde once prograde has caught the kick attitude, which is what a
+  pilot does on such a stack; `optimiseTurn` tries `LEADS` (3, 6, 10, 15°)
+  round the two-parameter seed and refines round the best, a few dozen
+  flights rather than a third grid dimension. Zero is the classic turn and
+  reproduces it exactly. On the six-Hammer Mainsail it takes 4,549 → 4,223
+  m/s with a 7° kick at 125 m/s and 6° of lead; on a stack that flies well
+  already it changes nothing. The flight card says "keep the nose N° above
+  it" where it used to say "switch SAS to prograde". #10
+
 - **A flight's `total` is what the orbit needs, never what the tanks held.**
   `flyAscent` integrates the circularisation on the stage live at apoapsis.
   It used to stop when that stage ran dry and report what it had spent:
