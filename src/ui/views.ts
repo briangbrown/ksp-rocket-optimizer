@@ -41,8 +41,15 @@ const vec = ([x, y, z]: ReadonlyArray<number>): Vec3 => ({ x, y, z });
    over the engines. `viewRight` below is the check. */
 /* Keyed by string rather than by the three names, because `viewOf` below is
    handed whatever the caller has and falls back to the side elevation. */
+/* `right` is the sheet's second elevation (#183): the rocket a quarter turn
+   round, seen from its +x side, as third-angle projection places it — to the
+   right of the front view, with the face the front view shows on its left.
+   Its screen axis is z, not x, so it is the one view the +x rule above does
+   not apply to; what it has to agree with is the front, and `viewUp` is +y
+   for both. */
 export const VIEWS: Readonly<Record<string, View>> = {
   side: { dir: [0, 0, 1], up: [0, 1, 0] },
+  right: { dir: [1, 0, 0], up: [0, 1, 0] },
   plan: { dir: [0, -1, 0], up: [0, 0, 1] },
   iso: { dir: [0.72, 0.52, 0.72], up: [0, 1, 0] },
 };
@@ -233,5 +240,66 @@ export function panelSizes(
   return { elev: { w: ew, h: eh }, plan: { w: ps, h: ps } };
 }
 
-export { MIN_PANEL };
+/* ------------------------------ the drafting sheet ------------------------------
+
+   Where there is room — the wide layout — the build view is laid out as a
+   drawing sheet: the front elevation top left, the right elevation beside it,
+   the plan from below under the front elevation, and the isometric to the
+   right of all three. The three orthographic views share **one scale**, so
+   the plan's outline of a booster sits directly under its outline in the
+   elevation and the right elevation is as tall as the front; that alignment
+   is what a sheet is for, and `fitOrtho`, which frames one panel at a time,
+   cannot give it. The isometric is pictorial and frames itself.
+
+   The scale is the tightest that fits the three in the room: the elevations
+   and the plan stacked have to fit the height less two header lines and a
+   gap, and the two elevations side by side have to leave `ISO_SHARE` of the
+   width for the isometric. The plan's cell is the front elevation's width
+   whatever its own reach, so the two stay aligned; both frame the axis at
+   their centre. #183 */
+const SHEET_AIR = 1.1;
+const ISO_SHARE = 0.4;
+/* Air in pixels as well as in proportion. The outline is drawn a few device
+   pixels outward from the silhouette, and ten per cent of a 2.5 m disc at the
+   sheet's scale is two pixels: the plan's linework was clipped top and bottom
+   on a stage whose plan is one disc. Each side of every orthographic cell. */
+const SHEET_PAD = 8;
+
+type Need = { w: number; h: number };
+
+export function sheetSizes(
+  { aw, ah }: { aw: number; ah: number },
+  need: { front: Need; right: Need; plan: Need },
+  gap: number,
+  head: number,
+) {
+  const across = Math.max(1, aw);
+  const tall = Math.max(1, ah);
+  /* In metres, air included: the elevations' shared height, the plan's
+     height, and the two elevations' widths. */
+  const eh = 2 * SHEET_AIR * Math.max(need.front.h, need.right.h);
+  const ph = 2 * SHEET_AIR * need.plan.h;
+  const fw = 2 * SHEET_AIR * Math.max(need.front.w, need.plan.w);
+  const rw = 2 * SHEET_AIR * need.right.w;
+  const pad = 2 * SHEET_PAD;
+  const byHeight =
+    Math.max(1, tall - 2 * head - gap - 2 * pad) / Math.max(1e-6, eh + ph);
+  const byWidth =
+    Math.max(1, across * (1 - ISO_SHARE) - 2 * gap - 2 * pad) /
+    Math.max(1e-6, fw + rw);
+  const scale = Math.min(byHeight, byWidth);
+  const front = {
+    w: Math.max(MIN_PANEL, fw * scale + pad),
+    h: Math.max(1, eh * scale + pad),
+  };
+  const right = { w: Math.max(MIN_PANEL, rw * scale + pad), h: front.h };
+  const plan = { w: front.w, h: Math.max(1, ph * scale + pad) };
+  const iso = {
+    w: Math.max(MIN_PANEL, across - front.w - right.w - 2 * gap),
+    h: Math.max(1, tall - head),
+  };
+  return { scale, front, right, plan, iso };
+}
+
+export { MIN_PANEL, ISO_SHARE };
 export type { Extent, Vec3, View };

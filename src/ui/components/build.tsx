@@ -15,7 +15,7 @@ import { extentOf, modelOf } from "../../core/model.js";
 import { stageCost, stageParts } from "../../core/performance.js";
 import { missionSignature } from "../../core/signature.js";
 import { fmt } from "../format.js";
-import { framing, panelSizes } from "../views.js";
+import { framing, panelSizes, sheetSizes } from "../views.js";
 import { arrive, assembly, pose, separation } from "../separation.js";
 import { C, FONT, RADIUS, SPACE, Z } from "../tokens.js";
 import type { Theme } from "../tokens.js";
@@ -512,10 +512,22 @@ function BuildView({
      shorter and wider than its elevation, and a panel cut for the elevation
      would leave it drawn small in the middle of it. `framing` carries no
      three.js, so asking it costs the bundle nothing. */
-  const need = framing(angle, frame ? frame.extent : extentOf(model));
+  const ext = frame ? frame.extent : extentOf(model);
+  const need = framing(angle, ext);
   const H = Math.max(0.1, need.h * 2);
   /* A floor so a very small rocket still gets a panel with room in it. */
   const wMax = Math.max(1, need.w * 2);
+  /* The sheet, where the layout is wide: four views at once, the three
+     orthographic ones to one scale — `sheetSizes` in views.ts. The phone
+     keeps the two panels and the isometric toggle: four panels do not fit
+     390 px at 44 px targets, and the page's height budget is the
+     constraint. #183 */
+  const sheet = wide;
+  const needs = {
+    front: framing("side", ext),
+    right: framing("right", ext),
+    plan: framing("plan", extentOf(planModel)),
+  };
 
   const aw = railed ? outerW - RAIL - GAP : outerW;
   /* The row's height is read where the row has one of its own — full screen,
@@ -528,6 +540,8 @@ function BuildView({
     : 0;
   const ah = sized && box.h ? Math.max(1, box.h - HEAD - scrubH) : INLINE_H;
   const { elev, plan } = panelSizes({ aw, ah }, wMax / H, GAP);
+  /* The sheet lays its own header lines out, so it is handed the row. */
+  const sz = sheetSizes({ aw, ah: ah + HEAD }, needs, GAP, HEAD);
 
   /* One header line per column, so all three labels sit on it. */
   const head = (label: string, extra?: ReactNode) => (
@@ -690,23 +704,46 @@ function BuildView({
      once a transition. #105 */
   const buffers = useMemo(() => {
     if (!shot.sep) return null;
-    let ew = 0,
-      eh = 0,
-      pw = 0;
+    const grow = (
+      a: { w: number; h: number },
+      b: { w: number; h: number },
+    ) => ({
+      w: Math.max(a.w, b.w),
+      h: Math.max(a.h, b.h),
+    });
+    let elev = { w: 0, h: 0 };
+    let plan = { w: 0, h: 0 };
+    let front = { w: 0, h: 0 };
+    let right = { w: 0, h: 0 };
+    let iso = { w: 0, h: 0 };
+    const planNeed = framing("plan", extentOf(planModel));
     for (let i = 0; i <= 8; i++) {
       const f = pose(shot.sep, i / 8);
       const n = framing(angle, f.extent);
-      const sz = panelSizes(
+      const two = panelSizes(
         { aw, ah },
         Math.max(1, n.w * 2) / Math.max(0.1, n.h * 2),
         GAP,
       );
-      ew = Math.max(ew, sz.elev.w);
-      eh = Math.max(eh, sz.elev.h);
-      pw = Math.max(pw, sz.plan.w);
+      elev = grow(elev, two.elev);
+      plan = grow(plan, two.plan);
+      const four = sheetSizes(
+        { aw, ah: ah + HEAD },
+        {
+          front: framing("side", f.extent),
+          right: framing("right", f.extent),
+          plan: planNeed,
+        },
+        GAP,
+        HEAD,
+      );
+      front = grow(front, four.front);
+      right = grow(right, four.right);
+      plan = grow(plan, four.plan);
+      iso = grow(iso, four.iso);
     }
-    return { elev: { w: ew, h: eh }, plan: { w: pw, h: pw } };
-  }, [shot.sep, angle, aw, ah]);
+    return { elev, plan, front, right, iso };
+  }, [shot.sep, angle, aw, ah, planModel]);
 
   /* What each drawing is a picture of, for a reader who cannot see it: the
      view, the craft, the step and the figures under it — the same ones, so
@@ -725,13 +762,21 @@ function BuildView({
     extra?: ReactNode,
     fade?: number,
     moves?: ReturnType<typeof pose> | null,
+    /* The sheet's shared scale, and what to call the view to a reader who
+       cannot see it, where the label alone would not say. */
+    scale?: number,
+    name = label,
+    /* Whether the drawing sits at the foot of its column. The two-panel row
+       stands the plan on the elevation's base line; the sheet hangs every
+       view from its header, so the right elevation's top is the front's. */
+    foot = true,
   ) => (
     <div style={{ flexShrink: 0, display: "flex", flexDirection: "column" }}>
       {head(label, extra)}
       {/* At the foot of its column, so the base of the plan and the base of
           the elevation are the same line — which is the bottom of the section.
           The elevation is the taller of the two and never moves. */}
-      <div style={{ marginTop: "auto", opacity: fade ?? 1 }}>
+      <div style={{ marginTop: foot ? "auto" : undefined, opacity: fade ?? 1 }}>
         <Suspense fallback={<Loading w={size.w} h={size.h} />}>
           <ThreeView
             parts={parts}
@@ -740,8 +785,9 @@ function BuildView({
             height={size.h}
             color={color}
             theme={theme}
-            alt={alt(label)}
+            alt={alt(name)}
             buffer={buffer}
+            scale={scale}
             extent={moves ? moves.extent : undefined}
             sweep={moves ? moves.sweep : undefined}
             midY={moves ? moves.midY : undefined}
@@ -806,29 +852,100 @@ function BuildView({
             justifyContent: railed ? "center" : undefined,
           }}
         >
-          {panel(
-            "Elevation",
-            model,
-            angle,
-            elev,
-            buffers?.elev,
-            <IconButton
-              icon={Box}
-              label="Isometric"
-              on={angle === "iso"}
-              onClick={() => setAngle(angle === "iso" ? "side" : "iso")}
-            />,
-            1,
-            frame ?? landing,
-          )}
-          {panel(
-            "Plan",
-            planModel,
-            "plan",
-            plan,
-            buffers?.plan,
-            undefined,
-            planFade,
+          {sheet ? (
+            <>
+              {/* Front over plan, to one scale and one width, so the plan's
+                  outlines sit under the elevation's. Then the right
+                  elevation, then the isometric with the rest of the room. */}
+              <div
+                style={{
+                  flexShrink: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: GAP,
+                }}
+              >
+                {panel(
+                  "Front",
+                  model,
+                  "side",
+                  sz.front,
+                  buffers?.front,
+                  undefined,
+                  1,
+                  frame ?? landing,
+                  sz.scale,
+                  "Front elevation",
+                  false,
+                )}
+                {panel(
+                  "Plan",
+                  planModel,
+                  "plan",
+                  sz.plan,
+                  buffers?.plan,
+                  undefined,
+                  planFade,
+                  null,
+                  sz.scale,
+                  "Plan from below",
+                  false,
+                )}
+              </div>
+              {panel(
+                "Right",
+                model,
+                "right",
+                sz.right,
+                buffers?.right,
+                undefined,
+                1,
+                frame ?? landing,
+                sz.scale,
+                "Right elevation",
+                false,
+              )}
+              {panel(
+                "Isometric",
+                model,
+                "iso",
+                sz.iso,
+                buffers?.iso,
+                undefined,
+                1,
+                frame ?? landing,
+                undefined,
+                "Isometric view",
+                false,
+              )}
+            </>
+          ) : (
+            <>
+              {panel(
+                "Elevation",
+                model,
+                angle,
+                elev,
+                buffers?.elev,
+                <IconButton
+                  icon={Box}
+                  label="Isometric"
+                  on={angle === "iso"}
+                  onClick={() => setAngle(angle === "iso" ? "side" : "iso")}
+                />,
+                1,
+                frame ?? landing,
+              )}
+              {panel(
+                "Plan",
+                planModel,
+                "plan",
+                plan,
+                buffers?.plan,
+                undefined,
+                planFade,
+              )}
+            </>
           )}
         </div>
         {/* The stepper as a scrubber, along the foot of the drawings. */}
@@ -975,7 +1092,13 @@ function BuildView({
                  sat under it. */
               height: "100dvh",
               zIndex: Z.overlay,
-              background: C.ink,
+              /* The panel's colour, not the page's: the drawings clear to the
+                 panel, so on the page's ink they sat as rectangles of another
+                 shade, and full screen read as four canvases on a backdrop
+                 rather than the sheet grown to the window. On the panel they
+                 are seamless — white in the light theme, the dark theme's
+                 near-black in the dark. */
+              background: C.panel,
               /* A second root. Outside the one the application sets these on,
                  `button { font-family: inherit }` reaches the browser default
                  and every chip in here comes out in Times. */

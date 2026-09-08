@@ -35,7 +35,7 @@ const BUDGET = {
   },
   desktop: {
     height: 2555, // 2529 — the two-column shell (#137) with the rocket at six tenths of the window (#138); 2583 before #161
-    words: 618, // 620 before the booster line was reworded
+    words: 620, // 618 before the drafting sheet named its four views (#183); 620 before the booster line was reworded
     tinyText: 60, // the labels, at 11
     smallBody: 87, // labels and notes
     targets: 0, // under 24 × 24 — of 26
@@ -532,7 +532,8 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
         return { w: r.width, h: r.height, right: r.right, bottom: r.bottom };
       }),
     }));
-    expect(box.canvases.length).toBe(2);
+    /* The sheet's four: front, plan, right, isometric. #183 */
+    expect(box.canvases.length).toBe(4);
     for (const c of box.canvases) {
       expect(c.right).toBeLessThanOrEqual(box.w + 1);
       expect(c.bottom).toBeLessThanOrEqual(box.h + 1);

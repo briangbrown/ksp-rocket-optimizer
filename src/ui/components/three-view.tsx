@@ -269,6 +269,10 @@ type ThreeViewProps = {
      simplified ones the application draws, unless the gallery asks for the
      full ones beside them. */
   meshes?: string;
+  /* CSS pixels per metre, where the caller has chosen one scale for several
+     views — the drafting sheet's three orthographic panels. Absent, the view
+     frames itself with `fitOrtho`. #183 */
+  scale?: number;
 };
 
 /* An engine on the axis, or a solid booster strapped beside it: both are
@@ -336,6 +340,7 @@ export default function ThreeView({
   theme,
   alt,
   meshes: meshSet = "engines",
+  scale,
 }: ThreeViewProps) {
   const host = useRef<HTMLDivElement | null>(null);
   const gl = useRef<WebGLRenderer | null>(null);
@@ -666,6 +671,12 @@ export default function ThreeView({
        place — the axis that positions the camera is the axis its near and far
        planes are measured along, which is what stops the two disagreeing. */
     const cam = cameraFor(view, box, width / height, sweep ?? box);
+    /* A scale handed in overrides the fit: the frustum is simply the panel
+       in metres, and the model sits at its centre. */
+    if (scale) {
+      cam.halfW = width / (2 * scale);
+      cam.halfH = height / (2 * scale);
+    }
     /* Asymmetric, so the visible box in the buffer's top-left corner frames
        exactly what a panel of that size would. Both ratios are 1 in a still
        frame and this is the ordinary symmetric frustum. */
@@ -861,6 +872,7 @@ export default function ThreeView({
        drawn until something else repainted — a view toggle, an animation
        frame — and the gallery, which animates nothing, showed cylinders. */
     meshTick,
+    scale,
   ]);
 
   /* The visible box, clipping the buffer's top-left corner. They are the same

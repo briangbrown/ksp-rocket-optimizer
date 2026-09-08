@@ -143,9 +143,14 @@ on both screens (`useWide`); the set brief is stuck on its own only on the
 phone, since on the desktop the column carries it.
 
 The build view is the column's width and six tenths of the viewport tall
-(`clamp(360px, 60dvh, 900px)`) instead of a fixed 300, the plan square beside
-the elevation and the pair centred in the room a pencil-shaped rocket leaves.
-Full screen is the same view at the window's size with the rail on the left.
+(`clamp(360px, 60dvh, 900px)`) instead of a fixed 300, laid out as a drafting
+sheet (#183): the front elevation top left, the plan from below under it, the
+right elevation beside them and the isometric with the rest of the row. The
+three orthographic views share one scale, so the plan's outlines sit directly
+under the elevation's and the right elevation is as tall as the front; the
+isometric frames itself. Full screen is the same sheet at the window's size
+with the rail on the left. The phone keeps the two panels — the elevation
+with the isometric toggle, the plan beside it — since four do not fit 390 px.
 The rocket is the hero of the section (#138): the craft name stands over the
 drawing in the `display` role with _Save it as_ above it and the subtitle as a
 `note`, and the headline `Stat`s — liftoff mass, stages, height, aspect, cost,
@@ -498,7 +503,7 @@ alone, stroke width 1.75 throughout. Every icon-only control has an
 | fold / unfold             | `ChevronRight`                                      | rotates 90° when open                                                               |
 | close / cancel / clear    | `X`                                                 | with the count when clearing exclusions                                             |
 | cut the route here        | `Scissors` → `ScissorsLineDashed`                   | `dim` when uncut; `amber`, with the cut line, when cut — lucide has no closed pair  |
-| isometric                 | `Box`                                               | a `Toggle`                                                                          |
+| isometric                 | `Box`                                               | a `Toggle`, on the phone only — the sheet shows it as a view (#183)                 |
 | play / pause the staging  | `Play` / `Pause`                                    | in use today                                                                        |
 | full screen / leave it    | `Maximize` / `Minimize`                             | in use today                                                                        |
 | a disclosure              | `Info`                                              |                                                                                     |

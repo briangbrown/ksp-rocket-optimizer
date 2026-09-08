@@ -26,8 +26,9 @@ type Lean = { left: number; right: number; ink: number };
    These are the checks that need a context, and each one is here because
    something it would have caught reached a person instead. #73
 
-   The elevation is canvas 0 and the plan is canvas 1, in the order the build
-   view lays them out. */
+   On the desktop the build view is the drafting sheet (#183): the front
+   elevation is canvas 0 and the plan, under it, canvas 1, then the right
+   elevation and the isometric — in the order the build view lays them out. */
 const ELEVATION = 0;
 const PLAN = 1;
 
@@ -127,9 +128,14 @@ const labelTops = () =>
   page.$$eval("span.label", (els) =>
     els
       .filter((e) =>
-        ["Step", "Elevation", "Plan"].includes((e.textContent ?? "").trim()),
+        ["Step", "Front", "Right", "Plan", "Isometric"].includes(
+          (e.textContent ?? "").trim(),
+        ),
       )
-      .map((e) => Math.round(e.getBoundingClientRect().top)),
+      .map((e) => ({
+        label: (e.textContent ?? "").trim(),
+        top: Math.round(e.getBoundingClientRect().top),
+      })),
   );
 
 /* Everything the drawings must stay inside. */
@@ -361,9 +367,14 @@ describe("the build view, in a browser", () => {
     );
     expect(font, "the overlay is not in the app's own type").toContain("Inter");
 
+    /* The sheet's five labels: the rail's, the two elevations' and the
+       isometric's on one line, and the plan's below the front's. #183 */
     const tops = await labelTops();
-    expect(tops.length, "the rail is not up beside the drawings").toBe(3);
-    expect(new Set(tops).size, `labels at ${tops.join(", ")}`).toBe(1);
+    expect(tops.length, "the rail is not up beside the drawings").toBe(5);
+    const row = tops.filter((t) => t.label !== "Plan").map((t) => t.top);
+    expect(new Set(row).size, `labels at ${row.join(", ")}`).toBe(1);
+    const planTop = tops.find((t) => t.label === "Plan")?.top ?? 0;
+    expect(planTop, "the plan is not under the front").toBeGreaterThan(row[0]);
 
     /* And inside the window, which is the whole of the promise: there is no
        scrolling out to the rest of it while this is up. */
@@ -567,11 +578,13 @@ describe("the build view, in a browser", () => {
       `${during.length} frames read during the arrival and none moved`,
     ).toBeGreaterThan(0);
 
-    /* The still drawing, drawn cold: the same rocket after the view has been
-       turned away and back is a scene rebuilt from nothing in motion. */
-    await press("Isometric");
-    await press("Isometric");
-    await new Promise((r) => setTimeout(r, 300));
+    /* The still drawing, drawn cold: the same rocket after the drawings have
+       been remounted — full screen in and out rebuilds the row in a portal —
+       is a scene built from nothing in motion. */
+    await page.focus('[aria-label="Full screen"]');
+    await press("Full screen");
+    await press("Leave full screen");
+    await new Promise((r) => setTimeout(r, 600));
     const cold = await read(ELEVATION);
     expect(landed.hash, "the arrival did not land on the still drawing").toBe(
       cold.hash,
@@ -608,9 +621,9 @@ describe("the build view, in a browser", () => {
     const pad = await alts();
     expect(pad.length, "each drawing named").toBeGreaterThanOrEqual(2);
     expect(pad[0]).toMatch(
-      /^Elevation of .+, On the pad: [\d.,]+ t, \d+ stages?, [\d.]+ m tall$/,
+      /^Front elevation of .+, On the pad: [\d.,]+ t, \d+ stages?, [\d.]+ m tall$/,
     );
-    expect(pad[1]).toMatch(/^Plan of .+, On the pad: /);
+    expect(pad[1]).toMatch(/^Plan from below of .+, On the pad: /);
     const next = (await steps())[1];
     await step(next);
     const after = await alts();
