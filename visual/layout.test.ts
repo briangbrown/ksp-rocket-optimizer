@@ -391,7 +391,8 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
         return { w: r.width, h: r.height, right: r.right, bottom: r.bottom };
       }),
     }));
-    expect(box.canvases.length).toBe(2);
+    /* The sheet's four: front, plan, right, isometric. #183 */
+    expect(box.canvases.length).toBe(4);
     for (const c of box.canvases) {
       expect(c.right).toBeLessThanOrEqual(box.w + 1);
       expect(c.bottom).toBeLessThanOrEqual(box.h + 1);
