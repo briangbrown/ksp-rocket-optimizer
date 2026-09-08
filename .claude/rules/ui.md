@@ -357,3 +357,13 @@ control shows and what it committed.
   orbit" is now a chip and not a destination; its Kerbol row is a dash by
   design. The layout budgets held: the To end's seven chips replace the
   three profile chips and the origin fold, word for word.
+
+- **Picking a body keeps the state already chosen.** `firstTo` and
+  `firstFrom` in `brief.tsx` take the current state and keep it where the new
+  body can do it; only where it cannot do they fall to the body's first
+  state — surface, then low orbit — and Kerbol falls to a fly-by, its low
+  orbit being 36 km/s from Kerbin. They used to open every body on its first
+  state, so tapping the body already chosen changed the state: a shared
+  Kerbol fly-by, tapped on Kerbol, became a low solar orbit with no
+  solution and an empty page where the rocket was. `test/pick-endpoint.test.tsx`
+  holds it, and the render sweep says every row's state for the same reason.
