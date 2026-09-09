@@ -199,7 +199,7 @@ function Brief(p: BriefProps) {
       style={stuck}
       /* The share button's 44 hangs into the card's padding, so the set
          line keeps the width it had. */
-      asideReach={!p.open && p.onShare ? 12 : 0}
+      asideReach={p.onShare ? 12 : 0}
       aside={
         <span
           style={{
@@ -220,8 +220,10 @@ function Brief(p: BriefProps) {
           {/* The button is 44 on the phone in a line of text; it hangs
               above and below the line — on a wrapper, not the button, or
               its box overflows the row's — so the set line is no taller
-              for it. */}
-          {!p.open && p.onShare && (
+              for it. In both states: it was folded-only, and a reader who
+              opened the section to change the mission lost it, and one who
+              arrived with the brief open never saw it. #209 */}
+          {p.onShare && (
             <span style={{ display: "inline-flex", margin: "-10px 0" }}>
               <IconButton
                 icon={Share2}
