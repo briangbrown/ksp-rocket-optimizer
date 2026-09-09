@@ -1,3 +1,4 @@
+import { kerbalDate } from "../core/kepler.js";
 import type { Endpoint, State } from "../core/orbits.js";
 import type { Objective } from "../core/performance.js";
 
@@ -210,6 +211,18 @@ function hms(sec: number) {
   return (d ? `${d}d ` : "") + `${pad(h)}:${pad(m)}:${pad(s2)}`;
 }
 
+/* A moment on the game's clock, as the game prints it — Year 1 Day 1 is UT
+   0 — with the seconds, since a window is found to the second. */
+const kerbalDateLabel = (ut: number) => {
+  const d = kerbalDate(ut);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `Y${d.year} D${d.day} ${pad(d.h)}:${pad(d.m)}:${pad(d.s)}`;
+};
+const kerbalDayLabel = (ut: number) => {
+  const d = kerbalDate(ut);
+  return `Y${d.year} D${d.day}`;
+};
+
 export {
   NAME_ADJ,
   NAME_JOKE,
@@ -224,6 +237,8 @@ export {
   craftName,
   fmt,
   hms,
+  kerbalDateLabel,
+  kerbalDayLabel,
 };
 
 export type { BriefIn, CraftIn };

@@ -112,6 +112,10 @@ export default function KSPMissionPlanner() {
     m.content = palette(theme).ink;
   }, [theme]);
   const [planeNow, setPlaneNow] = useState(false);
+  /* The window search: from Year 1 Day 1 unless told otherwise, and home on
+     the first window after arrival unless a stay is asked for. UT seconds. */
+  const [leaveAfter, setLeaveAfter] = useState(0);
+  const [stay, setStay] = useState(0);
   const [asparagus, setAsparagus] = useState(false);
   const [maxAspect, setMaxAspect] = useState(14);
   const [payloadDia, setPayloadDia] = useState(1.25);
@@ -217,8 +221,8 @@ export default function KSPMissionPlanner() {
     };
   }, []);
   const route = useMemo(
-    () => routeFor(from, to, chutes, returning, planeNow),
-    [from, to, chutes, returning, planeNow],
+    () => routeFor(from, to, chutes, returning, planeNow, leaveAfter, stay),
+    [from, to, chutes, returning, planeNow, leaveAfter, stay],
   );
   const totalDv = route.reduce((s, l) => s + l.dv, 0);
   const budget = Math.round(totalDv * (1 + margin / 100) + extraDv);
@@ -491,6 +495,8 @@ export default function KSPMissionPlanner() {
         planeNow,
         asparagus,
         maxAspect,
+        leaveAfter,
+        stay,
         expansions,
         tech: [...unlocked].sort(),
         excluded: [...excluded].sort(),
@@ -511,6 +517,8 @@ export default function KSPMissionPlanner() {
       needGimbal,
       planeNow,
       maxAspect,
+      leaveAfter,
+      stay,
       expansions,
       unlocked,
       excluded,
@@ -544,6 +552,8 @@ export default function KSPMissionPlanner() {
     if (v.planeNow !== undefined) setPlaneNow(v.planeNow);
     if (v.asparagus !== undefined) setAsparagus(v.asparagus);
     if (v.maxAspect !== undefined) setMaxAspect(v.maxAspect);
+    if (v.leaveAfter !== undefined) setLeaveAfter(v.leaveAfter);
+    if (v.stay !== undefined) setStay(v.stay);
     if (v.expansions !== undefined) setExpansions(v.expansions);
     if (v.tech !== undefined) setUnlocked(v.tech);
     if (v.excluded !== undefined) setExcluded(v.excluded);
@@ -737,6 +747,10 @@ export default function KSPMissionPlanner() {
       onMaxAspect={edit(setMaxAspect)}
       extraDv={extraDv}
       onExtraDv={edit(setExtraDv)}
+      leaveAfter={leaveAfter}
+      onLeaveAfter={edit(setLeaveAfter)}
+      stay={stay}
+      onStay={edit(setStay)}
       crossfeedOk={crossfeedOk}
       asparagus={asparagus}
       onAsparagus={edit(setAsparagus)}
@@ -915,6 +929,7 @@ export default function KSPMissionPlanner() {
             maxAspect={maxAspect}
             ascent={ascent}
             returnAscent={returnAscent}
+            route={route}
             payload={payload}
             payloadDia={payloadDia}
             hardware={hardware}

@@ -909,6 +909,11 @@ function Stat({
           {unit}
         </span>
       </div>
+      {note !== undefined && (
+        <div className="note" style={{ color: C.dim, marginTop: 2 }}>
+          {note}
+        </div>
+      )}
     </div>
   );
 }

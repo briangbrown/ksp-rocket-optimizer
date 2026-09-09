@@ -649,3 +649,18 @@ step 2's budgets. See #127 for the method.
   on anything but a link — `test/disclosure.test.tsx` holds that — and the
   solved default page is 663 visible words on the phone, from 1,119 at the
   end of step 7 and 1,755 on `main` before the refresh.
+
+### TransferPanel
+
+The transfer window as the pilot flies it (#197), in _How to fly it_ after
+the ascent that reaches orbit: two top-down SVG diagrams — leaving the
+departure body, turned so its prograde is up, with the parking orbit, the
+burn point and its angle round from prograde, the escape and the Sun's
+direction; and the Sun's system with both orbits, the transfer arc, the
+bodies at departure and the phase angle — then a grid of small `Stat`s:
+leave (game clock, to the second), ejection burn and its angle, phase angle,
+plane change where one is flown, flight time, arrival, capture. Diagrams
+take `C.rule`, `C.edge`, `C.dim`, `C.paper` and the destination's accent for
+the arc and the burn; text in them is the `note` role. Each carries an
+`aria-label` that says what it draws. The two sit side by side where 440 px
+allow and stack below.

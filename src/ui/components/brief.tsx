@@ -1,5 +1,6 @@
 import { Share2, Undo2 } from "lucide-react";
 import { STATES, SYS, fromReason, toReason } from "../../core/orbits.js";
+import { DAY, kerbalDate, utOf } from "../../core/kepler.js";
 import type { Endpoint, State } from "../../core/orbits.js";
 import {
   OBJECTIVES,
@@ -65,6 +66,12 @@ type BriefProps = {
   onMaxAspect: (v: number) => void;
   extraDv: number;
   onExtraDv: (v: number) => void;
+  /* The window search's start, UT seconds, and the stay before the window
+     home. */
+  leaveAfter: number;
+  onLeaveAfter: (ut: number) => void;
+  stay: number;
+  onStay: (s: number) => void;
   crossfeedOk: boolean;
   asparagus: boolean;
   onAsparagus: (on: boolean) => void;
@@ -401,6 +408,46 @@ function Brief(p: BriefProps) {
             onChange={p.onExtraDv}
             hint="A flat reserve added after the margin, carried on the top stage — for rendezvous, a contract you have not planned yet, or getting home when the map was optimistic."
           />
+          {/* The window search's start, as the game's clock says it: the
+              first window from this date is the one the transfer is priced
+              on and drawn for. A day is enough to say — the window itself is
+              found to the second. */}
+          <Field
+            label="Leave from year"
+            value={kerbalDate(p.leaveAfter).year}
+            min={1}
+            max={50}
+            step={1}
+            hardMax={1000}
+            onChange={(y) =>
+              p.onLeaveAfter(utOf(y, kerbalDate(p.leaveAfter).day))
+            }
+            hint="The transfer window is the first after this date, on the game's clock — Year 1 Day 1 is a new save."
+          />
+          <Field
+            label="and day"
+            value={kerbalDate(p.leaveAfter).day}
+            min={1}
+            max={426}
+            step={1}
+            onChange={(d) =>
+              p.onLeaveAfter(utOf(kerbalDate(p.leaveAfter).year, d))
+            }
+            hint="A Kerbin year is 426 six-hour days."
+          />
+          {p.returning && (
+            <Field
+              label="Stay at least"
+              value={Math.round(p.stay / DAY)}
+              min={0}
+              max={600}
+              step={5}
+              unit="days"
+              hardMax={5000}
+              onChange={(d) => p.onStay(d * DAY)}
+              hint="The window home is the first after arrival plus this. Zero is the first window there is, which at Duna is most of a year anyway."
+            />
+          )}
           <div>
             <div className="label" style={{ marginBottom: SPACE.md }}>
               Atmosphere

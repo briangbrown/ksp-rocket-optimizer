@@ -276,3 +276,23 @@ before changing the thing it names.
   with a stationary orbit at about 1.77 Gm and no surface; an aerobrake is
   credited only over a surface one could stand on, so a return to Kerbol or
   Jool is a capture. #188
+
+- **Transfer windows (#197) are priced in `core/transfer.ts` and ride on the
+  leg that leaves.** `routeFor` with a start time prices every leg between
+  planets on the first window from that time: `findWindow` runs a porkchop
+  search — departure against time of flight, a Lambert solution (`lambert.ts`,
+  Izzo 2015) in every cell on the ephemeris in `kepler.ts` — over one synodic
+  period, then refines to the second. The ejection is `inject(v_park, v∞)`
+  with the window's excess in place of the Hohmann's, so the route's own leg
+  formulas are unchanged; a mid-course plane change is its own leg where it
+  is cheaper than flying the inclination ballistically, and the Sun-level
+  entry of `planeChanges` is dropped when a window has paid it. Without a
+  start time the route is the tabulated one it always was, which is what
+  keeps `test/routes.test.ts` byte-identical; the app always passes one.
+  Three traps: the ephemeris uses KSP's g₀ of 9.80665, not the solver's 9.81
+  — at 9.81 Kerbin's year came out 1,600 s short; the search covers _one_
+  synodic period, because two found a cheaper window two years on and the
+  reader asked for the first; and the plane-change branch's burn time wraps
+  the anomalies into [0, 2π) before Kepler's equation, or a Dres burn came
+  out 835 days before departure. A window is about 8 ms; a route with both
+  directions about 25 ms, cached on its arguments.
