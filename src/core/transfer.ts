@@ -75,6 +75,11 @@ type Window = {
   burnDir: [number, number];
   soi: number;
   rPark: number;
+  /* A cheaper window later in the search's second synodic period, where
+     there is one worth more than a couple of percent: when it leaves and
+     what it costs, for the card to offer. The window reported is the first
+     from the start time, which is the one asked for. #199 */
+  next: { depart: number; total: number } | null;
 };
 
 /* Burn from a circular orbit of speed v to leave with excess vinf, or the
@@ -373,88 +378,98 @@ function search(
     T2 = periodOf(to);
   const synodic = 1 / Math.abs(1 / T1 - 1 / T2);
   const hohmann = Math.PI * Math.sqrt(((o1.a + o2.a) / 2) ** 3 / m);
-  /* Coarse: one synodic period, in which there is exactly one window — the
-     first from the start time, which is the one asked for, not the
-     cheapest of the next several years — against a third to twice the
-     Hohmann time. A little over, so a window straddling the far end is
-     still found whole. */
+  /* Coarse: two synodic periods, against a third to twice the Hohmann
+     time. The window reported is the cheapest cell of the first period —
+     the first window from the start time, which is the one asked for —
+     and the second period is searched for a cheaper one to mention: for
+     Moho, Jool and Eeloo, whose windows differ a lot, it often is. A
+     little over each, so a window straddling the far end is found whole. */
   const NT = 48,
     NF = 40;
-  const tSpan = 1.05 * synodic,
+  const first = 1.05 * synodic;
+  const tSpan = 2.05 * synodic,
     fLo = 0.3 * hohmann,
     fHi = 2 * hohmann;
-  let bt = NaN,
-    bf = NaN,
-    found: Cell | null = null;
-  for (let i = 0; i <= NT; i++)
+  /* The step is the first period's forty-eighth, so the first period is
+     sampled exactly as it was when it was the whole search and the window
+     reported does not move; the second period takes the same step. */
+  const step = first / NT;
+  const at = (t: number, tof: number) =>
+    price(
+      from,
+      to,
+      m,
+      mu1,
+      rPark1,
+      soi1,
+      mu2,
+      soi2,
+      vc2,
+      t,
+      tof,
+      capture,
+      type,
+    );
+  type Best = { t: number; tof: number; c: Cell };
+  let early: Best | null = null,
+    later: Best | null = null;
+  for (let i = 0; i * step <= tSpan; i++)
     for (let j = 0; j <= NF; j++) {
-      const t = t0 + (tSpan * i) / NT;
+      /* Multiplied, not accumulated: the first period's samples are then
+         the same numbers they were, to the bit. */
+      const t = t0 + i * step;
       const tof = fLo + ((fHi - fLo) * j) / NF;
-      const c = price(
-        from,
-        to,
-        m,
-        mu1,
-        rPark1,
-        soi1,
-        mu2,
-        soi2,
-        vc2,
-        t,
-        tof,
-        capture,
-        type,
-      );
-      if (c && (!found || c.total < found.total)) {
-        found = c;
-        bt = t;
-        bf = tof;
-      }
+      const c = at(t, tof);
+      if (!c) continue;
+      if (t <= t0 + first) {
+        if (!early || c.total < early.c.total) early = { t, tof, c };
+      } else if (!later || c.total < later.c.total) later = { t, tof, c };
     }
-  if (!found) return null;
-  let bc: Cell = found;
+  if (!early) return null;
   /* Refine: a 7×7 grid about the best, shrinking, nine rounds — from a
      step of days to one of seconds. */
-  let ht = tSpan / NT,
-    hf = (fHi - fLo) / NF;
-  for (let round = 0; round < 9; round++) {
-    let nt = bt,
-      nf = bf,
-      nc: Cell = bc;
-    for (let i = -3; i <= 3; i++)
-      for (let j = -3; j <= 3; j++) {
-        const t = Math.max(t0, bt + (ht * i) / 3);
-        const tof = Math.max(3600, bf + (hf * j) / 3);
-        const c = price(
-          from,
-          to,
-          m,
-          mu1,
-          rPark1,
-          soi1,
-          mu2,
-          soi2,
-          vc2,
-          t,
-          tof,
-          capture,
-          type,
-        );
-        if (c && c.total < nc.total) {
-          nc = c;
-          nt = t;
-          nf = tof;
+  const refine = (b: Best): Best => {
+    let { t: bt, tof: bf, c: bc } = b;
+    let ht = step,
+      hf = (fHi - fLo) / NF;
+    for (let round = 0; round < 9; round++) {
+      let nt = bt,
+        nf = bf,
+        nc: Cell = bc;
+      for (let i = -3; i <= 3; i++)
+        for (let j = -3; j <= 3; j++) {
+          const t = Math.max(t0, bt + (ht * i) / 3);
+          const tof = Math.max(3600, bf + (hf * j) / 3);
+          const c = at(t, tof);
+          if (c && c.total < nc.total) {
+            nc = c;
+            nt = t;
+            nf = tof;
+          }
         }
-      }
-    bt = nt;
-    bf = nf;
-    bc = nc;
-    ht *= 0.3;
-    hf *= 0.3;
-  }
-  const depart = Math.round(bt),
-    tof = Math.round(bf);
-  const c = bc;
+      bt = nt;
+      bf = nf;
+      bc = nc;
+      ht *= 0.3;
+      hf *= 0.3;
+    }
+    return { t: bt, tof: bf, c: bc };
+  };
+  const best = refine(early);
+  const depart = Math.round(best.t),
+    tof = Math.round(best.tof);
+  const c = best.c;
+  /* Worth mentioning only where it is clearly cheaper: the grid is coarse
+     and a percent is noise. */
+  const next =
+    later && later.c.total < c.total * 0.98
+      ? (() => {
+          const r = refine(later);
+          return r.c.total < c.total * 0.98
+            ? { depart: Math.round(r.t), total: r.c.total }
+            : null;
+        })()
+      : null;
   /* The ejection point. The hyperbola that leaves with the excess `vinf`
      from radius `rPark` has eccentricity 1 + r·v∞²/μ, and its asymptote
      lies θ∞ = acos(−1/e) past periapsis; the burn is at periapsis, so it
@@ -512,6 +527,7 @@ function search(
     burnDir,
     soi,
     rPark: rPark1,
+    next,
   };
 }
 

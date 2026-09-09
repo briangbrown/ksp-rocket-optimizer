@@ -172,6 +172,20 @@ describe("the window search", () => {
     expect(pl.plane!.at).toBeGreaterThan(pl.depart);
     expect(pl.plane!.at).toBeLessThan(pl.arrive);
   });
+  it("reports the first window, and names a clearly cheaper one after it", () => {
+    /* Moho's windows differ by hundreds of m/s from one to the next; the
+       first from a new save is Year 1 Day 97, and the one alexmoon's
+       planner picks as cheapest, Day 269, is offered. Duna's next is no
+       cheaper, and nothing is said. */
+    const moho = findWindow("Kerbin", "Moho", rK, 260_000, 0, true)!;
+    expect(kerbalDate(moho.depart).day).toBeLessThan(150);
+    expect(moho.next).not.toBeNull();
+    expect(kerbalDate(moho.next!.depart)).toMatchObject({ year: 1 });
+    expect(kerbalDate(moho.next!.depart).day).toBeGreaterThan(250);
+    expect(moho.next!.total).toBeLessThan(moho.total * 0.98);
+    const duna = findWindow("Kerbin", "Duna", rK, rD, 0, true)!;
+    expect(duna.next).toBeNull();
+  });
   it("starts where it is told, and the next window is a synodic period on", () => {
     const first = findWindow("Kerbin", "Duna", rK, rD, 0, true)!;
     const later = findWindow(
