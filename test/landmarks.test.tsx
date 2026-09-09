@@ -94,7 +94,7 @@ describe("the solving state", () => {
         await new Promise((r) => setTimeout(r, 50));
       });
     expect(solving(), "never saw it solving").toBe(true);
-    expect(status()).toMatch(/^Solving Kerbin → Mun…$/);
+    expect(status()).toMatch(/^The Works is building your Mun rocket…$/);
     /* And after: the craft and its liftoff mass, not silence. */
     await settle();
     expect(status()).toMatch(/^.+: [\d.,]+ t at liftoff\.$/);

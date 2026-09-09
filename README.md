@@ -1,7 +1,9 @@
-# KSP Mission Planner
+# Kerbal Rocket Works
 
-A React app that designs Kerbal Space Program rockets for a given mission, then
-flies the ascent to check the design actually works.
+Rockets built to order, and flown to prove it. A React app that designs a
+Kerbal Space Program rocket for a given mission — any body to any body, on
+the real transfer window — then flies the ascent to check the design
+actually works, and draws the transfer with the burn marked.
 
 Point it at a destination and a payload; it picks engines, tanks, boosters and
 structure from your researched parts, sizes the stages, and simulates the launch.

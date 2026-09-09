@@ -45,7 +45,7 @@ describe("picking a body on the brief", () => {
     await click(body("Kerbol"));
     await settle();
     expect(arriving()).toBe("Fly-by");
-    expect(text()).toMatch(/Kerbin → Kerbol/);
+    expect(text()).toMatch(/building your Kerbol rocket/);
     expect(solved()).toBe(true);
     /* The chips' reason names the body as the page does. */
     expect(text()).toMatch(/Kerbol has no surface to land on/);
@@ -62,7 +62,7 @@ describe("picking a body on the brief", () => {
     await click(body("Duna"));
     await settle();
     expect(arriving()).toBe("Surface");
-    expect(text()).toMatch(/Kerbin → Duna/);
+    expect(text()).toMatch(/building your Duna rocket/);
     /* Kerbol cannot be landed on, and its low orbit is not the default.
        Whether tier 5 can throw 2.5 t at the sun is solvability's question,
        not this test's. */
@@ -73,6 +73,6 @@ describe("picking a body on the brief", () => {
     await click(body("Duna"));
     await settle();
     expect(arriving()).toBe("Fly-by");
-    expect(text()).toMatch(/Kerbin → Duna/);
+    expect(text()).toMatch(/building your Duna rocket/);
   }, 180_000);
 });
