@@ -577,7 +577,15 @@ function TransferPanel({
         <Stat
           small
           label="Burn components"
-          value={`${fmt(w.ejectPro)} m/s · ${fmt(Math.abs(w.ejectNor))}`}
+          value={
+            <>
+              {fmt(w.ejectPro)}
+              <span className="note" style={{ margin: "0 3px" }}>
+                m/s
+              </span>
+              · {fmt(Math.abs(w.ejectNor))}
+            </>
+          }
           unit="m/s"
           note={`prograde · ${w.ejectNor < 0 ? "anti-normal" : "normal"}`}
         />
