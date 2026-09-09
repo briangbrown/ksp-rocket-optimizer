@@ -75,7 +75,11 @@ function Trail({
         stroke={color}
         strokeWidth={width}
         strokeOpacity={alpha.toFixed(2)}
-        strokeLinecap="round"
+        /* Butt ends: two round caps meeting at a joint paint it twice, and
+           a translucent joint painted twice is a darker dot — seventy of
+           them read as a dashed line. Butt ends meet exactly; the wedge
+           they leave on the outside of the bend is a twentieth of a pixel. */
+        strokeLinecap="butt"
       />,
     );
   }
