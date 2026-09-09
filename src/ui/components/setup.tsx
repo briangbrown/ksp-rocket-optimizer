@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { DATA } from "../../core/catalogue.js";
+import { offered } from "../../core/constants.js";
 import { NODE_PARTS, TIERS, withDeps } from "../../core/tech.js";
 import { C, SPACE } from "../tokens.js";
 import { Config } from "./config.jsx";
@@ -230,6 +231,7 @@ function Setup({
                     open={openNode === n}
                     onOpen={() => setOpenNode(openNode === n ? null : n)}
                     excluded={excluded}
+                    expansions={expansions}
                     accent={accent}
                     onNode={(turningOn) => {
                       /* Turning a node off rules out everything under it;
@@ -321,6 +323,9 @@ type NodeProps = {
   open: boolean;
   onOpen: () => void;
   excluded: Set<string>;
+  /* Which install: a part the expansions do not offer is listed greyed, not
+     boxed — a ReStock+ stand-in under Making History is not in the game. */
+  expansions: Expansions;
   accent: string;
   onNode: (on: boolean) => void;
   onPart: (name: string) => void;
@@ -334,12 +339,14 @@ function Node({
   open,
   onOpen,
   excluded,
+  expansions,
   accent,
   onNode,
   onPart,
 }: NodeProps) {
   const parts = NODE_PARTS[n] || [];
-  const off = parts.filter((x) => excluded.has(x.name)).length;
+  const here = parts.filter((x) => offered(x.src, expansions));
+  const off = here.filter((x) => excluded.has(x.name)).length;
   return (
     <div style={{ padding: "2px 0" }}>
       <div style={{ display: "flex", gap: 7, alignItems: "flex-start" }}>
@@ -363,7 +370,7 @@ function Node({
         >
           {n}
           <span className="note" style={{ color: C.dim, marginLeft: 5 }}>
-            {on ? `${parts.length - off}/${parts.length}` : parts.length}
+            {on ? `${here.length - off}/${here.length}` : here.length}
           </span>
         </button>
       </div>
@@ -382,6 +389,30 @@ function Node({
                Ticking one now researches the node as well, so the box does
                what it says. */
             const live = on && !excluded.has(x.name);
+            /* ReStock+ hides its Making History stand-ins when the expansion
+               is installed, so with both on the part is not in the game: its
+               box is off and dead, and the row says why. */
+            if (!offered(x.src, expansions))
+              return (
+                <Check
+                  key={x.name}
+                  checked={false}
+                  disabled
+                  accent={accent}
+                  onChange={() => {}}
+                  style={{ padding: "1.5px 0" }}
+                >
+                  <span
+                    className="note"
+                    style={{ flex: 1, lineHeight: 1.25, color: C.dim }}
+                  >
+                    {x.name}
+                    <span style={{ marginLeft: 5 }}>
+                      · hidden by ReStock+ with Making History
+                    </span>
+                  </span>
+                </Check>
+              );
             return (
               <Check
                 key={x.name}

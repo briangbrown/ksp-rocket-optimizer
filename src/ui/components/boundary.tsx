@@ -8,13 +8,22 @@ import { FONT, SPACE } from "../tokens.js";
    address is cleared first, because the likeliest cause of a throw on mount
    is a link — a design nobody could build by hand — and a reload with it
    still there would throw again. #174 */
-type State = { failed: boolean };
+type State = { failed: boolean; said: string };
 
 class Boundary extends Component<{ children: ReactNode }, State> {
-  override state: State = { failed: false };
+  override state: State = { failed: false, said: "" };
 
-  static getDerivedStateFromError(): State {
-    return { failed: true };
+  /* The message and the first frames, for the reader to pass on. The console
+     has them too, but nobody reads a phone's console, and the first report of
+     this page came as its two sentences and no more. */
+  static getDerivedStateFromError(error: unknown): State {
+    const e = error instanceof Error ? error : new Error(String(error));
+    const frames = (e.stack ?? "")
+      .split("\n")
+      .filter((l) => /^\s*at /.test(l))
+      .slice(0, 3)
+      .map((l) => l.trim());
+    return { failed: true, said: [e.message, ...frames].join("\n") };
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo) {
@@ -53,6 +62,18 @@ class Boundary extends Component<{ children: ReactNode }, State> {
         >
           Reload
         </button>
+        {this.state.said && (
+          <pre
+            className="note"
+            style={{
+              margin: `${SPACE.lg}px 0 0`,
+              whiteSpace: "pre-wrap",
+              overflowWrap: "anywhere",
+            }}
+          >
+            {this.state.said}
+          </pre>
+        )}
       </div>
     );
   }

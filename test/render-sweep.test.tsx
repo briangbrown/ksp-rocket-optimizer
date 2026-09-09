@@ -82,10 +82,14 @@ function scan(where: string) {
   return problems;
 }
 
-/* Each row a To end: a body picked on the brief, then where it has to be
-   said, a state chip. The two orbits of Kerbin were pseudo-destinations
-   once; Kerbol is a body since #188 and its row is new. */
-const DESTINATIONS: ReadonlyArray<[string, string | null, string]> = [
+/* Each row a To end: a body picked on the brief, then a state chip. The
+   state is said on every row: picking a body carries the state already
+   chosen where the body can do it, so a sweep that left it to the picker
+   would pin whatever the row before had left, not a mission. A landing
+   everywhere there is one, Jool's low orbit, which is what the picker used
+   to open on. The two orbits of Kerbin were pseudo-destinations once; Kerbol
+   is a body since #188 and its row is new. */
+const DESTINATIONS: ReadonlyArray<[string, string, string]> = [
   ["Kerbin", "Low orbit", "Low orbit"],
   ["Kerbin", "Stationary orbit", "Stationary orbit"],
   ...[
@@ -103,7 +107,14 @@ const DESTINATIONS: ReadonlyArray<[string, string | null, string]> = [
     "Tylo",
     "Pol",
     "Eeloo",
-  ].map((b) => [b, null, b] as [string, null, string]),
+  ].map(
+    (b) =>
+      [b, b === "Jool" ? "Low orbit" : "Surface", b] as [
+        string,
+        string,
+        string,
+      ],
+  ),
   ["Kerbol", "Low orbit", "Kerbol orbit"],
 ];
 const OBJECTIVES = ["Lightest", "Cheapest", "Fewest parts"];

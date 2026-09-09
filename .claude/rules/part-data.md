@@ -128,3 +128,31 @@ Changing a number here is changing a measurement.
   `.cfg` files (`TechRequired`, `cost`; five nodes, Fuel Systems to
   High-Performance Fuel Systems); `tools/README.md` says what was packed,
   for the next row that arrives the same way.
+
+- **ReStock+ hides its Making History stand-ins, and so must the roster.**
+  Six engines and fifteen tanks in ReStock+ — the Caravel, Galleon,
+  Schnauzer, Ursa, Castor, Trash Panda, the FL-X 1.875 m tanks, the Kerbodyne
+  SIV 5 m tanks and their adapters — exist for players without the expansion
+  and carry `MHReplacement = True`; `ReStockPlus/Patches/MakingHistoryPartHiding.cfg`
+  sets `TechHidden` and `category = none` on every one of them
+  `:NEEDS[SquadExpansion/MakingHistory]`. A player with both mods never sees
+  them, and the app was building a Kerbol fly-by on a Caravel. The rows carry
+  `mhr: 1`, read from the merged `ModuleManager.ConfigCache` of an install
+  with both, and `offered` in `src/core/constants.ts` is the one rule for what
+  an install has: an expansion's part needs its expansion, either will do
+  where a part has both flags, and an `mhr` part is offered only while Making
+  History is absent. Every roster gate — the two filters in `app.tsx`,
+  `couplersFor`, the tree in the setup sheet — reads it, and the mission sweep
+  fails on a delivered part the install does not offer.
+  `test/parts-data.test.ts` pins the twenty-one. The engine plates are the
+  case for the either-flag rule: Making History and ReStock+ both ship them,
+  EP-18 to EP-50 with the same mass, price and node, so one row carries `mh`
+  and `rs`. Before this the plates were ReStock+-only, so an install with
+  Making History and no ReStock+ was denied engine plates it has. The one
+  approximation: Making History's EP-12 is 150 funds behind General
+  Construction where ReStock+'s is 200 behind Advanced Construction, and the
+  row carries the ReStock+ figures. It could be two rows, but the design
+  grid solves with no expansions stated, which offers everything, and the
+  cheaper row moved the price of every EP-12 in the snapshot by 50 funds
+  for no design change — not worth a re-bless. If the grid ever states an
+  install, split the row then.

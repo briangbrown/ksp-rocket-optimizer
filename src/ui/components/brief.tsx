@@ -87,17 +87,30 @@ type BriefProps = {
    shows it as a chip above the planets. */
 const BODIES = Object.keys(SYS);
 
-/* The state a body opens in when it is picked: its surface where it has one
-   a mission can start from or land on, else its low orbit. */
-const firstFrom = (b: string): Endpoint => ({
-  body: b,
-  state: fromReason({ body: b, state: "surface" }) === true ? "surface" : "low",
-});
-const firstTo = (from: Endpoint, b: string): Endpoint => {
-  for (const state of STATES)
-    if (toReason(from, { body: b, state }) === true) return { body: b, state };
+/* The state a body opens in when it is picked. The state already chosen,
+   where the new body can do it — a landing stays a landing when the body
+   changes, and tapping the body already chosen changes nothing, which is
+   what made a shared Kerbol fly-by into a 36 km/s low solar orbit with no
+   solution. Else the first state the body can: its surface, then its low
+   orbit — except Kerbol, whose low orbit is that 36 km/s and a mission
+   nobody means by tapping the sun, so it opens on a fly-by. */
+const firstFrom = (b: string, keep: State): Endpoint => {
+  const can = (state: State) => fromReason({ body: b, state }) === true;
+  if (can(keep)) return { body: b, state: keep };
+  return { body: b, state: can("surface") ? "surface" : "low" };
+};
+const firstTo = (from: Endpoint, b: string, keep: State): Endpoint => {
+  const can = (state: State) => toReason(from, { body: b, state }) === true;
+  if (can(keep)) return { body: b, state: keep };
+  for (const state of b === "Sun" ? ["flyby" as State, ...STATES] : STATES)
+    if (can(state)) return { body: b, state };
   return { body: b, state: "low" };
 };
+
+/* A reason as the reader knows the body: the model says "Sun", the page says
+   Kerbol everywhere else. */
+const said = (r: true | string) =>
+  r === true ? r : r.replace(/\bSun\b/g, bodyLabel("Sun"));
 
 /* The state chips for one end, with what the body cannot do disabled and
    why written under the group, since a hint under a pointer is not something
@@ -219,13 +232,13 @@ function Brief(p: BriefProps) {
       <BodyPicker
         value={p.to.body}
         options={BODIES}
-        onPick={(b) => p.onTo(firstTo(p.from, b))}
+        onPick={(b) => p.onTo(firstTo(p.from, b, p.to.state))}
       />
       <StateChoice
         label="Arriving"
         value={p.to.state}
         states={STATES}
-        reason={(s) => toReason(p.from, { body: p.to.body, state: s })}
+        reason={(s) => said(toReason(p.from, { body: p.to.body, state: s }))}
         onChange={(s) => p.onTo({ body: p.to.body, state: s })}
       />
 
@@ -255,13 +268,13 @@ function Brief(p: BriefProps) {
         <BodyPicker
           value={p.from.body}
           options={BODIES}
-          onPick={(b) => p.onFrom(firstFrom(b))}
+          onPick={(b) => p.onFrom(firstFrom(b, p.from.state))}
         />
         <StateChoice
           label="Starting in"
           value={p.from.state}
           states={STATES.filter((s) => s !== "flyby")}
-          reason={(s) => fromReason({ body: p.from.body, state: s })}
+          reason={(s) => said(fromReason({ body: p.from.body, state: s }))}
           onChange={(s) => p.onFrom({ body: p.from.body, state: s })}
         />
       </Section>

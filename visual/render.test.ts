@@ -477,6 +477,67 @@ describe("the build view, in a browser", () => {
     await step("On the pad");
   }, 60_000);
 
+  it("stands when the design goes mid-separation", async () => {
+    /* A separation in flight names the step it left. Change the brief to
+       something nothing solves while one is running and the next render has
+       a one-step list and an animation on step three: it read `steps[3]`,
+       threw on `.drop`, and the page was the error boundary. On a phone the
+       staging plays itself through once after every load, so a tap on the
+       brief in those seconds was a blank page — which is how the Kerbol
+       fly-by link was reported. Clicked raw, not through `press`: its settle
+       waits for canvases, and a design that does not solve draws none. */
+    const tap = (want: string) =>
+      page.evaluate((w: string) => {
+        const b = [...document.querySelectorAll("button")].find(
+          (x) =>
+            (x.textContent ?? "").trim() === w ||
+            (x.textContent ?? "").trim().startsWith(w) ||
+            x.getAttribute("aria-label") === w,
+        );
+        if (!b) throw new Error("no button labelled " + w);
+        b.click();
+      }, want);
+    const quiet = () =>
+      page.waitForFunction(() => !document.querySelector('[style*="pulse"]'), {
+        timeout: 120_000,
+        polling: 200,
+      });
+    await step("On the pad");
+    const briefClosed = await page.evaluate(
+      () =>
+        [...document.querySelectorAll("button[aria-expanded]")]
+          .find((b) => (b.textContent ?? "").trim().startsWith("Mission"))
+          ?.getAttribute("aria-expanded") === "false",
+    );
+    if (briefClosed) await tap("Mission");
+    await press("Play the staging");
+    /* Two seconds in: past the first separation, so the step in flight is
+       one the empty design will not have. */
+    await new Promise((r) => setTimeout(r, 2000));
+    await tap("Kerbol");
+    await tap("Low orbit"); // 36 km/s from the pad: nothing solves
+    await new Promise((r) => setTimeout(r, 300));
+    await quiet();
+    await new Promise((r) => setTimeout(r, 2500));
+    const after = await page.evaluate(() => ({
+      boundary: /could not be shown/.test(document.body.textContent ?? ""),
+      noSolution: /No solution/.test(document.body.textContent ?? ""),
+      motion:
+        document.querySelector("[data-motion]")?.getAttribute("data-motion") ??
+        null,
+    }));
+    expect(after.boundary, "the page fell to the error boundary").toBe(false);
+    expect(after.noSolution, "nothing said the mission does not solve").toBe(
+      true,
+    );
+    expect(after.motion, "the root is still named as in motion").toBe(null);
+    /* Back to the mission the rest of the walk expects. */
+    await tap("Mun");
+    await tap("Surface");
+    await settle(page);
+    await step("On the pad");
+  }, 90_000);
+
   it("draws a new design in from the pad, and lands on the still drawing", async () => {
     /* A design the solver has not delivered before arrives: the parts settle
        onto the pad from a little above their places over `ARRIVE_MS`, and

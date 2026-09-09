@@ -1,4 +1,4 @@
-import { NONE, expBits } from "./constants.js";
+import { NONE, expBits, offered } from "./constants.js";
 import couplersData from "../data/couplers.json";
 import structureData from "../data/structure.json";
 import type { Excluded, Expansions, Roster } from "./constants.js";
@@ -143,8 +143,8 @@ function couplersFor(
   excluded: Excluded,
   expansions?: Expansions | null,
 ) {
-  /* Engine plates ship with ReStock+; without it they are not in the game and
-     must not appear in a design. */
+  /* Engine plates ship with Making History and with ReStock+; with neither
+     they are not in the game and must not appear in a design. */
   /* Hoisted: the engine does not change inside the filter, so asking for its
      diameter once per coupler was 35 lookups where one would do. */
   const ed = diaOf(e);
@@ -153,7 +153,7 @@ function couplersFor(
       c.dia === ed &&
       !!c.t &&
       unlocked.has(c.t) &&
-      !(c.rs && expansions && !expansions.rs) &&
+      offered(c, expansions) &&
       !(excluded && excluded.has(c.n)),
   );
 }
