@@ -868,9 +868,11 @@ export default function RocketWorks() {
             }}
           >
             <WorksMark theme={theme} />
+            {/* A breaking space before the last word: with the mark beside
+                it the name is wider than a phone, and held on one line it
+                pushed the page sideways. */}
             <span>
-              Kerbal&nbsp;Rocket&nbsp;
-              <span style={{ color: dcolor }}>Works</span>
+              Kerbal&nbsp;Rocket <span style={{ color: dcolor }}>Works</span>
             </span>
           </h1>
         </div>
