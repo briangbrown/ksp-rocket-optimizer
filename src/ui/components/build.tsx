@@ -378,7 +378,10 @@ function BuildView({
     setArrival({ t: 0 });
     const t0 = performance.now();
     let id = requestAnimationFrame(function tick(now: number) {
-      const u = Math.min(1, (now - t0) / ARRIVE_MS);
+      /* Clamped below as well as above: the frame's timestamp can precede
+         the `performance.now()` the clock started on, and a negative first
+         step ran the arrival, and the handle, backwards for a frame. */
+      const u = Math.min(1, Math.max(0, (now - t0) / ARRIVE_MS));
       setArrival({ t: u });
       if (u < 1) id = requestAnimationFrame(tick);
       else {
@@ -422,7 +425,9 @@ function BuildView({
     const ms = playing ? PLAY_MS : STEP_MS;
     const t0 = performance.now();
     let id = requestAnimationFrame(function tick(now: number) {
-      const u = Math.min(1, (now - t0) / ms);
+      /* Clamped below as well as above — see the arrival's clock. The
+         handle stepped the wrong way for a frame at every stop. */
+      const u = Math.min(1, Math.max(0, (now - t0) / ms));
       setAnim({ a: lo, t: back ? 1 - u : u });
       if (u < 1) id = requestAnimationFrame(tick);
       else {
@@ -699,14 +704,21 @@ function BuildView({
     last,
     Math.round(scrub ?? (anim ? anim.a + anim.t : from)),
   );
-  const labelled = (i: number) =>
-    stopPitch >= 72 || i === 0 || i === last || i === lit;
+  /* Every stop named only where every neighbouring pair of names fits the
+     pitch — a label glyph is about seven and a half pixels with its
+     tracking, "Boosters away" near a hundred — else the first, the last and
+     the current. A fixed pitch let a wider phone in full screen show them
+     all, on each other. */
+  const nameW = (i: number) => 7.5 * shortStep(steps[i].label).length;
+  const allFit = steps.every(
+    (_, i) => i === last || stopPitch >= (nameW(i) + nameW(i + 1)) / 2 + 8,
+  );
+  const labelled = (i: number) => allFit || i === 0 || i === last || i === lit;
   /* An end label under a current label next to it: the two would sit on
      each other when the stops are tight, so the end's fades out while its
      neighbour is current — a fade, not a cut, as MOTION.quick says. */
   const eclipsed = (i: number) =>
-    stopPitch < 72 &&
-    ((i === 0 && lit === 1) || (i === last && lit === last - 1));
+    !allFit && ((i === 0 && lit === 1) || (i === last && lit === last - 1));
   /* The dots sit exactly where the thumb's centre sits at each step; the
      targets are clamped a half-target in from the strip's ends, so the end
      ones hit inside the box and nothing scrolls sideways — the end dots are

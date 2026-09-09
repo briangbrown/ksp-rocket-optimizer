@@ -85,6 +85,68 @@ describe("the stops on the phone's scrubber", () => {
       ).toBeGreaterThanOrEqual(sorted[i - 1].right);
   });
 
+  it("carry the handle one way through a play, and back", async () => {
+    /* Sampled every few milliseconds through a play from the pad and a
+       tap on the pad from the end: the handle never steps the wrong way,
+       and neither does the lit stop. A frame's timestamp can precede the
+       clock's start, and the first step of every separation went the
+       wrong way by it before the progress was clamped. */
+    const value = () =>
+      page.evaluate(() =>
+        Number(
+          (document.querySelector('input[type="range"]') as HTMLInputElement)
+            .value,
+        ),
+      );
+    const litAt = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll("button.stop")].findIndex(
+          (b) => b.getAttribute("aria-current") === "step",
+        ),
+      );
+    const run = async (ms: number) => {
+      const vs: Array<number> = [],
+        ls: Array<number> = [];
+      const t0 = Date.now();
+      while (Date.now() - t0 < ms) {
+        vs.push(await value());
+        ls.push(await litAt());
+        await new Promise((r) => setTimeout(r, 15));
+      }
+      const dir = Math.sign(vs[vs.length - 1] - vs[0]);
+      const against = (xs: Array<number>) =>
+        xs.filter((x, i) => i > 0 && Math.sign(x - xs[i - 1]) === -dir).length;
+      return {
+        from: vs[0],
+        to: vs[vs.length - 1],
+        handle: against(vs),
+        lit: against(ls),
+      };
+    };
+    await page.evaluate(() => {
+      const b = [...document.querySelectorAll("button")].find(
+        (x) => x.getAttribute("aria-label") === "Play the staging",
+      ) as HTMLElement;
+      b.click();
+    });
+    const fwd = await run(12_000);
+    await settle(page);
+    expect(fwd.to, "the play reached the end").toBeGreaterThan(fwd.from);
+    expect(fwd.handle, "the handle went backwards during the play").toBe(0);
+    expect(fwd.lit, "the lit stop went backwards during the play").toBe(0);
+    await page.evaluate(() => {
+      const b = [...document.querySelectorAll("button.stop")].find(
+        (x) => x.getAttribute("aria-label") === "On the pad",
+      ) as HTMLElement;
+      b.click();
+    });
+    const back = await run(8_000);
+    await settle(page);
+    expect(back.to, "the run reached the pad").toBeLessThan(back.from);
+    expect(back.handle, "the handle went forwards on the way back").toBe(0);
+    expect(back.lit, "the lit stop went forwards on the way back").toBe(0);
+  }, 120_000);
+
   it("take the stepper to their step when tapped", async () => {
     await page.evaluate(() => {
       const b = [...document.querySelectorAll("button.stop")].find(
