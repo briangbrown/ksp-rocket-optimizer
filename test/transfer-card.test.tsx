@@ -78,7 +78,7 @@ describe("the transfer card", () => {
     await settle();
     expect(fly()).toMatch(/Transfer\s*ballistic/);
     expect(fly()).not.toMatch(/Plane change/);
-    expect(fly()).toMatch(/Burn · prograde/);
+    expect(fly()).toMatch(/Burn components/);
     location.hash = "";
   }, 180_000);
 

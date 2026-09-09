@@ -576,15 +576,10 @@ function TransferPanel({
             launched into the escape's own inclination would not need. */}
         <Stat
           small
-          label="Burn · prograde"
-          value={fmt(w.ejectPro)}
+          label="Burn components"
+          value={`${fmt(w.ejectPro)} m/s · ${fmt(Math.abs(w.ejectNor))}`}
           unit="m/s"
-        />
-        <Stat
-          small
-          label={`Burn · ${w.ejectNor < 0 ? "anti-normal" : "normal"}`}
-          value={fmt(Math.abs(w.ejectNor))}
-          unit="m/s"
+          note={`prograde · ${w.ejectNor < 0 ? "anti-normal" : "normal"}`}
         />
         <Stat small label="Phase angle" value={deg(w.phase)} />
         <Stat
