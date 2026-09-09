@@ -736,7 +736,19 @@ export default function KSPMissionPlanner() {
       open={briefOpen}
       onToggle={() => {
         touched.current = true;
-        setBriefOpen(!briefOpen);
+        const opening = !briefOpen;
+        setBriefOpen(opening);
+        /* On the phone the set bar is stuck to the top of the window, so
+           it is tapped from anywhere on the page — and opened in place from
+           far down, the form unfolded with its top off the window. Bring it
+           to the top once it has opened; the wide screen's brief is a card
+           in a column that does not move. #202 */
+        if (opening && !wide)
+          requestAnimationFrame(() =>
+            document
+              .getElementById("brief")
+              ?.scrollIntoView?.({ block: "start" }),
+          );
       }}
       onDone={() => setBriefOpen(false)}
       line={briefLine({ from, to, returning, payload, objective })}
