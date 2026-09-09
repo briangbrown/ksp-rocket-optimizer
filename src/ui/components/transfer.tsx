@@ -107,6 +107,10 @@ function Ship({
       </g>
       <text
         className="note"
+        paintOrder="stroke"
+        stroke={C.panel}
+        strokeWidth={3}
+        strokeLinejoin="round"
         x={label.at[0]}
         y={label.at[1]}
         fill={C.paper}
@@ -161,7 +165,17 @@ const Name = ({
   color: string;
   anchor?: "start" | "middle" | "end";
 }) => (
-  <text className="note" x={at[0]} y={at[1]} fill={color} textAnchor={anchor}>
+  <text
+    className="note"
+    paintOrder="stroke"
+    stroke={C.panel}
+    strokeWidth={3}
+    strokeLinejoin="round"
+    x={at[0]}
+    y={at[1]}
+    fill={color}
+    textAnchor={anchor}
+  >
     {text}
   </text>
 );
@@ -231,6 +245,7 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
   }
   const mid = b0 + sweep / 2;
   const label = P(Math.cos(mid) * (ra + 14), Math.sin(mid) * (ra + 14));
+  const refEnd = P(ref[0] * rp, ref[1] * rp);
   /* Prograde is up by construction of `turn`. */
   const top: Pt = [half, half - rp - 8],
     tip: Pt = [half, half - rp - 30];
@@ -252,7 +267,7 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
         stroke={C.rule}
         strokeDasharray="2 4"
       />
-      <circle cx={sun[0]} cy={sun[1]} r={3} fill={C.amber} />
+      <circle cx={sun[0]} cy={sun[1]} r={3} fill={hueFor("Sun", theme)} />
       <Name at={sunLabel} text="Kerbol" color={C.dim} anchor="middle" />
       {/* The parking orbit, fading behind the ship, and the body. */}
       <Trail pts={ring} at={0} color={hue} />
@@ -282,7 +297,25 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
         strokeWidth={1.5}
         strokeDasharray="4 3"
       />
-      {/* The angle round to the burn. */}
+      {/* The angle round to the burn: a ray to each of its two points — the
+          reference direction on the parking orbit and the burn — and the
+          arc between them. */}
+      <line
+        x1={half}
+        y1={half}
+        x2={refEnd[0]}
+        y2={refEnd[1]}
+        stroke={C.dim}
+        strokeOpacity={0.8}
+      />
+      <line
+        x1={half}
+        y1={half}
+        x2={burn[0]}
+        y2={burn[1]}
+        stroke={C.dim}
+        strokeOpacity={0.8}
+      />
       <path
         d={arc
           .map(
@@ -295,6 +328,10 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
       />
       <text
         className="note"
+        paintOrder="stroke"
+        stroke={C.panel}
+        strokeWidth={3}
+        strokeLinejoin="round"
         x={label[0]}
         y={label[1]}
         fill={C.paper}
@@ -388,6 +425,24 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
         width={1.5}
         open
       />
+      {/* The phase angle: a ray from Kerbol to each body at departure, and
+          the arc between them. */}
+      <line
+        x1={half}
+        y1={half}
+        x2={from[0]}
+        y2={from[1]}
+        stroke={C.dim}
+        strokeOpacity={0.8}
+      />
+      <line
+        x1={half}
+        y1={half}
+        x2={toDep[0]}
+        y2={toDep[1]}
+        stroke={C.dim}
+        strokeOpacity={0.8}
+      />
       <path
         d={arc
           .map(
@@ -400,6 +455,10 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
       />
       <text
         className="note"
+        paintOrder="stroke"
+        stroke={C.panel}
+        strokeWidth={3}
+        strokeLinejoin="round"
         x={label[0]}
         y={label[1]}
         fill={C.paper}
@@ -408,14 +467,12 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
       >
         {deg(w.phase)}
       </text>
-      <circle cx={half} cy={half} r={5} fill={C.amber} />
-      {/* Down and to the right: the body on the horizontal is named beyond
-          itself, and the arrival, wherever it is, is not there. */}
+      <circle cx={half} cy={half} r={5} fill={hueFor("Sun", theme)} />
       <Name
-        at={[half + 8, half + 14]}
+        at={[half, half + 17]}
         text="Kerbol"
         color={C.dim}
-        anchor="start"
+        anchor="middle"
       />
       <circle
         cx={toDep[0]}
