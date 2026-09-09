@@ -147,6 +147,68 @@ describe("the stops on the phone's scrubber", () => {
     expect(back.lit, "the lit stop went forwards on the way back").toBe(0);
   }, 120_000);
 
+  it("sit exactly under the handle at every step", async () => {
+    /* The thumb is the stylesheet's, eighteen wide, so its centre runs from
+       nine in at either end; the dots are placed on the same rule. Measured
+       off the pixels: the amber column run of the thumb against the dot's
+       box, at the pad, a middle step and the end. A native thumb's width is
+       the platform's — larger on Android — and the dots sat off it there. */
+    const centre = async () => {
+      const inp = (await page.$('input[type="range"]'))!;
+      const b64 = (await inp.screenshot({ encoding: "base64" })) as string;
+      return page.evaluate(async (png: string) => {
+        const el = document.querySelector(
+          'input[type="range"]',
+        ) as HTMLInputElement;
+        const r = el.getBoundingClientRect();
+        const img = new Image();
+        img.src = "data:image/png;base64," + png;
+        await img.decode();
+        const c = document.createElement("canvas");
+        c.width = img.width;
+        c.height = img.height;
+        const x2 = c.getContext("2d")!;
+        x2.drawImage(img, 0, 0);
+        const d = x2.getImageData(0, 0, c.width, c.height).data;
+        const scale = c.width / r.width;
+        const amber: Array<number> = [];
+        for (let x = 0; x < c.width; x++) {
+          let hit = 0;
+          for (let y = 0; y < c.height; y++) {
+            const i = (y * c.width + x) * 4;
+            if (d[i] > 200 && d[i + 1] > 130 && d[i + 1] < 190 && d[i + 2] < 90)
+              hit++;
+          }
+          if (hit >= 8 * scale) amber.push(x);
+        }
+        const lit = document.querySelector(
+          '.stop-dot[data-on="1"]',
+        ) as HTMLElement;
+        const b = lit.getBoundingClientRect();
+        return {
+          thumb: amber.length
+            ? (amber[0] + amber[amber.length - 1]) / 2 / scale
+            : NaN,
+          dot: b.left + b.width / 2 - r.left,
+        };
+      }, b64);
+    };
+    for (const label of ["On the pad", "Stage 2 spent", "Payload alone"]) {
+      await page.evaluate((l: string) => {
+        const b = [...document.querySelectorAll("button.stop")].find(
+          (x) => x.getAttribute("aria-label") === l,
+        ) as HTMLElement;
+        b.click();
+      }, label);
+      await settle(page);
+      const c = await centre();
+      expect(
+        Math.abs(c.thumb - c.dot),
+        `${label}: thumb ${c.thumb}, dot ${c.dot}`,
+      ).toBeLessThan(1.5);
+    }
+  }, 120_000);
+
   it("take the stepper to their step when tapped", async () => {
     await page.evaluate(() => {
       const b = [...document.querySelectorAll("button.stop")].find(

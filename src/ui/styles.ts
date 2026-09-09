@@ -87,7 +87,20 @@ h2, h3 { margin:0; }
 /* Words for a screen reader and nobody else — the solving state, as a live
    region. Clipped rather than hidden: display:none is silent. */
 .sr-only { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
-input[type=range]{ accent-color:${C.amber}; width:100%; height:24px; margin:0; }
+/* The scrubber, drawn here rather than natively (#210): the native thumb's
+   width is the platform's — sixteen on a desktop, larger on Android — and
+   the stops have to sit exactly where its centre goes, which runs from half
+   a thumb in from either end. Eighteen wide, so a stop is nine in. The
+   track's fill follows the handle through --fill, which the view sets. */
+input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:24px; margin:0; background:transparent; --fill:0%; }
+input[type=range]::-webkit-slider-runnable-track{ height:4px; border-radius:2px;
+  background:linear-gradient(to right, ${C.amber} var(--fill), var(--rule) var(--fill)); }
+input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:18px; height:18px; margin-top:-7px; border-radius:50%;
+  box-sizing:border-box; border:2px solid var(--panel); background:${C.amber}; }
+input[type=range]::-moz-range-track{ height:4px; border-radius:2px;
+  background:linear-gradient(to right, ${C.amber} var(--fill), var(--rule) var(--fill)); }
+input[type=range]::-moz-range-thumb{ width:18px; height:18px; border-radius:50%; box-sizing:border-box;
+  border:2px solid var(--panel); background:${C.amber}; }
 /* A chip is a body-role button; data-on is how it shows it is selected, and
    the aria attribute beside it is how a reader hears the same thing. */
 .chip { ${face("body")}${size("body", 0)} border:1px solid ${C.edge}; border-radius:${RADIUS.sm}px;

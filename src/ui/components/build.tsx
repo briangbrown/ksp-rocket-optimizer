@@ -808,7 +808,12 @@ function BuildView({
           setScrub(null);
           setGoal(Math.max(0, Math.min(last, at + by)));
         }}
-        style={{ display: "block" }}
+        style={{
+          display: "block",
+          /* The track's fill, to the handle: the stylesheet's gradient
+             reads it, since a pseudo-element takes no inline style. */
+          ["--fill" as string]: `${last ? ((scrub ?? (anim ? anim.a + anim.t : from)) / last) * 100 : 0}%`,
+        }}
       />
       {stops}
     </div>
