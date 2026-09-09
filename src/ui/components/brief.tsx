@@ -438,28 +438,58 @@ function Brief(p: BriefProps) {
             }
             hint="A Kerbin year is 426 six-hour days."
           />
-          <Choice
-            label="Transfer"
-            value={p.transfer}
-            onChange={p.onTransfer}
-            options={[
-              {
-                value: "best",
-                label: "Cheapest",
-                hint: "Whichever of the two costs less for this window.",
-              },
-              {
-                value: "ballistic",
-                label: "Ballistic",
-                hint: "One burn: the inclination is flown in the ejection, as a normal component. Easier to fly.",
-              },
-              {
-                value: "plane",
-                label: "Mid-course",
-                hint: "Leave in the plane and tilt up to the target with one burn on the way. Often cheaper; harder to place in the game.",
-              },
-            ]}
-          />
+          <div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: SPACE.md,
+              }}
+            >
+              <span className="label">Transfer</span>
+              <Disclosure
+                label="About transfer types"
+                style={{ marginLeft: SPACE.xs }}
+              >
+                <div>
+                  Ballistic flies the inclination in the ejection: one burn,
+                  with a normal component from an equatorial parking orbit. The
+                  easiest to set up in the game.
+                </div>
+                <div>
+                  Mid-course leaves in the plane and tilts up to the target with
+                  one burn on the way, where the ship is slowest. Often cheaper,
+                  but the burn has to land on the right point of the arc.
+                </div>
+                <div>
+                  Cheapest takes whichever of the two costs less for this
+                  window. The card says which was flown.
+                </div>
+              </Disclosure>
+            </div>
+            <Choice
+              label="Transfer"
+              value={p.transfer}
+              onChange={p.onTransfer}
+              options={[
+                {
+                  value: "best",
+                  label: "Cheapest",
+                  hint: "Whichever of the two costs less for this window.",
+                },
+                {
+                  value: "ballistic",
+                  label: "Ballistic",
+                  hint: "One burn: the inclination is flown in the ejection, as a normal component. Easier to fly.",
+                },
+                {
+                  value: "plane",
+                  label: "Mid-course",
+                  hint: "Leave in the plane and tilt up to the target with one burn on the way. Often cheaper; harder to place in the game.",
+                },
+              ]}
+            />
+          </div>
           {p.returning && (
             <Field
               label="Stay at least"
