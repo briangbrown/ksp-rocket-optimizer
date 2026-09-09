@@ -23,10 +23,10 @@ import type { Page } from "puppeteer";
    render.test.ts gives. */
 const BUDGET = {
   phone: {
-    height: 3815, // px, the whole page with the default mission solved and the brief set: 3740 with the works number and the footer's first line (#207), 3720 without them and without the header's install line, 3749 after #190, with 2% for a different Chrome's fonts
-    words: 573, // visible words on that page — the paragraphs are behind disclosures, #135. 559 once the header's install line moved into Setup (#207), then 14 back on purpose: "Built by the Kerbal Rocket Works" in the footer and the works number on the name plate. 617 before #190
+    height: 3660, // px, the whole page with the default mission solved and the brief set: 3590 once the staging chips became stops on the scrubber (#210), 3740 before with the works number and the footer's first line (#207), 3749 after #190, with 2% for a different Chrome's fonts
+    words: 555, // visible words on that page — the paragraphs are behind disclosures, #135. 573 before the staging chips became stops with short labels (#210); 559 once the header's install line moved into Setup (#207), then 14 back on purpose for the footer's first line and the works number. 617 before #190
     tinyText: 0, // text under 12 px
-    smallBody: 55, // text under 13 px: the labels, at 12 — 56 before #207 took one from the header, 59 before #190
+    smallBody: 57, // text under 13 px: the labels, at 12 — two more on purpose, the stop labels under the scrubber (#210); 55 after #207 took one from the header, 59 before #190
     targets: 0, // pressable things under 44 × 44 — of 26, #136
     sideways: 0, // things wider than their box
     unreachable: 0, // targets a keyboard cannot reach

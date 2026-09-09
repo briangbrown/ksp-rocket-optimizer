@@ -650,6 +650,19 @@ step 2's budgets. See #127 for the method.
   solved default page is 663 visible words on the phone, from 1,119 at the
   end of step 7 and 1,755 on `main` before the refresh.
 
+### Stepped scrubber
+
+The staging steps on the phone (#210): the scrubber is the one control.
+A dot on the track at each step — the accent when current, the edge ahead,
+the rule behind, the trail's fade in three shades — a 44 px target centred
+on it, the end ones clamped a half-target in so nothing scrolls sideways,
+and a short `label`-role name under each: _Pad_, _Boosters away_, _Stage
+1_, _Payload_. The long form is the target's `aria-label` and the caption
+over the drawings. Where stops are closer than 72 px, only the first, the
+last and the current are named. The wide screen keeps its rail of chips,
+which is a list beside the drawings; without a scrubber — no WebGL, or less
+motion asked for — the phone keeps its chips too.
+
 ### WorksMark
 
 The Works' mark beside the name in the header: the icon's own drawing (a hex

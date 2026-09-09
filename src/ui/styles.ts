@@ -87,7 +87,20 @@ h2, h3 { margin:0; }
 /* Words for a screen reader and nobody else — the solving state, as a live
    region. Clipped rather than hidden: display:none is silent. */
 .sr-only { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
-input[type=range]{ accent-color:${C.amber}; width:100%; height:24px; margin:0; }
+/* The scrubber, drawn here rather than natively (#210): the native thumb's
+   width is the platform's — sixteen on a desktop, larger on Android — and
+   the stops have to sit exactly where its centre goes, which runs from half
+   a thumb in from either end. Eighteen wide, so a stop is nine in. The
+   track's fill follows the handle through --fill, which the view sets. */
+input[type=range]{ -webkit-appearance:none; appearance:none; width:100%; height:24px; margin:0; background:transparent; --fill:0%; }
+input[type=range]::-webkit-slider-runnable-track{ height:4px; border-radius:2px;
+  background:linear-gradient(to right, ${C.amber} var(--fill), var(--rule) var(--fill)); }
+input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:18px; height:18px; margin-top:-7px; border-radius:50%;
+  box-sizing:border-box; border:2px solid var(--panel); background:${C.amber}; }
+input[type=range]::-moz-range-track{ height:4px; border-radius:2px;
+  background:linear-gradient(to right, ${C.amber} var(--fill), var(--rule) var(--fill)); }
+input[type=range]::-moz-range-thumb{ width:18px; height:18px; border-radius:50%; box-sizing:border-box;
+  border:2px solid var(--panel); background:${C.amber}; }
 /* A chip is a body-role button; data-on is how it shows it is selected, and
    the aria attribute beside it is how a reader hears the same thing. */
 .chip { ${face("body")}${size("body", 0)} border:1px solid ${C.edge}; border-radius:${RADIUS.sm}px;
@@ -178,6 +191,17 @@ input[type=range]{ accent-color:${C.amber}; width:100%; height:24px; margin:0; }
 /* A checkbox and its words as one row, the row being the target. */
 .check { display:flex; gap:6px; align-items:flex-start; }
 .check > input { margin-top:2px; }
+/* The scrubber's stops on the phone (#210): a ring on the track at each
+   step, a 44 px target centred on it, and its short label under. The dot
+   is the accent when current, the rule when passed, the edge ahead — the
+   trail's fade, in three shades. */
+.stop { position:absolute; top:-44px; width:44px; height:44px; margin-left:-22px; padding:0; }
+.stop-dot { position:absolute; top:-27px; width:10px; height:10px; margin-left:-5px; border-radius:999px;
+            box-sizing:border-box; border:2px solid var(--edge); background:var(--panel); pointer-events:none; }
+.stop-dot[data-past="1"] { border-color:var(--rule); }
+.stop-dot[data-on="1"] { border-color:transparent; }
+.stop-label { position:absolute; top:4px; white-space:nowrap; line-height:1; color:var(--dim); }
+.stop-label[data-on="1"] { color:var(--paper); }
 .chip[data-hint]::after { content:attr(data-hint); display:none; position:absolute; top:100%; left:0;
                           transform:translateY(${SPACE.sm}px); width:max-content; max-width:260px; white-space:normal; text-align:left;
                           font-family:${FONTS.sans}; font-size:${TYPE.note.size[1]}px; font-weight:400; line-height:1.4;
