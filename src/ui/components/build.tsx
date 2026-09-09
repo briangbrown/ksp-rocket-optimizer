@@ -1,4 +1,5 @@
 import {
+  Fragment,
   Suspense,
   lazy,
   useCallback,
@@ -172,6 +173,22 @@ const INLINE_WIDE = "clamp(360px, 60dvh, 900px)";
    same track. It sits inside the row under the drawings, so where the row has
    a height of its own this much of it is not theirs. */
 const SCRUB_TARGET = { wide: 24, phone: 44 };
+/* The phone's stops on the scrubber (#210): the strip of short labels under
+   the stops, and half a native thumb, which is how far in from the track's
+   ends the thumb's centre — and so each stop — can go. */
+const STOP_LABELS = 30;
+const THUMB_HALF = 9;
+
+/* A step's label in two words at most, for under its stop. The long form
+   stays as the stop's name and as the caption over the drawings. */
+const shortStep = (label: string) =>
+  label === "On the pad"
+    ? "Pad"
+    : label.startsWith("Boosters away")
+      ? "Boosters away"
+      : label === "Payload alone"
+        ? "Payload"
+        : label.replace(/ spent$/, "");
 /* The title block's height in full screen: four label lines, their frame
    and the gap over it. */
 const TITLE_BLOCK = 78;
@@ -554,7 +571,9 @@ function BuildView({
   const sized = full || wide;
   const scrubbed = animates && steps.length > 1;
   const scrubH = scrubbed
-    ? (wide ? SCRUB_TARGET.wide : SCRUB_TARGET.phone) + SPACE.md
+    ? (wide ? SCRUB_TARGET.wide : SCRUB_TARGET.phone) +
+      SPACE.md +
+      (railed ? 0 : STOP_LABELS)
     : 0;
   /* Full screen, the title block's strip under the drawings: four label
      lines and their frame. */
@@ -661,44 +680,109 @@ function BuildView({
     setStep(n);
     setGoal(n);
   };
+  /* Tapping a stop is what tapping a chip was. */
+  const go = (i: number) => {
+    demo.current = false;
+    setPlaying(false);
+    setScrub(null);
+    setGoal(i);
+  };
+  /* Stops too close for their labels — a six-step rocket on a phone is
+     about sixty pixels a stop — label the first, the last and the current. */
+  const stopPitch = last > 0 ? (outerW - 2 * THUMB_HALF) / last : outerW;
+  const labelled = (i: number) =>
+    stopPitch >= 72 || i === 0 || i === last || i === at;
+  /* The dots sit exactly where the thumb's centre sits at each step; the
+     targets are clamped a half-target in from the strip's ends, so the end
+     ones hit inside the box and nothing scrolls sideways — the end dots are
+     within a few pixels of their targets' centres. */
+  const stops = !railed && (
+    <div style={{ position: "relative", height: STOP_LABELS }}>
+      {steps.map((st, i) => {
+        const x = `calc(${THUMB_HALF}px + (100% - ${2 * THUMB_HALF}px) * ${last ? i / last : 0})`;
+        return (
+          <Fragment key={i}>
+            <span
+              className="stop-dot"
+              data-on={i === at ? 1 : 0}
+              data-past={i < at ? 1 : 0}
+              style={{ left: x, background: i === at ? color : undefined }}
+            />
+            <button
+              type="button"
+              className="stop"
+              aria-label={st.label}
+              aria-current={i === at ? "step" : undefined}
+              onClick={() => go(i)}
+              style={{ left: `clamp(22px, ${x}, calc(100% - 22px))` }}
+            />
+            {/* The short label under the stop, its own box so it is never
+                wider than one — and the first and last aligned inward, so
+                neither runs past the track's end. */}
+            {labelled(i) && (
+              <span
+                aria-hidden
+                className="label stop-label"
+                data-on={i === at ? 1 : 0}
+                style={{
+                  left: x,
+                  transform:
+                    i === 0
+                      ? "translateX(-6px)"
+                      : i === last
+                        ? "translateX(calc(-100% + 6px))"
+                        : "translateX(-50%)",
+                }}
+              >
+                {shortStep(st.label)}
+              </span>
+            )}
+          </Fragment>
+        );
+      })}
+    </div>
+  );
   const scrubber = scrubbed && (
-    <input
-      type="range"
-      aria-label="Scrub the staging"
-      min={0}
-      max={last}
-      step={0.01}
-      value={scrub ?? (anim ? anim.a + anim.t : from)}
-      onPointerDown={() => {
-        demo.current = false;
-        setPlaying(false);
-      }}
-      onChange={(e) => setScrub(parseFloat(e.target.value))}
-      onPointerUp={release}
-      onPointerCancel={release}
-      onBlur={release}
-      onKeyDown={(e) => {
-        const by =
-          e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "PageUp"
-            ? 1
-            : e.key === "ArrowLeft" ||
-                e.key === "ArrowDown" ||
-                e.key === "PageDown"
-              ? -1
-              : e.key === "Home"
-                ? -last
-                : e.key === "End"
-                  ? last
-                  : 0;
-        if (!by) return;
-        e.preventDefault();
-        demo.current = false;
-        setPlaying(false);
-        setScrub(null);
-        setGoal(Math.max(0, Math.min(last, at + by)));
-      }}
-      style={{ display: "block", marginTop: SPACE.md, flexShrink: 0 }}
-    />
+    <div style={{ marginTop: SPACE.md, flexShrink: 0 }}>
+      <input
+        type="range"
+        aria-label="Scrub the staging"
+        min={0}
+        max={last}
+        step={0.01}
+        value={scrub ?? (anim ? anim.a + anim.t : from)}
+        onPointerDown={() => {
+          demo.current = false;
+          setPlaying(false);
+        }}
+        onChange={(e) => setScrub(parseFloat(e.target.value))}
+        onPointerUp={release}
+        onPointerCancel={release}
+        onBlur={release}
+        onKeyDown={(e) => {
+          const by =
+            e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "PageUp"
+              ? 1
+              : e.key === "ArrowLeft" ||
+                  e.key === "ArrowDown" ||
+                  e.key === "PageDown"
+                ? -1
+                : e.key === "Home"
+                  ? -last
+                  : e.key === "End"
+                    ? last
+                    : 0;
+          if (!by) return;
+          e.preventDefault();
+          demo.current = false;
+          setPlaying(false);
+          setScrub(null);
+          setGoal(Math.max(0, Math.min(last, at + by)));
+        }}
+        style={{ display: "block" }}
+      />
+      {stops}
+    </div>
   );
 
   /* The name on the rocket. What the section used to carry as a row of
@@ -1111,7 +1195,9 @@ function BuildView({
     <>
       {header}
       {solved.length > 0 && (drawn ? row : <NoWebGL />)}
-      {solved.length > 0 && !railed && (
+      {/* The phone's chips, only where there is no scrubber to carry the
+          steps as stops: no WebGL, or less motion asked for. #210 */}
+      {solved.length > 0 && !railed && !scrubbed && (
         <div style={{ marginTop: SPACE.lg }}>{chips}</div>
       )}
       {figures}

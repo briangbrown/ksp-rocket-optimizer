@@ -178,6 +178,17 @@ input[type=range]{ accent-color:${C.amber}; width:100%; height:24px; margin:0; }
 /* A checkbox and its words as one row, the row being the target. */
 .check { display:flex; gap:6px; align-items:flex-start; }
 .check > input { margin-top:2px; }
+/* The scrubber's stops on the phone (#210): a ring on the track at each
+   step, a 44 px target centred on it, and its short label under. The dot
+   is the accent when current, the rule when passed, the edge ahead — the
+   trail's fade, in three shades. */
+.stop { position:absolute; top:-44px; width:44px; height:44px; margin-left:-22px; padding:0; }
+.stop-dot { position:absolute; top:-27px; width:10px; height:10px; margin-left:-5px; border-radius:999px;
+            box-sizing:border-box; border:2px solid var(--edge); background:var(--panel); pointer-events:none; }
+.stop-dot[data-past="1"] { border-color:var(--rule); }
+.stop-dot[data-on="1"] { border-color:transparent; }
+.stop-label { position:absolute; top:4px; white-space:nowrap; line-height:1; color:var(--dim); }
+.stop-label[data-on="1"] { color:var(--paper); }
 .chip[data-hint]::after { content:attr(data-hint); display:none; position:absolute; top:100%; left:0;
                           transform:translateY(${SPACE.sm}px); width:max-content; max-width:260px; white-space:normal; text-align:left;
                           font-family:${FONTS.sans}; font-size:${TYPE.note.size[1]}px; font-weight:400; line-height:1.4;
