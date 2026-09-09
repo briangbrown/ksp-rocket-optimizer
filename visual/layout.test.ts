@@ -23,10 +23,10 @@ import type { Page } from "puppeteer";
    render.test.ts gives. */
 const BUDGET = {
   phone: {
-    height: 3825, // px, the whole page with the default mission solved and the brief set: 3749 once the stack decoupler was picked by size and the default rocket changed again (#190), 4066 after #161, with 2% for a different Chrome's fonts
-    words: 567, // visible words on that page — the paragraphs are behind disclosures, #135; 617 before #190 changed the default rocket
+    height: 3795, // px, the whole page with the default mission solved and the brief set: 3720 once the header lost its install line (#207), 3749 after #190, 4066 after #161, with 2% for a different Chrome's fonts
+    words: 559, // visible words on that page — the paragraphs are behind disclosures, #135; 567 before the header's install line moved into Setup (#207), 617 before #190
     tinyText: 0, // text under 12 px
-    smallBody: 56, // text under 13 px: the labels, at 12 — 59 before #190
+    smallBody: 55, // text under 13 px: the labels, at 12 — 56 before #207 took one from the header, 59 before #190
     targets: 0, // pressable things under 44 × 44 — of 26, #136
     sideways: 0, // things wider than their box
     unreachable: 0, // targets a keyboard cannot reach
@@ -34,10 +34,10 @@ const BUDGET = {
     folded: 860, // px, every section folded: the brief, four lines and the footer — 844, which is the viewport
   },
   desktop: {
-    height: 2385, // 2359 — the two-column shell (#137) with the rocket at six tenths of the window (#138); 2529 before #190, 2583 before #161
-    words: 564, // 620 before #190 changed the default rocket; 618 before the drafting sheet named its four views (#183)
-    tinyText: 61, // the labels, at 11 — raised from 60 with #190: the default rocket has four stages, one more card of labels
-    smallBody: 87, // labels and notes
+    height: 2364, // 2338 once the header lost its install line (#207); 2359 before, the two-column shell (#137) with the rocket at six tenths of the window (#138); 2529 before #190
+    words: 556, // 564 before the header's install line moved into Setup (#207); 620 before #190; 618 before the drafting sheet named its four views (#183)
+    tinyText: 60, // the labels, at 11 — 61 before #207 took the header's install line; raised from 60 with #190's four-stage default rocket
+    smallBody: 86, // labels and notes — 87 before #207
     targets: 0, // under 24 × 24 — of 26
     sideways: 0,
     unreachable: 0,

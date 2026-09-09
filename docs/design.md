@@ -76,7 +76,7 @@ list of what is still approximate — the old footer's two paragraphs — are a
 
 ```
 ┌──────────────────────────────────┐
-│ KSP ROCKET OPTIMIZER         [⚙] │  header: title and setup only
+│ KERBAL ROCKET WORKS          [⚙] │  header: title and setup only
 ├──────────────────────────────────┤
 │ Kerbin → Mun · land & return     │  brief, set — sticky; the solving
 │ 2.5 t · cheapest        [✎] [⇪]  │  pill floats over it while solving

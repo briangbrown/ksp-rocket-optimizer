@@ -75,7 +75,7 @@ function useStickyTop(margin: number) {
   return { ref, top: Math.min(margin, winH - h - margin) };
 }
 
-export default function KSPMissionPlanner() {
+export default function RocketWorks() {
   /* The mission's two ends: a body and a state each (#188). Nearly every
      mission starts on Kerbin's surface, so that end is the one folded away. */
   const [from, setFrom] = useState<Endpoint>({
@@ -133,8 +133,6 @@ export default function KSPMissionPlanner() {
      present. Breaking Ground had a box until it was clear it ships no engines
      and no fuel tanks, so it could never change a launch vehicle. */
   const [expansions, setExpansions] = useState({ mh: false, rs: true });
-  const hasMH = expansions.mh,
-    hasRS = expansions.rs;
   const [splitBy, setSplitBy] = useState(() => new Map<number, number>());
   const [unlocked, setUnlocked] = useState(() =>
     withDeps(
@@ -844,16 +842,14 @@ export default function KSPMissionPlanner() {
         }}
       >
         <div>
-          {/* What is installed: the setup sheet's summary, and the one line
-              of it that belongs on the page. */}
-          <div className="label">
-            Kerbal Space Program 1.12 ·{" "}
-            {["Stock", hasMH && "Making History", hasRS && "ReStock+"]
-              .filter(Boolean)
-              .join(" + ")}
-          </div>
-          <h1 className="display" style={{ margin: "6px 0 0" }}>
-            Mission&nbsp;<span style={{ color: dcolor }}>Δv</span>&nbsp;Planner
+          {/* The name (#207): a works is where things are made and proved,
+              which is what this is — bring a mission, leave with a rocket, a
+              launch date and a flight plan. The word in the destination's
+              hue is the one that means "made here". What is installed is
+              said in the setup sheet, where it is set. */}
+          <h1 className="display" style={{ margin: 0 }}>
+            Kerbal&nbsp;Rocket&nbsp;
+            <span style={{ color: dcolor }}>Works</span>
           </h1>
         </div>
         <IconButton

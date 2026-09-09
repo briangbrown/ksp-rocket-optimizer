@@ -78,3 +78,14 @@ config's node id mapped to the tree's name in `src/data/tech.json`
 tree's spelling is the key, and "Advanced Metalworks" for "Advanced
 MetalWorks" hid a coupler for months. `test/parts-data.test.ts` holds every
 part to a node the tree has.
+
+## The icon — `public/favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`
+
+The nut (#206): a hex nut framing a rocket in Kerbin's teal, drawn once as
+SVG in the app's own tokens. The PNGs are rendered from it, never drawn
+again:
+
+    node tools/favicon.mjs
+
+which needs a Chromium — puppeteer's own, or `PUPPETEER_EXECUTABLE_PATH`,
+or `/usr/bin/chromium` on linux-arm64 as the visual suite does.

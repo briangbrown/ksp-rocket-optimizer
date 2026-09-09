@@ -127,6 +127,15 @@ function Setup({
           chip={{ padding: "1px 7px" }}
         />
       </div>
+      {/* The install the numbers come from, in full — this used to be a
+          line in the page's header, where it said less and took a line from
+          the name (#207). */}
+      <div className="note" style={{ marginBottom: SPACE.md }}>
+        Kerbal Space Program 1.12.5 — Squad with Breaking Ground
+        {expansions.mh ? ", Making History" : ""}
+        {expansions.rs ? ", ReStock and ReStock+" : ""}. Parts, prices and tech
+        nodes are read from that install's configs.
+      </div>
       <div
         style={{
           display: "flex",
