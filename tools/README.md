@@ -82,8 +82,12 @@ part to a node the tree has.
 ## The icon — `public/favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`
 
 The nut (#206): a hex nut framing a rocket in Kerbin's teal, drawn once as
-SVG in the app's own tokens. The PNGs are rendered from it, never drawn
-again:
+SVG in the app's own tokens, with no background and a `prefers-color-scheme`
+rule — ink on a light tab bar, paper on a dark one, in the browsers that
+take an SVG icon. The PNGs cannot switch: the 32 px one is the light
+drawing on transparent, the home-screen one sits on an ink tile since iOS
+paints black behind anything transparent. Both are rendered from the SVG,
+never drawn again:
 
     node tools/favicon.mjs
 
