@@ -152,10 +152,11 @@ const beside = (
     anchor,
   };
 };
-/* A name over a point at the frame's edge, kept inside it. */
-const above = (q: Pt): Pt => [
-  Math.min(size - 26, Math.max(26, q[0])),
-  Math.max(10, q[1] - 8),
+/* A name under a point near the frame's edge, kept inside it — Kerbol's,
+   placed as it is in the Sun's-system drawing. */
+const below = (q: Pt): Pt => [
+  Math.min(size - 24, Math.max(24, q[0])),
+  Math.min(size - 4, q[1] + 17),
 ];
 
 /* A name in the drawing. The halo is the panel painted behind the glyphs,
@@ -216,8 +217,8 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
   const heading: Pt = [tEnd[0] - burn[0], tEnd[1] - burn[1]];
   const sunDir: Pt = [-w.r1[0], -w.r1[1]];
   const sn = Math.hypot(sunDir[0], sunDir[1]) || 1;
-  const sun = P((sunDir[0] / sn) * 88, (sunDir[1] / sn) * 88);
-  const sunLabel = above(sun);
+  const sun = P((sunDir[0] / sn) * 80, (sunDir[1] / sn) * 80);
+  const sunLabel = below(sun);
   /* The hyperbola out of the burn: r = p / (1 + e·cos ν), ν from periapsis
      towards the asymptote, drawn while it fits the box. */
   const e =
@@ -277,7 +278,7 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
         stroke={C.rule}
         strokeDasharray="2 4"
       />
-      <circle cx={sun[0]} cy={sun[1]} r={3} fill={hueFor("Sun", theme)} />
+      <circle cx={sun[0]} cy={sun[1]} r={5} fill={hueFor("Sun", theme)} />
       <Name at={sunLabel} text="Kerbol" color={C.dim} anchor="middle" />
       {/* The parking orbit, fading behind the ship, and the body. */}
       <Trail pts={ring} at={0} color={hue} />
