@@ -121,14 +121,21 @@ function Ship({
 /* A name beside a point, on the side with room: away from the centre, but
    flipped to the inner side near the edge, where the first draft lost
    "Kerbol" and "Duna at launch" to the frame. */
-const beside = (q: Pt, dy = 4): { at: Pt; anchor: "start" | "end" } => {
+const beside = (
+  q: Pt,
+  dy = 4,
+  text = "Ship",
+  inwardDy = 14,
+): { at: Pt; anchor: "start" | "end" } => {
   const right = q[0] >= half;
-  const room = right ? size - q[0] : q[0];
-  const outward = room > 70;
+  /* Outward if the name fits between the point and the frame; a note-role
+     glyph is about six pixels. */
+  const width = 6.3 * text.length + 9;
+  const outward = right ? q[0] + width <= size - 2 : q[0] - width >= 2;
   const anchor = right === outward ? "start" : "end";
   /* Flipped inward, the name drops under the point rather than running
      back over whatever the point stands beside. */
-  const y = outward || dy < 0 ? q[1] + dy : q[1] + 14;
+  const y = outward || dy < 0 ? q[1] + dy : q[1] + inwardDy;
   return {
     at: [
       q[0] + (anchor === "start" ? 7 : -7),
@@ -310,7 +317,16 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
     ...[...o1, ...o2, ...w.arc].map((q) => Math.hypot(q[0], q[1])),
   );
   const k = 84 / far;
-  const P = (q: Pt): Pt => [half + q[0] * k, half - q[1] * k];
+  /* Turned so the body being left lies to the right of Kerbol, on the
+     horizontal; the phase angle then opens counter-clockwise from there to
+     the body being gone to, the way it is measured. */
+  const th = -Math.atan2(w.r1[1], w.r1[0]);
+  const ct = Math.cos(th),
+    st = Math.sin(th);
+  const P = (q: Pt): Pt => [
+    half + (q[0] * ct - q[1] * st) * k,
+    half - (q[0] * st + q[1] * ct) * k,
+  ];
   /* Where each body is along its sampled orbit: the nearest sample. */
   const nearest = (pts: Array<Pt>, q: Pt) => {
     let best = 0,
@@ -324,7 +340,7 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
     });
     return best;
   };
-  const a0 = Math.atan2(w.r1[1], w.r1[0]);
+  const a0 = 0; // the body being left is on the horizontal, by the turn above
   const ra = 22;
   const arc: Array<Pt> = [];
   for (let i = 0; i <= 24; i++) {
@@ -349,9 +365,11 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
     last[0] - (heading[0] / hn) * 9,
     last[1] - (heading[1] / hn) * 9,
   ];
-  const l1 = beside(toDep),
-    l2 = beside(toArr, 14),
-    l3 = beside(from),
+  const l1 = beside(toDep, 4, `${bodyLabel(w.to)} at launch`),
+    l2 = beside(toArr, 14, bodyLabel(w.to)),
+    /* The body being left sits on the horizontal with Kerbol's name to its
+       left; flipped inward its own name goes over it, not under. */
+    l3 = beside(from, 4, bodyLabel(w.from), -8),
     l4 = beside(ship, -7);
   return (
     <svg
@@ -391,11 +409,13 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
         {deg(w.phase)}
       </text>
       <circle cx={half} cy={half} r={5} fill={C.amber} />
+      {/* Down and to the right: the body on the horizontal is named beyond
+          itself, and the arrival, wherever it is, is not there. */}
       <Name
-        at={[half, half + 15]}
+        at={[half + 8, half + 14]}
         text="Kerbol"
         color={C.dim}
-        anchor="middle"
+        anchor="start"
       />
       <circle
         cx={toDep[0]}
