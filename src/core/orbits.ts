@@ -791,6 +791,11 @@ function transferDv(
         kind: "transfer",
         body: b,
         ...(leaves ? { window: w, at: w.depart } : {}),
+        ...(leaves && w.next
+          ? {
+              note: `A cheaper window follows, ${Math.round(w.total - w.next.total)} m/s less — the card under How to fly it has it`,
+            }
+          : {}),
       });
     });
   /* The window's mid-course plane change, where it flies one; a ballistic

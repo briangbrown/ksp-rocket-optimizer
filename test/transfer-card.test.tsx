@@ -82,6 +82,22 @@ describe("the transfer card", () => {
     location.hash = "";
   }, 180_000);
 
+  it("offers a cheaper later window, and leaves then when asked", async () => {
+    location.hash = await toLink(
+      config({ to: { body: "Moho", state: "low" } }),
+    );
+    render(<KSPMissionPlanner />);
+    await settle();
+    await openFold("How to fly it").catch(() => {});
+    expect(fly()).toMatch(/Leave\s*Y1 D(9\d|1\d\d) /);
+    expect(fly()).toMatch(/A cheaper window follows on Y1 D2\d\d/);
+    await click("Leave then instead");
+    await settle();
+    /* Moho's windows keep differing, so a further offer may follow this
+       one; what matters is that the window moved to the one offered. */
+    expect(fly()).toMatch(/Leave\s*Y1 D2[5-9]\d /);
+  }, 180_000);
+
   it("moves the window when the start date does", async () => {
     location.hash = await toLink(config({ leaveAfter: 0 }));
     render(<KSPMissionPlanner />);

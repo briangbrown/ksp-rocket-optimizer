@@ -961,6 +961,7 @@ export default function KSPMissionPlanner() {
             ascent={ascent}
             returnAscent={returnAscent}
             route={route}
+            onLeaveAfter={edit(setLeaveAfter)}
             payload={payload}
             payloadDia={payloadDia}
             hardware={hardware}

@@ -1,6 +1,7 @@
 import { SYS } from "../../core/orbits.js";
 import { DAY, orbitPoints } from "../../core/kepler.js";
-import { bodyLabel, fmt, kerbalDateLabel } from "../format.js";
+import { bodyLabel, fmt, kerbalDateLabel, kerbalDayLabel } from "../format.js";
+import { DAY as KDAY } from "../../core/kepler.js";
 import { C, SPACE, edgeOf, hueFor, inkOn } from "../tokens.js";
 import { Stat } from "./primitives.jsx";
 import type { Theme } from "../tokens.js";
@@ -635,10 +636,13 @@ function TransferPanel({
   w,
   theme,
   captured,
+  onLeaveAfter,
 }: {
   w: Window;
   theme: Theme;
   captured: boolean;
+  /* Sets the brief's start date, for the cheaper-window offer. */
+  onLeaveAfter?: (ut: number) => void;
 }) {
   const days = w.tof / DAY;
   return (
@@ -728,6 +732,38 @@ function TransferPanel({
           unit={captured ? "m/s" : undefined}
         />
       </div>
+      {/* The window shown is the first from the start date; where the
+          search found a clearly cheaper one in the period after, it is
+          offered, and the chip moves the start date to just before it so
+          the search finds it as the first. #199 */}
+      {w.next && (
+        <div
+          className="note"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: SPACE.md,
+            marginTop: SPACE.lg,
+          }}
+        >
+          <span>
+            A cheaper window follows on {kerbalDayLabel(w.next.depart)},{" "}
+            {fmt(w.total - w.next.total)} m/s less.
+          </span>
+          {onLeaveAfter && (
+            <button
+              type="button"
+              className="chip"
+              onClick={() =>
+                onLeaveAfter(Math.max(0, w.next!.depart - 10 * KDAY))
+              }
+            >
+              Leave then instead
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

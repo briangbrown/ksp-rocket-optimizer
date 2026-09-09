@@ -60,8 +60,10 @@ type ResultsProps = {
   maxAspect: number;
   ascent: Ascent | null;
   returnAscent: Ascent | null;
-  /* The legs, for the transfer windows they carry. */
+  /* The legs, for the transfer windows they carry, and the brief's start
+     date for a window's offer of a cheaper one. */
   route: ReadonlyArray<Leg>;
+  onLeaveAfter: (ut: number) => void;
   payload: number;
   payloadDia: number;
   hardware: Hardware | null;
@@ -299,6 +301,7 @@ function Results(p: ResultsProps) {
                 w={windows[0].w}
                 theme={p.theme}
                 captured={windows[0].captured}
+                onLeaveAfter={p.onLeaveAfter}
               />
             </>
           )}
