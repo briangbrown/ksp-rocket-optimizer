@@ -18,7 +18,7 @@ import { missionSignature } from "../../core/signature.js";
 import { fmt } from "../format.js";
 import { framing, pairSizes, sheetSizes } from "../views.js";
 import { arrive, assembly, pose, separation } from "../separation.js";
-import { C, FONT, RADIUS, SPACE, Z } from "../tokens.js";
+import { C, FONT, MOTION, RADIUS, SPACE, Z } from "../tokens.js";
 import type { Theme } from "../tokens.js";
 import {
   Callout,
@@ -690,8 +690,23 @@ function BuildView({
   /* Stops too close for their labels — a six-step rocket on a phone is
      about sixty pixels a stop — label the first, the last and the current. */
   const stopPitch = last > 0 ? (outerW - 2 * THUMB_HALF) / last : outerW;
+  /* The stop the handle is at — the nearer, mid-move — rather than `at`,
+     which leads to the step being entered: lit from the first frame of a
+     move, the current dot hopped a stop ahead of the handle, and going
+     backwards that read as a jump back at every stop. The dots follow the
+     handle; the figures still lead. */
+  const lit = Math.min(
+    last,
+    Math.round(scrub ?? (anim ? anim.a + anim.t : from)),
+  );
   const labelled = (i: number) =>
-    stopPitch >= 72 || i === 0 || i === last || i === at;
+    stopPitch >= 72 || i === 0 || i === last || i === lit;
+  /* An end label under a current label next to it: the two would sit on
+     each other when the stops are tight, so the end's fades out while its
+     neighbour is current — a fade, not a cut, as MOTION.quick says. */
+  const eclipsed = (i: number) =>
+    stopPitch < 72 &&
+    ((i === 0 && lit === 1) || (i === last && lit === last - 1));
   /* The dots sit exactly where the thumb's centre sits at each step; the
      targets are clamped a half-target in from the strip's ends, so the end
      ones hit inside the box and nothing scrolls sideways — the end dots are
@@ -704,15 +719,15 @@ function BuildView({
           <Fragment key={i}>
             <span
               className="stop-dot"
-              data-on={i === at ? 1 : 0}
-              data-past={i < at ? 1 : 0}
-              style={{ left: x, background: i === at ? color : undefined }}
+              data-on={i === lit ? 1 : 0}
+              data-past={i < lit ? 1 : 0}
+              style={{ left: x, background: i === lit ? color : undefined }}
             />
             <button
               type="button"
               className="stop"
               aria-label={st.label}
-              aria-current={i === at ? "step" : undefined}
+              aria-current={i === lit ? "step" : undefined}
               onClick={() => go(i)}
               style={{ left: `clamp(22px, ${x}, calc(100% - 22px))` }}
             />
@@ -723,9 +738,11 @@ function BuildView({
               <span
                 aria-hidden
                 className="label stop-label"
-                data-on={i === at ? 1 : 0}
+                data-on={i === lit ? 1 : 0}
                 style={{
                   left: x,
+                  opacity: eclipsed(i) ? 0 : 1,
+                  transition: `opacity ${MOTION.quick}ms`,
                   transform:
                     i === 0
                       ? "translateX(-6px)"
