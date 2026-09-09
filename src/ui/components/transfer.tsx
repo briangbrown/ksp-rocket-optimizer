@@ -23,13 +23,21 @@ import type { Window } from "../../core/transfer.js";
    prograde, on the night side for a transfer outward. The ship sits at the
    burn with its parking orbit fading behind it; the escape it is about to
    fly is dashed, as the map dashes a planned trajectory. The Sun's system is
-   drawn at departure — the planets where they are, the phase angle between
-   them — with the ship at the far end of the transfer arc, the arc its
-   trail: the arc is the ship's orbit, and fades behind it like any other. */
+   turned so the body being left lies to Kerbol's right, with the phase angle
+   opening counter-clockwise from there; the planets are drawn at departure
+   and the ship at the far end of its transfer arc, the arc its trail.
+
+   Names are placed, not put: each tries eight positions about its point and
+   takes the one clear of the names already down, the markers, the rays and
+   the frame, with a short leader where it had to move away. Fixed offsets
+   put "Kerbol", "Kerbin" and "Kerbin at launch" on top of one another for
+   every pair whose inner orbit is small (#200). */
 
 const size = 220;
 const half = size / 2;
 type Pt = [number, number];
+type Box = { x: number; y: number; w: number; h: number };
+type Seg = [Pt, Pt];
 
 /* Rotate the ecliptic frame so `up` points up the page; SVG's y runs down. */
 const turn = (up: Pt) => {
@@ -42,6 +50,146 @@ const turn = (up: Pt) => {
   ];
 };
 const deg = (x: number) => `${Math.round(x)}°`;
+const path = (pts: Array<Pt>) =>
+  pts
+    .map((q, i) => `${i ? "L" : "M"}${q[0].toFixed(1)} ${q[1].toFixed(1)}`)
+    .join(" ");
+
+/* ------------------------------ placement ------------------------------ */
+
+/* A note-role glyph is about seven pixels wide and its box fifteen tall,
+   measured in Chrome: an estimate a pixel short put names a pixel onto
+   markers. */
+const NOTE_H = 15;
+const widthOf = (text: string) => 6.9 * text.length + 4;
+
+const overlap = (a: Box, b: Box) =>
+  Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) *
+  Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+
+/* Whether a segment crosses a box: an endpoint inside, or an edge cut. */
+function crosses(b: Box, [p, q]: Seg) {
+  const inside = (r: Pt) =>
+    r[0] >= b.x && r[0] <= b.x + b.w && r[1] >= b.y && r[1] <= b.y + b.h;
+  if (inside(p) || inside(q)) return true;
+  const edges: Array<Seg> = [
+    [
+      [b.x, b.y],
+      [b.x + b.w, b.y],
+    ],
+    [
+      [b.x + b.w, b.y],
+      [b.x + b.w, b.y + b.h],
+    ],
+    [
+      [b.x + b.w, b.y + b.h],
+      [b.x, b.y + b.h],
+    ],
+    [
+      [b.x, b.y + b.h],
+      [b.x, b.y],
+    ],
+  ];
+  const side = (a: Pt, c: Pt, d: Pt) =>
+    (c[0] - a[0]) * (d[1] - a[1]) - (c[1] - a[1]) * (d[0] - a[0]);
+  return edges.some(([a, c]) => {
+    const d1 = side(p, q, a),
+      d2 = side(p, q, c),
+      d3 = side(a, c, p),
+      d4 = side(a, c, q);
+    return d1 * d2 < 0 && d3 * d4 < 0;
+  });
+}
+
+type Placed = {
+  text: string;
+  at: Pt;
+  anchor: "start" | "middle" | "end";
+  box: Box;
+  /* From the point to the name, where the name had to stand off. */
+  leader: Seg | null;
+};
+
+/* Eight directions about a point, the sideways ones first — a name reads
+   best beside its point — at two stand-offs, the second with a leader. */
+const DIRS: Array<[number, number, "start" | "middle" | "end", number]> = [
+  [1, 0, "start", 0],
+  [-1, 0, "end", 0],
+  [0, 1, "middle", 1],
+  [0, -1, "middle", 1],
+  [1, 1, "start", 2],
+  [-1, 1, "end", 2],
+  [1, -1, "start", 2],
+  [-1, -1, "end", 2],
+];
+
+/* Where a name goes: the least-cost of sixteen candidates, scored against
+   what is already down. `avoid` are boxes (markers, other names), `lines`
+   the rays a name should not sit across. */
+function place(
+  text: string,
+  at: Pt,
+  taken: Array<Box>,
+  lines: Array<Seg>,
+  prefer: "any" | "below" = "any",
+): Placed {
+  const w = widthOf(text),
+    h = NOTE_H;
+  let best: Placed | null = null,
+    bestCost = Infinity;
+  for (const ring of [0, 1, 2]) {
+    const d = ring === 0 ? 7 : ring === 1 ? 19 : 31;
+    for (const [dx, dy, anchor, pen] of DIRS) {
+      const cx = at[0] + dx * d,
+        cy = at[1] + dy * d;
+      const box: Box = {
+        x: anchor === "start" ? cx : anchor === "end" ? cx - w : cx - w / 2,
+        y: dy === 0 ? cy - h / 2 : dy > 0 ? cy : cy - h,
+        w,
+        h,
+      };
+      /* Overlap costs by the pixel and the frame by the pixel over, both
+         dearly: a name standing off on a leader is far better than one on
+         top of another, and a leader costs a few points. */
+      let cost = pen + ring * 4;
+      if (prefer === "below" && dy <= 0) cost += 2;
+      if (box.x < 1) cost += (1 - box.x) * 5;
+      if (box.x + box.w > size - 1) cost += (box.x + box.w - size + 1) * 5;
+      if (box.y < 1) cost += (1 - box.y) * 5;
+      if (box.y + box.h > size - 1) cost += (box.y + box.h - size + 1) * 5;
+      for (const t of taken) cost += overlap(box, t) * 2;
+      for (const l of lines) if (crosses(box, l)) cost += 6;
+      if (cost < bestCost) {
+        bestCost = cost;
+        /* The baseline the text is drawn on: middle of the box for a name
+           beside its point, the box's foot otherwise. */
+        const y = box.y + 12;
+        const x =
+          anchor === "start" ? box.x : anchor === "end" ? box.x + w : cx;
+        best = {
+          text,
+          at: [x, y],
+          anchor,
+          box,
+          leader:
+            ring === 0
+              ? null
+              : [at, [cx - dx * 2, dy === 0 ? cy : dy > 0 ? box.y : box.y + h]],
+        };
+      }
+    }
+  }
+  return best!;
+}
+
+const dot = (q: Pt, r: number): Box => ({
+  x: q[0] - r,
+  y: q[1] - r,
+  w: 2 * r,
+  h: 2 * r,
+});
+
+/* ------------------------------ elements ------------------------------ */
 
 /* An orbit as the map draws it: one path per segment, the opacity falling
    from full just behind the body (`at`, an index into `pts`, which run the
@@ -88,76 +236,20 @@ function Trail({
 
 /* The ship: a capsule the size of a body marker, its nose the way it is
    going. `heading` is the direction of travel on the page. */
-function Ship({
-  at,
-  heading,
-  label,
-}: {
-  at: Pt;
-  heading: Pt;
-  label: { at: Pt; anchor: "start" | "end" };
-}) {
+function Ship({ at, heading }: { at: Pt; heading: Pt }) {
   const a = (Math.atan2(heading[1], heading[0]) * 180) / Math.PI + 90;
   return (
-    <g>
-      <g transform={`translate(${at[0]} ${at[1]}) rotate(${a})`}>
-        <polygon
-          points="0,-7 3.5,-1 3.5,4 -3.5,4 -3.5,-1"
-          fill={C.paper}
-          stroke={C.ink}
-          strokeWidth={0.75}
-        />
-        <rect x={-4.5} y={4} width={9} height={2} fill={C.amber} />
-      </g>
-      <text
-        className="note"
-        paintOrder="stroke"
-        stroke={C.panel}
-        strokeWidth={3}
-        strokeLinejoin="round"
-        x={label.at[0]}
-        y={label.at[1]}
+    <g transform={`translate(${at[0]} ${at[1]}) rotate(${a})`}>
+      <polygon
+        points="0,-7 3.5,-1 3.5,4 -3.5,4 -3.5,-1"
         fill={C.paper}
-        textAnchor={label.anchor}
-      >
-        Ship
-      </text>
+        stroke={C.ink}
+        strokeWidth={0.75}
+      />
+      <rect x={-4.5} y={4} width={9} height={2} fill={C.amber} />
     </g>
   );
 }
-
-/* A name beside a point, on the side with room: away from the centre, but
-   flipped to the inner side near the edge, where the first draft lost
-   "Kerbol" and "Duna at launch" to the frame. */
-const beside = (
-  q: Pt,
-  dy = 4,
-  text = "Ship",
-  inwardDy = 14,
-): { at: Pt; anchor: "start" | "end" } => {
-  const right = q[0] >= half;
-  /* Outward if the name fits between the point and the frame; a note-role
-     glyph is about six pixels. */
-  const width = 6.3 * text.length + 9;
-  const outward = right ? q[0] + width <= size - 2 : q[0] - width >= 2;
-  const anchor = right === outward ? "start" : "end";
-  /* Flipped inward, the name drops under the point rather than running
-     back over whatever the point stands beside. */
-  const y = outward || dy < 0 ? q[1] + dy : q[1] + inwardDy;
-  return {
-    at: [
-      q[0] + (anchor === "start" ? 7 : -7),
-      Math.min(size - 4, Math.max(10, y)),
-    ],
-    anchor,
-  };
-};
-/* A name under a point near the frame's edge, kept inside it — Kerbol's,
-   placed as it is in the Sun's-system drawing. */
-const below = (q: Pt): Pt => [
-  Math.min(size - 24, Math.max(24, q[0])),
-  Math.min(size - 4, q[1] + 17),
-];
 
 /* A name in the drawing. The halo is the panel painted behind the glyphs,
    for a name that lines cross; a name on a body's own disc stands on a
@@ -191,6 +283,25 @@ const Name = ({
   </text>
 );
 
+/* A placed name and, where it stood off, its leader. */
+const Label = ({ p, color }: { p: Placed; color: string }) => (
+  <>
+    {p.leader && (
+      <line
+        x1={p.leader[0][0]}
+        y1={p.leader[0][1]}
+        x2={p.leader[1][0]}
+        y2={p.leader[1][1]}
+        stroke={C.dim}
+        strokeWidth={0.75}
+      />
+    )}
+    <Name at={p.at} text={p.text} color={color} anchor={p.anchor} />
+  </>
+);
+
+/* ------------------------------ departure ------------------------------ */
+
 function Departure({ w, theme }: { w: Window; theme: Theme }) {
   const hue = hueFor(w.from, theme);
   const ink = edgeOf(hue, theme);
@@ -215,10 +326,13 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
     w.burnDir[1] * rp + tangent[1] * 10,
   );
   const heading: Pt = [tEnd[0] - burn[0], tEnd[1] - burn[1]];
+  /* The Sun's direction, marked at the edge — a little further in when
+     the burn is on the Sun's side and the marker would land on the ship. */
   const sunDir: Pt = [-w.r1[0], -w.r1[1]];
   const sn = Math.hypot(sunDir[0], sunDir[1]) || 1;
-  const sun = P((sunDir[0] / sn) * 80, (sunDir[1] / sn) * 80);
-  const sunLabel = below(sun);
+  const sunAt = (d: number) => P((sunDir[0] / sn) * d, (sunDir[1] / sn) * d);
+  let sun = sunAt(80);
+  if (Math.hypot(sun[0] - burn[0], sun[1] - burn[1]) < 26) sun = sunAt(96);
   /* The hyperbola out of the burn: r = p / (1 + e·cos ν), ν from periapsis
      towards the asymptote, drawn while it fits the box. */
   const e =
@@ -255,12 +369,31 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
     arc.push(P(Math.cos(a) * ra, Math.sin(a) * ra));
   }
   const mid = b0 + sweep / 2;
-  const label = P(Math.cos(mid) * (ra + 14), Math.sin(mid) * (ra + 14));
+  const angleAt = P(Math.cos(mid) * (ra + 14), Math.sin(mid) * (ra + 14));
   const refEnd = P(ref[0] * rp, ref[1] * rp);
   /* Prograde is up by construction of `turn`. */
   const top: Pt = [half, half - rp - 8],
     tip: Pt = [half, half - rp - 30];
-  const shipLabel = beside(burn, burn[1] > half ? 14 : -8);
+  /* Names, placed: the ship's and Kerbol's about their marks, clear of the
+     rays, the arrow and each other. The angle and the body's own name are
+     fixed and stood clear of. */
+  const angleBox: Box = {
+    x: angleAt[0] - widthOf(deg(w.angle)) / 2,
+    y: angleAt[1] - NOTE_H / 2,
+    w: widthOf(deg(w.angle)),
+    h: NOTE_H,
+  };
+  const arrowBox: Box = { x: tip[0] - 5, y: tip[1] - 6, w: 70, h: 40 };
+  const rays: Array<Seg> = [
+    [[half, half], refEnd],
+    [[half, half], burn],
+    [[half, half], sun],
+    [top, tip],
+  ];
+  const taken: Array<Box> = [dot(burn, 10), dot(sun, 5), angleBox, arrowBox];
+  const shipName = place("Ship", burn, taken, rays);
+  taken.push(shipName.box);
+  const sunName = place("Kerbol", sun, taken, rays, "below");
   return (
     <svg
       viewBox={`0 0 ${size} ${size}`}
@@ -269,7 +402,6 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
       role="img"
       aria-label={`Leaving ${bodyLabel(w.from)}: the ship on its parking orbit at the burn, ${fmt(w.eject)} m/s at ${deg(w.angle)} from ${w.ref}, the escape leaving towards ${bodyLabel(w.to)}; Kerbol's direction marked.`}
     >
-      {/* The Sun's direction, at the edge. */}
       <line
         x1={half}
         y1={half}
@@ -279,8 +411,6 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
         strokeDasharray="2 4"
       />
       <circle cx={sun[0]} cy={sun[1]} r={5} fill={hueFor("Sun", theme)} />
-      <Name at={sunLabel} text="Kerbol" color={C.dim} anchor="middle" />
-      {/* The parking orbit, fading behind the ship, and the body. */}
       <Trail pts={ring} at={0} color={hue} />
       <circle cx={half} cy={half} r={Rb} fill={hue} fillOpacity={0.9} />
       <Name
@@ -290,28 +420,19 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
         anchor="middle"
         halo={false}
       />
-      {/* Prograde, up. */}
       <line x1={top[0]} y1={top[1]} x2={tip[0]} y2={tip[1]} stroke={C.dim} />
       <polygon
         points={`${tip[0]},${tip[1] - 5} ${tip[0] - 4},${tip[1] + 3} ${tip[0] + 4},${tip[1] + 3}`}
         fill={C.dim}
       />
       <Name at={[tip[0] + 7, tip[1] + 4]} text="prograde" color={C.dim} />
-      {/* The escape, planned: dashed, as the map draws it. */}
       <path
-        d={hyper
-          .map(
-            (q, i) => `${i ? "L" : "M"}${q[0].toFixed(1)} ${q[1].toFixed(1)}`,
-          )
-          .join(" ")}
+        d={path(hyper)}
         fill="none"
         stroke={ink}
         strokeWidth={1.5}
         strokeDasharray="4 3"
       />
-      {/* The angle round to the burn: a ray to each of its two points — the
-          reference direction on the parking orbit and the burn — and the
-          arc between them. */}
       <line
         x1={half}
         y1={half}
@@ -328,34 +449,36 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
         stroke={C.dim}
         strokeOpacity={0.8}
       />
-      <path
-        d={arc
-          .map(
-            (q, i) => `${i ? "L" : "M"}${q[0].toFixed(1)} ${q[1].toFixed(1)}`,
-          )
-          .join(" ")}
-        fill="none"
-        stroke={C.dim}
-        strokeDasharray="3 3"
-      />
+      <path d={path(arc)} fill="none" stroke={C.dim} strokeDasharray="3 3" />
       <text
         className="note"
         paintOrder="stroke"
         stroke={C.panel}
         strokeWidth={3}
         strokeLinejoin="round"
-        x={label[0]}
-        y={label[1]}
+        x={angleAt[0]}
+        y={angleAt[1]}
         fill={C.paper}
         textAnchor="middle"
         dominantBaseline="middle"
       >
         {deg(w.angle)}
       </text>
-      <Ship at={burn} heading={heading} label={shipLabel} />
+      <Ship at={burn} heading={heading} />
+      <Label p={shipName} color={C.paper} />
+      <Label p={sunName} color={C.dim} />
     </svg>
   );
 }
+
+/* ----------------------------- heliocentric ----------------------------- */
+
+/* Radii compressed: r^0.6 of the frame, so an inner orbit a sixth of the
+   outer one is a third of the frame rather than a sixth, and the bodies
+   about it have room for their names. Every sampled point takes the same
+   map, so orbits, arc and bodies stay consistent with one another; the
+   caption says the scale is compressed. */
+const POWER = 0.6;
 
 function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
   const hue1 = hueFor(w.from, theme),
@@ -365,18 +488,21 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
   const far = Math.max(
     ...[...o1, ...o2, ...w.arc].map((q) => Math.hypot(q[0], q[1])),
   );
-  const k = 84 / far;
+  const R = 84;
   /* Turned so the body being left lies to the right of Kerbol, on the
      horizontal; the phase angle then opens counter-clockwise from there to
      the body being gone to, the way it is measured. */
   const th = -Math.atan2(w.r1[1], w.r1[0]);
   const ct = Math.cos(th),
     st = Math.sin(th);
-  const P = (q: Pt): Pt => [
-    half + (q[0] * ct - q[1] * st) * k,
-    half - (q[0] * st + q[1] * ct) * k,
-  ];
-  /* Where each body is along its sampled orbit: the nearest sample. */
+  const P = (q: Pt): Pt => {
+    const r = Math.hypot(q[0], q[1]);
+    const k = r > 0 ? (R * (r / far) ** POWER) / r : 0;
+    return [
+      half + (q[0] * ct - q[1] * st) * k,
+      half - (q[0] * st + q[1] * ct) * k,
+    ];
+  };
   const nearest = (pts: Array<Pt>, q: Pt) => {
     let best = 0,
       d = Infinity;
@@ -389,18 +515,6 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
     });
     return best;
   };
-  const a0 = 0; // the body being left is on the horizontal, by the turn above
-  const ra = 22;
-  const arc: Array<Pt> = [];
-  for (let i = 0; i <= 24; i++) {
-    const a = a0 + ((w.phase * Math.PI) / 180) * (i / 24);
-    arc.push([half + Math.cos(a) * ra, half - Math.sin(a) * ra]);
-  }
-  const mid = a0 + (w.phase * Math.PI) / 180 / 2;
-  const label: Pt = [
-    half + Math.cos(mid) * (ra + 12),
-    half - Math.sin(mid) * (ra + 12),
-  ];
   const from = P(w.r1),
     toDep = P(w.r2dep),
     toArr = P(w.r2);
@@ -408,25 +522,62 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
   const last = trail[trail.length - 1],
     prev = trail[trail.length - 2];
   const heading: Pt = [last[0] - prev[0], last[1] - prev[1]];
-  /* The ship a little short of the body it arrives at, so both are seen. */
   const hn = Math.hypot(heading[0], heading[1]) || 1;
   const ship: Pt = [
     last[0] - (heading[0] / hn) * 9,
     last[1] - (heading[1] / hn) * 9,
   ];
-  const l1 = beside(toDep, 4, `${bodyLabel(w.to)} at launch`),
-    l2 = beside(toArr, 14, bodyLabel(w.to)),
-    /* The body being left sits on the horizontal with Kerbol's name to its
-       left; flipped inward its own name goes over it, not under. */
-    l3 = beside(from, 4, bodyLabel(w.from), -8),
-    l4 = beside(ship, -7);
+  /* The phase arc inside the inner orbit, its label outside the arc on the
+     bisector. */
+  const inner = Math.min(
+    Math.hypot(from[0] - half, from[1] - half),
+    Math.hypot(toDep[0] - half, toDep[1] - half),
+  );
+  const ra = Math.min(22, Math.max(10, inner * 0.45));
+  const arc: Array<Pt> = [];
+  for (let i = 0; i <= 24; i++) {
+    const a = ((w.phase * Math.PI) / 180) * (i / 24);
+    arc.push([half + Math.cos(a) * ra, half - Math.sin(a) * ra]);
+  }
+  const mid = (w.phase * Math.PI) / 180 / 2;
+  const angleAt: Pt = [
+    half + Math.cos(mid) * (ra + 11),
+    half - Math.sin(mid) * (ra + 11),
+  ];
+  const angleText = deg(w.phase);
+  /* Names, placed in order of how tied down each is: the angle about the
+     arc's middle, the ship and the departure body, the arrival body, then
+     Kerbol under its mark, and the ghost at launch last — it has the most
+     room to give. */
+  const rays: Array<Seg> = [
+    [[half, half], from],
+    [[half, half], toDep],
+  ];
+  const taken: Array<Box> = [
+    dot([half, half], 6),
+    dot(from, 5),
+    dot(toDep, 5),
+    dot(toArr, 5),
+    dot(ship, 10),
+  ];
+  const put = (text: string, at: Pt, prefer: "any" | "below" = "any") => {
+    const p = place(text, at, taken, rays, prefer);
+    taken.push(p.box);
+    return p;
+  };
+  const angleName = put(angleText, angleAt);
+  const shipName = put("Ship", ship);
+  const fromName = put(bodyLabel(w.from), from);
+  const toName = put(bodyLabel(w.to), toArr);
+  const sunName = put("Kerbol", [half, half], "below");
+  const ghostName = put(`${bodyLabel(w.to)} at launch`, toDep);
   return (
     <svg
       viewBox={`0 0 ${size} ${size}`}
       width="100%"
       style={{ maxWidth: size, display: "block", color: C.paper }}
       role="img"
-      aria-label={`About Kerbol: ${bodyLabel(w.from)} and ${bodyLabel(w.to)} at departure, ${deg(w.phase)} apart, and the ship at the end of its transfer arc where ${bodyLabel(w.to)} will be on arrival.`}
+      aria-label={`About Kerbol: ${bodyLabel(w.from)} and ${bodyLabel(w.to)} at departure, ${deg(w.phase)} apart, and the ship at the end of its transfer arc where ${bodyLabel(w.to)} will be on arrival. Distances compressed.`}
     >
       <Trail pts={o1.map(P)} at={nearest(o1, w.r1)} color={hue1} />
       <Trail pts={o2.map(P)} at={nearest(o2, w.r2dep)} color={hue2} />
@@ -437,8 +588,6 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
         width={1.5}
         open
       />
-      {/* The phase angle: a ray from Kerbol to each body at departure, and
-          the arc between them. */}
       <line
         x1={half}
         y1={half}
@@ -455,73 +604,33 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
         stroke={C.dim}
         strokeOpacity={0.8}
       />
-      <path
-        d={arc
-          .map(
-            (q, i) => `${i ? "L" : "M"}${q[0].toFixed(1)} ${q[1].toFixed(1)}`,
-          )
-          .join(" ")}
-        fill="none"
-        stroke={C.dim}
-        strokeDasharray="3 3"
-      />
-      <text
-        className="note"
-        paintOrder="stroke"
-        stroke={C.panel}
-        strokeWidth={3}
-        strokeLinejoin="round"
-        x={label[0]}
-        y={label[1]}
-        fill={C.paper}
-        textAnchor="middle"
-        dominantBaseline="middle"
-      >
-        {deg(w.phase)}
-      </text>
+      <path d={path(arc)} fill="none" stroke={C.dim} strokeDasharray="3 3" />
       <circle cx={half} cy={half} r={5} fill={hueFor("Sun", theme)} />
-      <Name
-        at={[half, half + 17]}
-        text="Kerbol"
-        color={C.dim}
-        anchor="middle"
-      />
+      {/* The ghost at launch: a ring filled with the panel, so the lines
+          through it stop at its edge (#201). */}
       <circle
         cx={toDep[0]}
         cy={toDep[1]}
         r={4}
-        fill="none"
+        fill={C.panel}
         stroke={hue2}
         strokeWidth={1.5}
       />
-      <Name
-        at={l1.at}
-        text={`${bodyLabel(w.to)} at launch`}
-        color={edgeOf(hue2, theme)}
-        anchor={l1.anchor}
-      />
       <circle cx={toArr[0]} cy={toArr[1]} r={4} fill={hue2} />
-      <Name
-        at={l2.at}
-        text={bodyLabel(w.to)}
-        color={edgeOf(hue2, theme)}
-        anchor={l2.anchor}
-      />
       <circle cx={from[0]} cy={from[1]} r={4} fill={hue1} />
-      <Name
-        at={l3.at}
-        text={bodyLabel(w.from)}
-        color={edgeOf(hue1, theme)}
-        anchor={l3.anchor}
-      />
-      <Ship at={ship} heading={heading} label={l4} />
+      <Ship at={ship} heading={heading} />
+      <Label p={angleName} color={C.paper} />
+      <Label p={shipName} color={C.paper} />
+      <Label p={fromName} color={edgeOf(hue1, theme)} />
+      <Label p={toName} color={edgeOf(hue2, theme)} />
+      <Label p={sunName} color={C.dim} />
+      <Label p={ghostName} color={edgeOf(hue2, theme)} />
     </svg>
   );
 }
 
-/* The card: the two drawings side by side where there is room, the
-   numbers under them. `captured` says whether the route burns into orbit
-   at the far end; a fly-by does not. */
+/* --------------------------------- card --------------------------------- */
+
 function TransferPanel({
   w,
   theme,
@@ -552,7 +661,8 @@ function TransferPanel({
         <div style={{ flex: "1 1 200px", maxWidth: size }}>
           <Heliocentric w={w} theme={theme} />
           <div className="note" style={{ textAlign: "center" }}>
-            About Kerbol at departure, the ship on arrival
+            About Kerbol at departure, the ship on arrival · distances
+            compressed
           </div>
         </div>
       </div>

@@ -666,6 +666,12 @@ ahead — which says which way it goes; bodies as their hues, each named; the
 ship a capsule in `C.paper` headed the way it moves, its parking orbit and
 its transfer arc fading behind it the same way; a planned path, the escape
 out of the burn, dashed. Text in them is the `note` role, names in
-`edgeOf(hue)` so they clear the panel. Each carries an
+`edgeOf(hue)` so they clear the panel. Names are placed, not put: each tries
+eight positions about its point at three stand-offs and takes the one clear
+of the names already down, the markers, the rays and the frame, with a short
+leader in `C.dim` where it stood off; the Sun's-system drawing compresses
+radii as r^0.6 so an inner orbit has room, and its caption says so.
+`visual/transfer.test.ts` measures every name in a dozen pairs and holds
+them apart. Each carries an
 `aria-label` that says what it draws. The two sit side by side where 440 px
 allow and stack below.
