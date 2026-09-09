@@ -120,6 +120,8 @@ describe("the window search", () => {
     expect(w.tof / DAY).toBeGreaterThan(250);
     expect(w.tof / DAY).toBeLessThan(300);
     expect(w.arrive).toBe(w.depart + w.tof);
+    expect(w.eject).toBeCloseTo(Math.hypot(w.ejectPro, w.ejectNor), 6);
+    expect(Math.abs(w.ejectNor)).toBeLessThan(30);
     /* Everything the drawing needs is there and finite. */
     expect(w.arc.length).toBeGreaterThan(10);
     for (const p of [...w.arc, w.r1, w.r2, w.r2dep, w.vDir, w.burnDir])
@@ -137,6 +139,24 @@ describe("the window search", () => {
     /* Moho is the inclined one: the ballistic transfer and the mid-course
        plane change are both priced and the cheaper taken. */
     const moho = findWindow("Kerbin", "Moho", rK, 260_000, 0, true)!;
+    /* The ejection is priced from an equatorial parking orbit, so an excess
+       that leaves the plane costs a normal component: Moho's seven degrees
+       are hundreds of m/s of it on a ballistic transfer, and the resultant
+       is what the route charges. */
+    const balMoho = findWindow(
+      "Kerbin",
+      "Moho",
+      rK,
+      260_000,
+      0,
+      true,
+      "ballistic",
+    )!;
+    expect(Math.abs(balMoho.ejectNor)).toBeGreaterThan(500);
+    expect(balMoho.eject).toBeCloseTo(
+      Math.hypot(balMoho.ejectPro, balMoho.ejectNor),
+      6,
+    );
     const bal = findWindow(
       "Kerbin",
       "Moho",
@@ -229,9 +249,7 @@ describe("a route priced on its windows", () => {
     const out = legs.find((l) => l.window)!;
     expect(out.window!.to).toBe("Duna");
     /* Kerbol's own plane change is the window's; only the moons' remain. */
-    expect(
-      legs.filter((l) => l.kind === "plane" && l.plane?.system === "Sun"),
-    ).toEqual([]);
+    expect(legs.filter((l) => /in the Sun system/.test(l.label))).toEqual([]);
     /* A fly-by never captures, and the window stays. */
     const fly = routeFor(
       K,

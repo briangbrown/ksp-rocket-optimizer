@@ -791,7 +791,10 @@ function transferDv(origin: string, dest: string, t0?: number) {
      window pays its inclination in the excess above. */
   if (w && w.plane)
     legs.push({
-      label: `Plane change ${w.plane.deg.toFixed(1)}° mid-course`,
+      label:
+        w.plane.deg >= 0.1
+          ? `Plane change ${w.plane.deg.toFixed(1)}° mid-course`
+          : "Plane change mid-course",
       dv: Math.round(w.plane.dv),
       kind: "plane",
       body: down[0],

@@ -41,8 +41,16 @@ type Window = {
   vinfOut: number;
   vinfIn: number;
   /* The burns, m/s: from the parking orbit, the mid-course plane change if
-     one is flown, and into the parking orbit at the far end. */
+     one is flown, and into the parking orbit at the far end. The ejection
+     is flown from the parking orbit in the body's equatorial plane, which
+     is the ecliptic for every stock body, so an excess that leaves the
+     plane takes a normal component: `ejectPro` along prograde, `ejectNor`
+     along normal (negative for anti-normal), and `eject` their resultant.
+     Launching into a parking orbit already inclined to the escape saves the
+     normal part; the route prices the equatorial one. */
   eject: number;
+  ejectPro: number;
+  ejectNor: number;
   plane: { dv: number; at: number; deg: number } | null;
   capture: number;
   total: number;
@@ -74,6 +82,28 @@ type Window = {
    not import core/orbits, which imports it. */
 const inject = (v: number, vinf: number) =>
   Math.sqrt(2 * v * v + vinf * vinf) - v;
+
+/* The ejection from a circular equatorial parking orbit of radius r about
+   a body of parameter mu, to leave with the excess vector vinf. The
+   hyperbola's periapsis is the burn, so its plane and the parking orbit's
+   share the burn's radius and differ by a turn i about it; the asymptote,
+   θ∞ past periapsis in that plane, then rises sin θ∞ · sin i out of the
+   equator, which is where the excess's own elevation fixes i. The burn is
+   the periapsis velocity turned by i less the parking velocity: a prograde
+   part and a normal part, and the resultant the route charges. */
+function ejection(vinf: Vec3, mu: number, r: number) {
+  const vm = norm(vinf);
+  const vc = Math.sqrt(mu / r);
+  const vpe = Math.sqrt(vm * vm + (2 * mu) / r);
+  const e = 1 + (r * vm * vm) / mu;
+  const thInf = Math.acos(-1 / e);
+  const clamp = (x: number) => Math.max(-1, Math.min(1, x));
+  const el = Math.asin(clamp(vm > 0 ? vinf[2] / vm : 0));
+  const i = Math.asin(clamp(Math.sin(el) / Math.sin(thInf)));
+  const pro = vpe * Math.cos(i) - vc;
+  const nor = vpe * Math.sin(i);
+  return { dv: Math.hypot(pro, nor), pro, nor };
+}
 
 const xy = (a: Vec3): [number, number] => [a[0], a[1]];
 const unit2 = (a: [number, number]): [number, number] => {
@@ -127,6 +157,8 @@ type Cell = {
   vinfOut: number;
   vinfIn: number;
   eject: number;
+  ejectPro: number;
+  ejectNor: number;
   capture: number;
   plane: { dv: number; at: number; deg: number } | null;
   v1: Vec3;
@@ -146,7 +178,8 @@ function price(
   from: string,
   to: string,
   m: number,
-  vc1: number,
+  mu1: number,
+  rPark1: number,
   vc2: number,
   t: number,
   tof: number,
@@ -161,13 +194,15 @@ function price(
     if (l) {
       const vinfOut = norm(sub(l.v1, s1.v));
       const vinfIn = norm(sub(l.v2, s2.v));
-      const eject = inject(vc1, vinfOut);
+      const ej = ejection(sub(l.v1, s1.v), mu1, rPark1);
       const cap = capture ? inject(vc2, vinfIn) : 0;
       best = {
-        total: eject + cap,
+        total: ej.dv + cap,
         vinfOut,
         vinfIn,
-        eject,
+        eject: ej.dv,
+        ejectPro: ej.pro,
+        ejectNor: ej.nor,
         capture: cap,
         plane: null,
         v1: l.v1,
@@ -232,15 +267,17 @@ function price(
       const v2 = rotate(l.v2, rB, off >= 0 ? tilt(dnu) : -tilt(dnu));
       const vinfOut = norm(sub(l.v1, s1.v));
       const vinfIn = norm(sub(v2, s2.v));
-      const eject = inject(vc1, vinfOut);
+      const ej = ejection(sub(l.v1, s1.v), mu1, rPark1);
       const cap = capture ? inject(vc2, vinfIn) : 0;
-      const total = eject + g.f + cap;
+      const total = ej.dv + g.f + cap;
       if (!best || total < best.total)
         best = {
           total,
           vinfOut,
           vinfIn,
-          eject,
+          eject: ej.dv,
+          ejectPro: ej.pro,
+          ejectNor: ej.nor,
           capture: cap,
           plane: g.f > 0.5 ? { dv: g.f, at, deg } : null,
           v1: l.v1,
@@ -315,7 +352,7 @@ function search(
     o2 = elements(to);
   if (o1.parent !== o2.parent) return null;
   const m = o1.mu;
-  const vc1 = Math.sqrt(mu(from) / rPark1);
+  const mu1 = mu(from);
   const vc2 = Math.sqrt(mu(to) / rPark2);
   const T1 = periodOf(from),
     T2 = periodOf(to);
@@ -338,7 +375,7 @@ function search(
     for (let j = 0; j <= NF; j++) {
       const t = t0 + (tSpan * i) / NT;
       const tof = fLo + ((fHi - fLo) * j) / NF;
-      const c = price(from, to, m, vc1, vc2, t, tof, capture, type);
+      const c = price(from, to, m, mu1, rPark1, vc2, t, tof, capture, type);
       if (c && (!found || c.total < found.total)) {
         found = c;
         bt = t;
@@ -359,7 +396,7 @@ function search(
       for (let j = -3; j <= 3; j++) {
         const t = Math.max(t0, bt + (ht * i) / 3);
         const tof = Math.max(3600, bf + (hf * j) / 3);
-        const c = price(from, to, m, vc1, vc2, t, tof, capture, type);
+        const c = price(from, to, m, mu1, rPark1, vc2, t, tof, capture, type);
         if (c && c.total < nc.total) {
           nc = c;
           nt = t;
@@ -415,6 +452,8 @@ function search(
     vinfOut: c.vinfOut,
     vinfIn: c.vinfIn,
     eject: c.eject,
+    ejectPro: c.ejectPro,
+    ejectNor: c.ejectNor,
     plane: c.plane,
     capture: c.capture,
     total: c.total,

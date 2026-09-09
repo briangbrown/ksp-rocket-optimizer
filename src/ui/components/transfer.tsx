@@ -571,6 +571,15 @@ function TransferPanel({
           unit="m/s"
           note={`${deg(w.angle)} from ${w.ref}`}
         />
+        {/* The burn's parts from an equatorial parking orbit: what leaves
+            the plane is the normal component, which a parking orbit
+            launched into the escape's own inclination would not need. */}
+        <Stat
+          small
+          label="Burn components"
+          value={`${fmt(w.ejectPro)} · ${fmt(Math.abs(w.ejectNor))}`}
+          note={`prograde · ${w.ejectNor < 0 ? "anti-normal" : "normal"}`}
+        />
         <Stat small label="Phase angle" value={deg(w.phase)} />
         {w.plane && (
           <Stat

@@ -289,7 +289,13 @@ before changing the thing it names.
   entry of `planeChanges` is dropped when a window has paid it. Without a
   start time the route is the tabulated one it always was, which is what
   keeps `test/routes.test.ts` byte-identical; the app always passes one.
-  Three traps: the ephemeris uses KSP's g₀ of 9.80665, not the solver's 9.81
+  The ejection is priced from an equatorial parking orbit — `ejection` in
+  `transfer.ts` turns the hyperbola's plane about the burn's radius until
+  its asymptote reaches the excess's elevation, and the burn is a prograde
+  part and a normal part, the resultant charged — so a ballistic transfer
+  to an inclined target pays hundreds of m/s of normal and the mid-course
+  plane change wins more often than the tools that assume an inclined
+  parking orbit suggest. Three traps: the ephemeris uses KSP's g₀ of 9.80665, not the solver's 9.81
   — at 9.81 Kerbin's year came out 1,600 s short; the search covers _one_
   synodic period, because two found a cheaper window two years on and the
   reader asked for the first; and the plane-change branch's burn time wraps
