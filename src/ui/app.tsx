@@ -18,6 +18,7 @@ import {
   Sheet,
   useNote,
   useWide,
+  WorksMark,
 } from "./components/primitives.jsx";
 import { Results, RouteSection } from "./components/results.jsx";
 import { Setup } from "./components/setup.jsx";
@@ -857,9 +858,20 @@ export default function RocketWorks() {
               launch date and a flight plan. The word in the destination's
               hue is the one that means "made here". What is installed is
               said in the setup sheet, where it is set. */}
-          <h1 className="display" style={{ margin: 0 }}>
-            Kerbal&nbsp;Rocket&nbsp;
-            <span style={{ color: dcolor }}>Works</span>
+          <h1
+            className="display"
+            style={{
+              margin: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <WorksMark theme={theme} />
+            <span>
+              Kerbal&nbsp;Rocket&nbsp;
+              <span style={{ color: dcolor }}>Works</span>
+            </span>
           </h1>
         </div>
         <IconButton

@@ -650,6 +650,14 @@ step 2's budgets. See #127 for the method.
   solved default page is 663 visible words on the phone, from 1,119 at the
   end of step 7 and 1,755 on `main` before the refresh.
 
+### WorksMark
+
+The Works' mark beside the name in the header: the icon's own drawing (a hex
+nut framing a rocket) at the display line's height, so the tab's icon is met
+where it can be read. The hex in `C.paper`, the rocket in Kerbin's hue walked
+to clear the panel, the flame `C.amber`; `aria-hidden`, since the name
+beside it is the name.
+
 ### TransferPanel
 
 The transfer window as the pilot flies it (#197), in _How to fly it_ after

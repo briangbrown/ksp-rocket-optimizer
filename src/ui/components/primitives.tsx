@@ -10,8 +10,19 @@ import {
   Plus,
   TriangleAlert,
 } from "lucide-react";
-import { BREAK, C, FONT, MOTION, RADIUS, SCRIM, SPACE, Z } from "../tokens.js";
-import type { Severity } from "../tokens.js";
+import {
+  BREAK,
+  C,
+  FONT,
+  MOTION,
+  RADIUS,
+  SCRIM,
+  SPACE,
+  Z,
+  edgeOf,
+  hueFor,
+} from "../tokens.js";
+import type { Severity, Theme } from "../tokens.js";
 import type {
   CSSProperties,
   RefObject,
@@ -1083,6 +1094,40 @@ function useNote(): [Note | null, (n: Note | null) => void, CSSProperties] {
   ];
 }
 
+/* ------------------------------ WorksMark ------------------------------ */
+/* The Works' mark, as public/favicon.svg draws it: a hex nut framing a
+   rocket in Kerbin's teal, its flame amber. Beside the name in the header,
+   at the display line's height, so the icon in the tab is met at a size
+   where it can be read. The hex takes the paper, so it is ink on the light
+   theme and paper on the dark, as the icon's own scheme rule does; the
+   rocket takes Kerbin's hue walked to clear the panel, which is the deeper
+   teal the icon shows on a light bar. #206 */
+const WorksMark = ({ theme }: { theme: Theme }) => (
+  <svg
+    viewBox="0 0 64 64"
+    aria-hidden
+    style={{
+      width: "1.15em",
+      height: "1.15em",
+      flexShrink: 0,
+      display: "block",
+    }}
+  >
+    <path
+      d="M32 5 L55 18.5 V45.5 L32 59 L9 45.5 V18.5 Z"
+      fill="none"
+      stroke={C.paper}
+      strokeWidth={4.5}
+      strokeLinejoin="round"
+    />
+    <path
+      d="M32 15 L38 24 V40 H26 V24 Z"
+      fill={edgeOf(hueFor("Kerbin", theme), theme)}
+    />
+    <path d="M26 42 Q32 52 38 42 Z" fill={C.amber} />
+  </svg>
+);
+
 export {
   Callout,
   Check,
@@ -1098,6 +1143,7 @@ export {
   Sheet,
   Stat,
   Toggle,
+  WorksMark,
   useNote,
   useTrap,
   useWide,
