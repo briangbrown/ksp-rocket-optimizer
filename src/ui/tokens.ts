@@ -261,6 +261,8 @@ const fills = (pal: Palette): Readonly<Record<string, string>> =>
   Object.fromEntries(Object.entries(KIND_TOKEN).map(([k, t]) => [k, pal[t]]));
 
 const BODY_HUE: Readonly<Record<string, string>> = {
+  /* Kerbol, as the map paints it: a star, yellow. */
+  Sun: "#F2D96B",
   Moho: "#EEB688",
   Eve: "#6C20E4",
   Gilly: "#A27E6E",

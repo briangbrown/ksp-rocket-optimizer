@@ -1,4 +1,6 @@
 import bodiesData from "../data/bodies.json";
+import { findWindow } from "./transfer.js";
+import type { TransferType, Window } from "./transfer.js";
 import { G0 } from "./constants.js";
 
 /* ------------------------------ what a leg is ------------------------------
@@ -35,6 +37,11 @@ type Leg = {
   cheap?: number;
   costly?: number;
   plane?: PlaneChange;
+  /* On the leg that leaves one planet for another: the window it was priced
+     on — when, the burn, the drawing. `at` is the burn's UT on any leg that
+     has a time, the mid-course plane change included. */
+  window?: Window;
+  at?: number;
 };
 
 /* A tabulated destination: the colour the route draws it in, its surface
@@ -58,6 +65,13 @@ type SysBody = {
   inc?: number;
   lan?: number;
   sma?: number;
+  /* The rest of the orbit, for an ephemeris: eccentricity, argument of
+     periapsis in degrees, mean anomaly at epoch in radians — the epoch being
+     UT 0, Year 1 Day 1 00:00:00, where every stock body's elements are
+     given. Absent on the Sun, which orbits nothing. */
+  ecc?: number;
+  ape?: number;
+  m0?: number;
   ascent?: number;
   atm?: number;
   noLand?: boolean;
@@ -718,7 +732,12 @@ function planeChanges(origin: string, dest: string) {
   return out;
 }
 
-function transferDv(origin: string, dest: string) {
+function transferDv(
+  origin: string,
+  dest: string,
+  t0?: number,
+  transfer: TransferType = "best",
+) {
   const co = chainOf(origin),
     cd = chainOf(dest);
   /* As in planeChanges: the chains always meet at the Sun if nowhere sooner. */
@@ -729,6 +748,27 @@ function transferDv(origin: string, dest: string) {
   const rO = up.length ? smaOf(up[up.length - 1]) : lowR(origin);
   const rD = down.length ? smaOf(down[0]) : lowR(dest);
   const h = hohmann(common, rO, rD);
+  /* Between planets, with a start time: the excess at each end is the
+     window's rather than the Hohmann's, and the window rides on the leg
+     that leaves. The parking orbits are where the route actually burns —
+     the planet's low orbit, or a moon's orbit about it when the mission
+     comes up from a moon — and the same at the far end. */
+  const w =
+    t0 !== undefined && common === "Sun" && up.length && down.length
+      ? findWindow(
+          up[up.length - 1],
+          down[0],
+          up.length > 1 ? smaOf(up[up.length - 2]) : lowR(up[0]),
+          down.length > 1 ? smaOf(down[1]) : lowR(down[0]),
+          t0,
+          true,
+          transfer,
+        )
+      : null;
+  if (w) {
+    h.out = w.vinfOut;
+    h.in = w.vinfIn;
+  }
   const legs: Array<Leg> = [];
   /* Staying inside one system means no SOI to climb out of, so the Hohmann burn
      is the whole cost — running it through inject() would charge escape velocity
@@ -744,12 +784,33 @@ function transferDv(origin: string, dest: string) {
     up.forEach((b, k) => {
       const v = k === 0 ? vCirc(b) : Math.sqrt(mu(b) / smaOf(up[k - 1]));
       const vinf = k === up.length - 1 ? h.out : 0;
+      const leaves = w && k === up.length - 1;
       legs.push({
-        label: `Leave ${b}`,
+        label: leaves ? `Leave ${b} for ${down[0]}` : `Leave ${b}`,
         dv: Math.round(inject(v, vinf)),
         kind: "transfer",
         body: b,
+        ...(leaves ? { window: w, at: w.depart } : {}),
       });
+    });
+  /* The window's mid-course plane change, where it flies one; a ballistic
+     window pays its inclination in the excess above. */
+  if (w && w.plane)
+    legs.push({
+      label:
+        w.plane.deg >= 0.1
+          ? `Plane change ${w.plane.deg.toFixed(1)}° mid-course`
+          : "Plane change mid-course",
+      dv: Math.round(w.plane.dv),
+      kind: "plane",
+      body: down[0],
+      at: w.plane.at,
+      plane: {
+        deg: w.plane.deg,
+        system: "Sun",
+        cheap: Math.round(w.plane.dv),
+        costly: Math.round(w.plane.dv),
+      },
     });
 
   down.forEach((b, k) => {
@@ -973,6 +1034,9 @@ function routeFor(
   chutes: boolean,
   returning: boolean,
   planeNow: boolean,
+  t0?: number,
+  stay = 0,
+  transfer: TransferType = "best",
 ): Array<Leg> {
   if (possible(from, to) !== true) return [];
   const origin = from.body;
@@ -1016,8 +1080,14 @@ function routeFor(
      anywhere else, Hohmann transfers through the body tree. Either way the
      base is the way to the To body's low orbit and, where it has one, its
      surface — the To state then keeps or drops the last of those. */
+  /* With a start time, a transfer between planets is priced on its window,
+     which the table cannot be; the table keeps Kerbin's own moons. */
   const table =
-    origin === "Kerbin" && from.state !== "sync" ? tabulated(to.body) : null;
+    origin === "Kerbin" &&
+    from.state !== "sync" &&
+    (t0 === undefined || chainOf(to.body).includes("Kerbin"))
+      ? tabulated(to.body)
+      : null;
   let base: Array<Leg>;
   if (table) {
     base = table.legs.map((l) => ({ ...l }));
@@ -1027,7 +1097,7 @@ function routeFor(
   } else {
     const d = SYS[to.body];
     base = [...climb];
-    transferDv(origin, to.body).forEach((l) =>
+    transferDv(origin, to.body, t0, transfer).forEach((l) =>
       base.push({ ...l, g: gOf(l.body) }),
     );
     if (d.ascent && !d.noLand) base.push(landLeg(to.body));
@@ -1036,8 +1106,12 @@ function routeFor(
 
   /* Inclination is charged as its own leg, placed just before capture, because
      unlike everything else in the budget its cost is set by when you burn it
-     rather than how much you need. */
-  const pcs = planeChanges(origin, to.body);
+     rather than how much you need. A window has already paid the Sun-level
+     one, in the excess or mid-course, so only the moons' remain. */
+  const windowed = base.some((l) => l.window);
+  const pcs = planeChanges(origin, to.body).filter(
+    (pc) => !(windowed && pc.system === "Sun"),
+  );
   if (pcs.length) {
     const at = base.findIndex((l) => l.kind === "capture");
     const rows: Array<Leg> = pcs.map((pc) => ({
@@ -1105,6 +1179,7 @@ function routeFor(
   if (returning) {
     const land = base.find((l) => l.kind === "land");
     const capLeg = base.find((l) => l.kind === "capture");
+    const out = base.find((l) => l.window)?.window;
     const back: Array<Leg> = [];
     if (to.state === "sync") back.push(...syncLegs(to.body, false));
     if (to.state === "surface" && land)
@@ -1115,24 +1190,34 @@ function routeFor(
         body: land.body,
         g: land.g,
       });
-    else if ((to.state === "low" || to.state === "sync") && capLeg)
+    if (out && to.state !== "flyby") {
+      /* Home on its own window, searched from the arrival plus the stay:
+         the same chain walked the other way, whose first leg is the escape
+         from the parking orbit and whose capture the arrival below already
+         is. */
+      transferDv(to.body, origin, out.arrive + stay, transfer)
+        .filter((l) => l.kind !== "capture")
+        .forEach((l) => back.push({ ...l, g: gOf(l.body) }));
+    } else {
+      if ((to.state === "low" || to.state === "sync") && capLeg)
+        back.push({
+          label: `Escape ${capLeg.body} orbit`,
+          dv: capLeg.dv,
+          kind: "transfer",
+          body: capLeg.body,
+          g: capLeg.g,
+        });
+      const home = base
+        .filter((l) => l.kind === "transfer" || l.kind === "plane")
+        .reduce((s, l) => s + l.dv, 0);
       back.push({
-        label: `Escape ${capLeg.body} orbit`,
-        dv: capLeg.dv,
+        label: `Return transfer to ${origin}`,
+        dv: home,
         kind: "transfer",
-        body: capLeg.body,
-        g: capLeg.g,
+        body: origin,
+        g: gOf(origin),
       });
-    const home = base
-      .filter((l) => l.kind === "transfer" || l.kind === "plane")
-      .reduce((s, l) => s + l.dv, 0);
-    back.push({
-      label: `Return transfer to ${origin}`,
-      dv: home,
-      kind: "transfer",
-      body: origin,
-      g: gOf(origin),
-    });
+    }
     back.push(arrival(origin));
     /* A start in stationary orbit climbs back up to it. A start on the
        surface ends where the app always ended a return: captured, with the

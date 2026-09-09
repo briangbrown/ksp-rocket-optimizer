@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Scissors, Settings } from "lucide-react";
-import { fmt, hms } from "../format.js";
+import { bodyLabel, fmt, hms } from "../format.js";
 import { SPACE } from "../tokens.js";
 import type { Theme } from "../tokens.js";
 import { BuildView } from "./build.jsx";
@@ -20,6 +20,7 @@ import { RouteMap } from "./route.jsx";
 import { StageStack } from "./stages.jsx";
 import type { Leg } from "../../core/orbits.js";
 import type { PlanStage } from "../../core/plan.js";
+import { TransferPanel } from "./transfer.jsx";
 import type { Ascent } from "./flight.jsx";
 import type { Hardware } from "./parts.jsx";
 
@@ -59,6 +60,8 @@ type ResultsProps = {
   maxAspect: number;
   ascent: Ascent | null;
   returnAscent: Ascent | null;
+  /* The legs, for the transfer windows they carry. */
+  route: ReadonlyArray<Leg>;
   payload: number;
   payloadDia: number;
   hardware: Hardware | null;
@@ -128,6 +131,20 @@ function Results(p: ResultsProps) {
 
   const dash = (v: string | number) => (p.ok ? v : "—");
   const flights = [p.ascent, p.returnAscent].filter((a) => a !== null);
+  /* The legs that leave one planet for another, out and home, each with
+     whether a capture follows it on the route. */
+  const windows = p.route.flatMap((l, i) =>
+    l.window
+      ? [
+          {
+            w: l.window,
+            captured: p.route
+              .slice(i + 1)
+              .some((x) => x.kind === "capture" || x.kind === "aero"),
+          },
+        ]
+      : [],
+  );
 
   return (
     <>
@@ -255,7 +272,7 @@ function Results(p: ResultsProps) {
         )}
       </Section>
 
-      {(flights.length > 0 || p.first) && (
+      {(flights.length > 0 || windows.length > 0 || p.first) && (
         <Section
           id="fly"
           heading="How to fly it"
@@ -265,7 +282,10 @@ function Results(p: ResultsProps) {
           busy={p.first}
         >
           {p.ascent && <AscentPanel a={p.ascent} color={p.color} />}
-          {p.returnAscent && (
+          {/* The transfer out, after the ascent that puts it in orbit; the
+              one home after the climb home. Each is the window its leg was
+              priced on, so what is drawn is what the rocket was sized for. */}
+          {windows[0] && (
             <>
               <div
                 className="label"
@@ -273,9 +293,41 @@ function Results(p: ResultsProps) {
                   margin: `${p.ascent ? SPACE.xxl : 0}px 0 ${SPACE.lg}px`,
                 }}
               >
+                The transfer to {bodyLabel(windows[0].w.to)}
+              </div>
+              <TransferPanel
+                w={windows[0].w}
+                theme={p.theme}
+                captured={windows[0].captured}
+              />
+            </>
+          )}
+          {p.returnAscent && (
+            <>
+              <div
+                className="label"
+                style={{
+                  margin: `${p.ascent || windows[0] ? SPACE.xxl : 0}px 0 ${SPACE.lg}px`,
+                }}
+              >
                 The climb home from {p.returnAscent.bodyName}
               </div>
               <AscentPanel a={p.returnAscent} color={p.color} />
+            </>
+          )}
+          {windows[1] && (
+            <>
+              <div
+                className="label"
+                style={{ margin: `${SPACE.xxl}px 0 ${SPACE.lg}px` }}
+              >
+                The transfer home to {bodyLabel(windows[1].w.to)}
+              </div>
+              <TransferPanel
+                w={windows[1].w}
+                theme={p.theme}
+                captured={windows[1].captured}
+              />
             </>
           )}
           {/* The methodology and the long form of "fly the clock", for the
