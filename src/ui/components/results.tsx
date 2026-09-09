@@ -297,7 +297,7 @@ function Results(p: ResultsProps) {
               </div>
               <TransferPanel
                 w={windows[0].w}
-                color={p.color}
+                theme={p.theme}
                 captured={windows[0].captured}
               />
             </>
@@ -325,7 +325,7 @@ function Results(p: ResultsProps) {
               </div>
               <TransferPanel
                 w={windows[1].w}
-                color={p.color}
+                theme={p.theme}
                 captured={windows[1].captured}
               />
             </>

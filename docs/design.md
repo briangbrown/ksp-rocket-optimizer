@@ -660,7 +660,12 @@ direction; and the Sun's system with both orbits, the transfer arc, the
 bodies at departure and the phase angle — then a grid of small `Stat`s:
 leave (game clock, to the second), ejection burn and its angle, phase angle,
 plane change where one is flown, flight time, arrival, capture. Diagrams
-take `C.rule`, `C.edge`, `C.dim`, `C.paper` and the destination's accent for
-the arc and the burn; text in them is the `note` role. Each carries an
+are drawn the way the game's map draws them: every orbit in its body's
+picker hue, fading behind the body — full just behind it, a tenth just
+ahead — which says which way it goes; bodies as their hues, each named; the
+ship a capsule in `C.paper` headed the way it moves, its parking orbit and
+its transfer arc fading behind it the same way; a planned path, the escape
+out of the burn, dashed. Text in them is the `note` role, names in
+`edgeOf(hue)` so they clear the panel. Each carries an
 `aria-label` that says what it draws. The two sit side by side where 440 px
 allow and stack below.
