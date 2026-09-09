@@ -97,4 +97,26 @@ describe("a design as a link", () => {
     /* The address bar carries the same link without asking. */
     expect(location.hash).toBe(url.hash);
   }, 120_000);
+
+  it("keeps the share button while the brief is open", async () => {
+    /* It was folded-only: opening the section to change the mission took
+       it away, and a reader arriving with the brief open never saw it. #209 */
+    const written: Array<string> = [];
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: async (s: string) => void written.push(s) },
+      configurable: true,
+    });
+    render(<KSPMissionPlanner />);
+    await settle();
+    await click(briefFold());
+    expect(briefFold()?.getAttribute("aria-expanded")).toBe("true");
+    const share = allByLabel("Share the link");
+    expect(share.length, "no share button on the open brief").toBe(1);
+    await click(share[0]);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(written.length).toBe(1);
+    expect(rocketNote("good")?.textContent).toBe("Link copied.");
+  }, 120_000);
 });
