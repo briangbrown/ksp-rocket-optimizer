@@ -172,6 +172,9 @@ const INLINE_WIDE = "clamp(360px, 60dvh, 900px)";
    same track. It sits inside the row under the drawings, so where the row has
    a height of its own this much of it is not theirs. */
 const SCRUB_TARGET = { wide: 24, phone: 44 };
+/* The title block's height in full screen: four label lines, their frame
+   and the gap over it. */
+const TITLE_BLOCK = 78;
 /* How long one stage separation takes.
 
    Two paces, because the two ways of asking for one are different questions.
@@ -553,7 +556,11 @@ function BuildView({
   const scrubH = scrubbed
     ? (wide ? SCRUB_TARGET.wide : SCRUB_TARGET.phone) + SPACE.md
     : 0;
-  const ah = sized && box.h ? Math.max(1, box.h - HEAD - scrubH) : INLINE_H;
+  /* Full screen, the title block's strip under the drawings: four label
+     lines and their frame. */
+  const titleH = full ? TITLE_BLOCK : 0;
+  const ah =
+    sized && box.h ? Math.max(1, box.h - HEAD - scrubH - titleH) : INLINE_H;
   const pair = pairSizes({ aw, ah }, paneOf(views[0]), paneOf(views[1]), GAP);
   /* The sheet lays its own header lines out, so it is handed the row. */
   const sz = sheetSizes({ aw, ah: ah + HEAD }, needs, GAP, HEAD);
@@ -858,6 +865,47 @@ function BuildView({
     </div>
   );
 
+  /* An engineering drawing's title block: whose drawing it is, its number,
+     who drew it and who checked it — the Works, the solver, and the Kerbal
+     the craft's subtitle names. Full screen only, in the flow under the
+     drawings at the sheet's right and above the scrubber, inside the
+     drawings' column, so it takes a strip of the column's height — `ah`
+     leaves it that strip — rather than lying on a drawing or the slider,
+     where it first went, absolutely positioned. #207 */
+  const titleBlock = full && solved.length > 0 && (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "flex-end",
+        marginTop: SPACE.sm,
+      }}
+    >
+      <div
+        className="label"
+        aria-hidden
+        style={{
+          display: "grid",
+          gridTemplateColumns: "auto auto",
+          gap: `1px ${SPACE.md}px`,
+          padding: `${SPACE.xs}px ${SPACE.md}px`,
+          border: `1px solid ${C.rule}`,
+          color: C.dim,
+          background: C.panel,
+        }}
+      >
+        <span style={{ gridColumn: "1 / -1", color: C.muted }}>
+          Kerbal Rocket Works
+        </span>
+        <span>Drawing No.</span>
+        <span style={{ color: C.paper }}>{craft.no}</span>
+        <span>Drawn by</span>
+        <span style={{ color: C.paper }}>the solver</span>
+        <span>Checked by</span>
+        <span style={{ color: C.paper }}>{craft.checked} Kerman</span>
+      </div>
+    </div>
+  );
+
   const row = (
     <div
       ref={box.ref}
@@ -986,6 +1034,7 @@ function BuildView({
             </>
           )}
         </div>
+        {titleBlock}
         {/* The stepper as a scrubber, along the foot of the drawings. */}
         {scrubber}
       </div>
@@ -1150,37 +1199,6 @@ function BuildView({
             }}
           >
             {body}
-            {/* An engineering drawing's title block, in the sheet's corner:
-                whose drawing it is, its number, who drew it and who checked
-                it — the Works, the solver, and the Kerbal the craft's
-                subtitle names. #207 */}
-            <div
-              className="label"
-              aria-hidden
-              style={{
-                position: "absolute",
-                right: "calc(16px + env(safe-area-inset-right))",
-                bottom: "calc(16px + env(safe-area-inset-bottom))",
-                display: "grid",
-                gridTemplateColumns: "auto auto",
-                gap: `2px ${SPACE.md}px`,
-                padding: `${SPACE.sm}px ${SPACE.md}px`,
-                border: `1px solid ${C.rule}`,
-                color: C.dim,
-                background: C.panel,
-                pointerEvents: "none",
-              }}
-            >
-              <span style={{ gridColumn: "1 / -1", color: C.muted }}>
-                Kerbal Rocket Works
-              </span>
-              <span>Drawing No.</span>
-              <span style={{ color: C.paper }}>{craft.no}</span>
-              <span>Drawn by</span>
-              <span style={{ color: C.paper }}>the solver</span>
-              <span>Checked by</span>
-              <span style={{ color: C.paper }}>{craft.checked} Kerman</span>
-            </div>
           </div>,
           document.body,
         )}
