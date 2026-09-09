@@ -23,8 +23,8 @@ import type { Page } from "puppeteer";
    render.test.ts gives. */
 const BUDGET = {
   phone: {
-    height: 3795, // px, the whole page with the default mission solved and the brief set: 3720 once the header lost its install line (#207), 3749 after #190, 4066 after #161, with 2% for a different Chrome's fonts
-    words: 559, // visible words on that page — the paragraphs are behind disclosures, #135; 567 before the header's install line moved into Setup (#207), 617 before #190
+    height: 3815, // px, the whole page with the default mission solved and the brief set: 3740 with the works number and the footer's first line (#207), 3720 without them and without the header's install line, 3749 after #190, with 2% for a different Chrome's fonts
+    words: 573, // visible words on that page — the paragraphs are behind disclosures, #135. 559 once the header's install line moved into Setup (#207), then 14 back on purpose: "Built by the Kerbal Rocket Works" in the footer and the works number on the name plate. 617 before #190
     tinyText: 0, // text under 12 px
     smallBody: 55, // text under 13 px: the labels, at 12 — 56 before #207 took one from the header, 59 before #190
     targets: 0, // pressable things under 44 × 44 — of 26, #136
@@ -35,7 +35,7 @@ const BUDGET = {
   },
   desktop: {
     height: 2364, // 2338 once the header lost its install line (#207); 2359 before, the two-column shell (#137) with the rocket at six tenths of the window (#138); 2529 before #190
-    words: 556, // 564 before the header's install line moved into Setup (#207); 620 before #190; 618 before the drafting sheet named its four views (#183)
+    words: 570, // 556 once the header's install line moved into Setup (#207), then 14 back on purpose for the footer's first line and the works number; 620 before #190
     tinyText: 60, // the labels, at 11 — 61 before #207 took the header's install line; raised from 60 with #190's four-stage default rocket
     smallBody: 86, // labels and notes — 87 before #207
     targets: 0, // under 24 × 24 — of 26
