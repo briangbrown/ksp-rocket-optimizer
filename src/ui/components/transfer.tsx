@@ -154,22 +154,28 @@ const above = (q: Pt): Pt => [
   Math.max(10, q[1] - 8),
 ];
 
+/* A name in the drawing. The halo is the panel painted behind the glyphs,
+   for a name that lines cross; a name on a body's own disc stands on a
+   solid fill and takes none — with one, Duna's light ink on its dark disc
+   read as white on white in the light theme, whose panel is white. */
 const Name = ({
   at,
   text,
   color,
   anchor = "start",
+  halo = true,
 }: {
   at: Pt;
   text: string;
   color: string;
   anchor?: "start" | "middle" | "end";
+  halo?: boolean;
 }) => (
   <text
     className="note"
-    paintOrder="stroke"
-    stroke={C.panel}
-    strokeWidth={3}
+    paintOrder={halo ? "stroke" : undefined}
+    stroke={halo ? C.panel : undefined}
+    strokeWidth={halo ? 3 : undefined}
     strokeLinejoin="round"
     x={at[0]}
     y={at[1]}
@@ -277,6 +283,7 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
         text={bodyLabel(w.from)}
         color={inkOn(hue)}
         anchor="middle"
+        halo={false}
       />
       {/* Prograde, up. */}
       <line x1={top[0]} y1={top[1]} x2={tip[0]} y2={tip[1]} stroke={C.dim} />
