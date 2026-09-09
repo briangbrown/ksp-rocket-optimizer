@@ -91,19 +91,28 @@ const inject = (v: number, vinf: number) =>
    equator, which is where the excess's own elevation fixes i. The burn is
    the periapsis velocity turned by i less the parking velocity: a prograde
    part and a normal part, and the resultant the route charges. */
-function ejection(vinf: Vec3, mu: number, r: number) {
-  const vm = norm(vinf);
+function ejection(vrel: Vec3, vm: number, mu: number, r: number) {
   const vc = Math.sqrt(mu / r);
   const vpe = Math.sqrt(vm * vm + (2 * mu) / r);
   const e = 1 + (r * vm * vm) / mu;
   const thInf = Math.acos(-1 / e);
   const clamp = (x: number) => Math.max(-1, Math.min(1, x));
-  const el = Math.asin(clamp(vm > 0 ? vinf[2] / vm : 0));
+  const vr = norm(vrel);
+  const el = Math.asin(clamp(vr > 0 ? vrel[2] / vr : 0));
   const i = Math.asin(clamp(Math.sin(el) / Math.sin(thInf)));
   const pro = vpe * Math.cos(i) - vc;
   const nor = vpe * Math.sin(i);
   return { dv: Math.hypot(pro, nor), pro, nor };
 }
+
+/* The excess at infinity from the relative velocity where the patch is
+   made. The Lambert arc's velocity relative to the body is the ship's at
+   the sphere of influence's edge, not at infinity — the game switches
+   frames there — and between the edge and infinity there is still 2μ/r_soi
+   of potential to climb. Ignoring it overstated Kerbin's ejection by 12 m/s
+   and Eve's capture by 20 against alexmoon's planner, at the same cell. */
+const atInfinity = (vrel: number, mu: number, rSoi: number) =>
+  Math.sqrt(Math.max(0, vrel * vrel - (2 * mu) / rSoi));
 
 const xy = (a: Vec3): [number, number] => [a[0], a[1]];
 const unit2 = (a: [number, number]): [number, number] => {
@@ -180,6 +189,9 @@ function price(
   m: number,
   mu1: number,
   rPark1: number,
+  soi1: number,
+  mu2: number,
+  soi2: number,
   vc2: number,
   t: number,
   tof: number,
@@ -192,9 +204,9 @@ function price(
   if (type !== "plane") {
     const l = lambert(m, s1.r, s2.r, tof);
     if (l) {
-      const vinfOut = norm(sub(l.v1, s1.v));
-      const vinfIn = norm(sub(l.v2, s2.v));
-      const ej = ejection(sub(l.v1, s1.v), mu1, rPark1);
+      const vinfOut = atInfinity(norm(sub(l.v1, s1.v)), mu1, soi1);
+      const vinfIn = atInfinity(norm(sub(l.v2, s2.v)), mu2, soi2);
+      const ej = ejection(sub(l.v1, s1.v), vinfOut, mu1, rPark1);
       const cap = capture ? inject(vc2, vinfIn) : 0;
       best = {
         total: ej.dv + cap,
@@ -265,9 +277,9 @@ function price(
          about the burn's radius, which is what the burn does. */
       const rB = unit(rotate(unit(ev), hn, nuB));
       const v2 = rotate(l.v2, rB, off >= 0 ? tilt(dnu) : -tilt(dnu));
-      const vinfOut = norm(sub(l.v1, s1.v));
-      const vinfIn = norm(sub(v2, s2.v));
-      const ej = ejection(sub(l.v1, s1.v), mu1, rPark1);
+      const vinfOut = atInfinity(norm(sub(l.v1, s1.v)), mu1, soi1);
+      const vinfIn = atInfinity(norm(sub(v2, s2.v)), mu2, soi2);
+      const ej = ejection(sub(l.v1, s1.v), vinfOut, mu1, rPark1);
       const cap = capture ? inject(vc2, vinfIn) : 0;
       const total = ej.dv + g.f + cap;
       if (!best || total < best.total)
@@ -352,8 +364,11 @@ function search(
     o2 = elements(to);
   if (o1.parent !== o2.parent) return null;
   const m = o1.mu;
-  const mu1 = mu(from);
-  const vc2 = Math.sqrt(mu(to) / rPark2);
+  const mu1 = mu(from),
+    mu2 = mu(to);
+  const vc2 = Math.sqrt(mu2 / rPark2);
+  const soi1 = o1.a * Math.pow(mu1 / m, 0.4),
+    soi2 = o2.a * Math.pow(mu2 / m, 0.4);
   const T1 = periodOf(from),
     T2 = periodOf(to);
   const synodic = 1 / Math.abs(1 / T1 - 1 / T2);
@@ -375,7 +390,21 @@ function search(
     for (let j = 0; j <= NF; j++) {
       const t = t0 + (tSpan * i) / NT;
       const tof = fLo + ((fHi - fLo) * j) / NF;
-      const c = price(from, to, m, mu1, rPark1, vc2, t, tof, capture, type);
+      const c = price(
+        from,
+        to,
+        m,
+        mu1,
+        rPark1,
+        soi1,
+        mu2,
+        soi2,
+        vc2,
+        t,
+        tof,
+        capture,
+        type,
+      );
       if (c && (!found || c.total < found.total)) {
         found = c;
         bt = t;
@@ -396,7 +425,21 @@ function search(
       for (let j = -3; j <= 3; j++) {
         const t = Math.max(t0, bt + (ht * i) / 3);
         const tof = Math.max(3600, bf + (hf * j) / 3);
-        const c = price(from, to, m, mu1, rPark1, vc2, t, tof, capture, type);
+        const c = price(
+          from,
+          to,
+          m,
+          mu1,
+          rPark1,
+          soi1,
+          mu2,
+          soi2,
+          vc2,
+          t,
+          tof,
+          capture,
+          type,
+        );
         if (c && c.total < nc.total) {
           nc = c;
           nt = t;
@@ -442,7 +485,7 @@ function search(
       180) /
     Math.PI;
   phase = ((phase % 360) + 360) % 360;
-  const soi = o1.a * Math.pow(mu(from) / m, 0.4);
+  const soi = soi1;
   return {
     from,
     to,

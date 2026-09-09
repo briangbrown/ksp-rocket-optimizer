@@ -578,6 +578,7 @@ function TransferPanel({
           small
           label="Burn components"
           value={`${fmt(w.ejectPro)} · ${fmt(Math.abs(w.ejectNor))}`}
+          unit="m/s"
           note={`prograde · ${w.ejectNor < 0 ? "anti-normal" : "normal"}`}
         />
         <Stat small label="Phase angle" value={deg(w.phase)} />

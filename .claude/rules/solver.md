@@ -302,3 +302,9 @@ before changing the thing it names.
   the anomalies into [0, 2π) before Kepler's equation, or a Dres burn came
   out 835 days before departure. A window is about 8 ms; a route with both
   directions about 25 ms, cached on its arguments.
+  The excess velocity is taken at infinity, from the relative velocity at
+  the sphere of influence's edge: `atInfinity` in `transfer.ts` removes the
+  2μ/r_soi the ship still has to climb after the patch. Without it every
+  ejection and capture ran 1–2% over alexmoon's planner at the same cell
+  (12 m/s at Kerbin, 20 at Eve); with it, nine of his selected transfers
+  agree to the metre per second, ejection inclination included.
