@@ -1,3 +1,4 @@
+import type { TransferType } from "../core/transfer.js";
 import { DATA } from "../core/catalogue.js";
 import { DEST, STATES, SYS, endpointsOf, possible } from "../core/orbits.js";
 import type { Endpoint, State } from "../core/orbits.js";
@@ -42,6 +43,7 @@ type Pasted = {
      the destination at least this long before the window home. Seconds. */
   leaveAfter: number;
   stay: number;
+  transfer: string;
   expansions: { mh: unknown; rs: unknown };
   tech: Array<string>;
   excluded: Array<string>;
@@ -68,6 +70,7 @@ type ConfigValues = {
   maxAspect?: number;
   leaveAfter?: number;
   stay?: number;
+  transfer?: TransferType;
   expansions?: Expansions;
   tech?: Set<string>;
   excluded?: Set<string>;
@@ -198,6 +201,11 @@ function readConfig(cfg: Pasted): ConfigParse {
   /* A thousand Kerbin years is past any save; a stay is bounded the same. */
   take("leaveAfter", num(cfg.leaveAfter, 0, 1e10), () => cfg.leaveAfter);
   take("stay", num(cfg.stay, 0, 1e10), () => cfg.stay);
+  take(
+    "transfer",
+    ["best", "ballistic", "plane"].includes(cfg.transfer),
+    () => cfg.transfer as TransferType,
+  );
   take(
     "expansions",
     cfg.expansions &&

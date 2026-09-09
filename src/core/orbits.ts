@@ -1,6 +1,6 @@
 import bodiesData from "../data/bodies.json";
 import { findWindow } from "./transfer.js";
-import type { Window } from "./transfer.js";
+import type { TransferType, Window } from "./transfer.js";
 import { G0 } from "./constants.js";
 
 /* ------------------------------ what a leg is ------------------------------
@@ -732,7 +732,12 @@ function planeChanges(origin: string, dest: string) {
   return out;
 }
 
-function transferDv(origin: string, dest: string, t0?: number) {
+function transferDv(
+  origin: string,
+  dest: string,
+  t0?: number,
+  transfer: TransferType = "best",
+) {
   const co = chainOf(origin),
     cd = chainOf(dest);
   /* As in planeChanges: the chains always meet at the Sun if nowhere sooner. */
@@ -757,6 +762,7 @@ function transferDv(origin: string, dest: string, t0?: number) {
           down.length > 1 ? smaOf(down[1]) : lowR(down[0]),
           t0,
           true,
+          transfer,
         )
       : null;
   if (w) {
@@ -1030,6 +1036,7 @@ function routeFor(
   planeNow: boolean,
   t0?: number,
   stay = 0,
+  transfer: TransferType = "best",
 ): Array<Leg> {
   if (possible(from, to) !== true) return [];
   const origin = from.body;
@@ -1090,7 +1097,7 @@ function routeFor(
   } else {
     const d = SYS[to.body];
     base = [...climb];
-    transferDv(origin, to.body, t0).forEach((l) =>
+    transferDv(origin, to.body, t0, transfer).forEach((l) =>
       base.push({ ...l, g: gOf(l.body) }),
     );
     if (d.ascent && !d.noLand) base.push(landLeg(to.body));
@@ -1188,7 +1195,7 @@ function routeFor(
          the same chain walked the other way, whose first leg is the escape
          from the parking orbit and whose capture the arrival below already
          is. */
-      transferDv(to.body, origin, out.arrive + stay)
+      transferDv(to.body, origin, out.arrive + stay, transfer)
         .filter((l) => l.kind !== "capture")
         .forEach((l) => back.push({ ...l, g: gOf(l.body) }));
     } else {

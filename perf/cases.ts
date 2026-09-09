@@ -87,6 +87,7 @@ export function missionConfig(lvl = 9, dest = "Mun") {
       planeNow: false,
       leaveAfter: 0,
       stay: 0,
+      transfer: "best",
       asparagus: false,
       maxAspect: 14,
       expansions: { mh: false, rs: false },

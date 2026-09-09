@@ -581,6 +581,16 @@ function TransferPanel({
           note={`prograde · ${w.ejectNor < 0 ? "anti-normal" : "normal"}`}
         />
         <Stat small label="Phase angle" value={deg(w.phase)} />
+        <Stat
+          small
+          label="Transfer"
+          value={w.type === "plane" ? "mid-course" : "ballistic"}
+          note={
+            w.type === "plane"
+              ? "in the plane, tilted on the way"
+              : "inclination in the ejection"
+          }
+        />
         {w.plane && (
           <Stat
             small

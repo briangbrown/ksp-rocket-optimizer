@@ -5,6 +5,7 @@ import { buildVehicleFor, simCached } from "../core/ascent.js";
 import { orbitAlt } from "../core/atmosphere.js";
 import { DATA } from "../core/catalogue.js";
 import { offered } from "../core/constants.js";
+import type { TransferType } from "../core/transfer.js";
 import { stackGeometry } from "../core/geometry.js";
 import { STATES, defaultCuts, possible, routeFor } from "../core/orbits.js";
 import type { Endpoint } from "../core/orbits.js";
@@ -116,6 +117,9 @@ export default function KSPMissionPlanner() {
      the first window after arrival unless a stay is asked for. UT seconds. */
   const [leaveAfter, setLeaveAfter] = useState(0);
   const [stay, setStay] = useState(0);
+  /* Which transfer to fly: the cheaper of ballistic and mid-course by
+     default; the reader may insist on one. */
+  const [transfer, setTransfer] = useState<TransferType>("best");
   const [asparagus, setAsparagus] = useState(false);
   const [maxAspect, setMaxAspect] = useState(14);
   const [payloadDia, setPayloadDia] = useState(1.25);
@@ -221,8 +225,18 @@ export default function KSPMissionPlanner() {
     };
   }, []);
   const route = useMemo(
-    () => routeFor(from, to, chutes, returning, planeNow, leaveAfter, stay),
-    [from, to, chutes, returning, planeNow, leaveAfter, stay],
+    () =>
+      routeFor(
+        from,
+        to,
+        chutes,
+        returning,
+        planeNow,
+        leaveAfter,
+        stay,
+        transfer,
+      ),
+    [from, to, chutes, returning, planeNow, leaveAfter, stay, transfer],
   );
   const totalDv = route.reduce((s, l) => s + l.dv, 0);
   const budget = Math.round(totalDv * (1 + margin / 100) + extraDv);
@@ -497,6 +511,7 @@ export default function KSPMissionPlanner() {
         maxAspect,
         leaveAfter,
         stay,
+        transfer,
         expansions,
         tech: [...unlocked].sort(),
         excluded: [...excluded].sort(),
@@ -519,6 +534,7 @@ export default function KSPMissionPlanner() {
       maxAspect,
       leaveAfter,
       stay,
+      transfer,
       expansions,
       unlocked,
       excluded,
@@ -554,6 +570,7 @@ export default function KSPMissionPlanner() {
     if (v.maxAspect !== undefined) setMaxAspect(v.maxAspect);
     if (v.leaveAfter !== undefined) setLeaveAfter(v.leaveAfter);
     if (v.stay !== undefined) setStay(v.stay);
+    if (v.transfer !== undefined) setTransfer(v.transfer);
     if (v.expansions !== undefined) setExpansions(v.expansions);
     if (v.tech !== undefined) setUnlocked(v.tech);
     if (v.excluded !== undefined) setExcluded(v.excluded);
@@ -751,6 +768,8 @@ export default function KSPMissionPlanner() {
       onLeaveAfter={edit(setLeaveAfter)}
       stay={stay}
       onStay={edit(setStay)}
+      transfer={transfer}
+      onTransfer={edit(setTransfer)}
       crossfeedOk={crossfeedOk}
       asparagus={asparagus}
       onAsparagus={edit(setAsparagus)}

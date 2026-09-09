@@ -472,5 +472,12 @@ function search(
   };
 }
 
+/* Which transfer to fly: the inclination in the ejection, one burn with a
+   normal part (ballistic); in the plane and one burn mid-course to tilt up
+   to the target (plane), cheaper and harder to place in the game; or
+   whichever is less. */
+type TransferType = "ballistic" | "plane" | "best";
+
 export { findWindow, price };
+export type { TransferType };
 export type { Window };

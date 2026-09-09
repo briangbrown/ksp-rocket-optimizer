@@ -3,7 +3,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { render, cleanup, act } from "@testing-library/react";
 import KSPMissionPlanner from "../src/ui/app.jsx";
 import { toLink } from "../src/ui/link.js";
-import { field, openBrief, openFold, settle } from "./app-harness.js";
+import { click, field, openBrief, openFold, settle } from "./app-harness.js";
 
 /* The transfer card (#197): on an interplanetary mission the Fly section
    shows when to leave, the burn and its angle, the two drawings, and the
@@ -60,6 +60,26 @@ describe("the transfer card", () => {
     for (const svg of imgs) expect(svg.innerHTML).not.toMatch(/NaN/);
     /* And the route names the same window on its leg. */
     expect(document.body.textContent).toMatch(/Leave Kerbin for Duna/);
+  }, 180_000);
+
+  it("flies the transfer the reader chooses", async () => {
+    /* Duna's cheapest transfer is the mid-course one, seven metres a
+       second of plane change; insisting on ballistic drops that burn and
+       says so on the card. */
+    location.hash = await toLink(config({}));
+    render(<KSPMissionPlanner />);
+    await settle();
+    await openFold("How to fly it").catch(() => {});
+    expect(fly()).toMatch(/Transfer\s*mid-course/);
+    expect(fly()).toMatch(/Plane change/);
+    await openBrief();
+    await openFold("More options").catch(() => {});
+    await click("Ballistic");
+    await settle();
+    expect(fly()).toMatch(/Transfer\s*ballistic/);
+    expect(fly()).not.toMatch(/Plane change/);
+    expect(fly()).toMatch(/Burn components/);
+    location.hash = "";
   }, 180_000);
 
   it("moves the window when the start date does", async () => {

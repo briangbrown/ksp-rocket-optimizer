@@ -2,6 +2,7 @@ import { Share2, Undo2 } from "lucide-react";
 import { STATES, SYS, fromReason, toReason } from "../../core/orbits.js";
 import { DAY, kerbalDate, utOf } from "../../core/kepler.js";
 import type { Endpoint, State } from "../../core/orbits.js";
+import type { TransferType } from "../../core/transfer.js";
 import {
   OBJECTIVES,
   OBJECTIVE_HINT,
@@ -72,6 +73,8 @@ type BriefProps = {
   onLeaveAfter: (ut: number) => void;
   stay: number;
   onStay: (s: number) => void;
+  transfer: TransferType;
+  onTransfer: (t: TransferType) => void;
   crossfeedOk: boolean;
   asparagus: boolean;
   onAsparagus: (on: boolean) => void;
@@ -434,6 +437,28 @@ function Brief(p: BriefProps) {
               p.onLeaveAfter(utOf(kerbalDate(p.leaveAfter).year, d))
             }
             hint="A Kerbin year is 426 six-hour days."
+          />
+          <Choice
+            label="Transfer"
+            value={p.transfer}
+            onChange={p.onTransfer}
+            options={[
+              {
+                value: "best",
+                label: "Cheapest",
+                hint: "Whichever of the two costs less for this window.",
+              },
+              {
+                value: "ballistic",
+                label: "Ballistic",
+                hint: "One burn: the inclination is flown in the ejection, as a normal component. Easier to fly.",
+              },
+              {
+                value: "plane",
+                label: "Mid-course",
+                hint: "Leave in the plane and tilt up to the target with one burn on the way. Often cheaper; harder to place in the game.",
+              },
+            ]}
           />
           {p.returning && (
             <Field
