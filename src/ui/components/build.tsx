@@ -256,7 +256,7 @@ type BuildViewProps = {
   payloadDia: number;
   /* What the rocket is called and which class it falls in: the name stands
      over the drawing and the class among the figures under it. #138 */
-  craft: { name: string; sub: string };
+  craft: { name: string; sub: string; no: number; checked: string };
   vehicleClass: string;
   color: string;
   theme: Theme;
@@ -706,7 +706,7 @@ function BuildView({
         {craft.name}
       </div>
       <div className="note" style={{ marginTop: 2 }}>
-        {craft.sub}
+        {craft.sub} · Works No. {craft.no.toLocaleString()}
       </div>
     </div>
   );
@@ -1150,6 +1150,37 @@ function BuildView({
             }}
           >
             {body}
+            {/* An engineering drawing's title block, in the sheet's corner:
+                whose drawing it is, its number, who drew it and who checked
+                it — the Works, the solver, and the Kerbal the craft's
+                subtitle names. #207 */}
+            <div
+              className="label"
+              aria-hidden
+              style={{
+                position: "absolute",
+                right: "calc(16px + env(safe-area-inset-right))",
+                bottom: "calc(16px + env(safe-area-inset-bottom))",
+                display: "grid",
+                gridTemplateColumns: "auto auto",
+                gap: `2px ${SPACE.md}px`,
+                padding: `${SPACE.sm}px ${SPACE.md}px`,
+                border: `1px solid ${C.rule}`,
+                color: C.dim,
+                background: C.panel,
+                pointerEvents: "none",
+              }}
+            >
+              <span style={{ gridColumn: "1 / -1", color: C.muted }}>
+                Kerbal Rocket Works
+              </span>
+              <span>Drawing No.</span>
+              <span style={{ color: C.paper }}>{craft.no}</span>
+              <span>Drawn by</span>
+              <span style={{ color: C.paper }}>the solver</span>
+              <span>Checked by</span>
+              <span style={{ color: C.paper }}>{craft.checked} Kerman</span>
+            </div>
           </div>,
           document.body,
         )}

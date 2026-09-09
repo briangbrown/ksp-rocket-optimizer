@@ -25,7 +25,7 @@ import { JumpBar } from "./components/jump.jsx";
 import { Solving, Veil } from "./components/solving.jsx";
 import { parseConfig } from "./config.js";
 import { canLink, fromLink, toLink } from "./link.js";
-import { bodyLabel, briefLine, craftName, fmt } from "./format.js";
+import { STATE_LABEL, bodyLabel, briefLine, craftName, fmt } from "./format.js";
 import { STYLES } from "./styles.js";
 import { loadRoster, saveRoster } from "./storage.js";
 import {
@@ -616,7 +616,11 @@ export default function RocketWorks() {
     const url = await linkFor();
     try {
       if (navigator.share) {
-        await navigator.share({ url, title: craft.name });
+        await navigator.share({
+          url,
+          title: craft.name,
+          text: `${craft.name} — Works No. ${craft.no}. Built by the Kerbal Rocket Works.`,
+        });
         return;
       }
       await navigator.clipboard.writeText(url);
@@ -639,6 +643,12 @@ export default function RocketWorks() {
 
   const liftoff = stages[0]?.sol ? stages[0].sol.total : NaN;
 
+  /* What the Works says while it works: "The Works is building your Duna
+     rocket…", or "your Kerbin low orbit rocket" where the mission stays
+     home. #207 */
+  const building = `The Works is building your ${bodyLabel(to.body)}${
+    to.body === from.body ? ` ${STATE_LABEL[to.state].toLowerCase()}` : ""
+  } rocket…`;
   const craft = useMemo(
     () =>
       craftName({
@@ -930,10 +940,10 @@ export default function RocketWorks() {
         <Solving
           busy={busy}
           top={viewTop}
-          label={`Solving ${bodyLabel(from.body)} → ${bodyLabel(to.body)}…`}
+          label={building}
           status={
             busy
-              ? `Solving ${bodyLabel(from.body)} → ${bodyLabel(to.body)}…`
+              ? building
               : first
                 ? ""
                 : ok
@@ -1000,6 +1010,7 @@ export default function RocketWorks() {
             color: C.dim,
           }}
         >
+          {"Built by the Kerbal Rocket Works · "}
           <a
             href="https://github.com/briangbrown/ksp-rocket-optimizer"
             target="_blank"

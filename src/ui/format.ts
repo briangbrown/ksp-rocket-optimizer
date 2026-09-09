@@ -40,6 +40,8 @@ const NAME_TAIL = [
   "Flight Article",
   "Block II",
 ];
+/* The crew, for the works number's checker. */
+const KERBALS = ["Jeb", "Bill", "Bob", "Val"] as const;
 const NAME_JOKE = [
   "Jeb Approved",
   "Bill Says No",
@@ -122,9 +124,17 @@ function craftName({
   const tail = pick(NAME_TAIL, 3);
   const joke = pick(NAME_JOKE, 4);
   const trip = returning ? " & Back" : "";
+  /* The works number: four digits from the same hash, so the same rocket
+     always gets the same number and a link carries it. Checked by the
+     Kerbal the subtitle names, or one of the four if it names none. */
+  const no = 1000 + (Math.abs((h ^ Math.imul(5, 2654435761)) >>> 0) % 9000);
+  const named = KERBALS.find((k) => joke.startsWith(k));
+  const checked = named ?? pick(KERBALS, 6);
   return {
     name: `${where} ${verb}${trip} — ${adj} ${tail}`,
     sub: joke,
+    no,
+    checked,
     short: `${where}-${verb.replace(/\s+/g, "")}${returning ? "-RT" : ""}-${tail.replace(/[^A-Za-z0-9]/g, "")}`,
   };
 }

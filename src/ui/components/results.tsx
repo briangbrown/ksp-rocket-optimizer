@@ -68,13 +68,22 @@ type ResultsProps = {
   payloadDia: number;
   hardware: Hardware | null;
   /* The headline figures: what the rocket is called and what it comes to. */
-  craft: { name: string; sub: string };
+  craft: { name: string; sub: string; no: number; checked: string };
   liftoff: number;
   totalParts: number;
   vehicleClass: string;
   color: string;
   theme: Theme;
 };
+
+/* What the crew says of a design nothing will lift. */
+const ASIDES = [
+  "Jeb says it will fly. Jeb is wrong.",
+  "Bill has costed it, and sat down.",
+  "Bob has concerns. Bob is right.",
+  "Val would fly it. There is nothing to fly.",
+  "Wernher has not signed off.",
+];
 
 /* The two lists a build section can show: the design, or the bill. */
 type Tab = "stages" | "order";
@@ -133,6 +142,14 @@ function Results(p: ResultsProps) {
 
   const dash = (v: string | number) => (p.ok ? v : "—");
   const flights = [p.ascent, p.returnAscent].filter((a) => a !== null);
+  /* A Kerbal's word on a design that will not fly, chosen by the craft so
+     it does not change under the reader's eye. #207 */
+  const aside =
+    ASIDES[
+      p.craft.name
+        .split("")
+        .reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % ASIDES.length
+    ];
   /* The legs that leave one planet for another, out and home, each with
      whether a capture follows it on the route. */
   const windows = p.route.flatMap((l, i) =>
@@ -172,7 +189,7 @@ function Results(p: ResultsProps) {
         {!p.ok && (
           <Callout
             severity="bad"
-            title="No solution for at least one stage."
+            title={`No solution for at least one stage. ${aside}`}
             style={{ marginBottom: 14 }}
             more="A single stock stage tops out near Isp·g₀·ln 9: however much tank you add, the empty tank comes with it. Cutting the route makes it two vehicles with a stage limit each; a higher-Isp engine raises the ceiling; a lighter payload needs less of it."
             actions={
