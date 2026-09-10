@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { DESKTOP, PHONE, open, serve } from "./browser.js";
+import { DESKTOP, PHONE, open, scheme, serve } from "./browser.js";
 import { toLink } from "../src/ui/link.js";
 import { LUT } from "../src/ui/cet.js";
 import type { Browser, Page } from "puppeteer";
@@ -258,5 +258,84 @@ describe("the transfer drawings", () => {
       page = desk;
       await phone.browser.close();
     }
+  }, 300_000);
+
+  /* The marks over the plot (#221). The ground is the CET-L08 map, which
+     does not follow the theme, so neither can what is drawn on it: a
+     `C.paper` marker went near-black in the light theme and disappeared
+     into the blue valley, which is the one part of the picture anyone came
+     for. And the rotated axis title used to run through its own numbers. */
+  it("draws the same marks in both themes, clear of the axis numbers", async () => {
+    const look = () =>
+      page.evaluate(() => {
+        const plot = document.querySelector("#fly [data-plot]")!;
+        const svg = plot.querySelector("svg")!;
+        const canvas = plot.querySelector("canvas")!;
+        const paint = (el: Element | null, prop: "fill" | "stroke") =>
+          el ? getComputedStyle(el).getPropertyValue(prop) : "";
+        const texts = [...svg.querySelectorAll("text")];
+        const title = texts.find((t) =>
+          (t.textContent ?? "").includes("Days of flight"),
+        )!;
+        const box = (e: Element) => {
+          const b = e.getBoundingClientRect();
+          return { x: b.x, y: b.y, w: b.width, h: b.height };
+        };
+        const hit = (
+          a: { x: number; y: number; w: number; h: number },
+          b: { x: number; y: number; w: number; h: number },
+        ) =>
+          a.x < b.x + b.w &&
+          b.x < a.x + a.w &&
+          a.y < b.y + b.h &&
+          b.y < a.y + a.h;
+        const tb = box(title);
+        const left = canvas.getBoundingClientRect().left;
+        /* Everything drawn to the left of the painted image: the flight-day
+           numbers, and nothing else. */
+        const numbers = texts
+          .filter((t) => t !== title && box(t).x < left)
+          .map((t) => ({ text: (t.textContent ?? "").trim(), b: box(t) }));
+        return {
+          mark: paint(svg.querySelector("[data-mark=window]"), "fill"),
+          next: paint(svg.querySelector("[data-mark=next]"), "stroke"),
+          hair: paint(svg.querySelector("line[stroke-opacity]"), "stroke"),
+          numbers: numbers.map((n) => n.text),
+          onTitle: numbers.filter((n) => hit(tb, n.b)).map((n) => n.text),
+          titleRight: tb.x + tb.w,
+        };
+      });
+    /* Kerbin to Dres: its flight times run to four figures, which is the
+       widest the left axis ever has to hold. */
+    const link = await toLink(config("Kerbin", "Dres"));
+    await toFly(link);
+    const dark = await look();
+    await scheme(page, "light");
+    await toFly(link);
+    const light = await look();
+    await scheme(page, "dark");
+
+    expect(
+      dark.numbers.length,
+      "no flight-day numbers were found",
+    ).toBeGreaterThan(1);
+    expect(
+      dark.onTitle,
+      `the axis title runs through ${dark.onTitle.join(", ")}`,
+    ).toEqual([]);
+    expect(light.onTitle).toEqual([]);
+    /* And the marks are the same colour whichever theme is on. */
+    expect(light.mark).toBe(dark.mark);
+    expect(light.next).toBe(dark.next);
+    expect(light.hair).toBe(dark.hair);
+    /* Light, not merely equal: the valley under them is dark blue. */
+    const lum = (css: string) => {
+      const [r, g, b] = (css.match(/[\d.]+/g) ?? ["0", "0", "0"]).map(Number);
+      return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    };
+    expect(lum(dark.mark), `the window marker is ${dark.mark}`).toBeGreaterThan(
+      0.7,
+    );
+    expect(lum(dark.hair)).toBeGreaterThan(0.7);
   }, 300_000);
 });

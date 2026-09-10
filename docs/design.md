@@ -735,8 +735,17 @@ when the far corners are fifteen times it and nothing pins at yellow — the
 one colour rule in the app that is not a token, and it is a picture of
 numbers, not a control.
 Everything else is the page's: the axes, ticks and titles in the `note`
-role in `C.dim`, the frame in `C.rule`, the markers in `C.paper` with a
-`C.panel` halo on the figure, the reading in `C.amber`. A scale bar at the
+role in `C.dim`, the frame in `C.rule`. **Everything drawn _on_ the image
+takes the theme-invariant pair** — `C.onDark` for the crosshairs, the
+diamonds and the figures, `C.onLight` for their haloes and the hollow
+marker's fill — because the ground under them is the colour map and does
+not follow the theme either. `C.paper` there went near-black in the light
+theme and vanished into the blue valley, which is the one part of the
+picture a reader came for (#221). The reading crosshair is the same light
+ink and is told apart by a dash and its hollow ring, colour never being the
+only carrier. The left margin is measured from the widest flight-day label
+the mission can reach, so the rotated title keeps its own column instead of
+running through the numbers. A scale bar at the
 right shows the ramp and names five values, geometrically spaced, and the
 right margin is the widest of them. Tap or
 drag reads a cell — a second crosshair, the date, days and total beside it,
