@@ -3,9 +3,10 @@ import { DAY, orbitPoints } from "../../core/kepler.js";
 import { bodyLabel, fmt, kerbalDateLabel, kerbalDayLabel } from "../format.js";
 import { DAY as KDAY } from "../../core/kepler.js";
 import { C, SPACE, edgeOf, hueFor, inkOn } from "../tokens.js";
-import { Stat } from "./primitives.jsx";
+import { Callout, Stat } from "./primitives.jsx";
 import { Porkchop } from "./porkchop.jsx";
 import type { Theme } from "../tokens.js";
+import type { Encounter } from "../../core/encounter.js";
 import type { Window } from "../../core/transfer.js";
 
 /* The transfer, as the pilot flies it: when to leave, where on the parking
@@ -631,6 +632,34 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
   );
 }
 
+/* ------------------------------ encounters ------------------------------ */
+
+/* A stretch of time, said the way a pilot would: minutes near the burn,
+   hours over an escape, days over a cruise. */
+function spanOf(seconds: number) {
+  const s = Math.abs(seconds);
+  if (s < 5400) return `${Math.max(1, Math.round(s / 60))} minutes`;
+  if (s < 2 * DAY) return `${Math.round(s / 3600)} hours`;
+  return `${Math.round(s / DAY)} days`;
+}
+
+/* What one encounter is, in a sentence. The phase says which leg it falls
+   on, and each leg measures its time from its own end of the flight. */
+const saidEncounter = (e: Encounter) => {
+  const b = bodyLabel(e.body);
+  const when = spanOf(e.since);
+  if (e.phase === "escape")
+    return `the ejection passes inside ${b}'s sphere of influence ${when} after the burn`;
+  if (e.phase === "capture")
+    return `the arrival passes inside ${b}'s sphere of influence ${when} before the capture burn`;
+  return `the transfer passes inside ${b}'s sphere of influence ${when} out`;
+};
+
+const listOf = (parts: Array<string>) =>
+  parts.length < 2
+    ? (parts[0] ?? "")
+    : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+
 /* --------------------------------- card --------------------------------- */
 
 function TransferPanel({
@@ -677,6 +706,27 @@ function TransferPanel({
             it has not. #213 */}
         <Porkchop w={w} />
       </div>
+      {/* Where the flight meets a body the patched conic never priced, and
+          the search could find no departure that clears it: the numbers
+          below are for a flight the game will not fly. #216 */}
+      {w.encounters.length > 0 && (
+        <Callout
+          severity="warn"
+          title={`${listOf([...new Set(w.encounters.map((e) => bodyLabel(e.body)))])} in the way.`}
+          style={{ marginBottom: SPACE.lg }}
+          more={
+            <>
+              Kerbal Space Program pulls with one body at a time, the one whose
+              sphere of influence you are inside. Everything here is priced as a
+              two-body flight, which is exactly what the game flies until you
+              cross into another sphere — and there the game takes over the
+              trajectory. No departure within nine days of this one clears it.
+            </>
+          }
+        >
+          On this window {listOf(w.encounters.map(saidEncounter))}.
+        </Callout>
+      )}
       <div
         style={{
           display: "grid",
@@ -739,6 +789,20 @@ function TransferPanel({
           unit={captured ? "m/s" : undefined}
         />
       </div>
+      {/* A moon in the way of the cheapest departure is dodged rather than
+          reported: it comes round every few days and the arc barely notices
+          the shift. Said plainly, because the date is a second off what the
+          plot's valley says and the reader should know why. #216 */}
+      {w.dodged && (
+        <div className="note" style={{ marginTop: SPACE.lg }}>
+          Leaving {spanOf(w.dodged.by)} after the cheapest departure, to keep
+          out of {listOf(w.dodged.cleared.map(bodyLabel))}'s sphere of influence
+          {w.dodged.cost < 0.5
+            ? " — it costs nothing"
+            : ` — it costs ${fmt(w.dodged.cost)} m/s`}
+          .
+        </div>
+      )}
       {/* The window shown is the first from the start date; where the
           search found a clearly cheaper one in the period after, it is
           offered, and the chip moves the start date to just before it so
