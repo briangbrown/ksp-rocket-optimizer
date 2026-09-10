@@ -406,3 +406,49 @@ before changing the thing it names.
   549 m/s. That lookup now ignores a window whose destination is a moon of
   the origin, and `test/transfer.test.ts` pins all seven of the default
   mission's legs by name. #223
+
+- **Down to the body you are circling is the third geometry, and it has no
+  window at all.** A moon's orbit is circular, so every departure is the
+  same picture turned round: no phase angle to wait for and no date to
+  compute. `dropSearch` therefore searches nothing — burn retrograde at the
+  moon's orbital radius until the orbit about the primary has its periapsis
+  at the parking orbit, take the excess from vis-viva, the burn from the
+  energy. One arithmetic chain, no Lambert. It comes out the outward trip's
+  exact mirror, burn for burn: 280 to leave low Mun orbit against 280 to
+  capture into it, 856 to circularise at Kerbin against 856 to leave.
+
+  What the reader needs is the **ejection angle** — where in the moon's
+  orbit to burn, measured from retrograde — so the card shows the ejection
+  drawing and a descent drawing, and drops the phase angle, the burn
+  components and the transfer type, none of which say anything here.
+
+  **But not every moon goes round in a circle**, and the first cut of this
+  assumed they all did. The Mun, Minmus, Laythe, Vall and Tylo are exactly
+  e = 0; Gilly is 0.55, Bop 0.235 and Pol 0.171. On those, where in the
+  moon's own orbit you leave is worth real fuel — Gilly's departure runs
+  from 1,470 m/s at apoapsis to 1,869 at periapsis — so `dropSearch` sweeps
+  the moon's period and refines, rather than pricing whatever moment the
+  reader happened to ask from. And what has to be shed is the _vector_
+  difference from the moon's velocity, its radial part included: on a
+  circular orbit there is none and it is the plain difference of two speeds,
+  on Gilly's it is not. The card shows a date for an eccentric moon and says
+  it is going near apoapsis; for a circular one it shows no date and says
+  any time will do. `isRound` in `transfer.tsx` is that line, at e = 0.01.
+
+- **`elements` throws for the Sun, so a dispatch on parentage must not use
+  it.** `parentOf` in `encounter.ts` reads the body table instead. Choosing
+  between the three window geometries asks which body goes round which, and
+  asking `elements("Sun")` that question took the whole app down on any
+  Kerbol destination. #223
+
+- **Every return window is searched from the arrival plus the stay.** Not
+  from the mission's own start: a return that leaves before it has got there
+  is not a return. The interplanetary path always did this — `transferDv(to,
+origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
+  did not, so an Eve → Gilly trip arrived Y1 D23 and left Y1 D7, ignoring
+  the stay entirely. `homeFrom` in `routeFor` is the one place that decides
+  it now, and `test/transfer.test.ts` holds the invariant across eight
+  missions: the way home never departs before the outward flight arrives and
+  the stay is served, and a longer stay moves it by at least as much. It
+  only ever showed on Gilly, because a circular moon's descent carries no
+  date to look wrong. #223

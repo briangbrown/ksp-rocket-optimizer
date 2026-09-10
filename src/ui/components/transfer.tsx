@@ -813,6 +813,105 @@ function nearestTo(pts: Array<Pt>, q: Pt) {
 /* Whether this window is a departure from the primary itself. */
 const isRaise = (w: Window) => SYS[w.to]?.parent === w.from;
 
+/* And whether it is the way back down: a moon to the body it orbits. */
+const isDrop = (w: Window) => SYS[w.from]?.parent === w.to;
+
+/* Whether the moon being left goes round in a circle. Most do exactly — the
+   Mun, Minmus, Laythe, Vall and Tylo are all e = 0 — and then every
+   departure is the same picture turned round, with nothing to wait for.
+   Gilly is 0.55, Bop 0.235 and Pol 0.171, and there it is worth real fuel to
+   go at the right point of the moon's own orbit: Gilly's departure runs from
+   1,470 m/s to 1,869 across its period. #223 */
+const isRound = (w: Window) => (SYS[w.from]?.ecc ?? 0) < 0.01;
+
+/* The way down, about the primary: the moon's orbit, the ellipse from where
+   the moon is to a periapsis at the parking orbit opposite, and the target
+   orbit drawn round the planet. There is no phase angle in this drawing
+   because there is none in the problem — the moon's orbit is circular, so
+   every departure is this same picture turned round. What the reader needs
+   is beside it, in the ejection drawing: where in the moon's orbit to burn. */
+function Descent({ w, theme }: { w: Window; theme: Theme }) {
+  const centre = w.to;
+  const hueC = hueFor(centre, theme),
+    hueM = hueFor(w.from, theme);
+  const moon = orbitPoints(w.from, 120).map((q) => [q[0], q[1]] as Pt);
+  const far = Math.max(
+    ...[...moon, ...w.arc].map((q) => Math.hypot(q[0], q[1])),
+  );
+  const R = 84;
+  /* Turned so the moon lies to the planet's right, where the burn is. */
+  const th = -Math.atan2(w.r1[1], w.r1[0]);
+  const ct = Math.cos(th),
+    st = Math.sin(th);
+  const P = (q: Pt): Pt => {
+    const r = Math.hypot(q[0], q[1]);
+    const k = r > 0 ? (R * (r / far) ** POWER) / r : 0;
+    return [
+      half + (q[0] * ct - q[1] * st) * k,
+      half - (q[0] * st + q[1] * ct) * k,
+    ];
+  };
+  const at = P(w.r1);
+  const trail = w.arc.map(P);
+  /* The ship leaves along the arc's first step. */
+  const heading: Pt = [
+    (trail[1]?.[0] ?? at[0]) - trail[0][0],
+    (trail[1]?.[1] ?? at[1]) - trail[0][1],
+  ];
+  /* The orbit arrived into, with the same floor the outward drawing gives
+     its parking orbit: honestly compressed it disappears into the planet. */
+  const end = trail[trail.length - 1];
+  const rp = Math.max(15, Math.hypot(end[0] - half, end[1] - half));
+  const park: Array<Pt> = [];
+  for (let k = 0; k <= 72; k++) {
+    const a = (2 * Math.PI * k) / 72;
+    park.push([half + Math.cos(a) * rp, half - Math.sin(a) * rp]);
+  }
+  const rays: Array<Seg> = [[[half, half], at]];
+  const taken: Array<Box> = [dot([half, half], 7), dot(at, 9), dot(end, 5)];
+  const put = (text: string, at2: Pt, prefer: "any" | "below" = "any") => {
+    const p = place(text, at2, taken, rays, prefer);
+    taken.push(p.box);
+    return p;
+  };
+  const burnName = put("Burn", at);
+  const centreName = put(bodyLabel(centre), [half, half], "below");
+  const moonName = put(bodyLabel(w.from), at, "below");
+  return (
+    <svg
+      viewBox={`0 0 ${size} ${size}`}
+      width="100%"
+      style={{ maxWidth: size, display: "block", color: C.paper }}
+      role="img"
+      aria-label={`Down to ${bodyLabel(centre)}: leaving ${bodyLabel(w.from)}'s orbit retrograde and falling to a periapsis at the low orbit opposite, ${fmt(w.tof / 3600)} hours later. Distances compressed.`}
+    >
+      <Trail pts={moon.map(P)} at={nearestTo(moon, w.r1)} color={hueM} />
+      <Trail pts={park} at={0} color={hueC} />
+      <Trail
+        pts={trail}
+        at={trail.length - 1}
+        color={C.paper}
+        width={1.5}
+        open
+      />
+      <line
+        x1={half}
+        y1={half}
+        x2={at[0]}
+        y2={at[1]}
+        stroke={C.dim}
+        strokeOpacity={0.8}
+      />
+      <circle cx={half} cy={half} r={Math.min(7, rp * 0.42)} fill={hueC} />
+      <circle cx={at[0]} cy={at[1]} r={4} fill={hueM} />
+      <Ship at={at} heading={heading} />
+      <Label p={burnName} color={C.paper} />
+      <Label p={centreName} color={edgeOf(hueC, theme)} />
+      <Label p={moonName} color={edgeOf(hueM, theme)} />
+    </svg>
+  );
+}
+
 /* ------------------------------ encounters ------------------------------ */
 
 /* A stretch of time, said the way a pilot would: minutes near the burn,
@@ -870,7 +969,22 @@ function TransferPanel({
         {/* One drawing where the moon is the primary's own — there is only
             one frame to draw — and two where the ship has a sphere of
             influence to leave. #223 */}
-        {isRaise(w) ? (
+        {isDrop(w) ? (
+          <>
+            <div style={{ flex: "1 1 200px", maxWidth: size }}>
+              <Departure w={w} theme={theme} />
+              <div className="note" style={{ textAlign: "center" }}>
+                {bodyLabel(w.from)} ejection angle
+              </div>
+            </div>
+            <div style={{ flex: "1 1 200px", maxWidth: size }}>
+              <Descent w={w} theme={theme} />
+              <div className="note" style={{ textAlign: "center" }}>
+                Down to low {bodyLabel(w.to)} orbit
+              </div>
+            </div>
+          </>
+        ) : isRaise(w) ? (
           <div style={{ flex: "1 1 200px", maxWidth: size }}>
             <Raise w={w} theme={theme} />
             <div className="note" style={{ textAlign: "center" }}>
@@ -898,7 +1012,7 @@ function TransferPanel({
             where there is one. A third item in the row — beside the
             drawings where the row has 320 px to spare, under them where
             it has not. #213 */}
-        {!isRaise(w) && <Porkchop w={w} />}
+        {!isRaise(w) && !isDrop(w) && <Porkchop w={w} />}
       </div>
       {/* Where the flight meets a body the patched conic never priced, and
           the search could find no departure that clears it: the numbers
@@ -928,7 +1042,11 @@ function TransferPanel({
           gap: `${SPACE.md}px ${SPACE.lg}px`,
         }}
       >
-        <Stat small label="Leave" value={kerbalDateLabel(w.depart)} />
+        {/* No date going down: a circular orbit offers the same departure
+            at every moment, so there is nothing to wait for. #223 */}
+        {(!isDrop(w) || !isRound(w)) && (
+          <Stat small label="Leave" value={kerbalDateLabel(w.depart)} />
+        )}
         <Stat
           small
           label={isRaise(w) ? "Departure burn" : "Ejection burn"}
@@ -943,7 +1061,7 @@ function TransferPanel({
         {/* The burn's parts from an equatorial parking orbit: what leaves
             the plane is the normal component, which a parking orbit
             launched into the escape's own inclination would not need. */}
-        {!isRaise(w) && (
+        {!isRaise(w) && !isDrop(w) && (
           <Stat
             small
             label="Burn components"
@@ -960,8 +1078,8 @@ function TransferPanel({
             note={`prograde · ${w.ejectNor < 0 ? "anti-normal" : "normal"}`}
           />
         )}
-        <Stat small label="Phase angle" value={deg(w.phase)} />
-        {!isRaise(w) && (
+        {!isDrop(w) && <Stat small label="Phase angle" value={deg(w.phase)} />}
+        {!isRaise(w) && !isDrop(w) && (
           <Stat
             small
             label="Transfer"
@@ -993,18 +1111,45 @@ function TransferPanel({
         ) : (
           <Stat small label="Flight" value={fmt(days)} unit="days" />
         )}
-        <Stat small label="Arrive" value={kerbalDateLabel(w.arrive)} />
+        {(!isDrop(w) || !isRound(w)) && (
+          <Stat small label="Arrive" value={kerbalDateLabel(w.arrive)} />
+        )}
         <Stat
           small
-          label={captured ? "Capture burn" : "Arrival"}
-          value={captured ? fmt(w.capture) : "fly-by"}
-          unit={captured ? "m/s" : undefined}
+          label={
+            isDrop(w) ? "Circularise" : captured ? "Capture burn" : "Arrival"
+          }
+          value={isDrop(w) || captured ? fmt(w.capture) : "fly-by"}
+          unit={isDrop(w) || captured ? "m/s" : undefined}
+          note={isDrop(w) ? `at low ${bodyLabel(w.to)} orbit` : undefined}
         />
       </div>
       {/* A moon in the way of the cheapest departure is dodged rather than
           reported: it comes round every few days and the arc barely notices
           the shift. Said plainly, because the date is a second off what the
           plot's valley says and the reader should know why. #216 */}
+      {/* Going down, whether there is anything to time depends on the moon.
+          Most go round in a circle and offer the same departure at every
+          moment, and saying so stops the reader hunting for a window that is
+          not there. Gilly, Bop and Pol do not. #223 */}
+      {isDrop(w) && (
+        <div className="note" style={{ marginTop: SPACE.lg }}>
+          {isRound(w) ? (
+            <>
+              Any time will do — {bodyLabel(w.from)}'s orbit is circular, so
+              this is the same picture whenever you leave. What matters is where
+              in your orbit you burn.
+            </>
+          ) : (
+            <>
+              {bodyLabel(w.from)}'s orbit is eccentric, so when you leave does
+              matter: this goes near its apoapsis, where it is highest and
+              slowest and there is least speed to shed. After that, what matters
+              is where in your orbit you burn.
+            </>
+          )}
+        </div>
+      )}
       {w.dodged && (
         <div className="note" style={{ marginTop: SPACE.lg }}>
           Leaving {spanOf(w.dodged.by)} after the cheapest departure, to keep

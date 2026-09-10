@@ -19,6 +19,22 @@ afterEach(() => {
 
 const rocketNote = (severity: string) =>
   document.querySelector(`#rocket .callout[data-severity="${severity}"]`);
+/* An `info` note is a toast: `useNote` fades it on MOTION.linger, 2.4 s,
+   which a full solve can outrun — and once it has gone, the query above
+   returns the no-WebGL note that shares the section instead. So it is
+   waited for as it appears rather than read after `settle`, which was a
+   race that only showed when the default mission grew slower (#223). */
+const infoNote = async () => {
+  for (let i = 0; i < 40; i++) {
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    const t = rocketNote("info")?.textContent;
+    if (t) return t;
+  }
+  return undefined;
+};
+
 const briefFold = () =>
   [...document.querySelectorAll("button[aria-expanded]")].find((b) =>
     b.querySelector(".label")?.textContent?.trim().startsWith("Mission"),
@@ -46,9 +62,9 @@ describe("a design as a link", () => {
       'KSP-PLANNER {"dest":"Mun","payload":2.5,"splits":[1],"cuts":["x"]}',
     );
     render(<KSPMissionPlanner />);
+    expect(await infoNote()).toMatch(/left at their defaults/);
     await settle();
     expect(document.querySelector("canvas, table")).toBeTruthy();
-    expect(rocketNote("info")?.textContent).toMatch(/left at their defaults/);
   }, 120_000);
 
   it("arrives with the brief set and the rocket in view", async () => {
@@ -66,12 +82,12 @@ describe("a design as a link", () => {
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(briefFold()?.getAttribute("aria-expanded")).toBe("false");
+    /* Most settings were left at their defaults, which the link is told. */
+    expect(await infoNote()).toMatch(/left at their defaults/);
     await settle();
     expect(briefFold()?.textContent).toMatch(/Minmus/);
     expect(briefFold()?.textContent).toMatch(/4\.5/);
     expect(scrolled).toHaveBeenCalled();
-    /* Most settings were left at their defaults, which the link is told. */
-    expect(rocketNote("info")?.textContent).toMatch(/left at their defaults/);
   }, 120_000);
 
   it("shares the design from the set brief", async () => {

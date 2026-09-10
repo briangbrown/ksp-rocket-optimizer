@@ -524,3 +524,182 @@ describe("out to your own moon", () => {
     expect(w!.to).toBe("Mun");
   });
 });
+
+describe("down to the body you are circling", () => {
+  /* The third geometry, and the only one with no window in it: a moon's
+     orbit is circular, so every departure is the same picture turned round.
+     What there is to know is where in that orbit to burn. #223 */
+  it("is the outward trip's mirror, burn for burn", () => {
+    const out = must(findWindow("Kerbin", "Mun", rK, 210_000, 0, true), "out");
+    const home = must(
+      findWindow("Mun", "Kerbin", 210_000, rK, 0, true),
+      "home",
+    );
+    /* What it costs to capture going out is what it costs to leave coming
+       back, and the other way about. */
+    expect(home.eject).toBeCloseTo(out.capture, 0);
+    expect(home.capture).toBeCloseTo(out.eject, 0);
+    expect(home.tof).toBeCloseTo(out.tof, -2);
+  });
+
+  it("burns retrograde, and says there is nothing to wait for", () => {
+    const w = must(findWindow("Mun", "Kerbin", 210_000, rK, 0, true), "home");
+    expect(w.ref).toBe("retrograde");
+    expect(w.angle).toBeGreaterThan(90);
+    expect(w.angle).toBeLessThan(180);
+    /* No window: the departure is whenever the reader asked from. */
+    expect(w.depart).toBe(0);
+    expect(w.phase).toBe(0);
+    expect(w.next).toBeNull();
+    expect(w.arc.length).toBeGreaterThan(2);
+    expect(JSON.parse(JSON.stringify(w))).toEqual(w);
+  });
+
+  it("works from any moon to its own planet", () => {
+    for (const [moon, planet, r1, r2] of [
+      ["Minmus", "Kerbin", 110_000, rK],
+      ["Ike", "Duna", 150_000, 380_000],
+      ["Laythe", "Jool", 550_000, 6_200_000],
+    ] as const) {
+      const w = findWindow(moon, planet, r1, r2, 0, true);
+      expect(w, `${moon} → ${planet}`).not.toBeNull();
+      expect(w!.eject).toBeGreaterThan(0);
+      expect(w!.capture).toBeGreaterThan(0);
+      expect(Number.isFinite(w!.total)).toBe(true);
+    }
+  });
+
+  it("hangs on the return leg without touching what it costs", () => {
+    const legs = routeFor(
+      { body: "Kerbin", state: "surface" },
+      { body: "Mun", state: "surface" },
+      true,
+      true,
+      false,
+      0,
+      0,
+      "best",
+    );
+    expect(legs.map((l) => `${l.dv} ${l.label}`)).toEqual([
+      "3400 Launchpad → 80 km orbit",
+      "860 LKO → Mun intercept",
+      "280 Capture → low Mun orbit",
+      "580 Descent to Mun surface",
+      "580 Ascent from Mun surface",
+      "860 Return transfer to Kerbin",
+      "0 Aerobrake at Kerbin (heat shield)",
+    ]);
+    const home = legs.find((l) => l.label.startsWith("Return"))?.window;
+    expect(home, "the return leg carries no window").toBeTruthy();
+    expect(home!.from).toBe("Mun");
+    expect(home!.to).toBe("Kerbin");
+  });
+
+  it("goes at the right point of an eccentric moon's own orbit", () => {
+    /* Not every moon goes round in a circle. Gilly's eccentricity is 0.55,
+       so where in its orbit you leave is worth real fuel — and the ship must
+       shed the moon's radial velocity as well as its tangential, which the
+       plain difference of two speeds does not see. */
+    const T = periodOf("Gilly");
+    const w = must(
+      findWindow("Gilly", "Eve", 20_000, 800_000, 0, true),
+      "a window",
+    );
+    /* It searched: the departure is not simply the start time. */
+    expect(w.depart).toBeGreaterThan(0);
+    expect(w.depart).toBeLessThan(T);
+    /* And it is cheaper than leaving at the start time would have been. */
+    const eve = elements("Gilly").mu;
+    void eve;
+    let worst = 0;
+    for (let i = 0; i < 24; i++) {
+      const at = must(
+        findWindow("Gilly", "Eve", 20_000, 800_000, (T * i) / 24, true),
+        "a window",
+      );
+      worst = Math.max(worst, at.total);
+    }
+    /* Every start time lands on the same cheapest departure, whichever
+       point of the orbit it was asked from. */
+    expect(worst - w.total).toBeLessThan(1);
+    /* Near apoapsis, where the moon is highest and slowest. */
+    const r = norm(stateAt("Gilly", w.depart).r);
+    const o = elements("Gilly");
+    expect(r).toBeGreaterThan(o.a);
+  });
+
+  it("asks nothing of the Sun that the Sun cannot answer", () => {
+    /* `elements` throws for the Sun, which has no orbit, so the dispatch
+       reads parentage from the body table instead. A Kerbol destination
+       used to take the whole app down here. */
+    expect(() => findWindow("Kerbin", "Sun", rK, 1e9, 0, true)).not.toThrow();
+    expect(() => findWindow("Sun", "Kerbin", 1e9, rK, 0, true)).not.toThrow();
+  });
+});
+
+describe("the way home", () => {
+  /* A return that leaves before it has arrived is not a return. Every
+     window on the way back is searched from the arrival plus the stay, and
+     it showed on Gilly — the one moon eccentric enough for its descent to
+     carry a date at all — arriving Y1 D23 and leaving Y1 D7. #223 */
+  it("never leaves before it has got there, whatever the stay", () => {
+    const cases: Array<[string, string, number]> = [
+      ["Eve", "Gilly", 0],
+      ["Eve", "Gilly", 100 * DAY],
+      ["Jool", "Bop", 50 * DAY],
+      ["Kerbin", "Mun", 0],
+      ["Kerbin", "Mun", 30 * DAY],
+      ["Kerbin", "Duna", 0],
+      ["Kerbin", "Minmus", 12 * DAY],
+      ["Duna", "Ike", 5 * DAY],
+    ];
+    const bad: Array<string> = [];
+    for (const [a, b, stay] of cases) {
+      const legs = routeFor(
+        { body: a, state: "low" },
+        { body: b, state: "low" },
+        true,
+        true,
+        false,
+        0,
+        stay,
+        "best",
+      );
+      const ws = legs.flatMap((l) => (l.window ? [l.window] : []));
+      if (ws.length < 2) continue;
+      const [outward, home] = ws;
+      if (home.depart < outward.arrive + stay - 1)
+        bad.push(
+          `${a} → ${b} (stay ${stay / DAY}d): arrives ${outward.arrive}, leaves ${home.depart}`,
+        );
+      /* And the flight home follows its own departure. */
+      if (home.arrive <= home.depart)
+        bad.push(`${a} → ${b}: the way home arrives before it leaves`);
+    }
+    expect(bad).toEqual([]);
+  }, 300_000);
+
+  it("waits out the stay before looking for its window", () => {
+    /* The same mission with a longer stay leaves later, by at least the
+       difference — the search starts after it, not at the mission's own
+       start. */
+    const legs = (stay: number) =>
+      routeFor(
+        { body: "Eve", state: "low" },
+        { body: "Gilly", state: "low" },
+        true,
+        true,
+        false,
+        0,
+        stay,
+        "best",
+      ).flatMap((l) => (l.window ? [l.window] : []));
+    const short = legs(0),
+      long = legs(100 * DAY);
+    expect(short).toHaveLength(2);
+    expect(long).toHaveLength(2);
+    /* The outward flight is untouched by the stay. */
+    expect(long[0].depart).toBe(short[0].depart);
+    expect(long[1].depart - short[1].depart).toBeGreaterThanOrEqual(99 * DAY);
+  }, 300_000);
+});
