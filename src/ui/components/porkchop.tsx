@@ -7,7 +7,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import type { Window } from "../../core/transfer.js";
 
 /* The Δv transfer plot (#213): the porkchop every launch-window tool draws,
-   under the transfer drawings. Departure date along the bottom, time of
+   under the transfer drawings and above the numbers. Departure date along the bottom, time of
    flight up the side, the total Δv of every cell as colour, and the window
    chosen marked on it — so the reader sees the valley the window sits in,
    how wide it is, and what leaving a week late costs.
@@ -206,7 +206,7 @@ function Porkchop({ w }: { w: Window }) {
       : "");
 
   return (
-    <div style={{ maxWidth: FULL, margin: `${SPACE.lg}px auto 0` }}>
+    <div style={{ maxWidth: FULL, margin: `0 auto ${SPACE.lg}px` }}>
       <div
         ref={host}
         role="img"

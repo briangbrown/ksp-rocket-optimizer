@@ -671,6 +671,10 @@ function TransferPanel({
           </div>
         </div>
       </div>
+      {/* The valley the window sits in, between the drawings and the
+          numbers: the search's own grid as a picture, the window marked on
+          it, and the cheaper one after it where there is one. #213 */}
+      <Porkchop w={w} />
       <div
         style={{
           display: "grid",
@@ -733,10 +737,6 @@ function TransferPanel({
           unit={captured ? "m/s" : undefined}
         />
       </div>
-      {/* The valley the window sits in: the search's own grid as a picture,
-          the window marked on it, and the cheaper one after it where there
-          is one. #213 */}
-      <Porkchop w={w} />
       {/* The window shown is the first from the start date; where the
           search found a clearly cheaper one in the period after, it is
           offered, and the chip moves the start date to just before it so

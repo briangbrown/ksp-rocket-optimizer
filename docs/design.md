@@ -699,7 +699,8 @@ allow and stack below.
 
 ### Porkchop
 
-The Δv transfer plot under each transfer card's numbers (#213): departure
+The Δv transfer plot between each transfer card's drawings and its numbers
+(#213): departure
 date along the bottom, days of flight up the side, the total Δv of every
 cell as colour, the window chosen marked with a crosshair and a filled
 diamond and its total beside it, a cheaper later window (#199) as a hollow
