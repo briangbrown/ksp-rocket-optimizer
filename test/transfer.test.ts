@@ -437,3 +437,90 @@ describe("inside one system", () => {
     expect(Math.sqrt(w.c3Out)).toBeCloseTo(w.vinfOut, 9);
   });
 });
+
+describe("out to your own moon", () => {
+  /* Low Kerbin orbit to the Mun is not a transfer between siblings: there
+     is no sphere of influence to leave and both bodies are already in one
+     frame, so the ship raises its apoapsis to meet the moon. #223 */
+  it("matches the community map's figures for the Mun and Minmus", () => {
+    const mun = must(findWindow("Kerbin", "Mun", rK, 210_000, 0, true), "Mun");
+    const min = must(
+      findWindow("Kerbin", "Minmus", rK, 110_000, 0, true),
+      "Minmus",
+    );
+    /* The map: 860 to a Mun intercept and 280 to capture, 930 and 160 for
+       Minmus. Within a few m/s, from the geometry rather than the table. */
+    expect(mun.eject).toBeGreaterThan(840);
+    expect(mun.eject).toBeLessThan(875);
+    expect(mun.capture).toBeGreaterThan(265);
+    expect(mun.capture).toBeLessThan(295);
+    expect(min.eject).toBeGreaterThan(905);
+    expect(min.eject).toBeLessThan(945);
+    expect(min.capture).toBeGreaterThan(148);
+    expect(min.capture).toBeLessThan(175);
+    /* And the phase angle a pilot times the burn by, near enough the 105°
+       to 115° the community quotes for the Mun. */
+    expect(mun.phase).toBeGreaterThan(95);
+    expect(mun.phase).toBeLessThan(125);
+  });
+
+  it("burns prograde in the parking orbit, with nothing to eject through", () => {
+    const w = must(
+      findWindow("Kerbin", "Mun", rK, 210_000, 0, true),
+      "a window",
+    );
+    expect(w.c3Out).toBe(0);
+    expect(w.vinfOut).toBe(0);
+    /* The whole burn is prograde: there is no plane to turn out of, the Mun
+       being equatorial. */
+    expect(Math.abs(w.ejectNor)).toBeLessThan(1);
+    expect(w.ejectPro).toBeCloseTo(w.eject, 0);
+    expect(w.tof / 3600).toBeGreaterThan(3);
+    expect(w.tof / 3600).toBeLessThan(24);
+    expect(JSON.parse(JSON.stringify(w))).toEqual(w);
+  });
+
+  it("works from any planet to its own moon, not only Kerbin's", () => {
+    for (const [p, moon, r1, r2] of [
+      ["Duna", "Ike", 380_000, 150_000],
+      ["Jool", "Laythe", 6_200_000, 550_000],
+      ["Eve", "Gilly", 800_000, 20_000],
+    ] as const) {
+      const w = findWindow(p, moon, r1, r2, 0, true);
+      expect(w, `${p} → ${moon}`).not.toBeNull();
+      expect(w!.eject).toBeGreaterThan(0);
+      expect(Number.isFinite(w!.total)).toBe(true);
+      expect(w!.arc.length).toBeGreaterThan(2);
+    }
+  });
+
+  it("leaves the tabulated Kerbin legs and the way home exactly as they were", () => {
+    /* The Mun's window is for its date and its drawing. The map's figures
+       are what players check against, and letting the window pick the
+       computed return moved the default mission by 549 m/s — a solver
+       change wearing a drawing's clothes. */
+    const legs = routeFor(
+      { body: "Kerbin", state: "surface" },
+      { body: "Mun", state: "surface" },
+      true,
+      true,
+      false,
+      0,
+      0,
+      "best",
+    );
+    const said = legs.map((l) => `${l.dv} ${l.label}`);
+    expect(said).toEqual([
+      "3400 Launchpad → 80 km orbit",
+      "860 LKO → Mun intercept",
+      "280 Capture → low Mun orbit",
+      "580 Descent to Mun surface",
+      "580 Ascent from Mun surface",
+      "860 Return transfer to Kerbin",
+      "0 Aerobrake at Kerbin (heat shield)",
+    ]);
+    const w = legs.find((l) => l.window)?.window;
+    expect(w, "the intercept leg carries no window").toBeTruthy();
+    expect(w!.to).toBe("Mun");
+  });
+});

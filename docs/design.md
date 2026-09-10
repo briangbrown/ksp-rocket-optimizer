@@ -705,6 +705,20 @@ allow and stack below. Since #223 the card appears for a transfer between
 two moons of the same planet as well — Mun → Minmus, Laythe → Tylo — which
 is the same drawing about a different centre.
 
+Out to a moon of the body you are already circling — low Kerbin orbit to the
+Mun, low Duna orbit to Ike — the card draws **one** diagram rather than two
+(#223), because there are not two frames: the parking orbit, the burn on it,
+the arc, the moon's orbit and the moon where it sits at the burn, with the
+phase angle between the last two, which is the number that times the burn.
+The parking orbit takes a floor of 17 px: compressed honestly against Minmus
+at 47 Mm an 80 km orbit is six pixels across and vanishes inside the planet,
+and the burn on it is what the drawing exists to show. No Δv plot there
+either — the burn's place on the parking orbit is free, so every departure
+costs much the same and the picture would be a flat wash — and the stats drop
+the ejection angle, the burn components and the transfer type, none of which
+mean anything when the burn is simply prograde. Flight time reads in hours
+under two days.
+
 Each drawing's caption names what it draws and nothing else (#219):
 _"Kerbin ejection angle"_, _"Kerbin and Duna phase angle"_ — the two ends
 interpolated, so it follows whichever pair the window is for — and _"Total
