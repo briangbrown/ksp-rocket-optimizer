@@ -4,7 +4,7 @@ import { LUT, cetL08, stopsOf, uOf } from "../cet.js";
 import { bodyLabel, fmt, kerbalDayLabel } from "../format.js";
 import { C, SPACE, cssOf } from "../tokens.js";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { priceColumns } from "../../core/transfer.js";
+import { priceGrid } from "../plot-client.js";
 import type { Grid, Window } from "../../core/transfer.js";
 
 /* The Δv transfer plot (#213): the porkchop every launch-window tool draws,
@@ -54,41 +54,31 @@ const SCALE_STOPS = 5;
 
 type Plot = Grid;
 
-/* The finer pass: the search's grid three times finer each way, priced in
-   the card a run of columns at a time — twelve milliseconds of pricing,
-   a paint, the next run — so the coarse picture shows at once and
-   sharpens left to right. At the search's 20 days by 11 for Duna the
-   ridge of near-180° transfers smeared into walls forty days wide; at 7
-   by 4 it is the line it is. The grid starts as the coarse one read
-   between cells, so an unpriced column is never a gap. Kept by key across
-   mounts: folding the section and opening it again costs nothing. */
+/* The finer pass: the search's grid three times finer each way, priced off
+   the page's thread by `plot-client.ts` and painted when it arrives — the
+   coarse picture first, then this. At the search's 20 days by 11 for Duna
+   the ridge of near-180° transfers smeared into walls forty days wide; at
+   7 by 4 it is the line it is. Kept by key across mounts: folding the
+   section and opening it again costs nothing. It was sliced onto the
+   page's thread first, twelve milliseconds of columns between paints, and
+   took a second and a half for a return trip's two plots. */
 const FINE = 3;
-const SLICE_MS = 12;
 const fineCache = new Map<string, Plot>();
 const keyOf = (g: Grid) =>
   [g.from, g.to, g.rPark1, g.rPark2, g.capture, g.asked, g.t0].join("|");
 
-/* The finer grid's frame: the same span, `FINE` cells to every one. */
-function finerOf(g: Grid): Plot {
-  const nt = (g.nt - 1) * FINE + 1,
-    nf = (g.nf - 1) * FINE + 1;
-  const totals: Array<number> = new Array(nt * nf);
-  for (let i = 0; i < nt; i++)
-    for (let j = 0; j < nf; j++)
-      totals[i * nf + j] = Math.round(
-        readGrid(g, dearestOf(g), i / FINE, j / FINE),
-      );
-  return { ...g, step: g.step / FINE, nt, nf, totals };
-}
+/* The finer grid's frame: the same span, `FINE` cells to every one, no
+   totals yet. */
+const finerOf = (g: Grid): Plot => ({
+  ...g,
+  step: g.step / FINE,
+  nt: (g.nt - 1) * FINE + 1,
+  nf: (g.nf - 1) * FINE + 1,
+  totals: [],
+});
 
-const dearestOf = (g: Grid) => {
-  let hi = 0;
-  for (const v of g.totals) if (v > hi) hi = v;
-  return hi;
-};
-
-/* The finer grid for the window's search, priced as the effect runs and
-   handed over as it fills; `done` once every column is priced. */
+/* The finer grid for the window's search, once it is priced; the coarse one
+   until then, and `done` says which. */
 function useFiner(g: Grid, wanted: boolean) {
   const key = keyOf(g);
   const [state, setState] = useState<{
@@ -105,35 +95,17 @@ function useFiner(g: Grid, wanted: boolean) {
       setState({ key, plot: hit, done: true });
       return;
     }
-    if (!wanted) {
-      setState({ key, plot: g, done: false });
-      return;
-    }
+    setState({ key, plot: g, done: false });
+    if (!wanted) return;
     const fine = finerOf(g);
-    const totals = fine.totals;
-    let i = 0;
-    let cancelled = false;
-    let timer = 0;
-    const run = () => {
-      if (cancelled) return;
-      const t = performance.now();
-      while (i < fine.nt && performance.now() - t < SLICE_MS) {
-        const i1 = Math.min(fine.nt, i + 2);
-        const cols = priceColumns(fine, i, i1);
-        for (let k = 0; k < cols.length; k++) totals[i * fine.nf + k] = cols[k];
-        i = i1;
-      }
-      const done = i >= fine.nt;
-      const plot = { ...fine, totals: totals.slice() };
-      if (done) fineCache.set(key, plot);
-      setState({ key, plot, done });
-      if (!done) timer = window.setTimeout(run, 0);
-    };
-    timer = window.setTimeout(run, 0);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
+    const ctl = new AbortController();
+    void priceGrid(fine, ctl.signal).then((totals) => {
+      if (!totals || ctl.signal.aborted) return;
+      const plot = { ...fine, totals };
+      fineCache.set(key, plot);
+      setState({ key, plot, done: true });
+    });
+    return () => ctl.abort();
   }, [key, g, wanted]);
   return state.key === key ? state : { key, plot: g, done: false };
 }
