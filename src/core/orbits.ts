@@ -1251,6 +1251,11 @@ function routeFor(
     const out = base.find(
       (l) => l.window && SYS[l.window.to]?.parent !== origin,
     )?.window;
+    /* When the way home may start: after the outward flight has landed and
+       the stay is served. Every return window is searched from here — one
+       that leaves before it has arrived is not a return. */
+    const outward = base.find((l) => l.window)?.window;
+    const homeFrom = outward ? outward.arrive + stay : (t0 ?? 0);
     const back: Array<Leg> = [];
     if (to.state === "sync") back.push(...syncLegs(to.body, false));
     if (to.state === "surface" && land)
@@ -1283,12 +1288,23 @@ function routeFor(
         .reduce((s, l) => s + l.dv, 0);
       /* Coming home from a moon of the origin, the leg gains the window it
          is flown on — where in the moon's orbit to burn, and the way down —
-         while keeping the tabulated figure it has always carried. There is
-         no date in it: a circular orbit offers the same departure at every
-         moment. #223 */
+         while keeping the tabulated figure it has always carried.
+
+         Searched from the arrival plus the stay, never from the mission's
+         own start: a return that leaves before it has got there is not a
+         return. It showed on Gilly, whose eccentric orbit is the one case
+         where this window carries a date at all — arriving Y1 D23 and
+         leaving Y1 D7. #223 */
       const down =
         t0 !== undefined && SYS[to.body] && SYS[to.body].parent === origin
-          ? findWindow(to.body, origin, lowR(to.body), lowR(origin), t0, true)
+          ? findWindow(
+              to.body,
+              origin,
+              lowR(to.body),
+              lowR(origin),
+              homeFrom,
+              true,
+            )
           : null;
       back.push({
         label: `Return transfer to ${origin}`,
