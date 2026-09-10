@@ -166,4 +166,37 @@ describe("the transfer card", () => {
     await openFold("How to fly it").catch(() => {});
     expect(document.querySelectorAll("#fly [data-plot]").length).toBe(0);
   }, 180_000);
+
+  it("says when it left later to keep clear of a moon", async () => {
+    /* Duna to Eve on the first window of Year 1: the cheapest departure
+       leaves through Ike's sphere of influence half an hour after the burn,
+       so the search takes the next clean one a couple of hours on and the
+       card says so. The one delivered window of the 42 body pairs that is
+       fouled at its optimum. #216 */
+    location.hash = await toLink(
+      config({
+        from: { body: "Duna", state: "low" },
+        to: { body: "Eve", state: "low" },
+        returning: false,
+      }),
+    );
+    render(<KSPMissionPlanner />);
+    await settle();
+    await openFold("How to fly it").catch(() => {});
+    expect(fly()).toMatch(
+      /Leaving \d+ hours? after the cheapest departure, to keep out of Ike's sphere of influence/,
+    );
+    expect(fly()).toMatch(/it costs nothing/);
+    /* A dodged window is a clean one, so nothing is being warned about. */
+    expect(fly()).not.toMatch(/in the way/);
+  }, 180_000);
+
+  it("draws no such note where the cheapest departure was already clear", async () => {
+    location.hash = await toLink(config({}));
+    render(<KSPMissionPlanner />);
+    await settle();
+    await openFold("How to fly it").catch(() => {});
+    expect(fly()).not.toMatch(/after the cheapest departure/);
+    expect(fly()).not.toMatch(/in the way/);
+  }, 180_000);
 });

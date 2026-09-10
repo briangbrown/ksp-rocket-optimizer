@@ -314,3 +314,30 @@ before changing the thing it names.
   span three times finer, a slice at a time. At the search's spacing it
   returns the search's totals to the bit, which `test/transfer.test.ts`
   holds; the search itself did not move.
+
+- **A window is checked against every other body, and a fouled optimum is
+  dodged rather than reported.** KSP pulls with one body at a time, so a
+  body the ship never enters exerts nothing and a two-body window is exactly
+  what the game flies — until the ship crosses some third sphere of
+  influence, at which point the game takes the trajectory over and the
+  window describes a flight that will not happen. `core/encounter.ts` walks
+  all three legs against every body under the relevant primary: the escape
+  hyperbola against the departure body's moons, the arc against the other
+  planets, the capture hyperbola against the arrival body's moons. About a
+  fifth of delivered optima leave through the Mun's sphere or arrive through
+  a moon's — against two of 6,048 arcs for a _planet_, so the moons are the
+  case that matters — and shifting the departure a couple of hours clears it
+  for 0.38 m/s on average, which is why `search` takes the shift (`dodged`
+  on the `Window`) instead of warning. `encounters` is what the delivered
+  flight still meets, which is empty unless no dodge was found inside nine
+  days.
+
+  Two things make the check affordable at 98 µs, against 2.4 ms for the
+  obvious version. Every trajectory is a conic, so it is walked by _true
+  anomaly_ — anomaly to time is closed form, time to anomaly is Newton — and
+  the walk is two passes: a coarse one over the ship alone, which costs
+  nothing because it asks for no body's position, and a fine one only over
+  the stretches whose radius can reach the body's orbit at all, stepped
+  finely enough to put three samples across the sphere being looked for. A
+  uniform step cannot do this job: Dres's sphere is crossed in under two
+  hours on a thousand-day arc. #216

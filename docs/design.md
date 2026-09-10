@@ -693,7 +693,12 @@ of the names already down, the markers, the rays and the frame, with a short
 leader in `C.dim` where it stood off; the Sun's-system drawing compresses
 radii as r^0.6 so an inner orbit has room, and its caption says so.
 `visual/transfer.test.ts` measures every name in a dozen pairs and holds
-them apart. Each carries an
+them apart. Where the flight passes inside a body the patched
+conic never priced (#216) the card says so: a `note` line under the figures
+when the search left later to keep clear — _"Leaving 2 hours after the
+cheapest departure, to keep out of Ike's sphere of influence — it costs
+nothing"_ — and a `warn` `Callout` above them, with the explanation behind
+its `more`, in the rare case it could not clear it at all. Each carries an
 `aria-label` that says what it draws. The two sit side by side where 440 px
 allow and stack below.
 

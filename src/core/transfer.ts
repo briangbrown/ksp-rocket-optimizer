@@ -12,6 +12,8 @@ import {
   unit,
 } from "./kepler.js";
 import { lambert, speed } from "./lambert.js";
+import { encountersOf } from "./encounter.js";
+import type { Encounter } from "./encounter.js";
 import type { Vec3 } from "./kepler.js";
 
 /* The transfer window: when to leave one planet for another, and what the
@@ -80,6 +82,21 @@ type Window = {
      what it costs, for the card to offer. The window reported is the first
      from the start time, which is the one asked for. #199 */
   next: { depart: number; tof: number; total: number } | null;
+  /* Every body this *delivered* flight passes inside on the way — the
+     departure body's moons going out, another planet on the cruise, the
+     arrival body's moons coming in (#216). KSP is patched-conic, so a body
+     the ship never enters exerts nothing and none of this corrects a
+     number; a body it does enter takes the flight over, and then the
+     numbers describe a flight that will not happen. Normally empty: the
+     search dodges what it can, and this is left non-empty only where it
+     could not. */
+  encounters: Array<Encounter>;
+  /* What the search did about it: how far past the cheapest departure this
+     window was moved, and what that cleared. A moon comes round every few
+     days and the arc barely notices the shift — 0.4 m/s on average — so a
+     dodge is much the better answer to a fouled optimum. Null when the
+     cheapest departure was already clean, which is the usual case. */
+  dodged: { by: number; cost: number; cleared: Array<string> } | null;
   /* The coarse search itself, for the plot (#213): `nt` departures from
      `t0` at `step` apart along the columns, `nf` flight times from `fLo` to
      `fHi` up the rows, and the total of every cell in whole m/s at
@@ -361,6 +378,12 @@ function arcPoints(m: number, r1: Vec3, v1: Vec3, r2: Vec3, n = 48) {
   return out;
 }
 
+/* How far past the cheapest departure to look for a clean one, and how
+   finely. Two hours is well inside the time a moon's sphere takes to cross,
+   and nine days covers the Mun's 6.4-day round and Ike's 1.7. */
+const DODGE_STEP = 2 * 3600;
+const DODGE_REACH = 9 * 21600;
+
 const cache = new Map<string, Window | null>();
 
 /* The cheapest window from `t0` on, leaving a circular orbit of radius
@@ -533,9 +556,52 @@ function search(
     return { t: bt, tof: bf, c: bc };
   };
   const best = refine(early);
-  const depart = Math.round(best.t),
-    tof = Math.round(best.tof);
-  const c = best.c;
+  const tof = Math.round(best.tof);
+  let depart = Math.round(best.t);
+  let c = best.c;
+  /* What the flight meets, and the dodge (#216). This is the one place a
+     window looks at a body other than its two ends: the game pulls with one
+     body at a time, so nothing here corrects a number — it decides whether
+     the flight priced is the flight the game will fly. About a fifth of
+     optima leave through the Mun's sphere or arrive through a moon's, and
+     shifting the departure a few hours clears it for a metre a second or
+     less, so the search takes the shift rather than reporting a flight that
+     will not happen. */
+  const encAt = (t: number, cell: Cell) =>
+    encountersOf({
+      from,
+      to,
+      primary: o1.parent,
+      m,
+      r1: cell.s1.r,
+      v1: cell.v1,
+      depart: t,
+      tof,
+      rPark1,
+      vrelOut: sub(cell.v1, cell.s1.v),
+      rPark2,
+      vrelIn: capture ? sub(cell.v2, cell.s2.v) : null,
+      arrive: t + tof,
+    });
+  let encounters = encAt(depart, c);
+  let dodged: Window["dodged"] = null;
+  if (encounters.length) {
+    const was = [...new Set(encounters.map((e) => e.body))];
+    const from0 = depart,
+      cost0 = c.total;
+    for (let dt = DODGE_STEP; dt <= DODGE_REACH; dt += DODGE_STEP) {
+      const cand = at(from0 + dt, tof);
+      /* A dodge that costs real fuel is not a dodge; where none is cheap
+         enough the window stands and the card says what it meets. */
+      if (!cand || cand.total > cost0 * 1.02) continue;
+      if (encAt(from0 + dt, cand).length) continue;
+      depart = Math.round(from0 + dt);
+      c = cand;
+      encounters = [];
+      dodged = { by: depart - from0, cost: cand.total - cost0, cleared: was };
+      break;
+    }
+  }
   /* Worth mentioning only where it is clearly cheaper: the grid is coarse
      and a percent is noise. */
   const next =
@@ -609,6 +675,8 @@ function search(
     soi,
     rPark: rPark1,
     next,
+    encounters,
+    dodged,
     plot: {
       from,
       to,

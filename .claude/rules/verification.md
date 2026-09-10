@@ -203,6 +203,7 @@ invisible to every baseline here.
     test/landmarks.test.tsx               main, footer, headings by level, the solving live region
     test/three-view.test.ts               the orthographic framing, on numbers
     test/engine-meshes.test.ts            public/engines: every engine, each file a small well-formed mesh
+    test/encounter.test.ts                what else the flight meets, and the search's dodge
     test/seam-contract.test.ts            planMission stays serialisable
     test/seam-input.test.tsx              what the app actually hands the seam, and from a link
     test/routes.test.ts                   every route the app builds, hashed; the mission model's filter and Kerbol
