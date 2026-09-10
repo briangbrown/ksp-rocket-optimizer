@@ -217,5 +217,15 @@ notes or a new document, and keep this file for what applies to every session.
 If the thing you learned can be checked instead of asserted, write the check.
 A rule a test enforces does not need to be in prose at all.
 
+There is one other home, and only one. Where the insight is a _concept_ worth
+teaching rather than a trap worth guarding, the `teach-lesson` skill writes it
+up under `docs/lessons/<category>/<topic>/<name>-<hash>.md`, tied to the commit
+it came from. That is not a parallel set of notes: a rule is terse, loads for
+whoever opens that area, and exists to stop a repeat; a lesson is written for a
+person, read once, never updated, and explains an idea that holds outside this
+repository. An insight can earn both — the excess-velocity clamp (#223) took a
+rule, a test and a lesson — but a lesson never stands in for a rule, or the
+guard is lost.
+
 Work that is outstanding rather than known belongs in a filed issue, not in
 prose here.
