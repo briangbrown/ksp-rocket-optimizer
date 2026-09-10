@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   DAY,
   YEAR,
+  elements,
   kerbalDate,
   mu,
   norm,
@@ -10,9 +11,10 @@ import {
   sub,
   utOf,
 } from "../src/core/kepler.js";
+import { must } from "./must.js";
 import { lambert } from "../src/core/lambert.js";
 import { findWindow, priceColumns } from "../src/core/transfer.js";
-import { routeFor } from "../src/core/orbits.js";
+import { SYS, routeFor } from "../src/core/orbits.js";
 
 /* The transfer window (#197): an ephemeris on the stock elements, a Lambert
    solver, and a porkchop search that finds the first window from a start
@@ -343,5 +345,95 @@ describe("the plot", () => {
     expect(w!.next!.depart).toBeLessThan(p.t0 + p.nt * p.step);
     expect(w!.next!.tof).toBeGreaterThan(0.8 * p.fLo);
     expect(w!.next!.tof).toBeLessThan(1.2 * p.fHi);
+  });
+});
+
+describe("inside one system", () => {
+  /* Mun → Minmus is the same problem about Kerbin that Kerbin → Duna is
+     about the Sun, and it was refused for no reason but the name of the
+     centre (#223). Its numbers also needed the patched conic written in
+     energy rather than in excess velocity: the Mun's sphere of influence is
+     a fifth of its orbit, so the departure leaves below boundary escape and
+     the old excess floored at zero. */
+  const rMun = 210_000,
+    rMin = 110_000;
+
+  it("finds a window between two moons of the same planet", () => {
+    const w = findWindow("Mun", "Minmus", rMun, rMin, 0, true);
+    expect(w).not.toBeNull();
+    expect(w!.tof / DAY).toBeGreaterThan(1);
+    expect(w!.phase).toBeGreaterThan(0);
+    expect(w!.arc.length).toBeGreaterThan(2);
+    for (const v of [w!.eject, w!.capture, w!.total])
+      expect(Number.isFinite(v)).toBe(true);
+    expect(JSON.parse(JSON.stringify(w))).toEqual(w);
+  });
+
+  it("leaves the Mun below its own boundary escape, and says so in the energy", () => {
+    const w = must(
+      findWindow("Mun", "Minmus", rMun, rMin, 0, true),
+      "a window",
+    );
+    /* Boundary escape at the sphere is 232 m/s, and bare escape from this
+       parking orbit is what the old floor collapsed every moon ejection to.
+       The real departure is cheaper: it leaves on a bound ellipse and the
+       game hands it to Kerbin at the boundary. */
+    const muMun = mu("Mun");
+    const bareEscape = Math.sqrt((2 * muMun) / rMun) - Math.sqrt(muMun / rMun);
+    expect(w.c3Out).toBeLessThan(0);
+    expect(w.eject).toBeLessThan(bareEscape);
+    expect(w.eject).toBeGreaterThan(0.5 * bareEscape);
+    /* And the energy is the boundary speed less the well still owed. */
+    const soi = elements("Mun").a * Math.pow(muMun / elements("Mun").mu, 0.4);
+    const vEdge = Math.sqrt(w.c3Out + (2 * muMun) / soi);
+    expect(vEdge).toBeGreaterThan(0);
+    expect(vEdge).toBeLessThan(Math.sqrt((2 * muMun) / soi));
+  });
+
+  it("names the centre the two moons go round, not Kerbol", () => {
+    /* The drawings are the same drawings about a different centre, and the
+       label follows the departure body's own parent. */
+    const w = must(
+      findWindow("Mun", "Minmus", rMun, rMin, 0, true),
+      "a window",
+    );
+    expect(SYS[w.from].parent).toBe("Kerbin");
+    expect(SYS["Laythe"].parent).toBe("Jool");
+    expect(SYS["Kerbin"].parent).toBe("Sun");
+  });
+
+  it("prices the route's leg on that window", () => {
+    const legs = routeFor(
+      { body: "Mun", state: "low" },
+      { body: "Minmus", state: "low" },
+      true,
+      false,
+      false,
+      0,
+      0,
+      "best",
+    );
+    const leaves = legs.find((l) => l.window);
+    expect(leaves, "no leg carried a window").toBeTruthy();
+    expect(leaves!.label).toMatch(/Leave Mun for Minmus/);
+    expect(leaves!.dv).toBeGreaterThan(100);
+    expect(leaves!.dv).toBeLessThan(260);
+  });
+
+  it("leaves a planetary window exactly where it was", () => {
+    /* The energy rewrite may not move a planet by so much as a metre per
+       second: the floor it removed never fired there. Kerbin → Duna's first
+       window, to the second and to the whole m/s. */
+    const w = must(findWindow("Kerbin", "Duna", rK, rD, 0, true), "a window");
+    expect(w.depart).toBe(4_972_697);
+    expect(w.tof).toBe(5_844_838);
+    expect(w.eject).toBeCloseTo(1042.3387085153304, 6);
+    expect(w.capture).toBeCloseTo(647.6913780650539, 6);
+    expect(w.total).toBeCloseTo(1696.982886723008, 6);
+    expect(w.angle).toBeCloseTo(153.1881446712204, 6);
+    expect(w.phase).toBeCloseTo(38.61483031195843, 6);
+    /* And there the energy is a true excess, positive and matching it. */
+    expect(w.c3Out).toBeGreaterThan(0);
+    expect(Math.sqrt(w.c3Out)).toBeCloseTo(w.vinfOut, 9);
   });
 });

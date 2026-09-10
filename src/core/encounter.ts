@@ -167,12 +167,21 @@ function hyperLeg(
 ): Leg | null {
   const m = mu(body);
   const soi = soiOf(body);
-  const vinf2 = Math.max(0, dot(vrel, vrel) - (2 * m) / soi);
-  const e = 1 + (rPark * vinf2) / m;
-  if (!(e > 1.000001)) return null;
-  const thInf = Math.acos(-1 / e);
+  /* Energy, not an excess velocity: a moon's departure leaves the sphere
+     below its own boundary escape, so the path out is an ellipse and this
+     used to refuse to walk it at all — a silent miss on exactly the case
+     where a moon is most likely to be in the way. #223 */
+  const c3 = dot(vrel, vrel) - (2 * m) / soi;
+  const e = 1 + (rPark * c3) / m;
+  if (!(e > 0) || Math.abs(e - 1) < 1e-9) return null;
   const p = rPark * (1 + e);
-  const n = Math.sqrt(m / Math.abs(rPark / (1 - e)) ** 3);
+  const a = rPark / (1 - e);
+  /* Where it crosses the sphere. An ellipse that never reaches it is not a
+     departure and has nothing to walk. */
+  const cosSoi = (p / soi - 1) / e;
+  if (cosSoi < -1) return null;
+  const thInf = e > 1 ? Math.acos(-1 / e) : Math.PI;
+  const n = Math.sqrt(m / Math.abs(a) ** 3);
   const u = unit(vrel);
   const el = Math.asin(Math.max(-1, Math.min(1, u[2])));
   const c = Math.cos(thInf) / Math.cos(el);
@@ -181,16 +190,28 @@ function hyperLeg(
   const ph: Vec3 = [Math.cos(psi), Math.sin(psi), 0];
   const nh = unit(cross(ph, u));
   const qh = unit(cross(nh, ph));
-  /* Where it leaves the sphere, so the walk stops at the patch rather than
-     running out to the asymptote. */
-  const cosOut = (p / soi - 1) / e;
-  const nuOut =
-    Math.abs(cosOut) <= 1 ? Math.acos(Math.max(-1, cosOut)) : thInf - 1e-3;
+  const nuOut = Math.acos(Math.min(1, cosSoi));
+  /* Time from periapsis, hyperbolic or elliptic as the energy decides. */
+  const timeAt =
+    e > 1
+      ? (nu: number) => {
+          const H =
+            2 * Math.atanh(Math.sqrt((e - 1) / (e + 1)) * Math.tan(nu / 2));
+          return (e * Math.sinh(H) - H) / n;
+        }
+      : (nu: number) => {
+          const E =
+            2 *
+            Math.atan2(
+              Math.sqrt(1 - e) * Math.sin(nu / 2),
+              Math.sqrt(1 + e) * Math.cos(nu / 2),
+            );
+          return (E - e * Math.sin(E)) / n;
+        };
   const nodeAt = (nu: number): Node => {
     const rad = p / (1 + e * Math.cos(nu));
-    const H = 2 * Math.atanh(Math.sqrt((e - 1) / (e + 1)) * Math.tan(nu / 2));
     return {
-      t: tPeri + sign * ((e * Math.sinh(H) - H) / n),
+      t: tPeri + sign * timeAt(nu),
       r: add(scale(ph, rad * Math.cos(nu)), scale(qh, rad * Math.sin(nu))),
       rad,
     };

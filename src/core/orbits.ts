@@ -640,6 +640,13 @@ function hohmann(centre: string, r1: number, r2: number) {
 const inject = (v: number, vinf: number) =>
   Math.sqrt(2 * v * v + vinf * vinf) - v;
 
+/* The same burn priced from energy rather than from an excess velocity, so
+   it is defined where a moon's departure sits below its own boundary escape
+   and the excess does not exist. `c3Of` in core/transfer.ts has the why;
+   with c3 = vinf² this is `inject` written out. #223 */
+const injectC3 = (v: number, c3: number) =>
+  Math.sqrt(Math.max(0, 2 * v * v + c3)) - v;
+
 const RAD = Math.PI / 180;
 /* Destination labels are not always body names: DEST offers "Jool orbit",
    "Low Kerbin Orbit" and "Keostationary orbit". Resolve to a real body, or null
@@ -753,8 +760,13 @@ function transferDv(
      that leaves. The parking orbits are where the route actually burns —
      the planet's low orbit, or a moon's orbit about it when the mission
      comes up from a moon — and the same at the far end. */
+  /* Any shared primary, not only the Sun: Mun → Minmus is the same problem
+     about Kerbin that Kerbin → Duna is about the Sun, and until #223 it was
+     refused for no reason but the name of the centre. A departure from the
+     primary itself — Kerbin → Mun — is a different problem and still has no
+     window here; `up` is empty for it. */
   const w =
-    t0 !== undefined && common === "Sun" && up.length && down.length
+    t0 !== undefined && up.length && down.length
       ? findWindow(
           up[up.length - 1],
           down[0],
@@ -765,9 +777,18 @@ function transferDv(
           transfer,
         )
       : null;
+  /* The energies the burns are priced from. A window's are its own; without
+     one they are the Hohmann excesses squared, which is the same number the
+     old excess-velocity form produced. Energy rather than excess because a
+     moon's departure can sit below its own boundary escape and still be a
+     real transfer — `c3Of` in core/transfer.ts has the reasoning. #223 */
+  let c3out = h.out * h.out,
+    c3in = h.in * h.in;
   if (w) {
     h.out = w.vinfOut;
     h.in = w.vinfIn;
+    c3out = w.c3Out;
+    c3in = w.c3In;
   }
   const legs: Array<Leg> = [];
   /* Staying inside one system means no SOI to climb out of, so the Hohmann burn
@@ -783,11 +804,11 @@ function transferDv(
   } else
     up.forEach((b, k) => {
       const v = k === 0 ? vCirc(b) : Math.sqrt(mu(b) / smaOf(up[k - 1]));
-      const vinf = k === up.length - 1 ? h.out : 0;
+      const c3 = k === up.length - 1 ? c3out : 0;
       const leaves = w && k === up.length - 1;
       legs.push({
         label: leaves ? `Leave ${b} for ${down[0]}` : `Leave ${b}`,
-        dv: Math.round(inject(v, vinf)),
+        dv: Math.round(injectC3(v, c3)),
         kind: "transfer",
         body: b,
         ...(leaves ? { window: w, at: w.depart } : {}),
@@ -820,7 +841,7 @@ function transferDv(
 
   down.forEach((b, k) => {
     const last = k === down.length - 1;
-    const vinf = k === 0 ? h.in : 0;
+    const c3 = k === 0 ? c3in : 0;
     if (!last) {
       /* Passing through on the way to a moon: capture only just enough to be
          bound, with periapsis down at the moon's orbit. Circularising here and
@@ -828,7 +849,7 @@ function transferDv(
       const rp = smaOf(down[k + 1]),
         m2 = mu(b);
       const dv =
-        Math.sqrt(vinf * vinf + (2 * m2) / rp) - Math.sqrt((2 * m2) / rp);
+        Math.sqrt(Math.max(0, c3 + (2 * m2) / rp)) - Math.sqrt((2 * m2) / rp);
       legs.push({
         label: `Capture into ${b} system`,
         dv: Math.round(dv),
@@ -847,7 +868,7 @@ function transferDv(
     } else {
       legs.push({
         label: `Capture → low ${b} orbit`,
-        dv: Math.round(inject(vCirc(b), vinf)),
+        dv: Math.round(injectC3(vCirc(b), c3)),
         kind: "capture",
         body: b,
       });
