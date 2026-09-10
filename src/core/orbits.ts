@@ -766,11 +766,15 @@ function transferDv(
      primary itself — Kerbin → Mun — is a different problem and still has no
      window here; `up` is empty for it. */
   const w =
-    t0 !== undefined && up.length && down.length
+    t0 !== undefined && down.length
       ? findWindow(
-          up[up.length - 1],
+          up.length ? up[up.length - 1] : common,
           down[0],
-          up.length > 1 ? smaOf(up[up.length - 2]) : lowR(up[0]),
+          up.length
+            ? up.length > 1
+              ? smaOf(up[up.length - 2])
+              : lowR(up[0])
+            : lowR(common),
           down.length > 1 ? smaOf(down[1]) : lowR(down[0]),
           t0,
           true,
@@ -795,11 +799,17 @@ function transferDv(
      is the whole cost — running it through inject() would charge escape velocity
      on top and inflate a Mun trip by a quarter. */
   if (!up.length) {
+    /* Straight out to a moon of the body we are already circling: one burn
+       that raises apoapsis to meet it, priced on the window where there is
+       one. #223 */
     legs.push({
-      label: `Low ${origin} orbit → ${dest} transfer`,
-      dv: Math.round(h.out),
+      label: w
+        ? `Leave ${common} orbit for ${down[0]}`
+        : `Low ${origin} orbit → ${dest} transfer`,
+      dv: Math.round(w ? w.eject : h.out),
       kind: "transfer",
       body: dest,
+      ...(w ? { window: w, at: w.depart } : {}),
     });
   } else
     up.forEach((b, k) => {
@@ -860,8 +870,8 @@ function transferDv(
       void hh;
     } else if (!up.length && k === 0) {
       legs.push({
-        label: `Circularise at ${b}`,
-        dv: Math.round(h.in),
+        label: w ? `Capture → low ${b} orbit` : `Circularise at ${b}`,
+        dv: Math.round(w ? w.capture : h.in),
         kind: "capture",
         body: b,
       });
@@ -1120,6 +1130,24 @@ function routeFor(
     /* The table starts on the launchpad; a start in orbit is past that. */
     if (from.state !== "surface")
       base = base.filter((l) => l.kind !== "ascent");
+    /* Out to one of Kerbin's own moons the table's figures stand — they are
+       the community map's and are what players check against — but the leg
+       gains the window it is flown on, for its date and its drawing. #223 */
+    if (t0 !== undefined && SYS[to.body] && SYS[to.body].parent === origin) {
+      const w = findWindow(
+        origin,
+        to.body,
+        lowR(origin),
+        lowR(to.body),
+        t0,
+        true,
+      );
+      const leg = base.find((l) => l.kind === "transfer" && l.body === to.body);
+      if (w && leg) {
+        leg.window = w;
+        leg.at = w.depart;
+      }
+    }
   } else {
     const d = SYS[to.body];
     base = [...climb];
@@ -1205,7 +1233,15 @@ function routeFor(
   if (returning) {
     const land = base.find((l) => l.kind === "land");
     const capLeg = base.find((l) => l.kind === "capture");
-    const out = base.find((l) => l.window)?.window;
+    /* The window the way home is searched from — an interplanetary one.
+       A moon of the origin gets a window for its date and its drawing
+       (#223), but the way back from one is the tabulated mirror it always
+       was: letting a Mun window pick the computed return here quietly
+       changed the default mission's total by 549 m/s, which is a solver
+       change and not a drawing one. */
+    const out = base.find(
+      (l) => l.window && SYS[l.window.to]?.parent !== origin,
+    )?.window;
     const back: Array<Leg> = [];
     if (to.state === "sync") back.push(...syncLegs(to.body, false));
     if (to.state === "surface" && land)

@@ -374,3 +374,35 @@ before changing the thing it names.
   Kerbin → Mun — is a _different_ problem, with no ejection hyperbola and
   both bodies in one frame, and still has no window: `up` is empty for it.
   That half is #223's second stage. #223
+
+- **Out to your own moon is a third kind of window, and it has no ejection.**
+  Low Kerbin orbit to the Mun is not a transfer between siblings: there is no
+  sphere of influence to leave and both bodies are already in one frame, so
+  `raiseSearch` in `transfer.ts` handles it instead of `search`. The ship
+  raises apoapsis to meet the moon, and the burn's _place on the parking
+  orbit is free_ — the ship goes round every half hour, far inside the
+  grid's step, so it waits for the longitude it wants. That makes each cell
+  a one-dimensional search over that longitude, priced by Lambert.
+
+  Search the whole circle for it, not a bracket about the Hohmann guess. The
+  sweep from burn to arrival runs from a few degrees on a fast flight to most
+  of a turn on a slow one; guessing half a turn back and searching ±90° found
+  it near Hohmann and missed it everywhere else, which painted the plot's
+  short-flight half as though no transfer existed there.
+
+  Because the longitude is free, **every departure date costs much the same**
+  — the Mun's whole grid sits within 3% of its own minimum — so there is no
+  window to find in the porkchop sense and the card draws no plot for one.
+  The phase angle is the number that times the burn. The grid is coarser for
+  the same reason. Checked against the community map: 856 and 280 against its
+  860 and 280 for the Mun, 921 and 161 against 930 and 160 for Minmus.
+
+- **A Mun window is for its date and its drawing, and must not become a
+  solver change.** `routeFor` keeps the tabulated Kerbin legs — they are the
+  map's figures and what players check against — and only hangs the window on
+  the intercept leg. The trap: the return leg is computed from `base.find(l
+=> l.window)`, so simply attaching one flipped the way home from the
+  tabulated mirror to a computed transfer and moved the default mission by
+  549 m/s. That lookup now ignores a window whose destination is a moon of
+  the origin, and `test/transfer.test.ts` pins all seven of the default
+  mission's legs by name. #223

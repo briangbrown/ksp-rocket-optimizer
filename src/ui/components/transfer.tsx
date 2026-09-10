@@ -649,6 +649,170 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
   );
 }
 
+/* --------------------------- out to your own moon --------------------------- */
+
+/* One drawing rather than two, because there are not two frames (#223). A
+   departure from the primary itself — low Kerbin orbit to the Mun — has no
+   sphere of influence to leave and no ejection hyperbola: the ship burns
+   prograde in the orbit it is already in and coasts out to meet the moon.
+   So the parking orbit, the burn on it, the arc, the moon's orbit and the
+   moon where it sits at the burn all belong in the one picture, and the
+   angle between the last two is the number the pilot times the burn by.
+
+   Radii compressed as elsewhere, and by more than elsewhere: an 80 km
+   parking orbit against Minmus at 47 Mm is a factor of seventy, and drawn
+   true the parking orbit would be a dot. */
+function Raise({ w, theme }: { w: Window; theme: Theme }) {
+  const centre = SYS[w.to].parent ?? w.from;
+  const hueC = hueFor(centre, theme),
+    hueM = hueFor(w.to, theme);
+  const moon = orbitPoints(w.to, 120).map((q) => [q[0], q[1]] as Pt);
+  const far = Math.max(
+    ...[...moon, ...w.arc].map((q) => Math.hypot(q[0], q[1])),
+  );
+  const R = 84;
+  /* Turned so the burn lies to the centre's right, with the phase angle
+     opening counter-clockwise to the moon — the way it is measured. */
+  const th = -Math.atan2(w.r1[1], w.r1[0]);
+  const ct = Math.cos(th),
+    st = Math.sin(th);
+  const P = (q: Pt): Pt => {
+    const r = Math.hypot(q[0], q[1]);
+    const k = r > 0 ? (R * (r / far) ** POWER) / r : 0;
+    return [
+      half + (q[0] * ct - q[1] * st) * k,
+      half - (q[0] * st + q[1] * ct) * k,
+    ];
+  };
+  /* The parking orbit at the compressed radius the burn point sits at. */
+  /* The parking orbit, with a floor: compressed honestly against Minmus at
+     47 Mm an 80 km orbit is six pixels across and vanishes inside the
+     planet, and the burn on it is the thing this drawing exists to show.
+     The caption already says distances are compressed. */
+  const b0 = P(w.r1);
+  const rp = Math.max(17, Math.hypot(b0[0] - half, b0[1] - half));
+  const park: Array<Pt> = [];
+  for (let k = 0; k <= 72; k++) {
+    const a = (2 * Math.PI * k) / 72;
+    park.push([half + Math.cos(a) * rp, half - Math.sin(a) * rp]);
+  }
+  /* The burn sits on the drawn parking orbit, at its true longitude. */
+  const bAng = Math.atan2(half - b0[1], b0[0] - half);
+  const burn: Pt = [half + Math.cos(bAng) * rp, half - Math.sin(bAng) * rp];
+  const moonDep = P(w.r2dep),
+    moonArr = P(w.r2);
+  const trail = w.arc.map(P);
+  /* The ship sits at the burn, so it is headed the way the arc *leaves* —
+     the first step of the trail, not the last. Taking the last put it nose
+     down towards the planet, pointing back along the way it had come. */
+  const heading: Pt = [
+    (trail[1]?.[0] ?? burn[0]) - trail[0][0],
+    (trail[1]?.[1] ?? burn[1]) - trail[0][1],
+  ];
+  /* The phase arc inside the parking orbit. */
+  const ra = Math.max(9, Math.min(20, rp * 0.5));
+  const arc: Array<Pt> = [];
+  for (let k = 0; k <= 24; k++) {
+    const a = ((w.phase * Math.PI) / 180) * (k / 24);
+    arc.push([half + Math.cos(a) * ra, half - Math.sin(a) * ra]);
+  }
+  const mid = (w.phase * Math.PI) / 180 / 2;
+  const angleAt: Pt = [
+    half + Math.cos(mid) * (ra + 11),
+    half - Math.sin(mid) * (ra + 11),
+  ];
+  const rays: Array<Seg> = [
+    [[half, half], burn],
+    [[half, half], moonDep],
+  ];
+  const taken: Array<Box> = [
+    dot([half, half], 7),
+    dot(burn, 8),
+    dot(moonDep, 5),
+    dot(moonArr, 5),
+  ];
+  const put = (text: string, at: Pt, prefer: "any" | "below" = "any") => {
+    const p = place(text, at, taken, rays, prefer);
+    taken.push(p.box);
+    return p;
+  };
+  const angleName = put(deg(w.phase), angleAt);
+  const burnName = put("Burn", burn);
+  const arrName = put(bodyLabel(w.to), moonArr);
+  const centreName = put(bodyLabel(centre), [half, half], "below");
+  const depName = put(`${bodyLabel(w.to)} at burn`, moonDep);
+  return (
+    <svg
+      viewBox={`0 0 ${size} ${size}`}
+      width="100%"
+      style={{ maxWidth: size, display: "block", color: C.paper }}
+      role="img"
+      aria-label={`Leaving low ${bodyLabel(centre)} orbit for ${bodyLabel(w.to)}: the burn on the parking orbit, ${fmt(w.eject)} m/s prograde, with ${bodyLabel(w.to)} ${deg(w.phase)} ahead of it, and the arc out to where it will be on arrival. Distances compressed.`}
+    >
+      <Trail pts={moon.map(P)} at={nearestTo(moon, w.r2dep)} color={hueM} />
+      <Trail pts={park} at={0} color={hueC} />
+      <Trail
+        pts={trail}
+        at={trail.length - 1}
+        color={C.paper}
+        width={1.5}
+        open
+      />
+      <line
+        x1={half}
+        y1={half}
+        x2={burn[0]}
+        y2={burn[1]}
+        stroke={C.dim}
+        strokeOpacity={0.8}
+      />
+      <line
+        x1={half}
+        y1={half}
+        x2={moonDep[0]}
+        y2={moonDep[1]}
+        stroke={C.dim}
+        strokeOpacity={0.8}
+      />
+      <path d={path(arc)} fill="none" stroke={C.dim} strokeDasharray="3 3" />
+      <circle cx={half} cy={half} r={Math.min(7, rp * 0.42)} fill={hueC} />
+      <circle
+        cx={moonDep[0]}
+        cy={moonDep[1]}
+        r={4}
+        fill={C.panel}
+        stroke={hueM}
+        strokeWidth={1.5}
+      />
+      <circle cx={moonArr[0]} cy={moonArr[1]} r={4} fill={hueM} />
+      <Ship at={burn} heading={heading} />
+      <Label p={angleName} color={C.paper} />
+      <Label p={burnName} color={C.paper} />
+      <Label p={arrName} color={edgeOf(hueM, theme)} />
+      <Label p={centreName} color={edgeOf(hueC, theme)} />
+      <Label p={depName} color={edgeOf(hueM, theme)} />
+    </svg>
+  );
+}
+
+/* The index of the sampled orbit point nearest a position — where the body
+   is on its own trail, so the fade runs the right way round. */
+function nearestTo(pts: Array<Pt>, q: Pt) {
+  let best = 0,
+    d = Infinity;
+  pts.forEach((r, i) => {
+    const dd = Math.hypot(r[0] - q[0], r[1] - q[1]);
+    if (dd < d) {
+      d = dd;
+      best = i;
+    }
+  });
+  return best;
+}
+
+/* Whether this window is a departure from the primary itself. */
+const isRaise = (w: Window) => SYS[w.to]?.parent === w.from;
+
 /* ------------------------------ encounters ------------------------------ */
 
 /* A stretch of time, said the way a pilot would: minutes near the burn,
@@ -703,24 +867,38 @@ function TransferPanel({
           marginBottom: SPACE.md,
         }}
       >
-        <div style={{ flex: "1 1 200px", maxWidth: size }}>
-          <Departure w={w} theme={theme} />
-          <div className="note" style={{ textAlign: "center" }}>
-            {bodyLabel(w.from)} ejection angle
+        {/* One drawing where the moon is the primary's own — there is only
+            one frame to draw — and two where the ship has a sphere of
+            influence to leave. #223 */}
+        {isRaise(w) ? (
+          <div style={{ flex: "1 1 200px", maxWidth: size }}>
+            <Raise w={w} theme={theme} />
+            <div className="note" style={{ textAlign: "center" }}>
+              {bodyLabel(w.from)} and {bodyLabel(w.to)} phase angle
+            </div>
           </div>
-        </div>
-        <div style={{ flex: "1 1 200px", maxWidth: size }}>
-          <Heliocentric w={w} theme={theme} />
-          <div className="note" style={{ textAlign: "center" }}>
-            {bodyLabel(w.from)} and {bodyLabel(w.to)} phase angle
-          </div>
-        </div>
+        ) : (
+          <>
+            <div style={{ flex: "1 1 200px", maxWidth: size }}>
+              <Departure w={w} theme={theme} />
+              <div className="note" style={{ textAlign: "center" }}>
+                {bodyLabel(w.from)} ejection angle
+              </div>
+            </div>
+            <div style={{ flex: "1 1 200px", maxWidth: size }}>
+              <Heliocentric w={w} theme={theme} />
+              <div className="note" style={{ textAlign: "center" }}>
+                {bodyLabel(w.from)} and {bodyLabel(w.to)} phase angle
+              </div>
+            </div>
+          </>
+        )}
         {/* The valley the window sits in: the search's own grid as a
             picture, the window marked on it, and the cheaper one after it
             where there is one. A third item in the row — beside the
             drawings where the row has 320 px to spare, under them where
             it has not. #213 */}
-        <Porkchop w={w} />
+        {!isRaise(w) && <Porkchop w={w} />}
       </div>
       {/* Where the flight meets a body the patched conic never priced, and
           the search could find no departure that clears it: the numbers
@@ -753,40 +931,48 @@ function TransferPanel({
         <Stat small label="Leave" value={kerbalDateLabel(w.depart)} />
         <Stat
           small
-          label="Ejection burn"
+          label={isRaise(w) ? "Departure burn" : "Ejection burn"}
           value={fmt(w.eject)}
           unit="m/s"
-          note={`${deg(w.angle)} from ${w.ref}`}
+          note={
+            isRaise(w)
+              ? `prograde, from low ${bodyLabel(w.from)} orbit`
+              : `${deg(w.angle)} from ${w.ref}`
+          }
         />
         {/* The burn's parts from an equatorial parking orbit: what leaves
             the plane is the normal component, which a parking orbit
             launched into the escape's own inclination would not need. */}
-        <Stat
-          small
-          label="Burn components"
-          value={
-            <>
-              {fmt(w.ejectPro)}
-              <span className="note" style={{ margin: "0 3px" }}>
-                m/s
-              </span>
-              · {fmt(Math.abs(w.ejectNor))}
-            </>
-          }
-          unit="m/s"
-          note={`prograde · ${w.ejectNor < 0 ? "anti-normal" : "normal"}`}
-        />
+        {!isRaise(w) && (
+          <Stat
+            small
+            label="Burn components"
+            value={
+              <>
+                {fmt(w.ejectPro)}
+                <span className="note" style={{ margin: "0 3px" }}>
+                  m/s
+                </span>
+                · {fmt(Math.abs(w.ejectNor))}
+              </>
+            }
+            unit="m/s"
+            note={`prograde · ${w.ejectNor < 0 ? "anti-normal" : "normal"}`}
+          />
+        )}
         <Stat small label="Phase angle" value={deg(w.phase)} />
-        <Stat
-          small
-          label="Transfer"
-          value={w.type === "plane" ? "mid-course" : "ballistic"}
-          note={
-            w.type === "plane"
-              ? "in the plane, tilted on the way"
-              : "inclination in the ejection"
-          }
-        />
+        {!isRaise(w) && (
+          <Stat
+            small
+            label="Transfer"
+            value={w.type === "plane" ? "mid-course" : "ballistic"}
+            note={
+              w.type === "plane"
+                ? "in the plane, tilted on the way"
+                : "inclination in the ejection"
+            }
+          />
+        )}
         {w.plane && (
           <Stat
             small
@@ -796,7 +982,17 @@ function TransferPanel({
             note={`${w.plane.deg.toFixed(1)}° at ${kerbalDateLabel(w.plane.at)}`}
           />
         )}
-        <Stat small label="Flight" value={fmt(days)} unit="days" />
+        {/* Hours out to a moon, days between planets. */}
+        {days < 2 ? (
+          <Stat
+            small
+            label="Flight"
+            value={fmt(w.tof / 3600, 1)}
+            unit="hours"
+          />
+        ) : (
+          <Stat small label="Flight" value={fmt(days)} unit="days" />
+        )}
         <Stat small label="Arrive" value={kerbalDateLabel(w.arrive)} />
         <Stat
           small

@@ -506,6 +506,251 @@ function priceColumns(g: Grid, i0: number, i1: number): Array<number> {
   return out;
 }
 
+/* ------------------------- out to your own moon ------------------------- */
+
+/* One cell of a departure from the primary itself: low Kerbin orbit to the
+   Mun, Duna's low orbit to Ike. Not a transfer between siblings — there is
+   no sphere of influence to leave and both bodies are already in the same
+   frame — so the ship simply raises its apoapsis to the moon's orbit and
+   arrives as the moon does.
+
+   The burn's place on the parking orbit is free: the ship goes round every
+   half hour or so, far inside the grid's own step, so it can wait for the
+   longitude it wants. That makes the cell a one-dimensional search over
+   that longitude, and the Lambert solver prices each candidate. A coarse
+   scan seeded half a turn back from the arrival, then golden section: the
+   burn is smooth in the longitude near its minimum, and the seed is within
+   a few degrees for anything close to a Hohmann. */
+function raiseCell(
+  moon: string,
+  m: number,
+  rPark: number,
+  muMoon: number,
+  soiMoon: number,
+  vcMoon: number,
+  t: number,
+  tof: number,
+  capture: boolean,
+): RaiseCell | null {
+  const s2 = stateAt(moon, t + tof);
+  const vc = Math.sqrt(m / rPark);
+  const at = (phi: number) => {
+    const r1: Vec3 = [rPark * Math.cos(phi), rPark * Math.sin(phi), 0];
+    /* Prograde on the equatorial parking orbit, counter-clockwise. */
+    const vp: Vec3 = [-vc * Math.sin(phi), vc * Math.cos(phi), 0];
+    const l = lambert(m, r1, s2.r, tof);
+    if (!l) return null;
+    const dv = sub(l.v1, vp);
+    return { phi, r1, vp, l, burn: norm(dv) };
+  };
+  /* The whole circle, not a bracket about the Hohmann guess: the sweep from
+     the burn to the arrival runs from a few degrees on a fast flight to most
+     of a turn on a slow one, so the best longitude can be anywhere. Guessing
+     half a turn back and searching ±90° found it for near-Hohmann flights
+     and missed it everywhere else, which painted the plot's short-flight
+     half as though no transfer existed there. */
+  const N = 16;
+  let best: ReturnType<typeof at> = null;
+  for (let k = 0; k < N; k++) {
+    const c = at((2 * Math.PI * k) / N);
+    if (c && (!best || c.burn < best.burn)) best = c;
+  }
+  if (!best) return null;
+  let lo = best.phi - (2 * Math.PI) / N,
+    hi = best.phi + (2 * Math.PI) / N;
+  const g = (Math.sqrt(5) - 1) / 2;
+  let c1 = hi - g * (hi - lo),
+    c2 = lo + g * (hi - lo);
+  let f1 = at(c1),
+    f2 = at(c2);
+  for (let k = 0; k < 12; k++) {
+    if ((f1?.burn ?? Infinity) < (f2?.burn ?? Infinity)) {
+      hi = c2;
+      c2 = c1;
+      f2 = f1;
+      c1 = hi - g * (hi - lo);
+      f1 = at(c1);
+    } else {
+      lo = c1;
+      c1 = c2;
+      f1 = f2;
+      c2 = lo + g * (hi - lo);
+      f2 = at(c2);
+    }
+  }
+  for (const c of [f1, f2]) if (c && c.burn < best.burn) best = c;
+  const { r1, vp, l } = best;
+  /* The burn, split the way an equatorial parking orbit feels it. */
+  const dv = sub(l.v1, vp);
+  const nHat = unit(cross(r1, vp));
+  const nor = dot(dv, nHat);
+  const pro = dot(dv, unit(vp));
+  const c3In = c3Of(norm(sub(l.v2, s2.v)), muMoon, soiMoon);
+  const cap = capture ? injectC3(vcMoon, c3In) : 0;
+  return {
+    total: best.burn + cap,
+    burn: best.burn,
+    pro,
+    nor,
+    capture: cap,
+    c3In,
+    r1,
+    v1: l.v1,
+    v2: l.v2,
+    s2,
+  };
+}
+
+type RaiseCell = {
+  total: number;
+  burn: number;
+  pro: number;
+  nor: number;
+  capture: number;
+  c3In: number;
+  r1: Vec3;
+  v1: Vec3;
+  v2: Vec3;
+  s2: { r: Vec3; v: Vec3 };
+};
+
+/* The cheapest such departure from `t0` on. The opportunity repeats with the
+   moon's own period — the parking orbit's place in it is free — so the span
+   is two of those rather than two synodic periods, and the flight times run
+   from a third of the Hohmann to twice it, which is hours rather than
+   months. */
+function raiseSearch(
+  from: string,
+  moon: string,
+  rPark: number,
+  rParkMoon: number,
+  t0: number,
+  capture: boolean,
+): Window | null {
+  const o2 = elements(moon);
+  const m = o2.mu;
+  const muMoon = mu(moon);
+  const soiMoon = o2.a * Math.pow(muMoon / m, 0.4);
+  const vcMoon = Math.sqrt(muMoon / rParkMoon);
+  const T = periodOf(moon);
+  const hohmann = Math.PI * Math.sqrt(((rPark + o2.a) / 2) ** 3 / m);
+  /* Coarser than a planetary search, and it can afford to be: the burn's
+     place on the parking orbit is free, so every departure date is much of a
+     muchness — the Mun's whole grid sits within 3% of its own minimum — and
+     what the refine below is really finding is the flight time. The card
+     draws no plot from this for the same reason. */
+  const NT = 24,
+    NF = 20;
+  const first = 1.05 * T;
+  const tSpan = 2.05 * T,
+    fLo = 0.3 * hohmann,
+    fHi = 2 * hohmann;
+  const step = first / NT;
+  const at = (t: number, tof: number) =>
+    raiseCell(moon, m, rPark, muMoon, soiMoon, vcMoon, t, tof, capture);
+  type Best = { t: number; tof: number; c: RaiseCell };
+  let early: Best | null = null;
+  const nt = Math.floor(tSpan / step) + 1,
+    nf = NF + 1;
+  const totals: Array<number> = new Array(nt * nf).fill(-1);
+  for (let i = 0; i < nt; i++)
+    for (let j = 0; j <= NF; j++) {
+      const t = t0 + i * step;
+      const tof = fLo + ((fHi - fLo) * j) / NF;
+      const c = at(t, tof);
+      if (!c) continue;
+      totals[i * nf + j] = Math.round(c.total);
+      if (t <= t0 + first && (!early || c.total < early.c.total))
+        early = { t, tof, c };
+    }
+  if (!early) return null;
+  let { t: bt, tof: bf, c: bc } = early;
+  let ht = step,
+    hf = (fHi - fLo) / NF;
+  for (let round = 0; round < 9; round++) {
+    let nt2 = bt,
+      nf2 = bf,
+      nc = bc;
+    for (let i = -3; i <= 3; i++)
+      for (let j = -3; j <= 3; j++) {
+        const t = Math.max(t0, bt + (ht * i) / 3);
+        const tof = Math.max(600, bf + (hf * j) / 3);
+        const c = at(t, tof);
+        if (c && c.total < nc.total) {
+          nc = c;
+          nt2 = t;
+          nf2 = tof;
+        }
+      }
+    bt = nt2;
+    bf = nf2;
+    bc = nc;
+    ht *= 0.3;
+    hf *= 0.3;
+  }
+  const depart = Math.round(bt),
+    tof = Math.round(bf);
+  const c = bc;
+  const s2dep = stateAt(moon, depart);
+  /* The phase angle a pilot times this by: from the burn point round to the
+     moon, the way it is measured. */
+  let phase =
+    ((Math.atan2(s2dep.r[1], s2dep.r[0]) - Math.atan2(c.r1[1], c.r1[0])) *
+      180) /
+    Math.PI;
+  phase = ((phase % 360) + 360) % 360;
+  const vDir = unit2([-c.r1[1], c.r1[0]]);
+  return {
+    from,
+    to: moon,
+    depart,
+    tof,
+    arrive: depart + tof,
+    c3Out: 0,
+    c3In: c.c3In,
+    vinfOut: 0,
+    vinfIn: Math.sqrt(Math.max(0, c.c3In)),
+    eject: c.burn,
+    ejectPro: c.pro,
+    ejectNor: c.nor,
+    plane: null,
+    capture: c.capture,
+    total: c.total,
+    type: "ballistic",
+    /* The burn is prograde on the parking orbit; where to make it is the
+       phase angle above, not an angle round from prograde. */
+    angle: 0,
+    ref: "prograde",
+    phase,
+    r1: xy(c.r1),
+    r2dep: xy(s2dep.r),
+    r2: xy(c.s2.r),
+    arc: arcPoints(m, c.r1, c.v1, c.s2.r),
+    vDir,
+    burnDir: unit2(xy(c.r1)),
+    soi: soiMoon,
+    rPark,
+    next: null,
+    encounters: [],
+    dodged: null,
+    plot: {
+      from,
+      to: moon,
+      rPark1: rPark,
+      rPark2: rParkMoon,
+      capture,
+      asked: "best",
+      t0,
+      step,
+      fLo,
+      fHi,
+      nt,
+      nf,
+      totals,
+    },
+  };
+}
+
 function search(
   from: string,
   to: string,
@@ -515,6 +760,11 @@ function search(
   capture: boolean,
   type: "ballistic" | "plane" | "best",
 ): Window | null {
+  /* Out to one of your own moons is a different problem with its own
+     search: no sphere of influence to leave, and both bodies already in the
+     one frame. #223 */
+  if (elements(to).parent === from)
+    return raiseSearch(from, to, rPark1, rPark2, t0, capture);
   const sys = system(from, to, rPark2);
   if (!sys) return null;
   const { o1, o2, m, mu1, mu2, vc2, soi1, soi2 } = sys;
