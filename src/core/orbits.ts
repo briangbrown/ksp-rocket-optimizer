@@ -816,6 +816,8 @@ function transferDv(
       const v = k === 0 ? vCirc(b) : Math.sqrt(mu(b) / smaOf(up[k - 1]));
       const c3 = k === up.length - 1 ? c3out : 0;
       const leaves = w && k === up.length - 1;
+      /* Down to the body we are circling: no `down` chain, so `w` is null
+         above; the window is its own. */
       legs.push({
         label: leaves ? `Leave ${b} for ${down[0]}` : `Leave ${b}`,
         dv: Math.round(injectC3(v, c3)),
@@ -893,6 +895,13 @@ function transferDv(
       kind: "capture",
       body: dest,
     });
+  /* And the leg that leaves carries the drawing of it. The figures stay the
+     Hohmann ones they were — this is a picture, not a re-pricing. #223 */
+  if (t0 !== undefined && !down.length && up.length === 1) {
+    const drop = findWindow(up[0], common, lowR(up[0]), lowR(common), t0, true);
+    const leg = legs.find((l) => l.kind === "transfer" && l.body === up[0]);
+    if (drop && leg) leg.window = drop;
+  }
   return legs;
 }
 
@@ -1272,12 +1281,22 @@ function routeFor(
       const home = base
         .filter((l) => l.kind === "transfer" || l.kind === "plane")
         .reduce((s, l) => s + l.dv, 0);
+      /* Coming home from a moon of the origin, the leg gains the window it
+         is flown on — where in the moon's orbit to burn, and the way down —
+         while keeping the tabulated figure it has always carried. There is
+         no date in it: a circular orbit offers the same departure at every
+         moment. #223 */
+      const down =
+        t0 !== undefined && SYS[to.body] && SYS[to.body].parent === origin
+          ? findWindow(to.body, origin, lowR(to.body), lowR(origin), t0, true)
+          : null;
       back.push({
         label: `Return transfer to ${origin}`,
         dv: home,
         kind: "transfer",
         body: origin,
         g: gOf(origin),
+        ...(down ? { window: down } : {}),
       });
     }
     back.push(arrival(origin));

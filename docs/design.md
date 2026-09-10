@@ -719,6 +719,15 @@ the ejection angle, the burn components and the transfer type, none of which
 mean anything when the burn is simply prograde. Flight time reads in hours
 under two days.
 
+Coming back down — a moon to the body it orbits — the card is two drawings
+again: the ejection from the moon, which is the same drawing a transfer
+between moons uses, and a descent about the planet showing the moon's orbit,
+the ellipse down to periapsis and the orbit arrived into. There is no window
+in that problem at all, the moon's orbit being circular, so the card drops
+the date, the arrival and the phase angle and says so in a `note`: _"Any time
+will do — Mun's orbit is circular, so this is the same picture whenever you
+leave. What matters is where in your orbit you burn."_
+
 Each drawing's caption names what it draws and nothing else (#219):
 _"Kerbin ejection angle"_, _"Kerbin and Duna phase angle"_ — the two ends
 interpolated, so it follows whichever pair the window is for — and _"Total

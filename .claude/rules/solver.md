@@ -406,3 +406,24 @@ before changing the thing it names.
   549 m/s. That lookup now ignores a window whose destination is a moon of
   the origin, and `test/transfer.test.ts` pins all seven of the default
   mission's legs by name. #223
+
+- **Down to the body you are circling is the third geometry, and it has no
+  window at all.** A moon's orbit is circular, so every departure is the
+  same picture turned round: no phase angle to wait for and no date to
+  compute. `dropSearch` therefore searches nothing — burn retrograde at the
+  moon's orbital radius until the orbit about the primary has its periapsis
+  at the parking orbit, take the excess from vis-viva, the burn from the
+  energy. One arithmetic chain, no Lambert. It comes out the outward trip's
+  exact mirror, burn for burn: 280 to leave low Mun orbit against 280 to
+  capture into it, 856 to circularise at Kerbin against 856 to leave.
+
+  What the reader needs is the **ejection angle** — where in the moon's
+  orbit to burn, measured from retrograde — so the card shows the ejection
+  drawing and a descent drawing, and drops the date, the phase angle, the
+  burn components and the transfer type, none of which say anything here.
+
+- **`elements` throws for the Sun, so a dispatch on parentage must not use
+  it.** `parentOf` in `encounter.ts` reads the body table instead. Choosing
+  between the three window geometries asks which body goes round which, and
+  asking `elements("Sun")` that question took the whole app down on any
+  Kerbol destination. #223

@@ -524,3 +524,82 @@ describe("out to your own moon", () => {
     expect(w!.to).toBe("Mun");
   });
 });
+
+describe("down to the body you are circling", () => {
+  /* The third geometry, and the only one with no window in it: a moon's
+     orbit is circular, so every departure is the same picture turned round.
+     What there is to know is where in that orbit to burn. #223 */
+  it("is the outward trip's mirror, burn for burn", () => {
+    const out = must(findWindow("Kerbin", "Mun", rK, 210_000, 0, true), "out");
+    const home = must(
+      findWindow("Mun", "Kerbin", 210_000, rK, 0, true),
+      "home",
+    );
+    /* What it costs to capture going out is what it costs to leave coming
+       back, and the other way about. */
+    expect(home.eject).toBeCloseTo(out.capture, 0);
+    expect(home.capture).toBeCloseTo(out.eject, 0);
+    expect(home.tof).toBeCloseTo(out.tof, -2);
+  });
+
+  it("burns retrograde, and says there is nothing to wait for", () => {
+    const w = must(findWindow("Mun", "Kerbin", 210_000, rK, 0, true), "home");
+    expect(w.ref).toBe("retrograde");
+    expect(w.angle).toBeGreaterThan(90);
+    expect(w.angle).toBeLessThan(180);
+    /* No window: the departure is whenever the reader asked from. */
+    expect(w.depart).toBe(0);
+    expect(w.phase).toBe(0);
+    expect(w.next).toBeNull();
+    expect(w.arc.length).toBeGreaterThan(2);
+    expect(JSON.parse(JSON.stringify(w))).toEqual(w);
+  });
+
+  it("works from any moon to its own planet", () => {
+    for (const [moon, planet, r1, r2] of [
+      ["Minmus", "Kerbin", 110_000, rK],
+      ["Ike", "Duna", 150_000, 380_000],
+      ["Laythe", "Jool", 550_000, 6_200_000],
+    ] as const) {
+      const w = findWindow(moon, planet, r1, r2, 0, true);
+      expect(w, `${moon} → ${planet}`).not.toBeNull();
+      expect(w!.eject).toBeGreaterThan(0);
+      expect(w!.capture).toBeGreaterThan(0);
+      expect(Number.isFinite(w!.total)).toBe(true);
+    }
+  });
+
+  it("hangs on the return leg without touching what it costs", () => {
+    const legs = routeFor(
+      { body: "Kerbin", state: "surface" },
+      { body: "Mun", state: "surface" },
+      true,
+      true,
+      false,
+      0,
+      0,
+      "best",
+    );
+    expect(legs.map((l) => `${l.dv} ${l.label}`)).toEqual([
+      "3400 Launchpad → 80 km orbit",
+      "860 LKO → Mun intercept",
+      "280 Capture → low Mun orbit",
+      "580 Descent to Mun surface",
+      "580 Ascent from Mun surface",
+      "860 Return transfer to Kerbin",
+      "0 Aerobrake at Kerbin (heat shield)",
+    ]);
+    const home = legs.find((l) => l.label.startsWith("Return"))?.window;
+    expect(home, "the return leg carries no window").toBeTruthy();
+    expect(home!.from).toBe("Mun");
+    expect(home!.to).toBe("Kerbin");
+  });
+
+  it("asks nothing of the Sun that the Sun cannot answer", () => {
+    /* `elements` throws for the Sun, which has no orbit, so the dispatch
+       reads parentage from the body table instead. A Kerbol destination
+       used to take the whole app down here. */
+    expect(() => findWindow("Kerbin", "Sun", rK, 1e9, 0, true)).not.toThrow();
+    expect(() => findWindow("Sun", "Kerbin", 1e9, rK, 0, true)).not.toThrow();
+  });
+});
