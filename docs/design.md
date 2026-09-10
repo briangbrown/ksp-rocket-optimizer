@@ -701,7 +701,9 @@ cheapest departure, to keep out of Ike's sphere of influence — it costs
 nothing"_ — and a `warn` `Callout` above them, with the explanation behind
 its `more`, in the rare case it could not clear it at all. Each carries an
 `aria-label` that says what it draws. The two sit side by side where 440 px
-allow and stack below.
+allow and stack below. Since #223 the card appears for a transfer between
+two moons of the same planet as well — Mun → Minmus, Laythe → Tylo — which
+is the same drawing about a different centre.
 
 Each drawing's caption names what it draws and nothing else (#219):
 _"Kerbin ejection angle"_, _"Kerbin and Duna phase angle"_ — the two ends

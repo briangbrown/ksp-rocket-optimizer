@@ -7,6 +7,7 @@ import { Callout, Stat } from "./primitives.jsx";
 import { Porkchop } from "./porkchop.jsx";
 import type { Theme } from "../tokens.js";
 import type { Encounter } from "../../core/encounter.js";
+import { soiAnomaly } from "../../core/transfer.js";
 import type { Window } from "../../core/transfer.js";
 
 /* The transfer, as the pilot flies it: when to leave, where on the parking
@@ -53,6 +54,11 @@ const turn = (up: Pt) => {
   ];
 };
 const deg = (x: number) => `${Math.round(x)}°`;
+/* What the two bodies go round. Kerbol for a planet pair, but Kerbin for
+   Mun → Minmus and Jool for Laythe → Tylo — the drawings are the same
+   drawing about a different centre (#223), and calling it Kerbol there was
+   simply wrong. */
+const centreOf = (w: Window) => bodyLabel(SYS[w.from].parent ?? "Sun");
 const path = (pts: Array<Pt>) =>
   pts
     .map((q, i) => `${i ? "L" : "M"}${q[0].toFixed(1)} ${q[1].toFixed(1)}`)
@@ -338,12 +344,13 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
   if (Math.hypot(sun[0] - burn[0], sun[1] - burn[1]) < 26) sun = sunAt(96);
   /* The hyperbola out of the burn: r = p / (1 + e·cos ν), ν from periapsis
      towards the asymptote, drawn while it fits the box. */
+  /* The path out, from its energy rather than from an excess velocity: a
+     moon's departure can leave below boundary escape, where the excess is
+     zero and this would draw a parabola. #223 */
   const e =
-    1 +
-    (w.rPark * w.vinfOut ** 2) /
-      (SYS[w.from].gee * 9.80665 * SYS[w.from].R ** 2);
+    1 + (w.rPark * w.c3Out) / (SYS[w.from].gee * 9.80665 * SYS[w.from].R ** 2);
   const p = w.rPark * (1 + e);
-  const thInf = Math.acos(-1 / e);
+  const thInf = soiAnomaly(e, w.rPark, w.soi);
   const hyper: Array<Pt> = [];
   for (let i = 0; i <= 60; i++) {
     const nu = ((thInf - 0.02) * i) / 60;
@@ -396,14 +403,14 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
   const taken: Array<Box> = [dot(burn, 10), dot(sun, 5), angleBox, arrowBox];
   const shipName = place("Ship", burn, taken, rays);
   taken.push(shipName.box);
-  const sunName = place("Kerbol", sun, taken, rays, "below");
+  const sunName = place(centreOf(w), sun, taken, rays, "below");
   return (
     <svg
       viewBox={`0 0 ${size} ${size}`}
       width="100%"
       style={{ maxWidth: size, display: "block", color: C.paper }}
       role="img"
-      aria-label={`Leaving ${bodyLabel(w.from)}: the ship on its parking orbit at the burn, ${fmt(w.eject)} m/s at ${deg(w.angle)} from ${w.ref}, the escape leaving towards ${bodyLabel(w.to)}; Kerbol's direction marked.`}
+      aria-label={`Leaving ${bodyLabel(w.from)}: the ship on its parking orbit at the burn, ${fmt(w.eject)} m/s at ${deg(w.angle)} from ${w.ref}, the escape leaving towards ${bodyLabel(w.to)}; ${centreOf(w)}'s direction marked.`}
     >
       <line
         x1={half}
@@ -413,7 +420,12 @@ function Departure({ w, theme }: { w: Window; theme: Theme }) {
         stroke={C.rule}
         strokeDasharray="2 4"
       />
-      <circle cx={sun[0]} cy={sun[1]} r={5} fill={hueFor("Sun", theme)} />
+      <circle
+        cx={sun[0]}
+        cy={sun[1]}
+        r={5}
+        fill={hueFor(SYS[w.from].parent ?? "Sun", theme)}
+      />
       <Trail pts={ring} at={0} color={hue} />
       <circle cx={half} cy={half} r={Rb} fill={hue} fillOpacity={0.9} />
       <Name
@@ -572,7 +584,7 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
   const shipName = put("Ship", ship);
   const fromName = put(bodyLabel(w.from), from);
   const toName = put(bodyLabel(w.to), toArr);
-  const sunName = put("Kerbol", [half, half], "below");
+  const sunName = put(centreOf(w), [half, half], "below");
   const ghostName = put(`${bodyLabel(w.to)} at launch`, toDep);
   return (
     <svg
@@ -580,7 +592,7 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
       width="100%"
       style={{ maxWidth: size, display: "block", color: C.paper }}
       role="img"
-      aria-label={`About Kerbol: ${bodyLabel(w.from)} and ${bodyLabel(w.to)} at departure, ${deg(w.phase)} apart, and the ship at the end of its transfer arc where ${bodyLabel(w.to)} will be on arrival. Distances compressed.`}
+      aria-label={`About ${centreOf(w)}: ${bodyLabel(w.from)} and ${bodyLabel(w.to)} at departure, ${deg(w.phase)} apart, and the ship at the end of its transfer arc where ${bodyLabel(w.to)} will be on arrival. Distances compressed.`}
     >
       <Trail pts={o1.map(P)} at={nearest(o1, w.r1)} color={hue1} />
       <Trail pts={o2.map(P)} at={nearest(o2, w.r2dep)} color={hue2} />
@@ -608,7 +620,12 @@ function Heliocentric({ w, theme }: { w: Window; theme: Theme }) {
         strokeOpacity={0.8}
       />
       <path d={path(arc)} fill="none" stroke={C.dim} strokeDasharray="3 3" />
-      <circle cx={half} cy={half} r={5} fill={hueFor("Sun", theme)} />
+      <circle
+        cx={half}
+        cy={half}
+        r={5}
+        fill={hueFor(SYS[w.from].parent ?? "Sun", theme)}
+      />
       {/* The ghost at launch: a ring filled with the panel, so the lines
           through it stop at its edge (#201). */}
       <circle

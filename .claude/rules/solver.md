@@ -341,3 +341,36 @@ before changing the thing it names.
   finely enough to put three samples across the sphere being looked for. A
   uniform step cannot do this job: Dres's sphere is crossed in under two
   hours on a thousand-day arc. #216
+
+- **A window is priced from energy, not from an excess velocity, and that is
+  what lets a moon have one.** `c3Of` in `transfer.ts` returns the square of
+  the speed relative to the body at its sphere of influence less the well
+  still owed — signed, deliberately. For a planet it is a small positive
+  correction and the old `atInfinity` floor at zero never fired. For a moon
+  it dominates: the Mun's sphere is a fifth of its orbit, its boundary
+  escape 232 m/s, and a Mun → Minmus departure leaves _below_ that. Flooring
+  the excess at zero collapsed every moon ejection to bare escape — 231 m/s,
+  which is `sqrt(2μ/r) − v_circ` and has nothing to do with the window. The
+  real figure is 214. A negative energy is not an error: it is a bound
+  ellipse that leaves anyway, because the sphere is a boundary the game
+  enforces and not a well the ship has to out-climb.
+
+  Two things follow. `injectC3` replaces `inject` wherever a window's energy
+  is spent, in `orbits.ts` as well; with c3 = v∞² it is the same expression,
+  so every route without a start time is byte-identical and `routes.txt` and
+  the mission sweep cannot move. And the departure's geometry needs an angle
+  where the asymptote has none: `soiAnomaly` returns `acos(−1/e)` while
+  `e > 1`, which is the model every launch-window tool shares and the one our
+  planetary numbers were checked against, and the sphere crossing below it.
+  Keeping the asymptote where it exists is what holds every planetary window
+  fixed — swapping to the crossing everywhere moved Jool's ejection by 8 m/s
+  and its normal component by 118, because near e = 1 the plane turn is
+  sharply sensitive to that angle. `test/transfer.test.ts` pins Kerbin → Duna
+  to six decimals for exactly this reason. #223
+
+- **`transferDv` asks for a window whenever the two chains share a primary,
+  not only at the Sun.** Mun → Minmus is the same problem about Kerbin that
+  Kerbin → Duna is about the Sun. A departure from the primary itself —
+  Kerbin → Mun — is a _different_ problem, with no ejection hyperbola and
+  both bodies in one frame, and still has no window: `up` is empty for it.
+  That half is #223's second stage. #223

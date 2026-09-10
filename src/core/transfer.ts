@@ -39,7 +39,13 @@ type Window = {
   depart: number;
   tof: number;
   arrive: number;
-  /* Hyperbolic excess at each end, m/s. */
+  /* The characteristic energy at each end, m²/s²: the speed relative to the
+     body at its sphere of influence, squared, less the well still owed. Not
+     an excess velocity, because for a moon it goes negative — see `c3Of`.
+     `vinfOut`/`vinfIn` are its square root where one exists and zero where
+     it does not, kept because the route prices its Hohmann legs on them. */
+  c3Out: number;
+  c3In: number;
   vinfOut: number;
   vinfIn: number;
   /* The burns, m/s: from the parking orbit, the mid-course plane change if
@@ -126,42 +132,84 @@ type Grid = {
   totals: Array<number>;
 };
 
-/* Burn from a circular orbit of speed v to leave with excess vinf, or the
-   reverse. The route's own `inject`, repeated here so core/transfer does
-   not import core/orbits, which imports it. */
-const inject = (v: number, vinf: number) =>
-  Math.sqrt(2 * v * v + vinf * vinf) - v;
+/* Burn from a circular orbit of speed v onto a path of characteristic
+   energy `c3`, or the reverse. The route's own `inject` written in energy
+   rather than in excess velocity, which is the same number wherever the
+   excess exists and is defined where it does not — see `c3Of`. */
+const injectC3 = (v: number, c3: number) =>
+  Math.sqrt(Math.max(0, 2 * v * v + c3)) - v;
 
-/* The ejection from a circular equatorial parking orbit of radius r about
-   a body of parameter mu, to leave with the excess vector vinf. The
-   hyperbola's periapsis is the burn, so its plane and the parking orbit's
-   share the burn's radius and differ by a turn i about it; the asymptote,
-   θ∞ past periapsis in that plane, then rises sin θ∞ · sin i out of the
-   equator, which is where the excess's own elevation fixes i. The burn is
-   the periapsis velocity turned by i less the parking velocity: a prograde
-   part and a normal part, and the resultant the route charges. */
-function ejection(vrel: Vec3, vm: number, mu: number, r: number) {
+const clamp1 = (x: number) => Math.max(-1, Math.min(1, x));
+
+/* The characteristic energy the ship leaves the sphere of influence with:
+   the square of its speed relative to the body there, less what it still
+   owes the body's well. The Lambert arc's velocity relative to the body is
+   the ship's at the sphere's edge, not at infinity — the game switches
+   frames there — and between the edge and infinity there is 2μ/r_soi to
+   climb. Ignoring that overstated Kerbin's ejection by 12 m/s and Eve's
+   capture by 20 against alexmoon's planner, at the same cell.
+
+   Signed, and that is the point. For a planet the term is small — Kerbin's
+   boundary escape speed is 290 m/s against departures over 1,000 — and the
+   energy is comfortably positive. For a moon it dominates: the Mun's sphere
+   is a fifth of its orbit, its boundary escape speed 232 m/s, and a
+   Mun → Minmus departure leaves *below* it. That is not an error to floor
+   at zero; it is a ship on a bound ellipse which leaves anyway, because the
+   sphere is where the game hands it over and not a place the ship has to
+   out-climb. Taking the square root here and flooring it at zero was what
+   collapsed every moon ejection to bare escape velocity. #223 */
+const c3Of = (vrel: number, mu: number, rSoi: number) =>
+  vrel * vrel - (2 * mu) / rSoi;
+
+/* The departure from a circular equatorial parking orbit of radius r about
+   a body of parameter mu, onto a path of energy c3 leaving the sphere
+   `rSoi` in the direction `vrel`.
+
+   The path's periapsis is the burn, so its plane and the parking orbit's
+   share the burn's radius and differ by a turn i about it; the point where
+   it crosses the sphere, ν_out past periapsis in that plane, then rises
+   sin ν_out · sin i out of the equator, which is where the direction's own
+   elevation fixes i. The burn is the periapsis velocity turned by i less
+   the parking velocity: a prograde part and a normal part, and the
+   resultant the card shows.
+
+   ν_out is the asymptote wherever the path has one, so every planetary
+   number is exactly what it was; it becomes the sphere crossing only on the
+   negative-energy branch, which only a moon reaches. `soiAnomaly` has the
+   reasoning. */
+function ejection(vrel: Vec3, c3: number, mu: number, r: number, rSoi: number) {
   const vc = Math.sqrt(mu / r);
-  const vpe = Math.sqrt(vm * vm + (2 * mu) / r);
-  const e = 1 + (r * vm * vm) / mu;
-  const thInf = Math.acos(-1 / e);
-  const clamp = (x: number) => Math.max(-1, Math.min(1, x));
+  const vpe = Math.sqrt(Math.max(0, c3 + (2 * mu) / r));
+  const e = 1 + (r * c3) / mu;
+  const nuOut = soiAnomaly(e, r, rSoi);
   const vr = norm(vrel);
-  const el = Math.asin(clamp(vr > 0 ? vrel[2] / vr : 0));
-  const i = Math.asin(clamp(Math.sin(el) / Math.sin(thInf)));
+  const el = Math.asin(clamp1(vr > 0 ? vrel[2] / vr : 0));
+  const sn = Math.sin(nuOut);
+  const i = Math.asin(clamp1(sn > 1e-9 ? Math.sin(el) / sn : 0));
   const pro = vpe * Math.cos(i) - vc;
   const nor = vpe * Math.sin(i);
   return { dv: Math.hypot(pro, nor), pro, nor };
 }
 
-/* The excess at infinity from the relative velocity where the patch is
-   made. The Lambert arc's velocity relative to the body is the ship's at
-   the sphere of influence's edge, not at infinity — the game switches
-   frames there — and between the edge and infinity there is still 2μ/r_soi
-   of potential to climb. Ignoring it overstated Kerbin's ejection by 12 m/s
-   and Eve's capture by 20 against alexmoon's planner, at the same cell. */
-const atInfinity = (vrel: number, mu: number, rSoi: number) =>
-  Math.sqrt(Math.max(0, vrel * vrel - (2 * mu) / rSoi));
+/* How far past periapsis the ship is heading when it leaves.
+
+   For a hyperbola that is the asymptote, acos(−1/e): the patched conic
+   treats the sphere of influence as a point and the ship as leaving along
+   the asymptote with its excess, which is the model every launch-window
+   tool shares and the one our planetary numbers were checked against.
+
+   A path of negative energy has no asymptote — it is an ellipse, and it
+   leaves the sphere because the sphere is a boundary the game enforces, not
+   because the ship out-climbed the well. There the angle is where the conic
+   actually crosses `rSoi`, which is the nearest thing to an asymptote such a
+   path has. Only moons reach that branch: it needs the sphere to be a large
+   enough share of the orbit for the departure to sit below boundary escape,
+   and no planet's is. #223 */
+function soiAnomaly(e: number, r: number, rSoi: number) {
+  if (e > 1) return Math.acos(-1 / e);
+  const p = r * (1 + e);
+  return Math.acos(clamp1(Math.abs(e) > 1e-12 ? (p / rSoi - 1) / e : 1));
+}
 
 const xy = (a: Vec3): [number, number] => [a[0], a[1]];
 const unit2 = (a: [number, number]): [number, number] => {
@@ -212,8 +260,8 @@ function goldenMin(f: (x: number) => number, lo: number, hi: number) {
 
 type Cell = {
   total: number;
-  vinfOut: number;
-  vinfIn: number;
+  c3Out: number;
+  c3In: number;
   eject: number;
   ejectPro: number;
   ejectNor: number;
@@ -253,14 +301,14 @@ function price(
   if (type !== "plane") {
     const l = lambert(m, s1.r, s2.r, tof);
     if (l) {
-      const vinfOut = atInfinity(norm(sub(l.v1, s1.v)), mu1, soi1);
-      const vinfIn = atInfinity(norm(sub(l.v2, s2.v)), mu2, soi2);
-      const ej = ejection(sub(l.v1, s1.v), vinfOut, mu1, rPark1);
-      const cap = capture ? inject(vc2, vinfIn) : 0;
+      const c3Out = c3Of(norm(sub(l.v1, s1.v)), mu1, soi1);
+      const c3In = c3Of(norm(sub(l.v2, s2.v)), mu2, soi2);
+      const ej = ejection(sub(l.v1, s1.v), c3Out, mu1, rPark1, soi1);
+      const cap = capture ? injectC3(vc2, c3In) : 0;
       best = {
         total: ej.dv + cap,
-        vinfOut,
-        vinfIn,
+        c3Out,
+        c3In,
         eject: ej.dv,
         ejectPro: ej.pro,
         ejectNor: ej.nor,
@@ -326,16 +374,16 @@ function price(
          about the burn's radius, which is what the burn does. */
       const rB = unit(rotate(unit(ev), hn, nuB));
       const v2 = rotate(l.v2, rB, off >= 0 ? tilt(dnu) : -tilt(dnu));
-      const vinfOut = atInfinity(norm(sub(l.v1, s1.v)), mu1, soi1);
-      const vinfIn = atInfinity(norm(sub(v2, s2.v)), mu2, soi2);
-      const ej = ejection(sub(l.v1, s1.v), vinfOut, mu1, rPark1);
-      const cap = capture ? inject(vc2, vinfIn) : 0;
+      const c3Out = c3Of(norm(sub(l.v1, s1.v)), mu1, soi1);
+      const c3In = c3Of(norm(sub(v2, s2.v)), mu2, soi2);
+      const ej = ejection(sub(l.v1, s1.v), c3Out, mu1, rPark1, soi1);
+      const cap = capture ? injectC3(vc2, c3In) : 0;
       const total = ej.dv + g.f + cap;
       if (!best || total < best.total)
         best = {
           total,
-          vinfOut,
-          vinfIn,
+          c3Out,
+          c3In,
           eject: ej.dv,
           ejectPro: ej.pro,
           ejectNor: ej.nor,
@@ -626,8 +674,8 @@ function search(
      say it. */
   const vinf = sub(c.v1, c.s1.v);
   const u = unit2(xy(vinf));
-  const eh = 1 + (rPark1 * c.vinfOut ** 2) / mu(from);
-  const thInf = Math.acos(-1 / eh);
+  const eh = 1 + (rPark1 * c.c3Out) / mu(from);
+  const thInf = soiAnomaly(eh, rPark1, soi1);
   const burnDir = rot2(u, -thInf);
   const vDir = unit2(xy(c.s1.v));
   const out = u[0] * vDir[0] + u[1] * vDir[1] >= 0;
@@ -654,8 +702,10 @@ function search(
     depart,
     tof,
     arrive: depart + tof,
-    vinfOut: c.vinfOut,
-    vinfIn: c.vinfIn,
+    c3Out: c.c3Out,
+    c3In: c.c3In,
+    vinfOut: Math.sqrt(Math.max(0, c.c3Out)),
+    vinfIn: Math.sqrt(Math.max(0, c.c3In)),
     eject: c.eject,
     ejectPro: c.ejectPro,
     ejectNor: c.ejectNor,
@@ -701,6 +751,6 @@ function search(
    whichever is less. */
 type TransferType = "ballistic" | "plane" | "best";
 
-export { findWindow, price, priceColumns };
+export { findWindow, price, priceColumns, soiAnomaly };
 export type { Grid, TransferType };
 export type { Window };
