@@ -702,9 +702,13 @@ function Raise({ w, theme }: { w: Window; theme: Theme }) {
   const moonDep = P(w.r2dep),
     moonArr = P(w.r2);
   const trail = w.arc.map(P);
-  const last = trail[trail.length - 1],
-    prev = trail[trail.length - 2] ?? burn;
-  const heading: Pt = [last[0] - prev[0], last[1] - prev[1]];
+  /* The ship sits at the burn, so it is headed the way the arc *leaves* —
+     the first step of the trail, not the last. Taking the last put it nose
+     down towards the planet, pointing back along the way it had come. */
+  const heading: Pt = [
+    (trail[1]?.[0] ?? burn[0]) - trail[0][0],
+    (trail[1]?.[1] ?? burn[1]) - trail[0][1],
+  ];
   /* The phase arc inside the parking orbit. */
   const ra = Math.max(9, Math.min(20, rp * 0.5));
   const arc: Array<Pt> = [];
