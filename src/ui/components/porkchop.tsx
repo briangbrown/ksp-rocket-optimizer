@@ -4,7 +4,8 @@ import { LUT, cetL08, stopsOf, uOf } from "../cet.js";
 import { bodyLabel, fmt, kerbalDayLabel } from "../format.js";
 import { C, SPACE, cssOf } from "../tokens.js";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import type { Window } from "../../core/transfer.js";
+import { priceColumns } from "../../core/transfer.js";
+import type { Grid, Window } from "../../core/transfer.js";
 
 /* The Δv transfer plot (#213): the porkchop every launch-window tool draws,
    in the row with the transfer drawings — beside them where the row has
@@ -13,12 +14,13 @@ import type { Window } from "../../core/transfer.js";
    chosen marked on it — so the reader sees the valley the window sits in,
    how wide it is, and what leaving a week late costs.
 
-   The grid is the search's own: `findWindow` prices 94 departures by 41
-   flight times over two synodic periods and keeps them on the window as
-   plain numbers. That is 20 days by 11 for Duna, a cell every four pixels
-   or so at this width, and the picture is read between cells bilinearly;
-   the ridge of near-180° transfers comes out as the jagged yellow wall it
-   is in every such plot. The colours are CET-L08 (`cet.ts`), blue at the
+   The grid starts as the search's own: `findWindow` prices 94 departures
+   by 41 flight times over two synodic periods and keeps them on the window
+   as plain numbers, and the picture is read between cells bilinearly. That
+   is 20 days by 11 for Duna, and the card then prices the same span three
+   times finer each way for the plot alone (`useFiner`), a slice at a time,
+   so the ridge of near-180° transfers is the line it is rather than a
+   wall. The colours are CET-L08 (`cet.ts`), blue at the
    cheapest cell and yellow at the dearest, log between, on a `<canvas>`
    painted from one `ImageData`; the axes, the scale bar and the markers are SVG over it
    in the page's tokens, since a name in a drawing is the `note` role in
@@ -50,7 +52,91 @@ const widthOf = (text: string) => 6.9 * text.length + 4;
 /* The five values the scale bar names. */
 const SCALE_STOPS = 5;
 
-type Plot = Window["plot"];
+type Plot = Grid;
+
+/* The finer pass: the search's grid three times finer each way, priced in
+   the card a run of columns at a time — twelve milliseconds of pricing,
+   a paint, the next run — so the coarse picture shows at once and
+   sharpens left to right. At the search's 20 days by 11 for Duna the
+   ridge of near-180° transfers smeared into walls forty days wide; at 7
+   by 4 it is the line it is. The grid starts as the coarse one read
+   between cells, so an unpriced column is never a gap. Kept by key across
+   mounts: folding the section and opening it again costs nothing. */
+const FINE = 3;
+const SLICE_MS = 12;
+const fineCache = new Map<string, Plot>();
+const keyOf = (g: Grid) =>
+  [g.from, g.to, g.rPark1, g.rPark2, g.capture, g.asked, g.t0].join("|");
+
+/* The finer grid's frame: the same span, `FINE` cells to every one. */
+function finerOf(g: Grid): Plot {
+  const nt = (g.nt - 1) * FINE + 1,
+    nf = (g.nf - 1) * FINE + 1;
+  const totals: Array<number> = new Array(nt * nf);
+  for (let i = 0; i < nt; i++)
+    for (let j = 0; j < nf; j++)
+      totals[i * nf + j] = Math.round(
+        readGrid(g, dearestOf(g), i / FINE, j / FINE),
+      );
+  return { ...g, step: g.step / FINE, nt, nf, totals };
+}
+
+const dearestOf = (g: Grid) => {
+  let hi = 0;
+  for (const v of g.totals) if (v > hi) hi = v;
+  return hi;
+};
+
+/* The finer grid for the window's search, priced as the effect runs and
+   handed over as it fills; `done` once every column is priced. */
+function useFiner(g: Grid, wanted: boolean) {
+  const key = keyOf(g);
+  const [state, setState] = useState<{
+    key: string;
+    plot: Plot;
+    done: boolean;
+  }>(() => {
+    const hit = fineCache.get(key);
+    return hit ? { key, plot: hit, done: true } : { key, plot: g, done: false };
+  });
+  useEffect(() => {
+    const hit = fineCache.get(key);
+    if (hit) {
+      setState({ key, plot: hit, done: true });
+      return;
+    }
+    if (!wanted) {
+      setState({ key, plot: g, done: false });
+      return;
+    }
+    const fine = finerOf(g);
+    const totals = fine.totals;
+    let i = 0;
+    let cancelled = false;
+    let timer = 0;
+    const run = () => {
+      if (cancelled) return;
+      const t = performance.now();
+      while (i < fine.nt && performance.now() - t < SLICE_MS) {
+        const i1 = Math.min(fine.nt, i + 2);
+        const cols = priceColumns(fine, i, i1);
+        for (let k = 0; k < cols.length; k++) totals[i * fine.nf + k] = cols[k];
+        i = i1;
+      }
+      const done = i >= fine.nt;
+      const plot = { ...fine, totals: totals.slice() };
+      if (done) fineCache.set(key, plot);
+      setState({ key, plot, done });
+      if (!done) timer = window.setTimeout(run, 0);
+    };
+    timer = window.setTimeout(run, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [key, g, wanted]);
+  return state.key === key ? state : { key, plot: g, done: false };
+}
 
 /* The grid read between cells: bilinear on the four about (gx, gy) in cell
    units, with an unsolved cell counting as the dearest. */
@@ -92,9 +178,15 @@ const niceStep = (span: number, want: number) =>
 type Reading = { t: number; tof: number; dv: number };
 
 function Porkchop({ w }: { w: Window }) {
-  const p = w.plot;
+  /* The picture is the finer grid where there is a canvas to paint it on;
+     jsdom has none, and there the coarse one is what the reading reads. */
+  const finer = useFiner(
+    w.plot,
+    typeof CanvasRenderingContext2D !== "undefined",
+  );
+  const p = finer.plot;
   const tSpan = (p.nt - 1) * p.step;
-  const { lo, hi } = rangeOf(p, w);
+  const { lo, hi } = rangeOf(w.plot, w);
   const cap = hi;
   const scale = stopsOf(lo, hi, SCALE_STOPS);
   const MR =
@@ -175,8 +267,8 @@ function Porkchop({ w }: { w: Window }) {
 
   /* Ticks: dates along the bottom at a round number of days, flight days
      up the side the same. */
-  /* A date label is about 45 px; one every 55 keeps them apart. */
-  const dayStep = niceStep(tSpan / DAY, Math.max(3, Math.floor(aw / 55)));
+  /* A date label is about 45 px; one every 50 keeps them apart. */
+  const dayStep = niceStep(tSpan / DAY, Math.max(3, Math.floor(aw / 50)));
   const xTicks: Array<number> = [];
   for (
     let k = Math.ceil(p.t0 / (dayStep * DAY));
@@ -226,6 +318,7 @@ function Porkchop({ w }: { w: Window }) {
         role="img"
         aria-label={label}
         data-plot={`${w.from}-${w.to}`}
+        data-fine={finer.done ? "done" : "pricing"}
         style={{ position: "relative", width: "100%" }}
       >
         <canvas

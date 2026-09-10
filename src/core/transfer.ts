@@ -85,15 +85,28 @@ type Window = {
      `fHi` up the rows, and the total of every cell in whole m/s at
      `totals[i * nf + j]`, −1 where no arc solved. Plain numbers, so it
      crosses the seam with the rest. */
-  plot: {
-    t0: number;
-    step: number;
-    fLo: number;
-    fHi: number;
-    nt: number;
-    nf: number;
-    totals: Array<number>;
-  };
+  plot: Grid;
+};
+
+/* A porkchop grid: `nt` departures from `t0` at `step` apart along the
+   columns, `nf` flight times from `fLo` to `fHi` up the rows, the total of
+   every cell at `totals[i * nf + j]`. With it, what pricing one takes — the
+   far parking orbit, whether a capture is charged, the transfer type asked
+   for — so the card can price the same span finer for the plot alone. */
+type Grid = {
+  from: string;
+  to: string;
+  rPark1: number;
+  rPark2: number;
+  capture: boolean;
+  asked: "ballistic" | "plane" | "best";
+  t0: number;
+  step: number;
+  fLo: number;
+  fHi: number;
+  nt: number;
+  nf: number;
+  totals: Array<number>;
 };
 
 /* Burn from a circular orbit of speed v to leave with excess vinf, or the
@@ -370,6 +383,58 @@ function findWindow(
   return w;
 }
 
+/* The two bodies' constants a cell needs: the primary's parameter, each
+   body's, the spheres of influence, and the far parking orbit's speed. */
+function system(from: string, to: string, rPark2: number) {
+  const o1 = elements(from),
+    o2 = elements(to);
+  if (o1.parent !== o2.parent) return null;
+  const m = o1.mu;
+  const mu1 = mu(from),
+    mu2 = mu(to);
+  return {
+    o1,
+    o2,
+    m,
+    mu1,
+    mu2,
+    vc2: Math.sqrt(mu2 / rPark2),
+    soi1: o1.a * Math.pow(mu1 / m, 0.4),
+    soi2: o2.a * Math.pow(mu2 / m, 0.4),
+  };
+}
+
+/* The plot's finer pass (#213): columns [i0, i1) of the grid `g` priced —
+   the cells at `g`'s own spacing, whatever that is — column-major, −1
+   where no arc solved. A run at a time, so the card can paint between
+   runs: a cell is about five microseconds, and a grid three times finer
+   than the search's each way is thirty-five thousand of them. */
+function priceColumns(g: Grid, i0: number, i1: number): Array<number> {
+  const sys = system(g.from, g.to, g.rPark2);
+  const out: Array<number> = new Array(Math.max(0, i1 - i0) * g.nf).fill(-1);
+  if (!sys) return out;
+  for (let i = i0; i < i1; i++)
+    for (let j = 0; j < g.nf; j++) {
+      const c = price(
+        g.from,
+        g.to,
+        sys.m,
+        sys.mu1,
+        g.rPark1,
+        sys.soi1,
+        sys.mu2,
+        sys.soi2,
+        sys.vc2,
+        g.t0 + i * g.step,
+        g.fLo + ((g.fHi - g.fLo) * j) / (g.nf - 1),
+        g.capture,
+        g.asked,
+      );
+      if (c) out[(i - i0) * g.nf + j] = Math.round(c.total);
+    }
+  return out;
+}
+
 function search(
   from: string,
   to: string,
@@ -379,15 +444,9 @@ function search(
   capture: boolean,
   type: "ballistic" | "plane" | "best",
 ): Window | null {
-  const o1 = elements(from),
-    o2 = elements(to);
-  if (o1.parent !== o2.parent) return null;
-  const m = o1.mu;
-  const mu1 = mu(from),
-    mu2 = mu(to);
-  const vc2 = Math.sqrt(mu2 / rPark2);
-  const soi1 = o1.a * Math.pow(mu1 / m, 0.4),
-    soi2 = o2.a * Math.pow(mu2 / m, 0.4);
+  const sys = system(from, to, rPark2);
+  if (!sys) return null;
+  const { o1, o2, m, mu1, mu2, vc2, soi1, soi2 } = sys;
   const T1 = periodOf(from),
     T2 = periodOf(to);
   const synodic = 1 / Math.abs(1 / T1 - 1 / T2);
@@ -550,7 +609,21 @@ function search(
     soi,
     rPark: rPark1,
     next,
-    plot: { t0, step, fLo, fHi, nt, nf, totals },
+    plot: {
+      from,
+      to,
+      rPark1,
+      rPark2,
+      capture,
+      asked: type,
+      t0,
+      step,
+      fLo,
+      fHi,
+      nt,
+      nf,
+      totals,
+    },
   };
 }
 
@@ -560,6 +633,6 @@ function search(
    whichever is less. */
 type TransferType = "ballistic" | "plane" | "best";
 
-export { findWindow, price };
-export type { TransferType };
+export { findWindow, price, priceColumns };
+export type { Grid, TransferType };
 export type { Window };

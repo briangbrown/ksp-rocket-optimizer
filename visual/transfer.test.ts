@@ -144,6 +144,15 @@ describe("the transfer drawings", () => {
      cheapest. jsdom paints no canvas, so the pixels are checked here. */
   it("paints the Δv plot, blue at the window, the scale climbing", async () => {
     await toFly(await toLink(config("Kerbin", "Duna")));
+    /* The finer pass prices in slices after the first paint; read the
+       picture once every column is in. */
+    await page.waitForFunction(
+      () =>
+        [...document.querySelectorAll("#fly [data-plot]")].every(
+          (el) => el.getAttribute("data-fine") === "done",
+        ),
+      { timeout: 60_000, polling: 100 },
+    );
     const r = await page.evaluate(() => {
       const plots = [...document.querySelectorAll("#fly [data-plot]")];
       return plots.map((plot) => {

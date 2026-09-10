@@ -704,9 +704,13 @@ numbers (#213): departure
 date along the bottom, days of flight up the side, the total Δv of every
 cell as colour, the window chosen marked with a crosshair and a filled
 diamond and its total beside it, a cheaper later window (#199) as a hollow
-diamond. The grid is the search's own — `findWindow` keeps its 94 × 41
-cells on the `Window` as `plot` — read between cells bilinearly and painted
-into a `<canvas>` from one `ImageData`. The colours are **CET-L08** from
+diamond. The grid starts as the search's own — `findWindow` keeps its
+94 × 41 cells on the `Window` as `plot` — read between cells bilinearly and
+painted into a `<canvas>` from one `ImageData`; the card then prices the
+same span three times finer each way for the plot alone (`priceColumns` in
+`core/transfer.ts`), twelve milliseconds of columns at a time between
+paints, so the coarse picture shows at once and sharpens left to right, and
+`data-fine` says when it is done. Kept by key across mounts. The colours are **CET-L08** from
 colorcet.com (`src/data/cet-l08.json`, `src/ui/cet.ts`): the map's blue end
 at the cheapest total, its yellow end at the dearest, and log between — a
 step in colour is a ratio in Δv, so the valley keeps a quarter of the ramp

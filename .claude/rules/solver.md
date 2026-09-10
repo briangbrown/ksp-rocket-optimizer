@@ -308,3 +308,9 @@ before changing the thing it names.
   ejection and capture ran 1–2% over alexmoon's planner at the same cell
   (12 m/s at Kerbin, 20 at Eve); with it, nine of his selected transfers
   agree to the metre per second, ejection inclination included.
+  The search's coarse grid rides on the window as `plot` for the Δv plot
+  (#213), with what pricing it took, and `priceColumns` prices any run of
+  columns of a grid at that grid's own spacing — the card asks for the same
+  span three times finer, a slice at a time. At the search's spacing it
+  returns the search's totals to the bit, which `test/transfer.test.ts`
+  holds; the search itself did not move.

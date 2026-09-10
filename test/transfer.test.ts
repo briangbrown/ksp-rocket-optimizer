@@ -11,7 +11,7 @@ import {
   utOf,
 } from "../src/core/kepler.js";
 import { lambert } from "../src/core/lambert.js";
-import { findWindow } from "../src/core/transfer.js";
+import { findWindow, priceColumns } from "../src/core/transfer.js";
 import { routeFor } from "../src/core/orbits.js";
 
 /* The transfer window (#197): an ephemeris on the stock elements, a Lambert
@@ -317,6 +317,23 @@ describe("the plot", () => {
     expect(p.totals[best]).toBeLessThan(1.1 * w!.total);
     /* And it crosses the seam as it is. */
     expect(JSON.parse(JSON.stringify(w))).toEqual(w);
+  });
+  it("prices the same cells again, to the number, a run of columns at a time", () => {
+    /* The card's finer pass: at the search's own spacing it is the search. */
+    const w = findWindow("Kerbin", "Duna", rK, rD, 0, true)!;
+    const p = w.plot;
+    const again = [
+      ...priceColumns(p, 0, 5),
+      ...priceColumns(p, 5, 60),
+      ...priceColumns(p, 60, p.nt),
+    ];
+    expect(again).toEqual(p.totals);
+    /* Three times finer: the same span, every third column the old one. */
+    const fine = { ...p, step: p.step / 3, nt: (p.nt - 1) * 3 + 1 };
+    const cols = priceColumns(fine, 0, 4);
+    expect(cols.length).toBe(4 * p.nf);
+    expect(cols.slice(0, p.nf)).toEqual(p.totals.slice(0, p.nf));
+    expect(cols.slice(3 * p.nf)).toEqual(p.totals.slice(p.nf, 2 * p.nf));
   });
   it("places the cheaper later window on the grid too", () => {
     const w = findWindow("Kerbin", "Moho", rK, 280_000, 0, true);
