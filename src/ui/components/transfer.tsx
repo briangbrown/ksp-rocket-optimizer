@@ -670,11 +670,13 @@ function TransferPanel({
             compressed
           </div>
         </div>
+        {/* The valley the window sits in: the search's own grid as a
+            picture, the window marked on it, and the cheaper one after it
+            where there is one. A third item in the row — beside the
+            drawings where the row has 320 px to spare, under them where
+            it has not. #213 */}
+        <Porkchop w={w} />
       </div>
-      {/* The valley the window sits in, between the drawings and the
-          numbers: the search's own grid as a picture, the window marked on
-          it, and the cheaper one after it where there is one. #213 */}
-      <Porkchop w={w} />
       <div
         style={{
           display: "grid",

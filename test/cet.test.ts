@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CAP, LUT, capOf, cetL08, colourOf, cssRamp } from "../src/ui/cet.js";
+import { LUT, cetL08, colourOf, cssRamp, stopsOf, uOf } from "../src/ui/cet.js";
 
 /* The Δv plot's colours (#213): CET-L08 from colorcet.com, end to end. The
    table is the download's, byte for byte at both ends; the scale puts the
@@ -24,14 +24,21 @@ describe("CET-L08", () => {
       prev = y;
     }
   });
-  it("puts the minimum at the first entry and the cap at the last", () => {
-    const lo = 1697;
-    expect(CAP).toBe(4);
-    expect(capOf(lo)).toBe(4 * lo);
-    expect(colourOf(lo, lo)).toEqual(LUT[0]);
-    expect(colourOf(capOf(lo), lo)).toEqual(LUT[255]);
-    expect(colourOf(20 * lo, lo)).toEqual(LUT[255]);
-    expect(colourOf((lo + capOf(lo)) / 2, lo)).toEqual(LUT[128]);
+  it("puts the cheapest at the first entry and the dearest at the last, log between", () => {
+    const lo = 1666,
+      hi = 16 * lo;
+    expect(colourOf(lo, lo, hi)).toEqual(LUT[0]);
+    expect(colourOf(hi, lo, hi)).toEqual(LUT[255]);
+    expect(colourOf(lo / 2, lo, hi)).toEqual(LUT[0]);
+    /* Log: four times the cheapest is halfway up a sixteen-fold scale. */
+    expect(uOf(4 * lo, lo, hi)).toBeCloseTo(0.5, 10);
+    expect(colourOf(4 * lo, lo, hi)).toEqual(LUT[128]);
+    /* A flat grid is all blue rather than a division by zero. */
+    expect(uOf(lo, lo, lo)).toBe(0);
+    /* The scale bar's values are geometric. */
+    expect(stopsOf(lo, hi, 5).map((v) => Math.round(v))).toEqual([
+      1666, 3332, 6664, 13328, 26656,
+    ]);
   });
   it("writes the ramp as CSS, bottom to top", () => {
     const css = cssRamp(3);

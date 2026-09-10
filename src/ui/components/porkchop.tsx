@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { DAY } from "../../core/kepler.js";
-import { LUT, capOf, cetL08 } from "../cet.js";
+import { LUT, cetL08, stopsOf, uOf } from "../cet.js";
 import { bodyLabel, fmt, kerbalDayLabel } from "../format.js";
 import { C, SPACE, cssOf } from "../tokens.js";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { Window } from "../../core/transfer.js";
 
 /* The Δv transfer plot (#213): the porkchop every launch-window tool draws,
-   under the transfer drawings and above the numbers. Departure date along the bottom, time of
+   in the row with the transfer drawings — beside them where the row has
+   320 px to spare, under them where it has not — and above the numbers. Departure date along the bottom, time of
    flight up the side, the total Δv of every cell as colour, and the window
    chosen marked on it — so the reader sees the valley the window sits in,
    how wide it is, and what leaving a week late costs.
@@ -18,8 +19,8 @@ import type { Window } from "../../core/transfer.js";
    or so at this width, and the picture is read between cells bilinearly;
    the ridge of near-180° transfers comes out as the jagged yellow wall it
    is in every such plot. The colours are CET-L08 (`cet.ts`), blue at the
-   cheapest cell and yellow at four times it, on a `<canvas>` painted from
-   one `ImageData`; the axes, the scale bar and the markers are SVG over it
+   cheapest cell and yellow at the dearest, log between, on a `<canvas>`
+   painted from one `ImageData`; the axes, the scale bar and the markers are SVG over it
    in the page's tokens, since a name in a drawing is the `note` role in
    `C.dim`, as everywhere. jsdom has no canvas: the effect that paints it
    asks for `CanvasRenderingContext2D` first and leaves the overlay to say
@@ -31,22 +32,28 @@ import type { Window } from "../../core/transfer.js";
    card do. `touch-action: pan-y` keeps the page scrolling under a finger
    that lands on it; a drag across reads, a drag up or down scrolls. */
 
-/* Under the two drawings, at their combined width. */
+/* At most the two drawings and their gap: what it takes under them. */
 const FULL = 2 * 220 + SPACE.lg;
-/* Margins: the flight-day labels and their title on the left, the scale
-   bar and its five values on the right, the "m/s" over the bar, the date
-   labels and their title under. */
+/* Margins: the flight-day labels and their title on the left, the "m/s"
+   over the scale bar, the date labels and their title under. The right
+   margin is the bar and its longest value, measured below. */
 const ML = 42,
-  MR = 68,
   MT = 18,
   MB = 36;
+/* The bar's stand-off from the frame, its width, and its labels' gap. */
+const BAR_GAP = 16,
+  BAR_W = 12,
+  LABEL_GAP = 7;
+/* A note-role glyph is about seven pixels wide (`transfer.tsx` measured
+   it); a value's label is that by its length. */
+const widthOf = (text: string) => 6.9 * text.length + 4;
 /* The five values the scale bar names. */
 const SCALE_STOPS = 5;
 
 type Plot = Window["plot"];
 
 /* The grid read between cells: bilinear on the four about (gx, gy) in cell
-   units, with an unsolved cell counting as the cap. */
+   units, with an unsolved cell counting as the dearest. */
 function readGrid(p: Plot, cap: number, gx: number, gy: number) {
   const i0 = Math.max(0, Math.min(p.nt - 1, Math.floor(gx))),
     j0 = Math.max(0, Math.min(p.nf - 1, Math.floor(gy)));
@@ -64,12 +71,17 @@ function readGrid(p: Plot, cap: number, gx: number, gy: number) {
   );
 }
 
-/* The cheapest solved cell, and the scale's bottom: the window's own total
-   where the refinement found lower than any cell. */
-function floorOf(p: Plot, w: Window) {
-  let lo = w.total;
-  for (const v of p.totals) if (v > 0 && v < lo) lo = v;
-  return lo;
+/* The scale's ends: the cheapest solved cell — or the window's own total
+   where the refinement found lower than any cell — and the dearest. */
+function rangeOf(p: Plot, w: Window) {
+  let lo = w.total,
+    hi = w.total;
+  for (const v of p.totals) {
+    if (v <= 0) continue;
+    if (v < lo) lo = v;
+    if (v > hi) hi = v;
+  }
+  return { lo, hi: Math.max(hi, lo * 1.01) };
 }
 
 /* A round step that puts about `want` ticks across `span`. */
@@ -82,8 +94,14 @@ type Reading = { t: number; tof: number; dv: number };
 function Porkchop({ w }: { w: Window }) {
   const p = w.plot;
   const tSpan = (p.nt - 1) * p.step;
-  const lo = floorOf(p, w);
-  const cap = capOf(lo);
+  const { lo, hi } = rangeOf(p, w);
+  const cap = hi;
+  const scale = stopsOf(lo, hi, SCALE_STOPS);
+  const MR =
+    BAR_GAP +
+    BAR_W +
+    LABEL_GAP +
+    Math.max(...scale.map((v) => widthOf(fmt(v))));
   const [W, setW] = useState(FULL);
   const [read, setRead] = useState<Reading | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -123,14 +141,13 @@ function Porkchop({ w }: { w: Window }) {
     el.height = ph;
     const img = ctx.createImageData(pw, ph);
     const d = img.data;
-    const span = cap - lo;
     let k = 0;
     for (let y = 0; y < ph; y++) {
       const gy = (1 - (y + 0.5) / ph) * (p.nf - 1);
       for (let x = 0; x < pw; x++) {
         const gx = ((x + 0.5) / pw) * (p.nt - 1);
         const v = readGrid(p, cap, gx, gy);
-        const u = Math.max(0, Math.min(1, (v - lo) / span));
+        const u = Math.max(0, Math.min(1, uOf(v, lo, hi)));
         const c = LUT[Math.round(255 * u)];
         d[k++] = c[0];
         d[k++] = c[1];
@@ -139,7 +156,7 @@ function Porkchop({ w }: { w: Window }) {
       }
     }
     ctx.putImageData(img, 0, 0);
-  }, [p, lo, cap, aw, ah]);
+  }, [p, lo, hi, cap, aw, ah]);
 
   /* The reading under the pointer. */
   const readAt = (e: ReactPointerEvent<SVGSVGElement>) => {
@@ -158,7 +175,8 @@ function Porkchop({ w }: { w: Window }) {
 
   /* Ticks: dates along the bottom at a round number of days, flight days
      up the side the same. */
-  const dayStep = niceStep(tSpan / DAY, Math.max(3, Math.floor(aw / 85)));
+  /* A date label is about 45 px; one every 55 keeps them apart. */
+  const dayStep = niceStep(tSpan / DAY, Math.max(3, Math.floor(aw / 55)));
   const xTicks: Array<number> = [];
   for (
     let k = Math.ceil(p.t0 / (dayStep * DAY));
@@ -173,11 +191,7 @@ function Porkchop({ w }: { w: Window }) {
   const yTicks: Array<number> = [];
   for (let k = Math.ceil(p.fLo / (fStep * DAY)); k * fStep * DAY <= p.fHi; k++)
     yTicks.push(k * fStep * DAY);
-  const scale = Array.from(
-    { length: SCALE_STOPS },
-    (_, k) => lo + ((cap - lo) * k) / (SCALE_STOPS - 1),
-  );
-  const barX = ML + aw + 16;
+  const barX = ML + aw + BAR_GAP;
 
   /* The window, and the cheaper one after it where there is one. */
   const mx = clampX(xOf(w.depart)),
@@ -199,14 +213,14 @@ function Porkchop({ w }: { w: Window }) {
     `Total Δv by departure date and time of flight, leaving ${bodyLabel(w.from)} for ${bodyLabel(w.to)}: ` +
     `departures from ${kerbalDayLabel(p.t0)} to ${kerbalDayLabel(p.t0 + tSpan)} along the bottom, ` +
     `flights of ${days(p.fLo)} to ${days(p.fHi)} days up the side; ` +
-    `blue is the cheapest at ${fmt(lo)} m/s, yellow ${fmt(cap)} m/s and over. ` +
+    `blue is the cheapest at ${fmt(lo)} m/s, yellow the dearest at ${fmt(hi)}, on a log scale. ` +
     `The window chosen is marked: leaving ${kerbalDayLabel(w.depart)} after ${days(w.tof)} days of flight, ${figure}.` +
     (w.next
       ? ` A cheaper window is marked hollow, leaving ${kerbalDayLabel(w.next.depart)}.`
       : "");
 
   return (
-    <div style={{ maxWidth: FULL, margin: `0 auto ${SPACE.lg}px` }}>
+    <div style={{ flex: "1 1 320px", maxWidth: FULL, minWidth: 0 }}>
       <div
         ref={host}
         role="img"
@@ -327,7 +341,7 @@ function Porkchop({ w }: { w: Window }) {
           <rect
             x={barX}
             y={MT}
-            width={12}
+            width={BAR_W}
             height={ah}
             fill={`url(#${gradId})`}
             stroke={C.rule}
@@ -344,21 +358,20 @@ function Porkchop({ w }: { w: Window }) {
           {scale.map((v, k) => (
             <g key={k}>
               <line
-                x1={barX + 12}
+                x1={barX + BAR_W}
                 y1={yOf(p.fLo + ((p.fHi - p.fLo) * k) / (SCALE_STOPS - 1))}
-                x2={barX + 16}
+                x2={barX + BAR_W + 4}
                 y2={yOf(p.fLo + ((p.fHi - p.fLo) * k) / (SCALE_STOPS - 1))}
                 stroke={C.rule}
               />
               <text
                 className="note"
                 data-scale={Math.round(v)}
-                x={barX + 19}
+                x={barX + BAR_W + LABEL_GAP}
                 y={yOf(p.fLo + ((p.fHi - p.fLo) * k) / (SCALE_STOPS - 1)) + 4}
                 fill={C.dim}
               >
                 {fmt(v)}
-                {k === SCALE_STOPS - 1 ? "+" : ""}
               </text>
             </g>
           ))}
@@ -452,7 +465,8 @@ function Porkchop({ w }: { w: Window }) {
         </svg>
       </div>
       <div className="note" style={{ textAlign: "center" }}>
-        Total Δv by departure and flight time · tap or drag to read
+        Total Δv by departure and flight time, colour on a log scale · tap or
+        drag to read
       </div>
       <span className="sr-only" aria-live="polite">
         {readText}

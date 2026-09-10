@@ -15,13 +15,19 @@ const LUT = CET_L08 as unknown as ReadonlyArray<RGB>;
 const cetL08 = (u: number): RGB =>
   LUT[Math.round(255 * Math.min(1, Math.max(0, u)))];
 
-/* The plot's scale: blue at the cheapest total `lo`, yellow at the cap, and
-   the cap four times `lo` — so the valley has the whole ramp and the far
-   corners, tens of km/s, do not flatten it (#213). */
-const CAP = 4;
-const capOf = (lo: number) => lo * CAP;
-const colourOf = (total: number, lo: number): RGB =>
-  cetL08((total - lo) / (capOf(lo) - lo));
+/* The plot's scale: blue at the cheapest total `lo`, yellow at the dearest
+   `hi`, and log between — a step in colour is a ratio in Δv, so the valley
+   round the window keeps a quarter of the ramp when the far corners are
+   fifteen times it, and nothing pins at yellow. A linear scale capped at
+   four times the minimum was the first cut; half of every plot was the
+   cap's colour. #213 */
+const uOf = (total: number, lo: number, hi: number) =>
+  hi > lo ? Math.log(Math.max(total, lo) / lo) / Math.log(hi / lo) : 0;
+const colourOf = (total: number, lo: number, hi: number): RGB =>
+  cetL08(uOf(total, lo, hi));
+/* The scale bar's `n` values, evenly up the ramp: lo to hi geometrically. */
+const stopsOf = (lo: number, hi: number, n: number) =>
+  Array.from({ length: n }, (_, k) => lo * Math.pow(hi / lo, k / (n - 1)));
 
 /* The map as CSS, for the scale bar: `n` stops from blue at the bottom to
    yellow at the top. */
@@ -30,5 +36,5 @@ const cssRamp = (n = 17) =>
     return `${cssOf(cetL08(k / (n - 1)))} ${((100 * k) / (n - 1)).toFixed(1)}%`;
   }).join(", ")})`;
 
-export { CAP, capOf, cetL08, colourOf, cssRamp, LUT };
+export { LUT, cetL08, colourOf, cssRamp, stopsOf, uOf };
 export type { RGB };

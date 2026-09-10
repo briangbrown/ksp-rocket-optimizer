@@ -151,9 +151,11 @@ describe("the transfer card", () => {
     );
     expect(scale.length).toBe(5);
     for (let k = 1; k < 5; k++) expect(scale[k]).toBeGreaterThan(scale[k - 1]);
-    expect(Math.abs(scale[4] - 4 * scale[0])).toBeLessThanOrEqual(3);
-    const top = plots[0].querySelectorAll("[data-scale]")[4];
-    expect(top.textContent?.endsWith("+")).toBe(true);
+    /* Log: the middle value is the geometric mean of the ends, and the top
+       is the grid's dearest cell — for Duna, well over four times the
+       cheapest. */
+    expect(scale[2] / Math.sqrt(scale[0] * scale[4])).toBeCloseTo(1, 2);
+    expect(scale[4]).toBeGreaterThan(8 * scale[0]);
     expect(plots[0].innerHTML).not.toMatch(/NaN/);
     /* Still four named drawings: the plot's overlay is not one of them. */
     expect(document.querySelectorAll("#fly svg[role=img]").length).toBe(4);
