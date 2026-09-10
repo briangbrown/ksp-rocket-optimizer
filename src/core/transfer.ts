@@ -79,7 +79,21 @@ type Window = {
      there is one worth more than a couple of percent: when it leaves and
      what it costs, for the card to offer. The window reported is the first
      from the start time, which is the one asked for. #199 */
-  next: { depart: number; total: number } | null;
+  next: { depart: number; tof: number; total: number } | null;
+  /* The coarse search itself, for the plot (#213): `nt` departures from
+     `t0` at `step` apart along the columns, `nf` flight times from `fLo` to
+     `fHi` up the rows, and the total of every cell in whole m/s at
+     `totals[i * nf + j]`, −1 where no arc solved. Plain numbers, so it
+     crosses the seam with the rest. */
+  plot: {
+    t0: number;
+    step: number;
+    fLo: number;
+    fHi: number;
+    nt: number;
+    nf: number;
+    totals: Array<number>;
+  };
 };
 
 /* Burn from a circular orbit of speed v to leave with excess vinf, or the
@@ -413,7 +427,10 @@ function search(
   type Best = { t: number; tof: number; c: Cell };
   let early: Best | null = null,
     later: Best | null = null;
-  for (let i = 0; i * step <= tSpan; i++)
+  const nt = Math.floor(tSpan / step) + 1,
+    nf = NF + 1;
+  const totals: Array<number> = new Array(nt * nf).fill(-1);
+  for (let i = 0; i < nt; i++)
     for (let j = 0; j <= NF; j++) {
       /* Multiplied, not accumulated: the first period's samples are then
          the same numbers they were, to the bit. */
@@ -421,6 +438,7 @@ function search(
       const tof = fLo + ((fHi - fLo) * j) / NF;
       const c = at(t, tof);
       if (!c) continue;
+      totals[i * nf + j] = Math.round(c.total);
       if (t <= t0 + first) {
         if (!early || c.total < early.c.total) early = { t, tof, c };
       } else if (!later || c.total < later.c.total) later = { t, tof, c };
@@ -466,7 +484,11 @@ function search(
       ? (() => {
           const r = refine(later);
           return r.c.total < c.total * 0.98
-            ? { depart: Math.round(r.t), total: r.c.total }
+            ? {
+                depart: Math.round(r.t),
+                tof: Math.round(r.tof),
+                total: r.c.total,
+              }
             : null;
         })()
       : null;
@@ -528,6 +550,7 @@ function search(
     soi,
     rPark: rPark1,
     next,
+    plot: { t0, step, fLo, fHi, nt, nf, totals },
   };
 }
 

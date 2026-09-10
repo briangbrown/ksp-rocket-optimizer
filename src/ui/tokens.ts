@@ -282,6 +282,10 @@ const BODY_HUE: Readonly<Record<string, string>> = {
 };
 const rgbOf = (h: string) =>
   [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+/* The other way: bytes as CSS. For a colour that is a number first — the
+   Δv plot's map is a table of them — so the literal lives here, where the
+   tokens test allows one. */
+const cssOf = ([r, g, b]: ReadonlyArray<number>) => `rgb(${r} ${g} ${b})`;
 const lumOf = (h: string) => {
   const [r, g, b] = rgbOf(h).map((v) => v / 255);
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
@@ -364,6 +368,7 @@ export {
   SYSTEMS,
   TYPE,
   Z,
+  cssOf,
   edgeOf,
   fills,
   hueFor,

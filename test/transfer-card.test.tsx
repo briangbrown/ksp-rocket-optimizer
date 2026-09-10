@@ -91,6 +91,8 @@ describe("the transfer card", () => {
     await openFold("How to fly it").catch(() => {});
     expect(fly()).toMatch(/Leave\s*Y1 D(9\d|1\d\d) /);
     expect(fly()).toMatch(/A cheaper window follows on Y1 D2\d\d/);
+    /* And the plot marks it, hollow. #213 */
+    expect(document.querySelector("#fly [data-mark=next]")).toBeTruthy();
     await click("Leave then instead");
     await settle();
     /* Moho's windows keep differing, so a further offer may follow this
@@ -119,5 +121,47 @@ describe("the transfer card", () => {
     /* A synodic period on: the next Duna window is in Year 3. */
     expect(fly()).toMatch(/Leave\s*Y3 D/);
     expect(location.hash.length).toBeGreaterThan(10);
+  }, 180_000);
+
+  it("draws the Δv plot under each transfer, described, and none for the Mun", async () => {
+    /* #213: one plot a transfer card, out and home, each a named image
+       whose label says the axes and the window; the scale bar names five
+       values, ascending to four times the cheapest. jsdom paints no canvas,
+       so what is checked here is the overlay and the description; the
+       pixels are the visual suite's. */
+    location.hash = await toLink(config({}));
+    render(<KSPMissionPlanner />);
+    await settle();
+    await openFold("How to fly it").catch(() => {});
+    const plots = document.querySelectorAll("#fly [data-plot]");
+    expect(plots.length).toBe(2);
+    expect(plots[0].getAttribute("data-plot")).toBe("Kerbin-Duna");
+    expect(plots[1].getAttribute("data-plot")).toBe("Duna-Kerbin");
+    const label = plots[0].getAttribute("aria-label") ?? "";
+    expect(label).toMatch(
+      /departures from Y1 D1 to Y\d D\d+ along the bottom, flights of \d+ to \d+ days up the side/,
+    );
+    expect(label).toMatch(
+      /The window chosen is marked: leaving Y1 D2[2-4]\d after \d+ days of flight, [\d,]+ m\/s\./,
+    );
+    expect(plots[0].querySelector("[data-mark=window]")).toBeTruthy();
+    expect(plots[0].querySelector("canvas")).toBeTruthy();
+    const scale = [...plots[0].querySelectorAll("[data-scale]")].map((e) =>
+      Number(e.getAttribute("data-scale")),
+    );
+    expect(scale.length).toBe(5);
+    for (let k = 1; k < 5; k++) expect(scale[k]).toBeGreaterThan(scale[k - 1]);
+    expect(Math.abs(scale[4] - 4 * scale[0])).toBeLessThanOrEqual(3);
+    const top = plots[0].querySelectorAll("[data-scale]")[4];
+    expect(top.textContent?.endsWith("+")).toBe(true);
+    expect(plots[0].innerHTML).not.toMatch(/NaN/);
+    /* Still four named drawings: the plot's overlay is not one of them. */
+    expect(document.querySelectorAll("#fly svg[role=img]").length).toBe(4);
+    cleanup();
+    location.hash = "";
+    render(<KSPMissionPlanner />);
+    await settle();
+    await openFold("How to fly it").catch(() => {});
+    expect(document.querySelectorAll("#fly [data-plot]").length).toBe(0);
   }, 180_000);
 });

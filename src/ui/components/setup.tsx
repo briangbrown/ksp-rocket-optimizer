@@ -322,6 +322,79 @@ function Setup({
           simulator, not by the game.
         </p>
       </Disclosure>
+
+      <div style={{ borderTop: `1px solid ${C.rule}`, margin: "14px 0" }} />
+      {/* Whose work the page stands on, gathered in one place, each credited
+          the way its author asks. The colour map's licence is Creative
+          Commons BY, and colorcet.com's own words are: "If you find this
+          work useful please cite this site, colorcet.com, and the paper".
+          #213 */}
+      <Disclosure label="Attribution" caption="Attribution">
+        <p style={{ margin: `0 0 ${SPACE.md}px` }}>
+          The Δv transfer plot's colours are <strong>CET-L08</strong> from{" "}
+          <a
+            href="https://colorcet.com"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            colorcet.com
+          </a>
+          , by Peter Kovesi —{" "}
+          <a
+            href="https://arxiv.org/abs/1509.03700"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Good Colour Maps: How to Design Them
+          </a>
+          , arXiv:1509.03700 [cs.GR], 2015 — under Creative Commons BY.
+        </p>
+        <p style={{ margin: `0 0 ${SPACE.md}px` }}>
+          Part masses, prices, tech nodes, drag cubes and engine curves are
+          measured from Kerbal Space Program 1.12.5 with Breaking Ground and
+          Making History, and from{" "}
+          <a
+            href="https://github.com/PorktoberRevolution/ReStocked"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            ReStock and ReStock+
+          </a>
+          . Kerbal Space Program is a trademark of its owners; this is an
+          unaffiliated fan tool.
+        </p>
+        <p style={{ margin: `0 0 ${SPACE.md}px` }}>
+          Δv from Kerbin follows the{" "}
+          <a
+            href="https://wiki.kerbalspaceprogram.com/wiki/Cheat_sheet"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            community Δv map
+          </a>
+          . Transfer windows are checked against{" "}
+          <a
+            href="https://alexmoon.github.io/ksp/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            alexmoon's Launch Window Planner
+          </a>
+          , the reference every such tool is measured by.
+        </p>
+        <p style={{ margin: 0 }}>
+          Type is Inter, Barlow Condensed and IBM Plex Mono, under the SIL Open
+          Font License; the icons are{" "}
+          <a
+            href="https://lucide.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Lucide
+          </a>
+          , under the ISC licence.
+        </p>
+      </Disclosure>
     </>
   );
 }

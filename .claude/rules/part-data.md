@@ -156,3 +156,15 @@ Changing a number here is changing a measurement.
   cheaper row moved the price of every EP-12 in the snapshot by 50 funds
   for no design change — not worth a re-bless. If the grid ever states an
   install, split the row then.
+
+- **`cet-l08.json` is a colour map, and it is somebody's work.** The 256 × 3
+  byte table is CET-L08 from colorcet.com — Peter Kovesi's linear
+  blue–magenta–yellow map, `CET-L08.csv` in the site's
+  `CETperceptual_csv_0_255.zip`, unchanged — under Creative Commons BY. The
+  licence asks for credit and the site's Cite section asks for the site and
+  the paper: _Peter Kovesi. Good Colour Maps: How to Design Them.
+  arXiv:1509.03700 [cs.GR] 2015_. The Setup sheet's _Attribution_ carries
+  both, and `test/cet.test.ts` holds the table's two ends against the
+  download, so a re-export that picked a neighbouring map (L06 is blue to
+  white; L09 blue to yellow through green) fails there rather than in the
+  plot. #213

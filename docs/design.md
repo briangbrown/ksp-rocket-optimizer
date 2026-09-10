@@ -696,3 +696,28 @@ radii as r^0.6 so an inner orbit has room, and its caption says so.
 them apart. Each carries an
 `aria-label` that says what it draws. The two sit side by side where 440 px
 allow and stack below.
+
+### Porkchop
+
+The Δv transfer plot under each transfer card's numbers (#213): departure
+date along the bottom, days of flight up the side, the total Δv of every
+cell as colour, the window chosen marked with a crosshair and a filled
+diamond and its total beside it, a cheaper later window (#199) as a hollow
+diamond. The grid is the search's own — `findWindow` keeps its 94 × 41
+cells on the `Window` as `plot` — read between cells bilinearly and painted
+into a `<canvas>` from one `ImageData`. The colours are **CET-L08** from
+colorcet.com (`src/data/cet-l08.json`, `src/ui/cet.ts`): the map's blue end
+at the cheapest total, its yellow end at four times it, the far corners
+clamped there so the valley keeps the whole ramp — the one colour rule in
+the app that is not a token, and it is a picture of numbers, not a control.
+Everything else is the page's: the axes, ticks and titles in the `note`
+role in `C.dim`, the frame in `C.rule`, the markers in `C.paper` with a
+`C.panel` halo on the figure, the reading in `C.amber`. A scale bar at the
+right shows the ramp and names five values, the last with a `+`. Tap or
+drag reads a cell — a second crosshair, the date, days and total beside it,
+and the same words in an `aria-live` span — and on release nothing else
+changes; `touch-action: pan-y`, so the page still scrolls under a finger.
+The host is `role="img"` with a label that says the axes' ranges, the
+scale's ends and the window's cell; the canvas and the SVG over it are
+`aria-hidden`, so the card still has four named drawings. It is the card's
+width to 464 px — the two drawings and their gap — and 150–230 px tall.

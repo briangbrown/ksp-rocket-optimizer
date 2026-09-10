@@ -367,3 +367,15 @@ control shows and what it committed.
   Kerbol fly-by, tapped on Kerbol, became a low solar orbit with no
   solution and an empty page where the rocket was. `test/pick-endpoint.test.tsx`
   holds it, and the render sweep says every row's state for the same reason.
+
+- **jsdom has no canvas, and `getContext` says so on the console.** Without
+  the `canvas` package `HTMLCanvasElement.getContext` returns null and logs
+  "not implemented" through the virtual console every call. The Δv plot's
+  painting effect asks `typeof CanvasRenderingContext2D === "undefined"`
+  first — jsdom defines no such class — and leaves the overlay to carry what
+  the render sweep can read: the host is `role="img"` with the axes' ranges
+  and the window's cell in its label, the canvas and the SVG over it are
+  `aria-hidden`, and `[data-plot]`, `[data-mark]` and `[data-scale]` are the
+  hooks. `visual/transfer.test.ts` reads the pixels. The overlay is not a
+  `svg[role=img]`, so the transfer card's count of named drawings stays at
+  four. #213
