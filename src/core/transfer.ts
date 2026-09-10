@@ -12,7 +12,7 @@ import {
   unit,
 } from "./kepler.js";
 import { lambert, speed } from "./lambert.js";
-import { encountersOf } from "./encounter.js";
+import { encountersOf, parentOf } from "./encounter.js";
 import type { Encounter } from "./encounter.js";
 import type { Vec3 } from "./kepler.js";
 
@@ -506,6 +506,135 @@ function priceColumns(g: Grid, i0: number, i1: number): Array<number> {
   return out;
 }
 
+/* ------------------------ down to your own planet ------------------------ */
+
+/* Leaving a moon for the body it orbits: low Mun orbit to low Kerbin orbit.
+   The third geometry, and the only one with no window in it at all. The
+   moon's orbit is circular, so every departure is the same picture turned
+   round: there is no phase angle to wait for and no date to compute. What
+   there is, and what a pilot actually needs, is *where in the moon's orbit
+   to burn* — retrograde, so the moon's own speed is what you are shedding.
+
+   Nothing here is searched. Burn retrograde at the moon's orbital radius
+   until the orbit about the primary has its periapsis down at the parking
+   orbit; the required speed there follows from vis-viva, the excess is the
+   moon's speed less that, and the burn from the moon's parking orbit
+   follows from the energy. One arithmetic chain, no Lambert. */
+function dropSearch(
+  moon: string,
+  primary: string,
+  rParkMoon: number,
+  rPark: number,
+  t0: number,
+  capture: boolean,
+): Window | null {
+  const o1 = elements(moon);
+  if (o1.parent !== primary) return null;
+  const m = o1.mu;
+  const muMoon = mu(moon);
+  const soiMoon = o1.a * Math.pow(muMoon / m, 0.4);
+  const s1 = stateAt(moon, t0);
+  const rMoon = norm(s1.r);
+  if (!(rPark < rMoon)) return null;
+  /* The transfer ellipse: apoapsis where the moon is, periapsis at the
+     parking orbit. */
+  const a = (rMoon + rPark) / 2;
+  const vApo = Math.sqrt(m * (2 / rMoon - 1 / a));
+  const vPeri = Math.sqrt(m * (2 / rPark - 1 / a));
+  const vMoon = norm(s1.v);
+  /* Shed the difference, retrograde. */
+  const vrel = Math.abs(vMoon - vApo);
+  const c3Out = c3Of(vrel, muMoon, soiMoon);
+  const eject = injectC3(Math.sqrt(muMoon / rParkMoon), c3Out);
+  const circ = capture ? vPeri - Math.sqrt(m / rPark) : 0;
+  const tof = Math.round(Math.PI * Math.sqrt(a ** 3 / m));
+  /* The burn's place, as the pilot finds it: the escape asymptote points
+     retrograde, and the burn sits its own angle back around the parking
+     orbit from there — the same geometry an ejection anywhere else has. */
+  const vDir = unit2(xy(s1.v));
+  const u: [number, number] = [-vDir[0], -vDir[1]];
+  const eh = 1 + (rParkMoon * c3Out) / muMoon;
+  const thInf = soiAnomaly(eh, rParkMoon, soiMoon);
+  const burnDir = rot2(u, -thInf);
+  const angle =
+    (Math.acos(
+      Math.max(-1, Math.min(1, burnDir[0] * u[0] + burnDir[1] * u[1])),
+    ) *
+      180) /
+    Math.PI;
+  /* The way down, drawn: from the moon's place round to the periapsis
+     opposite it. */
+  const arc: Array<[number, number]> = [];
+  const r1xy = xy(s1.r);
+  const n1 = Math.hypot(r1xy[0], r1xy[1]) || 1;
+  const dir: [number, number] = [r1xy[0] / n1, r1xy[1] / n1];
+  /* Which way round the ship goes: the moon's own direction of travel. */
+  const sense = dir[0] * vDir[1] - dir[1] * vDir[0] >= 0 ? 1 : -1;
+  const e = (rMoon - rPark) / (rMoon + rPark);
+  const p = a * (1 - e * e);
+  for (let k = 0; k <= 48; k++) {
+    /* True anomaly from apoapsis round to periapsis. */
+    const nu = Math.PI + (Math.PI * k) / 48;
+    const r = p / (1 + e * Math.cos(nu));
+    const th = sense * (nu - Math.PI);
+    arc.push([
+      r * (dir[0] * Math.cos(th) - dir[1] * Math.sin(th)),
+      r * (dir[0] * Math.sin(th) + dir[1] * Math.cos(th)),
+    ]);
+  }
+  return {
+    from: moon,
+    to: primary,
+    depart: Math.round(t0),
+    tof,
+    arrive: Math.round(t0) + tof,
+    c3Out,
+    c3In: 0,
+    vinfOut: Math.sqrt(Math.max(0, c3Out)),
+    vinfIn: 0,
+    eject,
+    ejectPro: eject,
+    ejectNor: 0,
+    plane: null,
+    capture: circ,
+    total: eject + circ,
+    type: "ballistic",
+    angle,
+    ref: "retrograde",
+    /* No phase angle: the moon's orbit is circular, so every departure is
+       this same picture turned round. */
+    phase: 0,
+    r1: r1xy,
+    r2dep: [0, 0],
+    r2: arc[arc.length - 1],
+    arc,
+    vDir,
+    burnDir,
+    soi: soiMoon,
+    rPark: rParkMoon,
+    next: null,
+    encounters: [],
+    dodged: null,
+    /* Never drawn — there is no window to plot — but the shape is part of
+       the record that crosses the seam. */
+    plot: {
+      from: moon,
+      to: primary,
+      rPark1: rParkMoon,
+      rPark2: rPark,
+      capture,
+      asked: "best",
+      t0,
+      step: tof,
+      fLo: tof,
+      fHi: tof,
+      nt: 1,
+      nf: 1,
+      totals: [Math.round(eject + circ)],
+    },
+  };
+}
+
 /* ------------------------- out to your own moon ------------------------- */
 
 /* One cell of a departure from the primary itself: low Kerbin orbit to the
@@ -763,8 +892,12 @@ function search(
   /* Out to one of your own moons is a different problem with its own
      search: no sphere of influence to leave, and both bodies already in the
      one frame. #223 */
-  if (elements(to).parent === from)
+  if (parentOf(to) === from)
     return raiseSearch(from, to, rPark1, rPark2, t0, capture);
+  /* And down to the body you are circling is the third: no window at all,
+     because a circular orbit offers the same departure at every moment. */
+  if (parentOf(from) === to)
+    return dropSearch(from, to, rPark1, rPark2, t0, capture);
   const sys = system(from, to, rPark2);
   if (!sys) return null;
   const { o1, o2, m, mu1, mu2, vc2, soi1, soi2 } = sys;

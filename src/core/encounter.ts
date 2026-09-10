@@ -67,6 +67,11 @@ const soiOf = (b: string) => {
   return o.a * Math.pow(mu(b) / o.mu, 0.4);
 };
 
+/* What `b` goes round, or null for the Sun, which goes round nothing.
+   `elements` throws for it, so anything that only wants the parentage asks
+   here instead. */
+const parentOf = (b: string) => SYS[b]?.parent ?? null;
+
 /* The bodies orbiting `b` — its moons, or the Sun's planets. */
 const childrenOf = (b: string) =>
   Object.keys(SYS).filter((k) => SYS[k].parent === b);
@@ -317,5 +322,5 @@ function encountersOf(args: {
   return out;
 }
 
-export { childrenOf, encountersOf, soiOf };
+export { childrenOf, encountersOf, parentOf, soiOf };
 export type { Encounter };
