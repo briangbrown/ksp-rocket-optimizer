@@ -636,3 +636,70 @@ describe("down to the body you are circling", () => {
     expect(() => findWindow("Sun", "Kerbin", 1e9, rK, 0, true)).not.toThrow();
   });
 });
+
+describe("the way home", () => {
+  /* A return that leaves before it has arrived is not a return. Every
+     window on the way back is searched from the arrival plus the stay, and
+     it showed on Gilly — the one moon eccentric enough for its descent to
+     carry a date at all — arriving Y1 D23 and leaving Y1 D7. #223 */
+  it("never leaves before it has got there, whatever the stay", () => {
+    const cases: Array<[string, string, number]> = [
+      ["Eve", "Gilly", 0],
+      ["Eve", "Gilly", 100 * DAY],
+      ["Jool", "Bop", 50 * DAY],
+      ["Kerbin", "Mun", 0],
+      ["Kerbin", "Mun", 30 * DAY],
+      ["Kerbin", "Duna", 0],
+      ["Kerbin", "Minmus", 12 * DAY],
+      ["Duna", "Ike", 5 * DAY],
+    ];
+    const bad: Array<string> = [];
+    for (const [a, b, stay] of cases) {
+      const legs = routeFor(
+        { body: a, state: "low" },
+        { body: b, state: "low" },
+        true,
+        true,
+        false,
+        0,
+        stay,
+        "best",
+      );
+      const ws = legs.flatMap((l) => (l.window ? [l.window] : []));
+      if (ws.length < 2) continue;
+      const [outward, home] = ws;
+      if (home.depart < outward.arrive + stay - 1)
+        bad.push(
+          `${a} → ${b} (stay ${stay / DAY}d): arrives ${outward.arrive}, leaves ${home.depart}`,
+        );
+      /* And the flight home follows its own departure. */
+      if (home.arrive <= home.depart)
+        bad.push(`${a} → ${b}: the way home arrives before it leaves`);
+    }
+    expect(bad).toEqual([]);
+  }, 300_000);
+
+  it("waits out the stay before looking for its window", () => {
+    /* The same mission with a longer stay leaves later, by at least the
+       difference — the search starts after it, not at the mission's own
+       start. */
+    const legs = (stay: number) =>
+      routeFor(
+        { body: "Eve", state: "low" },
+        { body: "Gilly", state: "low" },
+        true,
+        true,
+        false,
+        0,
+        stay,
+        "best",
+      ).flatMap((l) => (l.window ? [l.window] : []));
+    const short = legs(0),
+      long = legs(100 * DAY);
+    expect(short).toHaveLength(2);
+    expect(long).toHaveLength(2);
+    /* The outward flight is untouched by the stay. */
+    expect(long[0].depart).toBe(short[0].depart);
+    expect(long[1].depart - short[1].depart).toBeGreaterThanOrEqual(99 * DAY);
+  }, 300_000);
+});

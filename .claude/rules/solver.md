@@ -440,3 +440,15 @@ before changing the thing it names.
   between the three window geometries asks which body goes round which, and
   asking `elements("Sun")` that question took the whole app down on any
   Kerbol destination. #223
+
+- **Every return window is searched from the arrival plus the stay.** Not
+  from the mission's own start: a return that leaves before it has got there
+  is not a return. The interplanetary path always did this — `transferDv(to,
+origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
+  did not, so an Eve → Gilly trip arrived Y1 D23 and left Y1 D7, ignoring
+  the stay entirely. `homeFrom` in `routeFor` is the one place that decides
+  it now, and `test/transfer.test.ts` holds the invariant across eight
+  missions: the way home never departs before the outward flight arrives and
+  the stay is served, and a longer stay moves it by at least as much. It
+  only ever showed on Gilly, because a circular moon's descent carries no
+  date to look wrong. #223
