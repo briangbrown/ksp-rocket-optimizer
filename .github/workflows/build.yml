@@ -6,7 +6,47 @@ on:
   pull_request:
 
 jobs:
+  # Whether a pull request touches anything but lessons. `build` is the check
+  # main requires, so it cannot be path-filtered away: a required check that
+  # never reports leaves the pull request unmergeable. Instead the job always
+  # runs and reports, and skips everything but the formatter when the diff is
+  # confined to docs/lessons/**. A second workflow reporting its own `build`
+  # for docs paths would have been the other way to do it, and was not taken:
+  # two check runs sharing a name resolve to whichever finished last, and a
+  # pull request touching both a lesson and the solver could have had the
+  # trivial one stand for the real one.
+  #
+  # On a push to main nothing is skipped; the fast path is for pull requests.
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      docs-only: ${{ steps.diff.outputs.docs-only }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # A pull_request checkout is the merge commit, whose first parent is
+          # the base branch; two commits are enough to diff the whole change.
+          fetch-depth: 2
+
+      - name: Is the change lessons only?
+        id: diff
+        if: github.event_name == 'pull_request'
+        run: |
+          set -eu
+          files=$(git diff --name-only HEAD^1 HEAD)
+          echo "$files"
+          if [ -n "$files" ] && ! printf '%s\n' "$files" | grep -qv '^docs/lessons/'; then
+            echo "docs-only=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "docs-only=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: changes
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -41,6 +81,7 @@ jobs:
       # find if its grid happens to reach the branch. esbuild resolves no
       # cross-scope names, so the build is no help at all here.
       - name: Lint
+        if: needs.changes.outputs.docs-only != 'true'
         run: npm run lint
 
       # And the same argument, one step further: a file that has been converted
@@ -49,15 +90,18 @@ jobs:
       # more besides. Neither the build nor the suite can see any of it: vite
       # and vitest both strip types with esbuild and never check them. #11
       - name: Typecheck
+        if: needs.changes.outputs.docs-only != 'true'
         run: npm run typecheck
 
       # Runs before the build: a moved design, a blank render or a part drawn
       # outside the shape the solver sized it at is the failure worth seeing
       # first, and the build passing says nothing about any of them.
       - name: Design snapshot, render sweep, model checks and mission sweep
+        if: needs.changes.outputs.docs-only != 'true'
         run: npm test
 
       - name: Build
+        if: needs.changes.outputs.docs-only != 'true'
         run: npm run build
 
   # Separate from `build` on purpose. The main suite is already a couple of
@@ -67,6 +111,8 @@ jobs:
   # reason. #73
   visual:
     name: Visual
+    needs: changes
+    if: needs.changes.outputs.docs-only != 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
