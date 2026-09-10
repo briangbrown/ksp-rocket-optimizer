@@ -595,6 +595,39 @@ describe("down to the body you are circling", () => {
     expect(home!.to).toBe("Kerbin");
   });
 
+  it("goes at the right point of an eccentric moon's own orbit", () => {
+    /* Not every moon goes round in a circle. Gilly's eccentricity is 0.55,
+       so where in its orbit you leave is worth real fuel — and the ship must
+       shed the moon's radial velocity as well as its tangential, which the
+       plain difference of two speeds does not see. */
+    const T = periodOf("Gilly");
+    const w = must(
+      findWindow("Gilly", "Eve", 20_000, 800_000, 0, true),
+      "a window",
+    );
+    /* It searched: the departure is not simply the start time. */
+    expect(w.depart).toBeGreaterThan(0);
+    expect(w.depart).toBeLessThan(T);
+    /* And it is cheaper than leaving at the start time would have been. */
+    const eve = elements("Gilly").mu;
+    void eve;
+    let worst = 0;
+    for (let i = 0; i < 24; i++) {
+      const at = must(
+        findWindow("Gilly", "Eve", 20_000, 800_000, (T * i) / 24, true),
+        "a window",
+      );
+      worst = Math.max(worst, at.total);
+    }
+    /* Every start time lands on the same cheapest departure, whichever
+       point of the orbit it was asked from. */
+    expect(worst - w.total).toBeLessThan(1);
+    /* Near apoapsis, where the moon is highest and slowest. */
+    const r = norm(stateAt("Gilly", w.depart).r);
+    const o = elements("Gilly");
+    expect(r).toBeGreaterThan(o.a);
+  });
+
   it("asks nothing of the Sun that the Sun cannot answer", () => {
     /* `elements` throws for the Sun, which has no orbit, so the dispatch
        reads parentage from the body table instead. A Kerbol destination

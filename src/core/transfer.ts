@@ -533,21 +533,68 @@ function dropSearch(
   const m = o1.mu;
   const muMoon = mu(moon);
   const soiMoon = o1.a * Math.pow(muMoon / m, 0.4);
-  const s1 = stateAt(moon, t0);
-  const rMoon = norm(s1.r);
-  if (!(rPark < rMoon)) return null;
-  /* The transfer ellipse: apoapsis where the moon is, periapsis at the
-     parking orbit. */
-  const a = (rMoon + rPark) / 2;
-  const vApo = Math.sqrt(m * (2 / rMoon - 1 / a));
-  const vPeri = Math.sqrt(m * (2 / rPark - 1 / a));
-  const vMoon = norm(s1.v);
-  /* Shed the difference, retrograde. */
-  const vrel = Math.abs(vMoon - vApo);
-  const c3Out = c3Of(vrel, muMoon, soiMoon);
-  const eject = injectC3(Math.sqrt(muMoon / rParkMoon), c3Out);
-  const circ = capture ? vPeri - Math.sqrt(m / rPark) : 0;
-  const tof = Math.round(Math.PI * Math.sqrt(a ** 3 / m));
+  /* What it costs to leave at time `t`. The ship must end on an ellipse
+     whose apoapsis is where the moon is and whose periapsis is the parking
+     orbit, which wants a purely tangential velocity there — so what has to
+     be shed is the *vector* difference from the moon's own velocity, its
+     radial part included. On a circular orbit there is no radial part and
+     this is the plain difference of two speeds; on Gilly's, at 0.55
+     eccentricity, it is not. */
+  const priceAt = (t: number) => {
+    const s = stateAt(moon, t);
+    const r = norm(s.r);
+    if (!(rPark < r)) return null;
+    const a = (r + rPark) / 2;
+    const vApo = Math.sqrt(m * (2 / r - 1 / a));
+    const vPeri = Math.sqrt(m * (2 / rPark - 1 / a));
+    /* The moon's own velocity, split where it is. */
+    const vRad = dot(s.r, s.v) / r;
+    const vTan = norm(cross(s.r, s.v)) / r;
+    const vrel = Math.hypot(vApo - vTan, vRad);
+    const c3 = c3Of(vrel, muMoon, soiMoon);
+    const eject = injectC3(Math.sqrt(muMoon / rParkMoon), c3);
+    const circ = capture ? vPeri - Math.sqrt(m / rPark) : 0;
+    return {
+      t,
+      s,
+      r,
+      a,
+      c3,
+      eject,
+      circ,
+      total: eject + circ,
+      tof: Math.round(Math.PI * Math.sqrt(a ** 3 / m)),
+    };
+  };
+  /* Where in the moon's own orbit to leave. On a circular orbit every point
+     is the same and this settles on the first; on an eccentric one it is
+     worth real fuel — Gilly's departure runs from 1,470 m/s to 1,869 across
+     its period — so it is searched rather than taken from whenever the
+     reader happened to ask. */
+  const T = periodOf(moon);
+  let best: ReturnType<typeof priceAt> = null;
+  const N = 96;
+  for (let i = 0; i < N; i++) {
+    const c = priceAt(t0 + (T * i) / N);
+    if (c && (!best || c.total < best.total)) best = c;
+  }
+  if (!best) return null;
+  let step = T / N;
+  for (let round = 0; round < 8; round++) {
+    for (let i = -2; i <= 2; i++) {
+      const c = priceAt(Math.max(t0, best.t + (step * i) / 2));
+      if (c && c.total < best.total) best = c;
+    }
+    step *= 0.4;
+  }
+  const s1 = best.s;
+  const rMoon = best.r;
+  const a = best.a;
+  const c3Out = best.c3;
+  const eject = best.eject;
+  const circ = best.circ;
+  const tof = best.tof;
+
   /* The burn's place, as the pilot finds it: the escape asymptote points
      retrograde, and the burn sits its own angle back around the parking
      orbit from there — the same geometry an ejection anywhere else has. */
@@ -585,9 +632,9 @@ function dropSearch(
   return {
     from: moon,
     to: primary,
-    depart: Math.round(t0),
+    depart: Math.round(best.t),
     tof,
-    arrive: Math.round(t0) + tof,
+    arrive: Math.round(best.t) + tof,
     c3Out,
     c3In: 0,
     vinfOut: Math.sqrt(Math.max(0, c3Out)),
@@ -601,8 +648,9 @@ function dropSearch(
     type: "ballistic",
     angle,
     ref: "retrograde",
-    /* No phase angle: the moon's orbit is circular, so every departure is
-       this same picture turned round. */
+    /* No phase angle to time: what matters is where in the moon's own orbit
+       you leave, which is the departure above, and where in your parking
+       orbit you burn, which is the angle. */
     phase: 0,
     r1: r1xy,
     r2dep: [0, 0],

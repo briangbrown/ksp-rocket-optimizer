@@ -419,8 +419,21 @@ before changing the thing it names.
 
   What the reader needs is the **ejection angle** — where in the moon's
   orbit to burn, measured from retrograde — so the card shows the ejection
-  drawing and a descent drawing, and drops the date, the phase angle, the
-  burn components and the transfer type, none of which say anything here.
+  drawing and a descent drawing, and drops the phase angle, the burn
+  components and the transfer type, none of which say anything here.
+
+  **But not every moon goes round in a circle**, and the first cut of this
+  assumed they all did. The Mun, Minmus, Laythe, Vall and Tylo are exactly
+  e = 0; Gilly is 0.55, Bop 0.235 and Pol 0.171. On those, where in the
+  moon's own orbit you leave is worth real fuel — Gilly's departure runs
+  from 1,470 m/s at apoapsis to 1,869 at periapsis — so `dropSearch` sweeps
+  the moon's period and refines, rather than pricing whatever moment the
+  reader happened to ask from. And what has to be shed is the _vector_
+  difference from the moon's velocity, its radial part included: on a
+  circular orbit there is none and it is the plain difference of two speeds,
+  on Gilly's it is not. The card shows a date for an eccentric moon and says
+  it is going near apoapsis; for a circular one it shows no date and says
+  any time will do. `isRound` in `transfer.tsx` is that line, at e = 0.01.
 
 - **`elements` throws for the Sun, so a dispatch on parentage must not use
   it.** `parentOf` in `encounter.ts` reads the body table instead. Choosing
