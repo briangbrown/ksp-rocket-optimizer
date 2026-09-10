@@ -379,3 +379,16 @@ control shows and what it committed.
   hooks. `visual/transfer.test.ts` reads the pixels. The overlay is not a
   `svg[role=img]`, so the transfer card's count of named drawings stays at
   four. #213
+
+- **The plot's finer pass is a worker pool, and the pool is kept.** The Δv
+  plot prices its grid three times finer than the search did — thirty-five
+  thousand Lambert cells — and `plot-client.ts` cuts that into a run of
+  columns per thread on a pool built on first use and never terminated: a
+  plot is asked for on every change of the brief, and a request no longer
+  wanted is dropped by ignoring its reply, not by killing the threads the
+  other plot is waiting on. Sliced onto the page's thread instead, twelve
+  milliseconds between paints, the two plots of a return trip took a second
+  and a half. The fallback without `Worker` prices in-process in one go;
+  jsdom takes no finer pass at all (no canvas to paint it on), so
+  `test/plot-client.test.ts` drives the client with a fake worker and the
+  visual suite waits on `data-fine="done"`. #213
