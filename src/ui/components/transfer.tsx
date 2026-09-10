@@ -4,6 +4,7 @@ import { bodyLabel, fmt, kerbalDateLabel, kerbalDayLabel } from "../format.js";
 import { DAY as KDAY } from "../../core/kepler.js";
 import { C, SPACE, edgeOf, hueFor, inkOn } from "../tokens.js";
 import { Stat } from "./primitives.jsx";
+import { Porkchop } from "./porkchop.jsx";
 import type { Theme } from "../tokens.js";
 import type { Window } from "../../core/transfer.js";
 
@@ -669,6 +670,12 @@ function TransferPanel({
             compressed
           </div>
         </div>
+        {/* The valley the window sits in: the search's own grid as a
+            picture, the window marked on it, and the cheaper one after it
+            where there is one. A third item in the row — beside the
+            drawings where the row has 320 px to spare, under them where
+            it has not. #213 */}
+        <Porkchop w={w} />
       </div>
       <div
         style={{

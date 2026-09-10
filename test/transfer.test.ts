@@ -11,7 +11,7 @@ import {
   utOf,
 } from "../src/core/kepler.js";
 import { lambert } from "../src/core/lambert.js";
-import { findWindow } from "../src/core/transfer.js";
+import { findWindow, priceColumns } from "../src/core/transfer.js";
 import { routeFor } from "../src/core/orbits.js";
 
 /* The transfer window (#197): an ephemeris on the stock elements, a Lambert
@@ -276,5 +276,72 @@ describe("a route priced on its windows", () => {
     );
     expect(fly.some((l) => l.window)).toBe(true);
     expect(fly.some((l) => l.kind === "capture")).toBe(false);
+  });
+});
+
+describe("the plot", () => {
+  it("is the search's own grid, with the window in its cheapest cell", () => {
+    /* #213: the coarse grid the search prices is kept on the window as
+       plain numbers, rounded. Its cheapest cell in the first synodic period
+       is the one the refinement started from, so it lies within a cell of
+       the window reported and prices no lower than it. */
+    const w = findWindow("Kerbin", "Duna", rK, rD, 0, true);
+    expect(w).not.toBeNull();
+    const p = w!.plot;
+    expect(p.nf).toBe(41);
+    expect(p.nt).toBeGreaterThan(90);
+    expect(p.totals.length).toBe(p.nt * p.nf);
+    for (const v of p.totals) {
+      expect(Number.isFinite(v)).toBe(true);
+      expect(Number.isInteger(v)).toBe(true);
+    }
+    expect(p.totals.filter((v) => v > 0).length).toBeGreaterThan(
+      0.98 * p.totals.length,
+    );
+    const T1 = periodOf("Kerbin"),
+      T2 = periodOf("Duna");
+    const first = 1.05 / Math.abs(1 / T1 - 1 / T2);
+    let best = -1;
+    p.totals.forEach((v, k) => {
+      const i = Math.floor(k / p.nf);
+      if (i * p.step > first || v <= 0) return;
+      if (best < 0 || v < p.totals[best]) best = k;
+    });
+    const i = Math.floor(best / p.nf),
+      j = best % p.nf;
+    expect(Math.abs(p.t0 + i * p.step - w!.depart)).toBeLessThanOrEqual(p.step);
+    expect(
+      Math.abs(p.fLo + (j * (p.fHi - p.fLo)) / (p.nf - 1) - w!.tof),
+    ).toBeLessThanOrEqual((p.fHi - p.fLo) / (p.nf - 1));
+    expect(p.totals[best]).toBeGreaterThanOrEqual(Math.floor(w!.total));
+    expect(p.totals[best]).toBeLessThan(1.1 * w!.total);
+    /* And it crosses the seam as it is. */
+    expect(JSON.parse(JSON.stringify(w))).toEqual(w);
+  });
+  it("prices the same cells again, to the number, a run of columns at a time", () => {
+    /* The card's finer pass: at the search's own spacing it is the search. */
+    const w = findWindow("Kerbin", "Duna", rK, rD, 0, true)!;
+    const p = w.plot;
+    const again = [
+      ...priceColumns(p, 0, 5),
+      ...priceColumns(p, 5, 60),
+      ...priceColumns(p, 60, p.nt),
+    ];
+    expect(again).toEqual(p.totals);
+    /* Three times finer: the same span, every third column the old one. */
+    const fine = { ...p, step: p.step / 3, nt: (p.nt - 1) * 3 + 1 };
+    const cols = priceColumns(fine, 0, 4);
+    expect(cols.length).toBe(4 * p.nf);
+    expect(cols.slice(0, p.nf)).toEqual(p.totals.slice(0, p.nf));
+    expect(cols.slice(3 * p.nf)).toEqual(p.totals.slice(p.nf, 2 * p.nf));
+  });
+  it("places the cheaper later window on the grid too", () => {
+    const w = findWindow("Kerbin", "Moho", rK, 280_000, 0, true);
+    expect(w?.next).toBeTruthy();
+    const p = w!.plot;
+    expect(w!.next!.depart).toBeGreaterThan(p.t0);
+    expect(w!.next!.depart).toBeLessThan(p.t0 + p.nt * p.step);
+    expect(w!.next!.tof).toBeGreaterThan(0.8 * p.fLo);
+    expect(w!.next!.tof).toBeLessThan(1.2 * p.fHi);
   });
 });
