@@ -691,7 +691,8 @@ out of the burn, dashed. Text in them is the `note` role, names in
 eight positions about its point at three stand-offs and takes the one clear
 of the names already down, the markers, the rays and the frame, with a short
 leader in `C.dim` where it stood off; the Sun's-system drawing compresses
-radii as r^0.6 so an inner orbit has room, and its caption says so.
+radii as r^0.6 so an inner orbit has room, which its `aria-label` states and
+its caption no longer does (#219) — the orbits are visibly not to scale.
 `visual/transfer.test.ts` measures every name in a dozen pairs and holds
 them apart. Where the flight passes inside a body the patched
 conic never priced (#216) the card says so: a `note` line under the figures
@@ -701,6 +702,15 @@ nothing"_ — and a `warn` `Callout` above them, with the explanation behind
 its `more`, in the rare case it could not clear it at all. Each carries an
 `aria-label` that says what it draws. The two sit side by side where 440 px
 allow and stack below.
+
+Each drawing's caption names what it draws and nothing else (#219):
+_"Kerbin ejection angle"_, _"Kerbin and Duna phase angle"_ — the two ends
+interpolated, so it follows whichever pair the window is for — and _"Total
+Δv by departure and flight time"_ under the plot. Sentence case, as every
+`note` in the application is. What the captions used to
+narrate is in the picture: the scale bar shows the colours, the crosshair
+invites the tap, the arc shows the ship arriving. The long form of each is
+still the `aria-label`, which is why the captions can afford to be short.
 
 ### Porkchop
 

@@ -530,8 +530,7 @@ function Porkchop({ w }: { w: Window }) {
         </svg>
       </div>
       <div className="note" style={{ textAlign: "center" }}>
-        Total Δv by departure and flight time, colour on a log scale · tap or
-        drag to read
+        Total Δv by departure and flight time
       </div>
       <span className="sr-only" aria-live="polite">
         {readText}

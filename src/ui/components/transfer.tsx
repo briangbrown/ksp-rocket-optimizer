@@ -689,14 +689,13 @@ function TransferPanel({
         <div style={{ flex: "1 1 200px", maxWidth: size }}>
           <Departure w={w} theme={theme} />
           <div className="note" style={{ textAlign: "center" }}>
-            Leaving {bodyLabel(w.from)}
+            {bodyLabel(w.from)} ejection angle
           </div>
         </div>
         <div style={{ flex: "1 1 200px", maxWidth: size }}>
           <Heliocentric w={w} theme={theme} />
           <div className="note" style={{ textAlign: "center" }}>
-            About Kerbol at departure, the ship on arrival · distances
-            compressed
+            {bodyLabel(w.from)} and {bodyLabel(w.to)} phase angle
           </div>
         </div>
         {/* The valley the window sits in: the search's own grid as a
