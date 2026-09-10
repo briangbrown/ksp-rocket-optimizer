@@ -816,6 +816,14 @@ const isRaise = (w: Window) => SYS[w.to]?.parent === w.from;
 /* And whether it is the way back down: a moon to the body it orbits. */
 const isDrop = (w: Window) => SYS[w.from]?.parent === w.to;
 
+/* Whether the moon being left goes round in a circle. Most do exactly — the
+   Mun, Minmus, Laythe, Vall and Tylo are all e = 0 — and then every
+   departure is the same picture turned round, with nothing to wait for.
+   Gilly is 0.55, Bop 0.235 and Pol 0.171, and there it is worth real fuel to
+   go at the right point of the moon's own orbit: Gilly's departure runs from
+   1,470 m/s to 1,869 across its period. #223 */
+const isRound = (w: Window) => (SYS[w.from]?.ecc ?? 0) < 0.01;
+
 /* The way down, about the primary: the moon's orbit, the ellipse from where
    the moon is to a periapsis at the parking orbit opposite, and the target
    orbit drawn round the planet. There is no phase angle in this drawing
@@ -1036,7 +1044,7 @@ function TransferPanel({
       >
         {/* No date going down: a circular orbit offers the same departure
             at every moment, so there is nothing to wait for. #223 */}
-        {!isDrop(w) && (
+        {(!isDrop(w) || !isRound(w)) && (
           <Stat small label="Leave" value={kerbalDateLabel(w.depart)} />
         )}
         <Stat
@@ -1103,7 +1111,7 @@ function TransferPanel({
         ) : (
           <Stat small label="Flight" value={fmt(days)} unit="days" />
         )}
-        {!isDrop(w) && (
+        {(!isDrop(w) || !isRound(w)) && (
           <Stat small label="Arrive" value={kerbalDateLabel(w.arrive)} />
         )}
         <Stat
@@ -1120,13 +1128,26 @@ function TransferPanel({
           reported: it comes round every few days and the arc barely notices
           the shift. Said plainly, because the date is a second off what the
           plot's valley says and the reader should know why. #216 */}
-      {/* Going down there is nothing to time, and saying so is the useful
-          part: the reader should not go looking for a window. #223 */}
+      {/* Going down, whether there is anything to time depends on the moon.
+          Most go round in a circle and offer the same departure at every
+          moment, and saying so stops the reader hunting for a window that is
+          not there. Gilly, Bop and Pol do not. #223 */}
       {isDrop(w) && (
         <div className="note" style={{ marginTop: SPACE.lg }}>
-          Any time will do — {bodyLabel(w.from)}'s orbit is circular, so this is
-          the same picture whenever you leave. What matters is where in your
-          orbit you burn.
+          {isRound(w) ? (
+            <>
+              Any time will do — {bodyLabel(w.from)}'s orbit is circular, so
+              this is the same picture whenever you leave. What matters is where
+              in your orbit you burn.
+            </>
+          ) : (
+            <>
+              {bodyLabel(w.from)}'s orbit is eccentric, so when you leave does
+              matter: this goes near its apoapsis, where it is highest and
+              slowest and there is least speed to shed. After that, what matters
+              is where in your orbit you burn.
+            </>
+          )}
         </div>
       )}
       {w.dodged && (
