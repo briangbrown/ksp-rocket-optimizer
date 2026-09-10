@@ -36,12 +36,17 @@ import type { Grid, Window } from "../../core/transfer.js";
 
 /* At most the two drawings and their gap: what it takes under them. */
 const FULL = 2 * 220 + SPACE.lg;
-/* Margins: the flight-day labels and their title on the left, the "m/s"
-   over the scale bar, the date labels and their title under. The right
-   margin is the bar and its longest value, measured below. */
-const ML = 42,
-  MT = 18,
+/* Margins: the "m/s" over the scale bar, and the date labels and their
+   title under. Both side margins are measured from their own longest label
+   rather than guessed — the left one below, the right one in the component,
+   since the scale's values are not known until the grid is. */
+const MT = 18,
   MB = 36;
+/* The column the rotated "Days of flight" title sits in, before the tick
+   numbers begin. Guessed at nothing: the numbers used to be right-aligned
+   7 px inside a 42 px margin, so a three-figure label ran back to x = 10 and
+   a four-figure one to x = -3, straight through the title. #221 */
+const AXIS_TITLE = 20;
 /* The bar's stand-off from the frame, its width, and its labels' gap. */
 const BAR_GAP = 16,
   BAR_W = 12,
@@ -49,6 +54,15 @@ const BAR_GAP = 16,
 /* A note-role glyph is about seven pixels wide (`transfer.tsx` measured
    it); a value's label is that by its length. */
 const widthOf = (text: string) => 6.9 * text.length + 4;
+
+/* Marks drawn over the plot take the theme-invariant pair, because what is
+   under them is theme-invariant too: the ground is the CET-L08 map, whose
+   cheap end is deep blue, and `C.paper` in the light theme is near-black —
+   so the window's marker used to disappear into the one part of the picture
+   the reader came for. `onDark` and `onLight` are the same two values in
+   both palettes and already mean ink on a filled hue. #221 */
+const MARK = C.onDark;
+const MARK_SHADE = C.onLight;
 /* The five values the scale bar names. */
 const SCALE_STOPS = 5;
 
@@ -183,6 +197,12 @@ function Porkchop({ w }: { w: Window }) {
     ro.observe(el);
     watching.current = ro;
   }, []);
+  /* The left margin is the title's column plus the widest tick number. The
+     largest tick is at most the longest flight, so its width is known before
+     any of the layout is. */
+  const ML = Math.round(
+    AXIS_TITLE + LABEL_GAP + widthOf(fmt(Math.round(p.fHi / DAY))),
+  );
   const aw = W - ML - MR;
   const ah = Math.max(150, Math.min(230, Math.round(aw * 0.55)));
   const H = MT + ah + MB;
@@ -447,40 +467,40 @@ function Porkchop({ w }: { w: Window }) {
             y1={my}
             x2={ML + aw}
             y2={my}
-            stroke={C.paper}
-            strokeOpacity={0.55}
+            stroke={MARK}
+            strokeOpacity={0.7}
           />
           <line
             x1={mx}
             y1={MT}
             x2={mx}
             y2={MT + ah}
-            stroke={C.paper}
-            strokeOpacity={0.55}
+            stroke={MARK}
+            strokeOpacity={0.7}
           />
           {next && (
             <polygon
               data-mark="next"
               points={`${next.x},${next.y - 6} ${next.x + 6},${next.y} ${next.x},${next.y + 6} ${next.x - 6},${next.y}`}
-              fill={C.panel}
-              stroke={C.paper}
+              fill={MARK_SHADE}
+              stroke={MARK}
               strokeWidth={1.5}
             />
           )}
           <polygon
             data-mark="window"
             points={`${mx},${my - 6} ${mx + 6},${my} ${mx},${my + 6} ${mx - 6},${my}`}
-            fill={C.paper}
+            fill={MARK}
           />
           <text
             className="note"
             paintOrder="stroke"
-            stroke={C.panel}
+            stroke={MARK_SHADE}
             strokeWidth={3}
             strokeLinejoin="round"
             x={figLeft ? mx - 10 : mx + 10}
             y={figAbove ? my - 8 : my + 16}
-            fill={C.paper}
+            fill={MARK}
             textAnchor={figLeft ? "end" : "start"}
           >
             {figure}
@@ -493,34 +513,34 @@ function Porkchop({ w }: { w: Window }) {
                 y1={ry}
                 x2={ML + aw}
                 y2={ry}
-                stroke={C.amber}
-                strokeOpacity={0.8}
+                stroke={MARK}
+                strokeDasharray="4 3"
               />
               <line
                 x1={rx}
                 y1={MT}
                 x2={rx}
                 y2={MT + ah}
-                stroke={C.amber}
-                strokeOpacity={0.8}
+                stroke={MARK}
+                strokeDasharray="4 3"
               />
               <circle
                 cx={rx}
                 cy={ry}
                 r={4}
                 fill="none"
-                stroke={C.amber}
+                stroke={MARK}
                 strokeWidth={1.5}
               />
               <text
                 className="note"
                 paintOrder="stroke"
-                stroke={C.panel}
+                stroke={MARK_SHADE}
                 strokeWidth={3}
                 strokeLinejoin="round"
                 x={rx > ML + aw / 2 ? rx - 9 : rx + 9}
                 y={ry > MT + ah / 2 ? ry - 8 : ry + 16}
-                fill={C.amber}
+                fill={MARK}
                 textAnchor={rx > ML + aw / 2 ? "end" : "start"}
               >
                 {readText}
