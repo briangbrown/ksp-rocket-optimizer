@@ -6,8 +6,9 @@ propellant on steering, and its two numbers, a kick speed and a kick angle, are
 the whole of what the solver searches to fly an ascent and find out what the
 climb really costs.
 
-**Before this:** [P6, gravity, drag and steering losses](../../README.md), and
-[P3, thrust-to-weight](../../README.md). Both are used below by name only.
+**Before this:** [P6](../../README.md#part-1--physics), _Gravity, drag and steering losses_, and
+[P3](../../README.md#part-1--physics), _Thrust-to-weight, and the burn-time limits_. Both are used below
+by name only.
 
 ## A worked case
 
@@ -131,7 +132,7 @@ searchable: a whole trajectory is two numbers.
 ## In this codebase
 
 `flyAscent` in `src/core/ascent.ts` flies the turn. It takes `vKick` and `kick`
-and integrates the flight in 0.1 s steps ([A4](../../README.md) covers the
+and integrates the flight in 0.1 s steps ([A4](../../README.md#part-2--algorithms-and-the-solver) covers the
 scheme). The kick and the follow are these lines:
 
 ```ts
@@ -156,7 +157,7 @@ needs to know about.
 `lead` is a third parameter, normally zero, that holds the nose a few degrees
 above prograde. Zero reproduces the turn described here exactly, and a test
 holds that. What it is for is the runaway case, and that is
-[P10's lesson](../../README.md).
+[P10](../../README.md#part-1--physics), _Why low thrust needs the nose above prograde_.
 
 The `Math.min(Math.PI / 2, …)` floors the nose at the horizon. Following
 prograde with no floor lets a shallow flight nose down and fly back into the
@@ -166,7 +167,7 @@ ground while its coast still reads as reaching orbit.
 a grid of kick speeds from 30 to 140 m/s in steps of 20 and kick angles from 3°
 to 25° in steps of 4, thirty-six flights, keeps the cheapest that stays under a
 cap on air pressure, then flies a finer grid within 15 m/s and 3° of that best.
-[A2](../../README.md) is about why a coarse grid then a local refinement, and
+[A2](../../README.md#part-2--algorithms-and-the-solver) is about why a coarse grid then a local refinement, and
 why not a fine grid from the start.
 
 ## What made it real
@@ -189,11 +190,11 @@ express. That miss is the edge of this lesson and the start of the next.
   two-parameter search's answer on such a stack is the latest, shallowest kick
   on the grid, which is "stay vertical" and pays for it in gravity loss. On the
   six-Hammer Mainsail in `test/ascent.test.ts` that flight costs 4,549 m/s.
-  The fix is the third parameter, [P10](../../README.md); the rule is in
+  The fix is the third parameter, [P10](../../README.md#part-1--physics); the rule is in
   `.claude/rules/solver.md` under _The turn has three parameters_.
 - **When the search is unconstrained.** Left alone the optimiser finds a violent
   early kick that trades gravity loss for air pressure the rocket could not
-  survive. The cap at 40 kPa exists for that, and is [P11](../../README.md).
+  survive. The cap at 40 kPa exists for that, and is [P11](../../README.md#part-1--physics).
 - **When the toy is mistaken for the model.** The snippet above holds thrust
   constant, ignore air, and fly over a flat world. The real simulator burns
   propellant so thrust-to-weight rises through the burn, reads drag from the
