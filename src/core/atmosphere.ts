@@ -77,12 +77,15 @@ function makeAtmo(b: AtmoBody) {
    KSP stores atmosphereCurve as key=<atm> <Isp>; with the value-only form the
    tangents are zero, giving an ease-in/out spline rather than a straight line.
    Third key is the pressure at which the engine quits (3-12 atm in stock).  */
-function ispCurve(ispVac: number, ispAsl: number, cutoff = 6) {
-  const k = [
+function synthCurve(ispVac: number, ispAsl: number, cutoff = 6): Curve {
+  return [
     [0, ispVac, 0, 0],
     [1, ispAsl, 0, 0],
     [cutoff, 0.001, 0, 0],
   ];
+}
+function ispCurve(ispVac: number, ispAsl: number, cutoff = 6) {
+  const k = synthCurve(ispVac, ispAsl, cutoff);
   return (patm: number) => Math.max(0, evalCurve(k, patm));
 }
 
@@ -186,6 +189,7 @@ export {
   evalCurve,
   frontalArea,
   ispCurve,
+  synthCurve,
   makeAtmo,
   orbitAlt,
 };
