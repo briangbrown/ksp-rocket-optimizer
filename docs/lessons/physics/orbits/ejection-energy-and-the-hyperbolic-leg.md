@@ -43,7 +43,7 @@ half and the number to hit is
 Solve for v at 680 km: v² = 842,724 + 2 × 3.5316 × 10¹²/680,000 = 11,229,800,
 so v = 3,351 m/s, and the burn is 3,351 − 2,279 = 1,072 m/s. Not 1,862. The
 790 m/s saved is the reason departures leave from low orbit, and
-[P20](../../README.md#part-1--physics), _The Oberth effect_, is about it.
+[P20](../../README.md#part-1--physics), _[The Oberth effect](the-oberth-effect.md)_, is about it.
 
 The path the burn puts the ship on is an open curve, a hyperbola, whose shape
 is fixed by the same number: its [eccentricity](keplers-equation.md) is e = 1 +

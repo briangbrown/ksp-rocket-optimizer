@@ -133,7 +133,7 @@ Kerbin's well and must pay to climb out as well as to speed up; from 80 km
 that burn is about 1,070 m/s, not 918. How the two numbers are related is
 [P18](../../README.md#part-1--physics), _[Ejection: characteristic energy and
 the hyperbolic leg](ejection-energy-and-the-hyperbolic-leg.md)_, and why the climb costs less than the sum of the parts
-is [P20](../../README.md#part-1--physics), _The Oberth effect_.
+is [P20](../../README.md#part-1--physics), _[The Oberth effect](the-oberth-effect.md)_.
 
 The **synodic period** is how long until two bodies orbiting the same centre
 return to the same relative position. Seen from the Sun, Kerbin goes round at
