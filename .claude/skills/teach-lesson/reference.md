@@ -68,46 +68,80 @@ the effect sizes are not to be quoted as if they were measured here.
 
 ## The moment lesson: a worked example
 
-The first lesson in the repository, from #223 —
-`docs/lessons/physics/patched-conics/energy-not-excess-velocity-b80e959.md`.
-Read it whole; it is quoted here in part. It predates the rule that _Why it
-matters_ is a full sentence with a because, and its opener is the kind the rule
-now forbids: it says where, not why.
+The one lesson written before this skill's rules existed, from #223, rewritten
+to them in #323. It is
+`docs/lessons/physics/patched-conics/energy-not-excess-velocity-b80e959.md`,
+quoted whole; the original is in that file's history.
 
-> # Energy, Not Excess Velocity
+> # Characteristic energy, not excess velocity
 >
-> **Why it matters:** any time a patched-conic transfer is priced, and
-> especially when the body being left is small next to its own sphere of
-> influence.
+> **Why it matters:** Pricing a departure from its excess velocity matters
+> because a moon's sphere of influence is so small that a ship can leave it still
+> bound to the moon, and a formula that cannot express a bound departure prices
+> every moon window at escape velocity instead of at what the window costs.
 >
-> ## The concept
+> **Concept:** P18, _Ejection: characteristic energy and the hyperbolic leg_, in
+> [the syllabus](../../README.md).
 >
-> The excess velocity v∞ is what a ship has left after climbing entirely out of
-> a body's gravity well. It is a convenient number because it is what the
-> heliocentric leg sees, but it only exists when the ship can actually escape.
-> The quantity that always exists is the characteristic energy, C3 = v² − 2μ/r,
-> which is _signed_: negative means a bound orbit. Writing the burn in energy
-> costs nothing when v∞ exists — the algebra is the same — and stays correct
-> when it does not.
+> ## The idea
+>
+> When a ship climbs away from a body, the speed it has left once the body's
+> pull is spent is its **excess velocity**, v∞. It is the convenient number for
+> the leg that follows, but it exists only if the ship escapes. What always exists
+> is the **characteristic energy**, C3 = v² − 2μ/r: twice the ship's orbital
+> energy per unit mass, equal to v∞² when the ship escapes and negative when it
+> does not. Written in energy, the departure burn costs the same algebra when v∞
+> exists and stays correct when it does not.
+>
+> ## In this codebase
+>
+> KSP hands a ship from one body to the next at the edge of the **sphere of
+> influence**, the region in which only that body's gravity is counted, whether
+> or not the ship has out-climbed the body's pull. The Mun's sphere ends at 20% of
+> its orbital radius, so a ship leaving the Mun for Minmus crosses the edge still
+> on a **bound orbit**, a closed one that would bring it back, and its v∞ is
+> imaginary. `atInfinity` in `src/core/transfer.ts` computed
+> `sqrt(max(0, v² − 2μ/r))`, and the floor at zero turned every such departure
+> into one at exactly escape velocity, whatever the window asked for. `c3Of` now
+> returns the signed energy and `injectC3` spends it:
+>
+> ```ts
+> const c3Of = (vrel: number, mu: number, rSoi: number) =>
+>   vrel * vrel - (2 * mu) / rSoi;
+>
+> const injectC3 = (v: number, c3: number) =>
+>   Math.sqrt(Math.max(0, 2 * v * v + c3)) - v;
+> ```
+>
+> The remaining `max` guards against a nonsensical **parking orbit**, the low
+> orbit a ship waits in before it departs; it is not a physical floor. 2v² + C3 is
+> the square of the speed at the bottom of the departure path, and it is positive
+> for any orbit inside the sphere.
 >
 > ## What made it real
 >
-> The Mun's sphere of influence is 20% of its orbital radius and its boundary
-> escape speed is 232 m/s. Every moon ejection came out at exactly 231 —
-> `sqrt(2μ/r) − v_circ`, a number with nothing to do with the window. The real
-> figure is 214. All 84 planetary windows stayed identical to the last digit,
-> which is what proved the rewrite was a rewrite and not a change.
+> The Mun's escape speed at the edge of its sphere is 232 m/s, and every Mun
+> departure the tool priced came out at 231 m/s: `sqrt(2μ/r) − v_circ`, a number
+> with nothing to do with the window. Priced from energy, the same departure is
+> 214 m/s. All 84 windows between planets, where v∞ is real, stayed identical to
+> the last digit, which is what proved the rewrite changed the moons and nothing
+> else.
+>
+> ## Key takeaway
+>
+> When a formula floors a value to keep it real, ask what the floored case
+> physically is; it is often a valid state the model simply cannot express.
 
-Under today's rules the opener would read: "Pricing a departure from its
-excess velocity matters because a moon's sphere of influence is so small that
-the ship leaves it still bound, and a formula that cannot express a bound
-departure prices every moon window at escape velocity instead." And the title
-would state the insight: "Characteristic energy, not excess velocity". The
-concept it applies is the syllabus's P18, and that is what the _Concept_ line
-is for.
-
-What it does right, and what a moment lesson must keep: one idea, the place it
-bit, and the number that settled it. No debugging story, no list of files.
+What to notice. The title states the insight, and the _Concept_ line says which
+syllabus row it is an instance of; those are two different things in two
+places. _Why it matters_ is one sentence with a because, and the because is a
+consequence for the application. Excess velocity, characteristic energy,
+sphere of influence, bound orbit and parking orbit are each defined in the
+sentence that first uses them, briefly, because the lesson that owns them
+(P18, P16, P19) is not yet written; once it is, those definitions become links.
+The idea is stated so it holds for any patched-conic model, not only this one.
+_What made it real_ has the wrong number, the right number, and the number that
+proved nothing else moved. There is no debugging story and no list of files.
 
 ## The concept lesson: the worked example
 
