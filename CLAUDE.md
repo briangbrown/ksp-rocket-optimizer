@@ -219,13 +219,16 @@ A rule a test enforces does not need to be in prose at all.
 
 There is one other home, and only one. Where the insight is a _concept_ worth
 teaching rather than a trap worth guarding, the `teach-lesson` skill writes it
-up under `docs/lessons/<category>/<topic>/<name>-<hash>.md`, tied to the commit
-it came from. That is not a parallel set of notes: a rule is terse, loads for
-whoever opens that area, and exists to stop a repeat; a lesson is written for a
-person, read once, never updated, and explains an idea that holds outside this
-repository. An insight can earn both — the excess-velocity clamp (#223) took a
-rule, a test and a lesson — but a lesson never stands in for a rule, or the
-guard is lost.
+up under `docs/lessons/`. That is not a parallel set of notes: a rule is terse,
+loads for whoever opens that area, and exists to stop a repeat; a lesson is
+written for a person and explains an idea that holds outside this repository.
+There are two kinds. A _moment_ lesson is written right after the work, for the
+person who did it, filed with the commit hash in its name and never revised. A
+_concept_ lesson is written from a row of the syllabus in
+`docs/lessons/README.md`, for a reader who has not done the work, and is revised
+as the code moves. An insight can earn a rule and a lesson both — the
+excess-velocity clamp (#223) took a rule, a test and a lesson — but a lesson
+never stands in for a rule, or the guard is lost.
 
 Work that is outstanding rather than known belongs in a filed issue, not in
 prose here.
