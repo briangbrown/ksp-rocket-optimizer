@@ -112,7 +112,8 @@ the arrival and the larger the burn, which is the table above. An ascent that
 climbs steeply gets its height cheaply and its speed expensively, and the bill
 comes due at the top. Why buying the speed there is so much worse than buying
 it on the way up, when the sum of the speeds looks the same, is
-[P20](../../README.md#part-1--physics)'s Oberth effect: a burn made while
+the Oberth effect of [P20](../../README.md#part-1--physics),
+_[The Oberth effect](the-oberth-effect.md)_: a burn made while
 moving slowly gains little energy for its Δv.
 
 The stretch between cutoff and apoapsis is the **coast**, unpowered flight,
