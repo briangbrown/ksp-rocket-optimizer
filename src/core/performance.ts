@@ -1,5 +1,5 @@
 import curvesData from "../data/curves.json";
-import { evalCurve, ispCurve } from "./atmosphere.js";
+import { evalCurve, synthCurve } from "./atmosphere.js";
 import { G0 } from "./constants.js";
 import { RADIAL_DECOUPLER_FUNDS } from "./parts.js";
 import type { Curve } from "./atmosphere.js";
@@ -39,16 +39,13 @@ const STAGE_PRESSURE = [0.62, 0.05, 0, 0];
    where it actually produces nothing. Everything computed at Eve moved. */
 /* A Map rather than the JSON object it is read from: a lookup by part name on
    a plain object can land on a prototype property — `constructor`, `toString`
-   — and the function built from that would then be called on a pressure.
-   CodeQL flagged exactly that dispatch (js/unvalidated-dynamic-method-call),
-   three times, once per refactor that moved the line. A Map has no such
-   properties to hit, and `ispFnFor` checks the shape of what it gets back. */
+   — which is not a curve. A Map has no such properties to hit, and `curveFor`
+   checks the shape of what it gets back. */
 const REAL_CURVE: ReadonlyMap<string, Curve> = new Map(
   Object.entries(curvesData.REAL_CURVE as Record<string, Curve>),
 );
 const ispCut = (e: { ia: number; iv: number }) =>
   Math.min(12, Math.max(3, 3 + 9 * (e.ia / e.iv)));
-const _ispFns = new Map<string, (x: number) => number>();
 /* Cache the value, not just the curve. This is called 124 million times across
    the design grid and has 116 distinct answers — the curve lookup was already
    cached, but the evaluation was not, and evaluating a Hermite spline is not
@@ -56,19 +53,26 @@ const _ispFns = new Map<string, (x: number) => number>();
 const _ispVals = new Map<string, Map<number, number>>();
 /* Engines and the stand-in parts a booster pool synthesises alike: all this
    needs is a name to key the cache on and the two Isp figures. */
-/* An engine's Isp against pressure, as one function: the real atmosphereCurve
-   where the config supplied one, else the shape inferred from the two table
-   figures. The sizer and the simulator both take their curve from here. They
-   used to build it separately — `ispAt` from the real keys, `buildVehicleFor`
-   from the inferred cutoff — and agreed only below 1 atm, where the third key
-   cannot reach; at Eve's 5 atm a Swivel was 26 s to one and 146 s to the
-   other. #328 */
-function ispFnFor(e: { n: string; iv: number; ia: number }) {
+/* The curve an engine's Isp follows against pressure, as data: its real
+   atmosphereCurve where the config supplied one, else the three-key shape
+   inferred from the two table figures. Data rather than a closure on purpose.
+   The sizer and the simulator used to each build their own function — `ispAt`
+   from the real keys, `buildVehicleFor` from the inferred cutoff — and agreed
+   only below 1 atm, where the third key cannot reach; at Eve's 5 atm a Swivel
+   was 26 s to one and 146 s to the other (#328). And a function looked up by
+   part name and then called is the shape CodeQL's
+   js/unvalidated-dynamic-method-call fires on, three alerts running; a curve
+   looked up by name and handed to the one fixed evaluator is not. */
+function curveFor(e: { n: string; iv: number; ia: number }): Curve {
   const real = REAL_CURVE.get(e.n);
-  return real && Array.isArray(real)
-    ? (x: number) => Math.max(0, evalCurve(real, x))
-    : ispCurve(e.iv, e.ia, ispCut(e));
+  return real && Array.isArray(real) ? real : synthCurve(e.iv, e.ia, ispCut(e));
 }
+/* The same, as the function the simulator's FlightStage carries. */
+function ispFnFor(e: { n: string; iv: number; ia: number }) {
+  const c = curveFor(e);
+  return (x: number) => Math.max(0, evalCurve(c, x));
+}
+const _curves = new Map<string, Curve>();
 function ispAt(e: { n: string; iv: number; ia: number }, p: number) {
   if (!p) return e.iv;
   let byP = _ispVals.get(e.n);
@@ -78,12 +82,12 @@ function ispAt(e: { n: string; iv: number; ia: number }, p: number) {
   }
   const hit = byP.get(p);
   if (hit !== undefined) return hit;
-  let f = _ispFns.get(e.n);
-  if (!f) {
-    f = ispFnFor(e);
-    _ispFns.set(e.n, f);
+  let c = _curves.get(e.n);
+  if (!c) {
+    c = curveFor(e);
+    _curves.set(e.n, c);
   }
-  const v = f(p);
+  const v = Math.max(0, evalCurve(c, p)); // one fixed evaluator; nothing looked up is called
   byP.set(p, v);
   return v;
 }
