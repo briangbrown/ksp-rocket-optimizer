@@ -127,11 +127,12 @@ out to a very high apoapsis and back wins, but no two bodies in the game's
 system are that far apart (Kerbin to Eeloo is 6.6 to 1), so the two-burn
 answer is always the one wanted here. And it is not a burn a ship makes. The
 918 m/s above is the change in the ship's speed about the Sun, taken after it
-has climbed clear of Kerbin's gravity. A ship in low Kerbin orbit is deep in
+has climbed clear of Kerbin's gravity. A ship in a low Kerbin
+[parking orbit](patched-conics-and-the-sphere-of-influence.md) is deep in
 Kerbin's well and must pay to climb out as well as to speed up; from 80 km
 that burn is about 1,070 m/s, not 918. How the two numbers are related is
-[P18](../../README.md#part-1--physics), _Ejection: characteristic energy and
-the hyperbolic leg_, and why the climb costs less than the sum of the parts
+[P18](../../README.md#part-1--physics), _[Ejection: characteristic energy and
+the hyperbolic leg](ejection-energy-and-the-hyperbolic-leg.md)_, and why the climb costs less than the sum of the parts
 is [P20](../../README.md#part-1--physics), _The Oberth effect_.
 
 The **synodic period** is how long until two bodies orbiting the same centre
