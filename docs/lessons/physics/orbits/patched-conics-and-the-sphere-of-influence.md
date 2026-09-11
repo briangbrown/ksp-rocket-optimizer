@@ -186,7 +186,7 @@ problem about Kerbin that Kerbin to Duna is about the Sun.
 
 The patch itself is in [`src/core/transfer.ts`](../../../../src/core/transfer.ts). `findWindow` asks Kepler where
 the two bodies are, asks the Lambert solver
-([P21](../../README.md#part-1--physics)) for the heliocentric arc between
+([P21](../../README.md#part-1--physics), _[Lambert's problem](lamberts-problem.md)_) for the heliocentric arc between
 them, takes the ship's velocity on that arc relative to each body, and prices
 the energy at each sphere's edge:
 

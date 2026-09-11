@@ -188,7 +188,7 @@ the second window.
 Everything downstream reads `stateAt`. The window search in
 [`src/core/transfer.ts`](../../../../src/core/transfer.ts) asks for the departure body at t and the arrival body
 at t plus the flight time and hands both positions to the Lambert solver
-([P21](../../README.md#part-1--physics)); the encounter check in
+([P21](../../README.md#part-1--physics), _[Lambert's problem](lamberts-problem.md)_); the encounter check in
 [`src/core/encounter.ts`](../../../../src/core/encounter.ts) asks where each other body is as the ship passes; the
 transfer drawing in the interface draws the orbits from `orbitPoints`.
 
