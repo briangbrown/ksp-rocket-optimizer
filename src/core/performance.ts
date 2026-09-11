@@ -37,7 +37,15 @@ const STAGE_PRESSURE = [0.62, 0.05, 0, 0];
    systematically optimistic for vacuum bells — a Terrier was given a 5.2 atm
    cutoff against a real 3.0, so it was still credited with thrust at pressures
    where it actually produces nothing. Everything computed at Eve moved. */
-const REAL_CURVE: Readonly<Record<string, Curve>> = curvesData.REAL_CURVE;
+/* A Map rather than the JSON object it is read from: a lookup by part name on
+   a plain object can land on a prototype property — `constructor`, `toString`
+   — and the function built from that would then be called on a pressure.
+   CodeQL flagged exactly that dispatch (js/unvalidated-dynamic-method-call),
+   three times, once per refactor that moved the line. A Map has no such
+   properties to hit, and `ispFnFor` checks the shape of what it gets back. */
+const REAL_CURVE: ReadonlyMap<string, Curve> = new Map(
+  Object.entries(curvesData.REAL_CURVE as Record<string, Curve>),
+);
 const ispCut = (e: { ia: number; iv: number }) =>
   Math.min(12, Math.max(3, 3 + 9 * (e.ia / e.iv)));
 const _ispFns = new Map<string, (x: number) => number>();
@@ -56,8 +64,8 @@ const _ispVals = new Map<string, Map<number, number>>();
    cannot reach; at Eve's 5 atm a Swivel was 26 s to one and 146 s to the
    other. #328 */
 function ispFnFor(e: { n: string; iv: number; ia: number }) {
-  const real = REAL_CURVE[e.n];
-  return real
+  const real = REAL_CURVE.get(e.n);
+  return real && Array.isArray(real)
     ? (x: number) => Math.max(0, evalCurve(real, x))
     : ispCurve(e.iv, e.ia, ispCut(e));
 }
