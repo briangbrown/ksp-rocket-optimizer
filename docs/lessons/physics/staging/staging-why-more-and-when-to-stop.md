@@ -30,12 +30,18 @@ weigh an eighth of their propellant. The Δv is split evenly between the stages.
 
 Read across a row. Splitting 3,400 m/s into two stages takes 2.6 t off an
 8.8 t rocket. Splitting it into three puts 0.2 t back on, and every stage after
-that adds more. Read down a column. The dash is a stage the rocket equation
-refuses outright: 300 s of Isp on tanks that weigh an eighth of their propellant
-cannot pass 300 × 9.81 × ln 9 = 6,466 m/s however much propellant it carries,
-which was [P1](dv-and-the-rocket-equation.md)'s ceiling. Near the ceiling the
-stage is not refused but absurd: two stages for 9,000 m/s is 4,500 each, and
-the rocket weighs two and a half thousand tonnes.
+that adds more. Read down the first column. The dashes are stages that cannot
+be built, and there are two reasons, one per ceiling. At 7,000 and 9,000 m/s
+it is the tank ceiling from [P1](dv-and-the-rocket-equation.md): 300 s of Isp
+on tanks that weigh an eighth of their propellant cannot pass 300 × 9.81 × ln 9
+= 6,466 m/s however much propellant it carries. At 5,000 m/s the tanks would
+allow it and the engine does not. An engine sized to 1.25 times the stage's
+weight at 0.009 t per kilonewton weighs 11% of the stage it lifts, and that
+11% behaves like a second tank coefficient: every tonne of stage brings 110 kg
+of engine that the propellant must also lift, and past 4,604 m/s the stage
+grows faster than its engine can carry. Near either ceiling the stage is not
+refused but absurd: two stages for 9,000 m/s is 4,500 each, and the rocket
+weighs two and a half thousand tonnes.
 
 And read the diagonal of bold entries. The lightest count moves right as the
 Δv grows: two stages for 3,400, three for 5,000, four for 7,000, six for 9,000.
@@ -52,10 +58,10 @@ const g = 9.81,
 const stage = (payload, dv, twr) => {
   const R = Math.exp(dv / (isp * g)),
     den = 1 + k - R * k;
-  if (den <= 0) return null; // past the ceiling
+  if (den <= 0) return null; // the tank ceiling
   const A = 1 + ((R - 1) * (1 + k)) / den; // full mass per tonne of fixed mass
   const c = 1 - A * epk * twr * g; // the engine is sized to the stage it lifts
-  return c <= 0 ? null : ((payload + dec) * A) / c;
+  return c <= 0 ? null : ((payload + dec) * A) / c; // c ≤ 0: the engine ceiling
 };
 const rocket = (dv, n) => {
   let m = 1.0; // the payload, in tonnes; stages are solved from the top down
@@ -200,7 +206,9 @@ that is the cap.
 Run the snippet, then set `epk` to `0` and run it again. With massless engines
 the rows flatten: at 3,400 m/s two and three stages both come to 4.2 t, and at
 7,000 six stages beat five. The overhead per stage is what puts the minimum
-where it is; take it away and more stages are always a little better.
+where it is; take it away and more stages are always a little better. And the
+5,000 m/s single stage appears, at 13.0 t: that dash was the engine's, not the
+tanks'. The 7,000 and 9,000 dashes stay, because those are the tanks'.
 
 ## Check yourself
 
@@ -209,7 +217,12 @@ where it is; take it away and more stages are always a little better.
 Because it is not only limited by that. Tanks weigh an eighth of their
 propellant, so the mass ratio can never pass 9, and at 300 s of Isp that is
 300 × 9.81 × ln 9 = 6,466 m/s. Above it the propellant the rocket equation
-asks for is infinite, and the solver returns nothing.
+asks for is infinite, and the solver returns nothing. The 5,000 m/s single
+stage is missing for a different reason: with the engine sized to the stage's
+own weight, engine mass is a second coefficient on top of the tanks', and the
+single stage closes only below 4,604 m/s at the pad floor. A lighter engine
+per kilonewton, a Mainsail at 0.0043 t/kN against the 0.009 assumed, lifts
+that ceiling toward the tanks'.
 
 </details>
 
