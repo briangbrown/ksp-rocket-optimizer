@@ -90,7 +90,7 @@ is about how that number is defined and why it changes with altitude. Here it is
 enough that v_e = Isp × g₀, with g₀ the standard 9.81 m/s².
 
 The logarithm is the whole character of the equation. It grows without bound
-but ever more slowly, so Δv is cheap to start with and dear to finish. Doubling
+but ever more slowly, so Δv is cheap to start with and expensive to finish. Doubling
 the mass ratio always adds the same v_e × ln 2, about 2,350 m/s for the Terrier,
 whether the ratio goes from 2 to 4 or from 4 to 8, and the second doubling costs
 twice the propellant of the first.
@@ -240,7 +240,7 @@ equation at all; it is in the simulator, as a loss.
 ## Key takeaway
 
 Δv = v_e · ln(m_full / m_empty), and the logarithm is why the first tank is
-cheap, the tenth is dear, and no single stage on tanks that weigh an eighth of
+cheap, the tenth is expensive, and no single stage on tanks that weigh an eighth of
 their propellant can pass v_e · ln 9.
 
 _As of 761e839._
