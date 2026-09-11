@@ -9,7 +9,7 @@ START([mission settings change]) --> ROUTE
 
 subgraph L0["ROUTE — arithmetic only, no search"]
   ROUTE["buildRoute<br/>origin, destination, profile, return"]
-  --> LEGS["legs and their Δv<br/>from real orbital elements<br/>plane change: timed at a node, or burned from low orbit"]
+  --> LEGS["legs and their Δv<br/>Kerbin departures from the Δv map, the rest from the elements<br/>transfer windows Lambert-solved on Kerbal time, priced at the sphere's edge,<br/>checked against every body and dodged (#197, #216, #223)<br/>plane change: at a node, mid-course, or from the parking orbit"]
   --> BUDGET["budget = Σ legs × (1 + margin) + extra Δv"]
   --> GROUPS["split at route cuts<br/>one solveGroup per segment"]
 end
@@ -18,9 +18,9 @@ GROUPS --> K
 
 subgraph L1["solveGroup — combinatorial, per segment"]
   direction TB
-  K["stage count k<br/>2 … ceil(Δv ÷ 2200) + 1, never past 6<br/>the (k, shares) units may run on workers — fanOut, unit.worker.ts"] --> SPLIT
+  K["stage count k<br/>1 … ceil(Δv ÷ 2200) + 1, never past 6 — or the count the reader forced<br/>the (k, shares) units may run on workers — fanOut, unit.worker.ts"] --> SPLIT
   SPLIT["Δv split across stages<br/>splitShares(k) — every share pattern"] --> VAR
-  VAR["build variant — each drops one option that flatters a<br/>single stage and hurts the stack<br/>all · no liquid columns · no plates · clusters capped at 4<br/>cost tries all four, mass and parts one"] --> PICK
+  VAR["build variant — each drops one option that flatters a<br/>single stage and hurts the stack<br/>all · no liquid columns · no plates · clusters capped at 4<br/>cost tries all four, mass and parts one; the cap only where variant 0 clustered past 4"] --> PICK
   PICK["stage heuristic<br/>cost: cost then parts · else the objective itself"] --> TOPDOWN
   TOPDOWN["walk stages top-down, i = k−1 … 0<br/>each stage's mass becomes the next one's payload"]
 end
@@ -48,8 +48,8 @@ end
 
 subgraph L3["boostedAscent — closed form, two-phase"]
   direction TB
-  BOOST["viable cores<br/>pre-filtered by liftoff TWR ≥ 0.85 g"] --> MOUNTS["mounts<br/>solid boosters · liquid radial columns at 30/45/60/90/130 s<br/>asparagus on: columns to 650 s, and drop tanks"]
-  MOUNTS --> NB["booster count 2,3,4,6,8<br/>drop tanks 2,4,6 · crossfed columns 2 … 16"]
+  BOOST["viable cores<br/>pre-filtered: the core alone must make 0.85 TWR once the boosters go<br/>a sustainer under 1 is admitted only with 250 m/s of boost speed — sustainerHolds (#168)"] --> MOUNTS["mounts<br/>solid boosters burning ≥ 20 s · liquid radial columns at 30/45/60/90/130 s<br/>asparagus on: columns to 650 s, and drop tanks<br/>the boost must supply ≥ 8% of the stage's Δv"]
+  MOUNTS --> NB["booster count 2,3,4,6,8<br/>drop tanks 2,4,6 · crossfed columns 2,3,4,6,8,12,16"]
   NB --> FIT2["fitStructure — the same function"]
   FIT2 --> BISECT["bisect the core size<br/>phase A both burning, phase B core alone"]
   BISECT --> SCORE
@@ -57,7 +57,7 @@ end
 
 SCORE --> KEEP["keep the best stage for this heuristic"]
 KEEP --> CHAIN["chain complete → score the whole stack<br/>slenderness on the whole rocket, boosters excluded (#102)<br/>inside the limit always beats outside it"]
-CHAIN --> BYK["best per stage count, and best overall"]
+CHAIN --> BYK["best per stage count, and best overall<br/>plus 3 runners-up at each count — ALTS_PER_K (#169)"]
 
 BYK --> ISLAUNCH{"is this the launch<br/>segment of an<br/>atmospheric body?"}
 
@@ -66,20 +66,21 @@ ISLAUNCH -- yes --> SIM
 
 subgraph L4["SIMULATION — the only place anything is flown"]
   direction TB
-  SIM["walk stage-count candidates, cheapest first<br/>slenderness preference preserved"] --> BUILD["buildVehicleFor<br/>real Isp curves · measured areas · payload width"]
+  SIM["walk the candidates cheapest first — best per count and the runners-up<br/>compliant with the slenderness limit first<br/>each judged by its score grown for the Δv it will turn out to need — GROW_VE<br/>stop when the next score cannot beat the best estimate (#168, #169)"] --> BUILD["buildVehicleFor<br/>the engine's real Isp curve — ispFnFor (#328) · measured areas · payload width"]
   BUILD --> TURN["optimiseTurn"]
   TURN --> COARSE["coarse scan<br/>kick speed 30–140 m/s × kick angle 3–25°"]
   COARSE --> REFINE["refine around the best<br/>±15 m/s × ±3°"]
-  REFINE --> CORE["if solids aboard: core throttle 100% → 35%<br/>lands booster burnout near target apoapsis"]
-  CORE --> FLY["flyAscent — semi-implicit Euler, dt = 0.1 s<br/>real drag chain · pitch floored at the horizon<br/>cutoff only while climbing · solids burn through it<br/>asparagus sheds a pair at a time<br/>coast by Kepler · circularisation integrated"]
+  REFINE --> LEAD["then the nose above prograde<br/>leads 3/6/10/15° round the seed, refine round the best (#10)<br/>a few dozen flights, not a third grid axis"]
+  LEAD --> CORE["if solids aboard: core throttle 100% → 35%<br/>lands booster burnout near target apoapsis"]
+  CORE --> FLY["flyAscent — semi-implicit Euler, dt = 0.1 s<br/>real drag chain · pitch floored at the horizon · nose held `lead` above prograde<br/>cutoff only while climbing · solids burn through it<br/>asparagus sheds a pair at a time<br/>coast by Kepler · circularisation integrated, staged up, costed to completion (#170)"]
   FLY --> QCHK{"max q ≤ 40 kPa?<br/>reached orbit?"}
   QCHK -- no --> NEXTC["try the next candidate<br/>or a thrust limiter"]
   NEXTC --> TURN
   QCHK -- yes --> FLOWN["flown Δv cost"]
 end
 
-FLOWN --> SHORT{"does the vehicle<br/>carry the flown cost?"}
-SHORT -- "no, it is short" --> RESIZE["re-solve at the flown cost × margin<br/>up to 3 passes"]
+FLOWN --> SHORT{"does the vehicle<br/>carry the flown ascent?<br/>compared with the ascent legs' share of the group, not the group (#167)"}
+SHORT -- "no, it is short" --> RESIZE["re-solve with the group's Δv and the ascent share<br/>both grown by the shortfall — up to 3 passes"]
 RESIZE --> K
 SHORT -- yes --> DONE
 
@@ -92,6 +93,6 @@ classDef gate   fill:#2a2118,stroke:#D8A657,stroke-width:1px,color:#e8c88a
 classDef quiet  fill:#181c24,stroke:#3a4450,stroke-width:1px,color:#7b8794
 
 class ROUTE,LEGS,BUDGET,GROUPS,K,SPLIT,VAR,PICK,TOPDOWN,STAGE,NLOOP,SLOOP,GRP,FIT,MP,TANKS,SCORE,KEEP,CHAIN,BYK,BOOST,MOUNTS,NB,FIT2,BISECT search
-class SIM,BUILD,TURN,COARSE,REFINE,CORE,FLY,FLOWN,NEXTC sim
+class SIM,BUILD,TURN,COARSE,REFINE,LEAD,CORE,FLY,FLOWN,NEXTC sim
 class GIM,CHECKS,ISBOTTOM,ISLAUNCH,QCHK,SHORT,FLOOR gate
 class SKIP1,SKIP2,SKIP3 quiet
