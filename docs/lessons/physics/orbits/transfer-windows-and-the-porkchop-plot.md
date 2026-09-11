@@ -246,7 +246,7 @@ the search.
 - **A fouled optimum.** The cheapest cell may describe a flight that passes
   through the Mun's sphere on the way out, which the game would fly
   differently. That check, and the small shift that clears it, is
-  [P23](../../README.md#part-1--physics), _Encounters on the way_.
+  [P23](../../README.md#part-1--physics), _[Encounters on the way](encounters-on-the-way.md)_.
 
 ## Try it
 
