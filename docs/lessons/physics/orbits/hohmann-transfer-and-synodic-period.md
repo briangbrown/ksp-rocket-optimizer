@@ -127,7 +127,8 @@ out to a very high apoapsis and back wins, but no two bodies in the game's
 system are that far apart (Kerbin to Eeloo is 6.6 to 1), so the two-burn
 answer is always the one wanted here. And it is not a burn a ship makes. The
 918 m/s above is the change in the ship's speed about the Sun, taken after it
-has climbed clear of Kerbin's gravity. A ship in low Kerbin orbit is deep in
+has climbed clear of Kerbin's gravity. A ship in a low Kerbin
+[parking orbit](patched-conics-and-the-sphere-of-influence.md) is deep in
 Kerbin's well and must pay to climb out as well as to speed up; from 80 km
 that burn is about 1,070 m/s, not 918. How the two numbers are related is
 [P18](../../README.md#part-1--physics), _[Ejection: characteristic energy and
@@ -213,7 +214,7 @@ if (w) {
 }
 ```
 
-Everything downstream, the ejection from the low orbit it leaves and the capture at
+Everything downstream, the ejection from the parking orbit and the capture at
 the far end, is the same code either way; only the two end speeds differ.
 Without a start time the route is the Hohmann one, which is what
 [`test/routes.test.ts`](../../../../test/routes.test.ts) pins in its snapshot.
@@ -238,7 +239,7 @@ that is the span the reported window is the cheapest of; the flight times
 bracket the Hohmann's, since a real transfer between eccentric, inclined
 orbits is somewhere near the circular half-ellipse but not on it. The
 search for a departure out to one of your own moons, `raiseSearch`, spans the
-moon's own period instead: the place of the low orbit it leaves from in it is free, so the
+moon's own period instead: the parking orbit's place in it is free, so the
 opportunity recurs with the moon, not with a synodic period.
 [P24](../../README.md#part-1--physics), _Three geometries for moons_, has
 that.
@@ -274,7 +275,7 @@ starting point; the window is the answer.
 
 - **Reading the Hohmann as the burn.** Its two numbers are speeds relative to
   the two bodies once clear of them, not what the engine has to deliver from
-  a low orbit deep in a well. The comment in `transferDv` records the
+  a parking orbit deep in a well. The comment in `transferDv` records the
   opposite mistake as well: running a Hohmann inside one system, Kerbin to the
   Mun, through the ejection formula charges escape velocity on top and
   inflates the trip by a quarter. Inside one field the Hohmann is the whole
@@ -326,7 +327,7 @@ over two years to lap it.
 
 </details>
 
-<details><summary>The Hohmann formula says 918 m/s to leave Kerbin's orbit for Duna's. The route charges about 1,070 m/s for the burn from an 80 km orbit. Which number is wrong?</summary>
+<details><summary>The Hohmann formula says 918 m/s to leave Kerbin's orbit for Duna's. The route charges about 1,070 m/s for the burn from an 80 km parking orbit. Which number is wrong?</summary>
 
 Neither. The 918 is the change in speed about the Sun, measured once the
 ship is clear of Kerbin's gravity. The burn from low orbit must also climb

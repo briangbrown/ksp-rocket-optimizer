@@ -38,7 +38,8 @@ Duna's needs the ship to leave Kerbin's neighbourhood at 918 m/s relative to
 Kerbin. At the sphere's edge, 84,159 km out, the ship still feels Kerbin, and
 the escape speed there is 290 m/s; so to have 918 left after climbing the rest
 of the way out it must cross the edge at √(918² + 290²) = 963 m/s. The burn
-from an 80 km parking orbit that puts it there is 1,072 m/s. Whether the
+from an 80 km **parking orbit**, the low orbit a ship waits in before its
+departure burn, that puts it there is 1,072 m/s. Whether the
 patch is made at the edge or at infinity makes a difference of a few metres a
 second at Kerbin, and the search's numbers agree with a well-known planner to
 the metre.

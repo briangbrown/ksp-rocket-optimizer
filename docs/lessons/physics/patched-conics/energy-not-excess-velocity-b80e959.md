@@ -38,8 +38,9 @@ const injectC3 = (v: number, c3: number) =>
   Math.sqrt(Math.max(0, 2 * v * v + c3)) - v;
 ```
 
-The remaining `max` guards against a nonsensical **parking orbit**, the low
-orbit a ship waits in before it departs; it is not a physical floor. 2v² + C3 is
+The remaining `max` guards against a nonsensical
+[parking orbit](../orbits/patched-conics-and-the-sphere-of-influence.md); it
+is not a physical floor. 2v² + C3 is
 the square of the speed at the bottom of the departure path, and it is positive
 for any orbit inside the sphere.
 

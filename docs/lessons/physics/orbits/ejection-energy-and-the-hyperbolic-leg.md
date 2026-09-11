@@ -21,7 +21,7 @@ synodic period_.
 [P17](hohmann-transfer-and-synodic-period.md) priced Kerbin to Duna at 918
 m/s: the ship must be moving 918 m/s faster than Kerbin, about the Sun, once
 it is clear of Kerbin's gravity. Now price the burn that gets it there from an
-80 km orbit.
+80 km [parking orbit](patched-conics-and-the-sphere-of-influence.md).
 
 At 80 km the ship is 680 km from Kerbin's centre, and with Kerbin's
 gravitational parameter μ = 3.5316 × 10¹² m³/s² its
@@ -182,14 +182,14 @@ community planner at the same cell; for a planet that is the 1 to 2% that
 [P16](patched-conics-and-the-sphere-of-influence.md) measured. For a moon the
 term is larger than the speed, and the result goes negative.
 
-`injectC3` spends the energy from a circular orbit:
+`injectC3` spends the energy from a circular parking orbit:
 
 ```ts
 const injectC3 = (v: number, c3: number) =>
   Math.sqrt(Math.max(0, 2 * v * v + c3)) - v;
 ```
 
-The `Math.max` is a guard against a nonsensical orbit, not a physical floor:
+The `Math.max` is a guard against a nonsensical parking orbit, not a physical floor:
 2v² + C3 is the square of the speed after the burn and is positive for any
 real departure. The floor that did damage was one step earlier, in a function
 that took `sqrt(max(0, c3))` to make an excess velocity and then squared it
