@@ -98,7 +98,7 @@ Under a screen. Prefer cutting to compressing.
 
 **Why it matters:** <one complete sentence: the application cannot ... because ...>
 
-**Concept:** <link to the syllabus row or concept lesson this illustrates, if one exists>
+**Concept:** <the syllabus row or concept lesson this illustrates; see _Growing the syllabus_ if none fits>
 
 ## The idea
 
@@ -234,6 +234,44 @@ Write one concept lesson, report its path and takeaway, and stop for review
 before the next. The template survives on the strength of the lessons the user
 has read and accepted, not on how many exist.
 
+## Growing the syllabus
+
+The syllabus is a list of what the application depends on, and the
+application grows. Two paths add rows; neither writes a lesson.
+
+**From a moment lesson.** Every moment lesson names the row it illustrates. When
+no row fits, the concept is missing. Add the row in the same pull request as
+the lesson, with the full shape — a _because_ that says what the application
+cannot do without it, the rows it _Needs_, the terms it would _Define_ checked
+against every existing _Defines_ cell so it does not take one that is owned,
+and the code it points at, verified to exist — and mark it `(proposed)` after
+the title. The lesson's _Concept_ line points at the new row. The user accepts
+the row by deleting the marker, or strikes it.
+
+**From a sweep.** On request, walk two lists against the syllabus and report
+what is missing; write nothing until the user has chosen.
+
+- Every entry in `.claude/rules/*.md`. A trap usually has a concept behind it.
+  Ask which row teaches that concept; if none does, propose one.
+- Every module under `src/core/`, every exported function in it, and
+  `src/ui/views.ts`, `src/ui/components/shaders.ts` and `hidden-lines.ts`. A
+  piece of code no _Where_ cell names is a concept the syllabus does not
+  teach, or a row that should name it.
+
+The sweep runs backwards as well. Report a row whose _Where_ names a symbol
+that no longer exists, and a written lesson whose _As of_ is far behind
+`main`, as stale.
+
+**Conventions that keep growth safe.**
+
+- Row numbers are identifiers. Never renumber, never reuse. A new row takes the
+  next number in its part and is placed where it belongs in the reading order,
+  so P26 may sit between P9 and P10.
+- A row's title becomes a link when its lesson is written; `(proposed)` marks a
+  row added outside a review. The table shows planned, proposed and written at
+  a glance.
+- A ★ is the user's to give.
+
 ## Checklist
 
 Both kinds:
@@ -248,6 +286,7 @@ Both kinds:
 Moment lessons:
 
 - [ ] Anything that could bite again is in `.claude/rules/`, or is a test
+- [ ] The _Concept_ line names a syllabus row, or the row is added and marked `(proposed)`
 - [ ] The hash is the commit the work landed in
 - [ ] The takeaway is quoted in the conversation with the path
 
