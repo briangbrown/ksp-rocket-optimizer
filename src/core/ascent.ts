@@ -1,8 +1,8 @@
 import { TALLY } from "./tally.js";
-import { BODY, atmoFor, cdOf, frontalArea, ispCurve } from "./atmosphere.js";
+import { BODY, atmoFor, cdOf, frontalArea } from "./atmosphere.js";
 import { stageSize } from "./geometry.js";
 import { diaOf } from "./parts.js";
-import { ispCut } from "./performance.js";
+import { ispFnFor } from "./performance.js";
 import type { Atmo, AtmoBody } from "./atmosphere.js";
 import type { Solution } from "./solution.js";
 
@@ -820,7 +820,7 @@ function buildVehicleFor<S extends PlannedStage>(
       bProp = b ? b.n * b.part.fuelM : 0;
     return {
       mdot: (sol.n * e.fv) / (e.iv * 9.80665),
-      isp: ispCurve(e.iv, e.ia, ispCut(e)),
+      isp: ispFnFor(e),
       prop: sol.prop - bProp,
       dry: sol.dry - s.payloadIn,
       wet: sol.total - s.payloadIn - bWet,
@@ -830,7 +830,7 @@ function buildVehicleFor<S extends PlannedStage>(
         ? {
             n: b.n,
             mdot: b.part.fv / (b.part.iv * 9.80665),
-            isp: ispCurve(b.part.iv, b.part.ia, ispCut(b.part)),
+            isp: ispFnFor(b.part),
             prop: b.part.fuelM,
             dry: b.part.dry,
             wet: b.part.m,

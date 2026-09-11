@@ -48,6 +48,19 @@ const _ispFns = new Map<string, (x: number) => number>();
 const _ispVals = new Map<string, Map<number, number>>();
 /* Engines and the stand-in parts a booster pool synthesises alike: all this
    needs is a name to key the cache on and the two Isp figures. */
+/* An engine's Isp against pressure, as one function: the real atmosphereCurve
+   where the config supplied one, else the shape inferred from the two table
+   figures. The sizer and the simulator both take their curve from here. They
+   used to build it separately — `ispAt` from the real keys, `buildVehicleFor`
+   from the inferred cutoff — and agreed only below 1 atm, where the third key
+   cannot reach; at Eve's 5 atm a Swivel was 26 s to one and 146 s to the
+   other. #328 */
+function ispFnFor(e: { n: string; iv: number; ia: number }) {
+  const real = REAL_CURVE[e.n];
+  return real
+    ? (x: number) => Math.max(0, evalCurve(real, x))
+    : ispCurve(e.iv, e.ia, ispCut(e));
+}
 function ispAt(e: { n: string; iv: number; ia: number }, p: number) {
   if (!p) return e.iv;
   let byP = _ispVals.get(e.n);
@@ -59,13 +72,10 @@ function ispAt(e: { n: string; iv: number; ia: number }, p: number) {
   if (hit !== undefined) return hit;
   let f = _ispFns.get(e.n);
   if (!f) {
-    const real = REAL_CURVE[e.n];
-    f = real
-      ? (x: number) => evalCurve(real, x)
-      : ispCurve(e.iv, e.ia, ispCut(e));
+    f = ispFnFor(e);
     _ispFns.set(e.n, f);
   }
-  const v = Math.max(0, f(p));
+  const v = f(p);
   byP.set(p, v);
   return v;
 }
@@ -175,6 +185,7 @@ export {
   TANK_FUNDS_PROP,
   ispAt,
   ispCut,
+  ispFnFor,
   propellantFor,
   scoreOf,
   stageCost,
