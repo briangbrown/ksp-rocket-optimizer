@@ -1,8 +1,20 @@
 import { describe, it, expect } from "vitest";
-import { flyAscent, optimiseTurn } from "../src/core/ascent.js";
-import { BODY, atmoFor, ispCurve } from "../src/core/atmosphere.js";
-import { ispCut } from "../src/core/performance.js";
+import {
+  buildVehicleFor,
+  flyAscent,
+  optimiseTurn,
+} from "../src/core/ascent.js";
+import { BODY, atmoFor, evalCurve, ispCurve } from "../src/core/atmosphere.js";
+import {
+  REAL_CURVE,
+  ispAt,
+  ispCut,
+  ispFnFor,
+} from "../src/core/performance.js";
 import { DATA } from "../src/core/catalogue.js";
+import { planMission } from "../src/core/plan.js";
+import { missionCases } from "./grid.js";
+import { must } from "./must.js";
 import type { FlightStage, Vehicle } from "../src/core/ascent.js";
 
 /* The simulator, flown directly (#7), on vehicles small enough to read.
@@ -171,4 +183,47 @@ describe("a flown ascent", () => {
     expect(r.circShort).toBe(false);
     expect(r.total).toBeGreaterThanOrEqual(floor(r));
   });
+});
+
+/* The sizer and the simulator read one curve. `ispAt` took the engine's real
+   atmosphereCurve and `buildVehicleFor` built its own from the inferred
+   cutoff; the two agree below 1 atm, where the third key cannot reach, and
+   parted above it — at Eve's 5 atm a Swivel was 26 s to one and 146 s to the
+   other. #328 */
+describe("the flown engine's Isp curve", () => {
+  it("is the sizer's, at every pressure", () => {
+    for (const e of DATA.engines)
+      for (const p of [0.3, 0.62, 1, 2, 5, 9])
+        expect(ispFnFor(e)(p), `${e.n} at ${p} atm`).toBe(ispAt(e, p));
+  });
+
+  it("is the real atmosphereCurve above 1 atm, not the inferred cutoff", () => {
+    const swivel = must(
+      DATA.engines.find((x) => x.n.includes("Swivel")),
+      "the Swivel",
+    );
+    const inferred = ispCurve(swivel.iv, swivel.ia, ispCut(swivel));
+    expect(ispFnFor(swivel)(5)).toBeCloseTo(
+      evalCurve(REAL_CURVE[swivel.n], 5),
+      6,
+    );
+    expect(ispFnFor(swivel)(5)).toBeLessThan(inferred(5) / 4);
+  });
+
+  it("is what a planned launch stage is flown with", async () => {
+    const plan = await planMission(missionCases()[0].input, {
+      onYield: () => Promise.resolve(),
+    });
+    expect(plan, "a plan came back empty").toBeTruthy();
+    const veh = must(
+      buildVehicleFor(plan!.stages, (s) => s.isLaunch, "Kerbin"),
+      "the launch vehicle",
+    );
+    const launch = plan!.stages.filter((s) => s.isLaunch && s.sol);
+    expect(veh.stages.length).toBe(launch.length);
+    veh.stages.forEach((st, i) => {
+      const e = launch[i].sol!.engine;
+      for (const p of [0.62, 1, 5]) expect(st.isp(p)).toBe(ispAt(e, p));
+    });
+  }, 600_000);
 });
