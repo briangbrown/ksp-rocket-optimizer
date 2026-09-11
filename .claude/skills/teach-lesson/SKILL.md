@@ -67,7 +67,9 @@ concept lesson's says which row it is.
   say so and give the reasoning.
 - **Plain voice.** Explain; do not perform. The repository's prose is terse and
   allusive by design, and that is the wrong register for teaching. Short
-  sentences, one idea each, the ordinary word.
+  sentences, one idea each, the ordinary word. The reader is American: a word
+  they might have to look up — _dear_ for expensive, _fortnight_, _whilst_ — is
+  the wrong word, however natural it is to the rest of the repository.
 - **No narration of the task.** Not what was tried, in what order, or which
   files were touched. The idea, where it lives, what proved it.
 - **Code only where it carries the point** better than prose can, and short.
