@@ -122,18 +122,21 @@ worth flying, is a single representative pressure for the burn.
 
 ## In this codebase
 
-`ispAt` in `src/core/performance.ts` answers "what is this engine's Isp at this
-pressure", abridged here to its two decisions:
+`ispFnFor` in `src/core/performance.ts` builds an engine's curve, and it is
+the one place the curve comes from:
 
 ```ts
-function ispAt(e: { n: string; iv: number; ia: number }, p: number) {
-  if (!p) return e.iv; // vacuum: the table's own figure
-  // ... a cache, then:
+function ispFnFor(e: { n: string; iv: number; ia: number }) {
   const real = REAL_CURVE[e.n]; // the engine's atmosphereCurve, from its config
-  f = real ? (x) => evalCurve(real, x) : ispCurve(e.iv, e.ia, ispCut(e));
-  return Math.max(0, f(p));
+  return real
+    ? (x: number) => Math.max(0, evalCurve(real, x))
+    : ispCurve(e.iv, e.ia, ispCut(e)); // no config: the same shape, a guessed third key
 }
 ```
+
+`ispAt(e, p)`, next to it, answers "what is this engine's Isp at this
+pressure" by calling that function and caching the answer, because the solver
+asks it 124 million times in a solve and gets 116 distinct answers.
 
 `iv` and `ia` are the vacuum and sea-level figures from the parts table.
 `REAL_CURVE` in `src/data/curves.json` holds the three keys lifted from each
@@ -191,11 +194,14 @@ not reach the curve between the first two.
   slow burns at a different mean, and the closed-form Δv is off by the
   difference. The simulator's flown cost is what catches it, and the re-solve
   against it is [A7](../../README.md#part-2--algorithms-and-the-solver).
-- **Above 1 atm the simulator and the sizer disagree.** `ispAt` uses the real
-  curve; `buildVehicleFor` in `src/core/ascent.ts` builds the flown Isp function
-  from the inferred cutoff. They agree exactly up to 1 atm, so Kerbin, Laythe
-  and Duna are unaffected. On Eve's 5 atm surface the simulator gives a Swivel
-  146 s and the sizer 26 s. Issue #328.
+- **Two places building one curve.** Until #330 the sizer read the real
+  atmosphereCurve and the simulator built its own from the inferred cutoff.
+  They agreed exactly up to 1 atm, so Kerbin, Laythe and Duna never showed it;
+  at Eve's 5 atm a Swivel was 26 s to one and 146 s to the other (#328). Now
+  `ispFnFor` is the only source and a test holds a flown stage's Isp equal to
+  the sizer's at every pressure. The general trap is the one to remember: a
+  curve that two callers build separately agrees only where the test data
+  happens to reach.
 - **Relative pressure.** The curve is keyed on Kerbin's sea level. A body's
   surface pressure has to be converted to absolute atmospheres before it is
   looked up, and the simulator divides by 101.325 kPa for exactly that reason.
