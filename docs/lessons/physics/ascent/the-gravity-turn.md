@@ -1,5 +1,7 @@
 # The gravity turn
 
+**Syllabus:** [P9](../../README.md#part-1--physics)
+
 **Why it matters:** The gravity turn matters because it is how a rocket goes
 from pointing up on the pad to pointing along its orbit without spending
 propellant on steering, and its two numbers, a kick speed and a kick angle, are
