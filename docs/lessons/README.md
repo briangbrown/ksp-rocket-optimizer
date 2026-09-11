@@ -36,6 +36,15 @@ words, so that this file defines every term at its first use and the lesson
 gives the full definition. _Where_ names the code. A ★ marks the core: the rows
 to read if you read nothing else.
 
+**How the list changes.** Row numbers are identifiers: never renumbered, never
+reused. A new row takes the next number in its part and sits where it belongs
+in the reading order, so P26 may sit between P9 and P10. A row's title becomes
+a link once its lesson is written. A row marked `(proposed)` was added outside
+a review — by a moment lesson that found no row for its concept, or by a sweep
+of the rules files and the code for what the syllabus does not yet teach — and
+is accepted by deleting the marker or struck. The `teach-lesson` skill's
+_Growing the syllabus_ section has the procedure. A ★ is given only in review.
+
 **The rule on terms.** The reader is a competent programmer who is not a
 physicist, a graphics programmer or a Kerbal player. A term such a reader would
 not already know is defined where it is first used: in this file by the gloss in
