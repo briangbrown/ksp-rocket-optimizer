@@ -81,8 +81,8 @@ console.log(
 );
 ```
 
-At 1.8 times its weight this rocket spends 2,020 m/s, has 1,389 of speed, and
-lost 631 to gravity: 1,389 + 631 = 2,020, to the metre a second.
+At 1.8 times its weight this rocket spends 2,041 m/s, has 1,410 of speed, and
+lost 631 to gravity: 1,410 + 631 = 2,041, to the metre a second.
 
 ## The idea
 
@@ -204,8 +204,8 @@ whose gravity loss the two-parameter turn could not bring down, which is
 
 ## Try it
 
-Run the snippet, then change `twr` to `1.4`. The rocket spends 1,075 m/s, has
-523 of speed and lost 553 to gravity: more than half of what it spent, against
+Run the snippet, then change `twr` to `1.4`. The rocket spends 1,082 m/s, has
+529 of speed and lost 553 to gravity: more than half of what it spent, against
 less than a third at 1.8, and the identity still closes to the metre a second.
 Then open the application, let the default brief solve, and expand the flight
 card: the three loss lines there are the same three sums, taken over the real
