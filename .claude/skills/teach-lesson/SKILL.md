@@ -37,11 +37,14 @@ already own; if a concept lesson owns the term, link to it instead. Words this
 repository uses in a plain-English sense — cut, group, core, column, the brief,
 the still — are terms.
 
-**Referring to a row.** Write the row's id as a link and its title after it:
-`[P18](…), _Ejection: characteristic energy and the hyperbolic leg_`. The link
-goes to the concept lesson's file once it is written, and until then to the
-row's part of the syllabus, `docs/lessons/README.md#part-1--physics` and so on.
-Nothing else is needed; "in the syllabus" is what the link says.
+**Referring to a row.** Write the row's id as a link to the syllabus and its
+title after it: `[P18](../../README.md#part-1--physics), _Ejection:
+characteristic energy and the hyperbolic leg_`. The id always links to the row's
+part of the syllabus, so every lesson can be followed back to the list it came
+from. The title is plain until the row's concept lesson is written, and then
+becomes a link to that file. Both kinds of lesson carry such a line directly
+under their title: a moment lesson's says which concept it is an instance of, a
+concept lesson's says which row it is.
 
 ## Rules for both kinds
 
@@ -106,9 +109,9 @@ Under a screen. Prefer cutting to compressing.
 ```markdown
 # <Title — the insight: the thing it concerns, and what is true of it>
 
-**Why it matters:** <one complete sentence: the application cannot ... because ...>
+**Concept:** <[row id](the row's part of the syllabus), _row title, linked to its lesson if written_; see _Growing the syllabus_ if none fits>
 
-**Concept:** <[row id](lesson file, or the row's part of the syllabus), _row title_; see _Growing the syllabus_ if none fits>
+**Why it matters:** <one complete sentence: the application cannot ... because ...>
 
 ## The idea
 
@@ -167,9 +170,11 @@ or three screens; cut anything that does not teach.
 ```markdown
 # <Title — the syllabus row's>
 
+**Syllabus:** <[row id](the row's part of the syllabus)>
+
 **Why it matters:** <the row's because, as one complete sentence>
 
-**Before this:** <the rows it Needs, each as [id](link), _title_; or "nothing">
+**Before this:** <the rows it Needs, each as [id](its part), _title, linked to its lesson if written_; or "nothing">
 
 ## A worked case
 
@@ -234,9 +239,10 @@ docs/lessons/<category>/<topic>/<name>.md
 ```
 
 No hash in the filename; the _As of_ line carries it. Category from the row's
-area; topic reused where one fits. Then make the row's title in
-`docs/lessons/README.md` a link to the file, so the syllabus shows what is
-written.
+area; topic reused where one fits. Then make the row's title a link to the file
+in `docs/lessons/README.md`, so the syllabus shows what is written, and in every
+other lesson that names the row — `grep -rl '\[P9\]' docs/lessons` finds
+them — so their references reach the lesson.
 
 ### 4. One at a time
 
@@ -307,5 +313,5 @@ Concept lessons:
 - [ ] The prerequisites are linked and not re-taught
 - [ ] There is a diagram wherever there is geometry
 - [ ] _Check yourself_ has questions with folded answers, and _Try it_ has one action
-- [ ] The syllabus row now links to the file
+- [ ] The _Syllabus_ line names the row, and the row's title links to the file in the syllabus and in every lesson that names it
 - [ ] The user has reviewed it before the next one is started

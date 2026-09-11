@@ -75,13 +75,13 @@ quoted whole; the original is in that file's history.
 
 > # Characteristic energy, not excess velocity
 >
+> **Concept:** [P18](../../README.md#part-1--physics), _Ejection: characteristic
+> energy and the hyperbolic leg_.
+>
 > **Why it matters:** Pricing a departure from its excess velocity matters
 > because a moon's sphere of influence is so small that a ship can leave it still
 > bound to the moon, and a formula that cannot express a bound departure prices
 > every moon window at escape velocity instead of at what the window costs.
->
-> **Concept:** [P18](../../README.md#part-1--physics), _Ejection: characteristic
-> energy and the hyperbolic leg_.
 >
 > ## The idea
 >
@@ -132,8 +132,9 @@ quoted whole; the original is in that file's history.
 > When a formula floors a value to keep it real, ask what the floored case
 > physically is; it is often a valid state the model simply cannot express.
 
-What to notice. The title states the insight, and the _Concept_ line says which
-syllabus row it is an instance of, the row's id being the link; those are two
+What to notice. The title states the insight, and the _Concept_ line under it
+says which syllabus row it is an instance of: the id links back to the
+syllabus, the title will link to P18's lesson once that exists. Those are two
 different things in two places. _Why it matters_ is one sentence with a because, and the because is a
 consequence for the application. Excess velocity, characteristic energy,
 sphere of influence, bound orbit and parking orbit are each defined in the
