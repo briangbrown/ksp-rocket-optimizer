@@ -109,11 +109,22 @@ the cap lets a Nerv stage have at that floor is a mass ratio of 1.72, about
 The floor depends on where the stage is. A first stage leaving Kerbin needs
 1.25. A stage above it is already moving fast and climbing, so it can be
 weaker, 0.8: it will not hover, because it does not have to, and a Terrier
-stage at 0.8 finishes an orbit that a first stage began. A stage landing on a
-body needs more than one, 1.6, because it has to stop a fall and then hover to
-touch down. A stage that burns in space, a transfer or a capture, needs almost
-nothing: 0.5 is the floor, and it exists only so that a burn does not take so
-long that treating it as a single impulse becomes a lie.
+stage at 0.8 finishes an orbit that a first stage began. A stage that burns in
+space, a transfer or a capture, needs almost nothing: 0.5 is the floor, and it
+exists only so that a burn does not take so long that treating it as a single
+impulse becomes a lie.
+
+A stage that lands is the interesting case, because what it needs is not a
+ratio. It has to stop a fall, and what stops a fall is the thrust left over
+after cancelling the body's pull: the net deceleration, (TWR − 1) × g. Ask
+every lander for the same ratio and you ask for very different stopping
+power: 1.6 on Minmus is 0.29 m/s² in hand, 1.6 on Tylo is 4.7. So the landing
+floor is written as a deceleration, 2 m/s² beyond hovering, and turned into a
+ratio per body: 1 + 2/g, clamped between 1.3 and 2.5. That is about 2.2 on the
+Mun, 1.7 on Duna, 2.2 on Eeloo, 1.3 on Tylo, and 2.5 on the small moons, where
+the smallest engine in the catalogue already exceeds it. A landing through
+more than an atmosphere of air keeps a lower floor of 1.35, because thick air
+punishes a hard descent.
 
 ## In this codebase
 
@@ -126,11 +137,18 @@ const twrBottom =
 const twrUpper = kind === "launch" ? 0.8 : kind === "land" ? 1.1 : 0.5;
 ```
 
-The bottom stage of a group carries `twrBottom`, every stage above it
-`twrUpper`. The one oddity, a lower landing floor where the surface pressure is
-above 1 atm, is Eve: thick air punishes a fast descent because drag goes as
-speed squared, so climbing or falling hard low down costs more than the gravity
-loss it saves.
+Those are the group-level floors, and they are what a caller that has a Δv
+and nothing else gets, the design grid included. When `planMission` calls the
+solver it also hands over the group's legs as fractions of its Δv, and
+`stageParamsFor` then chooses each stage's floor and gravity from the legs its
+own slice covers: 1.25 for a stage that lights on a surface and climbs, 0.8
+above it, `landingFloor(g, p0)` for the stage that lands, at the landing body's
+gravity, and 0.5 for a stage that only burns in space. Where a stage covers legs of more than
+one kind, the one demanding the most acceleration, floor × g, sets it. The
+one oddity, a lower landing floor where the surface pressure is above 1 atm,
+is Eve: thick air punishes a fast descent because drag goes as speed squared,
+so climbing or falling hard low down costs more than the gravity loss it
+saves.
 
 `solveStage` applies the floor twice. Before any tank is chosen, it skips
 cluster counts that cannot possibly meet it, because the stage will weigh at
@@ -187,8 +205,19 @@ and what replaces one is heavier or more expensive, Minmus at 6.5 t going from
 
 The floors themselves were not measured; they are the numbers people fly.
 1.25 on the pad is what the game's community settles on as brisk enough
-without wasting engine mass, and 1.6 for a landing is what a pilot wants in
-hand to arrest a fall.
+without wasting engine mass.
+
+The landing floor was measured, on the mission sweep, when it stopped being
+one number. Before #347 every stage of an uncut mission was held to the
+launch floors at Kerbin's gravity, so a Mun lander was asked for 0.8 × 9.81 =
+7.85 m/s² and a Tylo lander for the same. Judged by the legs each stage flies,
+a flat 1.6 at the landing body's gravity made Mun landers far smaller and
+Tylo landers far bigger: Mun 12 t fell from 321 t to 277, and the Tylo 3.5 t
+mission, which needed 12.6 m/s² of thrust on its landers, had no design at
+all. At the deceleration rule it is the 1,911 t rocket it was, landing at
+Tylo-TWR 1.4. On the Mun the landing floor rarely binds at all: the stage that
+lands also flies the transfer burn from Kerbin orbit, and that burn's 0.5
+against 9.81 asks for 4.9 m/s², more than a Mun landing does.
 
 ## Where it breaks
 
@@ -207,6 +236,10 @@ hand to arrest a fall.
   measurement, and the closed-form stage is re-sized against it when they
   disagree; that walk is
   [A7](../../README.md#part-2--algorithms-and-the-solver).
+- **A ratio floor across bodies.** The same TWR buys stopping power in
+  proportion to the body's gravity, so a floor that is right on the Mun is
+  three times too demanding on Tylo and three times too lax on Minmus. Write a
+  landing floor as a deceleration and derive the ratio.
 - **The burn cap as a Δv cap.** Because burn time is (1 − 1/R) × Isp / TWR,
   capping it caps the mass ratio a stage can have at the floor. A high-Isp,
   low-thrust engine like the Nerv feels this first, and the answer the solver
@@ -262,4 +295,4 @@ gravity gets to charge for it, and since burn time is (1 − 1/R) × Isp / TWR
 they are one constraint seen twice: the floor and the cap together let a
 formula that knows nothing about gravity size a stage gravity will allow.
 
-_As of fb1e2a9._
+_As of 2c31ff6._

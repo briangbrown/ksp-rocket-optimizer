@@ -274,7 +274,18 @@ describe("render sweep", () => {
     await settle();
     expect(document.querySelector("#route")?.textContent).toMatch(/1 cut\b/);
 
-    await click(unsolvable[0]);
+    /* The same pick the loop made — body and state — not the body alone,
+       which would keep whatever state the last destination left and ask
+       about a different mission. Moho's surface is unsolvable at the default
+       brief; Moho's low orbit and back has been solvable since #347 gave a
+       space-only stage the space floor. */
+    {
+      const [body, state] = DESTINATIONS.find(
+        ([, , n]) => n === unsolvable[0],
+      ) ?? [unsolvable[0], null];
+      await click(body);
+      if (state) await click(state);
+    }
     await settle();
     expect(
       alert(),

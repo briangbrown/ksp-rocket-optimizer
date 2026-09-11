@@ -23,10 +23,10 @@ import type { Page } from "puppeteer";
    render.test.ts gives. */
 const BUDGET = {
   phone: {
-    height: 4817, // px, 3660 before the default Mun mission gained its transfer cards, out and home (#223) — the whole page with the default mission solved and the brief set: 3590 once the staging chips became stops on the scrubber (#210), 3740 before with the works number and the footer's first line (#207), 3749 after #190, with 2% for a different Chrome's fonts
-    words: 657, // 555 before the default Mun mission gained its transfer cards, out and home (#223): its caption, its figures and their notes. visible words on that page — the paragraphs are behind disclosures, #135. 573 before the staging chips became stops with short labels (#210); 559 once the header's install line moved into Setup (#207), then 14 back on purpose for the footer's first line and the works number. 617 before #190
+    height: 4745, // px, 4651 measured once #347 gave the default Mun mission three stages instead of four, with 2% for a different Chrome's fonts; 4817 before that. 3660 before the default Mun mission gained its transfer cards, out and home (#223) — the whole page with the default mission solved and the brief set: 3590 once the staging chips became stops on the scrubber (#210), 3740 before with the works number and the footer's first line (#207), 3749 after #190, with 2% for a different Chrome's fonts
+    words: 634, // 657 before #347 took a stage off the default Mun mission; 555 before the default Mun mission gained its transfer cards, out and home (#223): its caption, its figures and their notes. visible words on that page — the paragraphs are behind disclosures, #135. 573 before the staging chips became stops with short labels (#210); 559 once the header's install line moved into Setup (#207), then 14 back on purpose for the footer's first line and the works number. 617 before #190
     tinyText: 0, // text under 12 px
-    smallBody: 68, // 57 before the Mun transfer cards (#223) brought a caption and its figures' notes; text under 13 px: the labels, at 12 — two more on purpose, the stop labels under the scrubber (#210); 55 after #207 took one from the header, 59 before #190
+    smallBody: 62, // 68 before #347 took a stage off the default Mun mission; 57 before the Mun transfer cards (#223) brought a caption and its figures' notes; text under 13 px: the labels, at 12 — two more on purpose, the stop labels under the scrubber (#210); 55 after #207 took one from the header, 59 before #190
     targets: 0, // pressable things under 44 × 44 — of 26, #136
     sideways: 0, // things wider than their box
     unreachable: 0, // targets a keyboard cannot reach
@@ -34,10 +34,10 @@ const BUDGET = {
     folded: 860, // px, every section folded: the brief, four lines and the footer — 844, which is the viewport
   },
   desktop: {
-    height: 3144, // 2364 before the default Mun mission gained its transfer cards, out and home (#223); 2338 once the header lost its install line (#207); 2359 before, the two-column shell (#137) with the rocket at six tenths of the window (#138); 2529 before #190
-    words: 672, // 570 before the default Mun mission gained its transfer cards, out and home (#223). 556 once the header's install line moved into Setup (#207), then 14 back on purpose for the footer's first line and the works number; 620 before #190
-    tinyText: 71, // 60 before the Mun transfer cards (#223); the labels, at 11 — 61 before #207 took the header's install line; raised from 60 with #190's four-stage default rocket
-    smallBody: 123, // 86 before the Mun transfer cards (#223): its caption and the notes under its figures // labels and notes — 87 before #207
+    height: 3219, // 3144 before #347: the default Mun mission lost a stage, and the flight card's "Upper stage cannot hover" now judges the stage that circularises (TWR 0.82) where it judged the top stage and stayed silent — a correct warning the page did not carry before. 2364 before the default Mun mission gained its transfer cards, out and home (#223); 2338 once the header lost its install line (#207); 2359 before, the two-column shell (#137) with the rocket at six tenths of the window (#138); 2529 before #190
+    words: 646, // 672 before #347 took a stage off the default Mun mission; 570 before the default Mun mission gained its transfer cards, out and home (#223). 556 once the header's install line moved into Setup (#207), then 14 back on purpose for the footer's first line and the works number; 620 before #190
+    tinyText: 65, // 71 before #347 took a stage off the default Mun mission; 60 before the Mun transfer cards (#223); the labels, at 11 — 61 before #207 took the header's install line; raised from 60 with #190's four-stage default rocket
+    smallBody: 116, // 123 before #347 took a stage off the default Mun mission; 86 before the Mun transfer cards (#223): its caption and the notes under its figures // labels and notes — 87 before #207
     targets: 0, // under 24 × 24 — of 26
     sideways: 0,
     unreachable: 0,

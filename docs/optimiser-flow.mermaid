@@ -22,7 +22,7 @@ subgraph L1["solveGroup — combinatorial, per segment"]
   SPLIT["Δv split across stages<br/>splitShares(k) — every share pattern"] --> VAR
   VAR["build variant — each drops one option that flatters a<br/>single stage and hurts the stack<br/>all · no liquid columns · no plates · clusters capped at 4<br/>cost tries all four, mass and parts one; the cap only where variant 0 clustered past 4"] --> PICK
   PICK["stage heuristic<br/>cost: cost then parts · else the objective itself"] --> TOPDOWN
-  TOPDOWN["walk stages top-down, i = k−1 … 0<br/>each stage's mass becomes the next one's payload"]
+  TOPDOWN["walk stages top-down, i = k−1 … 0<br/>each stage's mass becomes the next one's payload<br/>each judged by the legs its slice of the Δv covers: floor, gravity, lighting pressure, boosters (#347)"]
 end
 
 TOPDOWN --> ISBOTTOM{"bottom stage<br/>and boosters allowed?"}

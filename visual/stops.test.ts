@@ -39,12 +39,14 @@ const stops = () =>
 describe("the stops on the phone's scrubber", () => {
   it("stand in for the chips, one 44 px target a step, inside the page", async () => {
     const s = await stops();
+    /* The default Mun mission: a Skipper with two boosters, three Terriers,
+       one Terrier — three stages since #347 gave the lander its own floor;
+       four before. */
     expect(s.map((x) => x.name)).toEqual([
       "On the pad",
       "Boosters away · core burns on",
       "Stage 1 spent",
       "Stage 2 spent",
-      "Stage 3 spent",
       "Payload alone",
     ]);
     for (const x of s) {

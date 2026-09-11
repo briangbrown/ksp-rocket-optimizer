@@ -266,8 +266,34 @@ async function planFor(
        the flown ascent costs more than the map said. */
     let groupDv = dv;
     let share = isLaunch ? ascentShareOf(legs, margin) : 0;
+    /* The legs of this group as fractions of its Δv, for the solver to judge
+       each stage by what it flies. The ascent legs take `share`, which grows
+       with the flown cost below; the rest take their map figure with the
+       margin; the reserve rides on the last. #347 */
+    const legsFor = (total: number, ascentShare: number) => {
+      const ascentDv = legs
+        .filter((l) => l.kind === "ascent")
+        .reduce((a, l) => a + l.dv, 0);
+      let acc = 0;
+      return legs.map((l, i) => {
+        acc +=
+          l.kind === "ascent" && ascentDv > 0
+            ? (ascentShare * l.dv) / ascentDv
+            : l.dv * (1 + margin / 100);
+        return {
+          end: i === legs.length - 1 ? 1 : Math.min(1, acc / total),
+          kind: l.kind,
+          /* The ascent's g is the group's 9.81, as it always was, so a launch
+             group's stages are judged exactly as before; the map's leg carries
+             gOf(Kerbin) to a few more decimals. */
+          g: l.kind === "ascent" ? g : (l.g ?? g),
+          body: l.body ?? null,
+        };
+      });
+    };
     const solved = await solve({
       dv,
+      legs: legsFor(dv, share),
       payload: carried,
       payloadDia,
       engines,
@@ -407,6 +433,7 @@ async function planFor(
         share += need - carries;
         const grown = await solve({
           dv: groupDv,
+          legs: legsFor(groupDv, share),
           payload: carried,
           payloadDia,
           engines,
@@ -457,7 +484,7 @@ async function planFor(
         sol: c.sol,
         payloadIn: c.payloadIn,
         twrMin: c.twrMin,
-        g,
+        g: c.g, // the gravity this stage was judged against, not the group's
         isLaunch,
         isLand,
         sub: j + 1,

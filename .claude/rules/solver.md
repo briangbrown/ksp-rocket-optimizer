@@ -258,6 +258,34 @@ before changing the thing it names.
   split-point lookup broke silently. Nothing in the suite could see it, because
   in-process every caller passes the shared objects.
 
+- **A stage is judged by the legs its slice of the Δv covers, not by the
+  group's kind.** `planMission` hands `solveGroup` the group's legs as
+  fractions of its Δv (`legs`, plain data), and `stageParamsFor` in
+  `solver.ts` gives each stage its floor, its gravity, the pressure it
+  lights at, its burn cap and whether it may carry boosters from the legs
+  between its `lo` and `hi`: the most demanding leg (floor × g) sets the
+  floor; an ascent-type leg the stage starts at sets `pSt` to that body's
+  surface pressure and allows mounts; `STAGE_PRESSURE` is indexed by the
+  stage's place within that climb. Callers with a Δv and nothing else — the
+  design grid — pass no legs and get the group-kind rule, which is what the
+  snapshot pins. Before this a cut group that began in orbit got the pad's
+  pressure, Kerbin's gravity and the landing floor on every stage, and
+  solids on a stage that separates in vacuum; and every uncut mission's
+  landing stage was held to 0.8 at 9.81 rather than a landing floor at its
+  target's g. `Duna-pay3.5-cut-after-ascent` in the sweep is the case. #347
+
+- **The landing floor is a deceleration, not a ratio.** `landingFloor(g, p0)`
+  asks every lander for `LANDING_MARGIN` (2 m/s²) of net deceleration beyond
+  hovering, `1 + 2/g` clamped to [1.3, 2.5]: about 2.2 on the Mun, 1.68 on
+  Duna, 2.18 on Eeloo, 1.3 on Tylo, 2.5 on the small moons; a landing through
+  more than an atmosphere keeps 1.35. A flat 1.6 bought 0.29 m/s² of stopping
+  power on Minmus and 4.7 on Tylo, which is backwards, and at 1.6 the Tylo
+  3.5 t sweep mission had no design at all; at 1.3 it is the 1,911 t rocket
+  it was, landing at Tylo-TWR 1.4. On the Mun the landing floor rarely binds:
+  the stage that lands also flies the transfer burn from Kerbin orbit, whose
+  0.5 against 9.81 asks 4.9 m/s², more than the landing does. The
+  group-kind fallback for callers without legs keeps its 1.6. #347
+
 - **A mission is an endpoint to an endpoint; `buildRoute` is an adapter.**
   `routeFor(from, to, chutes, returning, planeNow)` in `orbits.ts` builds
   every route from a body-and-state pair — surface, low orbit, stationary

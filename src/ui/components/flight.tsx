@@ -102,9 +102,16 @@ function AscentPanel({ a, color }: { a: Ascent; color: string }) {
      them together, so a vehicle built to 3 740 could sit next to a 4 062 flight
      and look fine. */
   const lowUpper = (() => {
-    const st = a.veh && a.veh.stages[a.veh.stages.length - 1];
+    /* The stage live when the orbit was made round, not the top of the
+       stack: since #347 a stage that only burns in space sits at the space
+       floor and may never light in the ascent, and the top stage of the
+       default Mun mission read as "cannot hover" at TWR 0.71 for a landing
+       it flies at the Mun. */
+    const ix = a.circStage ?? (a.veh ? a.veh.stages.length - 1 : -1);
+    const st = a.veh && a.veh.stages[ix];
     if (!st) return null;
-    const m = st.wet + a.veh.payload;
+    const m =
+      a.veh.stages.slice(ix).reduce((sum, x) => sum + x.wet, 0) + a.veh.payload;
     const twr = (st.mdot * st.isp(0) * 9.80665) / (m * a.veh.body.g0);
     return twr < 1 ? twr : null;
   })();
