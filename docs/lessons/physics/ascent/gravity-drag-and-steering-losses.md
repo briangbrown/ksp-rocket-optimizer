@@ -143,7 +143,7 @@ and the re-solve against what it finds is
 
 ## In this codebase
 
-The accounting is six lines in `flyAscent`, `src/core/ascent.ts`, run every
+The accounting is six lines in `flyAscent`, [`src/core/ascent.ts`](../../../../src/core/ascent.ts), run every
 0.1 s step while the engines are lit:
 
 ```ts

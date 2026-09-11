@@ -133,7 +133,7 @@ searchable: a whole trajectory is two numbers.
 
 ## In this codebase
 
-`flyAscent` in `src/core/ascent.ts` flies the turn. It takes `vKick` and `kick`
+`flyAscent` in [`src/core/ascent.ts`](../../../../src/core/ascent.ts) flies the turn. It takes `vKick` and `kick`
 and integrates the flight in 0.1 s steps ([A4](../../README.md#part-2--algorithms-and-the-solver) covers the
 scheme). The kick and the follow are these lines:
 
@@ -191,9 +191,9 @@ express. That miss is the edge of this lesson and the start of the next.
 - **When thrust barely exceeds weight.** The runaway in the worked case. The
   two-parameter search's answer on such a stack is the latest, shallowest kick
   on the grid, which is "stay vertical" and pays for it in gravity loss. On the
-  six-Hammer Mainsail in `test/ascent.test.ts` that flight costs 4,549 m/s.
+  six-Hammer Mainsail in [`test/ascent.test.ts`](../../../../test/ascent.test.ts) that flight costs 4,549 m/s.
   The fix is the third parameter, [P10](../../README.md#part-1--physics); the rule is in
-  `.claude/rules/solver.md` under _The turn has three parameters_.
+  [`.claude/rules/solver.md`](../../../../.claude/rules/solver.md) under _The turn has three parameters_.
 - **When the search is unconstrained.** Left alone the optimiser finds a violent
   early kick that trades gravity loss for air pressure the rocket could not
   survive. The cap at 40 kPa exists for that, and is [P11](../../README.md#part-1--physics).

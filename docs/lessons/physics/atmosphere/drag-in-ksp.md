@@ -231,11 +231,11 @@ Only the leading face counts; everything behind it is occluded, and the game
 charges occluded faces almost nothing. Radial boosters sit outside the core's
 shadow and add their own area, thinning as pairs drop under asparagus. Each
 stage's `area` is the largest drag-cube face of its parts, read from
-`src/data/geometry.json` through `areaOf` in `src/core/geometry.ts`: the file
+[`src/data/geometry.json`](../../../../src/data/geometry.json) through `areaOf` in [`src/core/geometry.ts`](../../../../src/core/geometry.ts): the file
 is a transcription of the game's `PartDatabase.cfg`, with a stock table and a
 ReStock one because the mod changes the models.
 
-The coefficient is the chain, in `src/core/atmosphere.ts`:
+The coefficient is the chain, in [`src/core/atmosphere.ts`](../../../../src/core/atmosphere.ts):
 
 ```ts
 function cdOf(mach: number, rhoV = 100, cubeCd = CUBE_CD_STACK) {
@@ -253,7 +253,7 @@ function cdOf(mach: number, rhoV = 100, cubeCd = CUBE_CD_STACK) {
 }
 ```
 
-The five curves are in `src/data/curves.json`, copied from the game's
+The five curves are in [`src/data/curves.json`](../../../../src/data/curves.json), copied from the game's
 `Physics.cfg`; `DRAG_GLOBAL` is its two constants, 8 and 0.1, multiplied; and
 `CUBE_CD_STACK`, 0.85, is the cube coefficient of a cylindrical tank face, from
 `PartDatabase.cfg`. `flyAscent` puts the pieces together each step:
@@ -289,7 +289,7 @@ And the cubes themselves can lie. Three parts in the reference install came
 with cubes the game had generated from broken models, the Mammoth's bounding
 box coming out 499 by 25 by 741 metres. A cylinder fills its own bounding box
 to 0.983 across 524 parts; the three bad ones read 0.00003, 0.014 and 0.055,
-and their areas are taken from a stock install instead. `.claude/rules/part-data.md`
+and their areas are taken from a stock install instead. [`.claude/rules/part-data.md`](../../../../.claude/rules/part-data.md)
 carries the check for the next extraction.
 
 ## Where it breaks
@@ -301,7 +301,7 @@ carries the check for the next extraction.
   simulator does not see.
 - **Measured width is not occupied width.** The cube gives a Twitch 0.29 m,
   which is right for drag and for drawing it, and wrong for asking whether a
-  booster can stand beside it: it mounts on a 1.25 m node. `.claude/rules/solver.md`
+  booster can stand beside it: it mounts on a 1.25 m node. [`.claude/rules/solver.md`](../../../../.claude/rules/solver.md)
   has the rule under _What an engine measures is not what it occupies_.
 - **A cube that does not describe its part.** The three corrupt cubes above.
   Any new extraction should run the fill-factor check before trusting an area.

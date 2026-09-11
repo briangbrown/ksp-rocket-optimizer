@@ -25,7 +25,7 @@ influence**, the region in which only that body's gravity is counted, whether
 or not the ship has out-climbed the body's pull. The Mun's sphere ends at 20% of
 its orbital radius, so a ship leaving the Mun for Minmus crosses the edge still
 on a **bound orbit**, a closed one that would bring it back, and its v∞ is
-imaginary. `atInfinity` in `src/core/transfer.ts` computed
+imaginary. `atInfinity` in [`src/core/transfer.ts`](../../../../src/core/transfer.ts) computed
 `sqrt(max(0, v² − 2μ/r))`, and the floor at zero turned every such departure
 into one at exactly escape velocity, whatever the window asked for. `c3Of` now
 returns the signed energy and `injectC3` spends it:

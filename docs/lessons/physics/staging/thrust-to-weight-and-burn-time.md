@@ -117,7 +117,7 @@ long that treating it as a single impulse becomes a lie.
 
 ## In this codebase
 
-The floors are chosen in `prepare`, in `src/core/solver.ts`, from what kind of
+The floors are chosen in `prepare`, in [`src/core/solver.ts`](../../../../src/core/solver.ts), from what kind of
 group a stage belongs to:
 
 ```ts
@@ -201,7 +201,7 @@ hand to arrest a fall.
   propellant goes, so a stage that passes at liftoff only gets stronger, but a
   stack whose boosters drop can get weaker at that moment. The sustainer case
   above is a rocket that passed every floor and stalled. The rule is in
-  `.claude/rules/solver.md` under _A sustainer under one_.
+  [`.claude/rules/solver.md`](../../../../.claude/rules/solver.md) under _A sustainer under one_.
 - **A floor is a proxy, not the loss.** 1.25 does not bound gravity loss; it
   bounds the ratio that tends to bound it. The simulator's flown Δv is the
   measurement, and the closed-form stage is re-sized against it when they

@@ -14,7 +14,7 @@ impulse, and how it falls with pressure_.
 
 ## A worked case
 
-Kerbin's air is stored as two tables in `src/data/bodies.json`: pressure
+Kerbin's air is stored as two tables in [`src/data/bodies.json`](../../../../src/data/bodies.json): pressure
 against altitude, 21 points from the surface to 70 km, and temperature against
 altitude, 9 points. Read the first few pressures off the table:
 
@@ -164,7 +164,7 @@ in the tables are what make a launch from Eve cost what it does.
 
 ## In this codebase
 
-`makeAtmo` in `src/core/atmosphere.ts` turns a body's two curves into three
+`makeAtmo` in [`src/core/atmosphere.ts`](../../../../src/core/atmosphere.ts) turns a body's two curves into three
 lookup tables, once per body:
 
 ```ts
