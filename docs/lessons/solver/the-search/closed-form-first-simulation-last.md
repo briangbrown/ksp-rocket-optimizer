@@ -105,13 +105,13 @@ change can leave the favourite untouched and still change what the user gets
 
 ## In this codebase
 
-`docs/optimiser-flow.mermaid` is the funnel drawn, and this lesson was written
+[`docs/optimiser-flow.mermaid`](../../../../docs/optimiser-flow.mermaid) is the funnel drawn, and this lesson was written
 against it. Read top to bottom: the route is arithmetic, `solveGroup` is the
 combinatorial walk over stage counts and Δv shares, `solveStage` and
 `boostedAscent` are the closed forms, and the simulation is the last block,
 entered only for the launch group of a body with air.
 
-The wide end is in `src/core/solver.ts`. `solveStage` loops engine, then
+The wide end is in [`src/core/solver.ts`](../../../../src/core/solver.ts). `solveStage` loops engine, then
 cluster count, then columns, then tank group, and its first real check is the
 one that costs least:
 
@@ -120,13 +120,13 @@ const thrust1 = e.fv * (ispAt(e, pSurf) / e.iv);
 if (n < Math.ceil((twrMin * (payload + extra) * g) / thrust1)) continue; // one division, before any tank
 ```
 
-`propellantFor` in `src/core/performance.ts` is the closed form that sizes
+`propellantFor` in [`src/core/performance.ts`](../../../../src/core/performance.ts) is the closed form that sizes
 what survives, and `fitStructure` and `pickTanks` are the more expensive steps
-it earns. `TALLY`, in `src/core/tally.ts`, counts the sizings and the flights
+it earns. `TALLY`, in [`src/core/tally.ts`](../../../../src/core/tally.ts), counts the sizings and the flights
 per solve so the width of the search is visible rather than only felt; the
 tables above are its counters.
 
-The narrow end is in `src/core/plan.ts`. After `solveGroup` returns the best
+The narrow end is in [`src/core/plan.ts`](../../../../src/core/plan.ts). After `solveGroup` returns the best
 chain at each stage count and the runners-up, the walk sorts them by score,
 flies them cheapest first through `simCached`, and stops at the first that
 flies within its share, or when the next candidate's score cannot beat the
@@ -160,7 +160,7 @@ the thrust floor.
 The pre-filter's comment records what the funnel looked like before its
 cheapest check was moved to the front: 89 million rocket-equation evaluations
 across 2.7 million boosted combinations, for a search that now evaluates
-under a million. And `perf/README.md` records the cost of the whole grid: the
+under a million. And [`perf/README.md`](../../../../perf/README.md) records the cost of the whole grid: the
 81-case design snapshot runs in about thirty seconds, which is only possible
 because almost none of those 81 solves' work is simulation.
 
@@ -173,7 +173,7 @@ vehicle's stages and their propellant, so a repeat costs a lookup.
 - **A closed form the simulator cannot correct.** The simulator flies what the
   closed form liked. A stage the closed form wrongly rejects is never flown,
   and a chain it wrongly ranks last is flown only if everything ahead of it
-  fails. `.claude/rules/solver.md` under _`best` is not what the user gets_
+  fails. [`.claude/rules/solver.md`](../../../../.claude/rules/solver.md) under _`best` is not what the user gets_
   is the record of a change that left the closed form's favourite untouched
   and moved eleven delivered missions.
 - **Simulation creeping wide.** Each extra flight is a millisecond. A search
@@ -194,7 +194,7 @@ vehicle's stages and their propellant, so a repeat costs a lookup.
 Run `npm run perf:mission`, which solves one whole mission the way a reader
 waits for it and prints its time. Then read `TALLY` after a solve of your own:
 in a test or a scratch script, call `planMission` on any case from
-`test/grid.ts` and print `plan.tally`. Change the payload by a factor of ten
+[`test/grid.ts`](../../../../test/grid.ts) and print `plan.tally`. Change the payload by a factor of ten
 and watch the sizings change by a factor of two or three and the flights stay
 in the hundreds. The funnel's shape does not depend on the mission.
 
@@ -228,9 +228,9 @@ and the sizing produces a new candidate for the simulator to check.
 
 ## Further reading
 
-- The flow diagram, `docs/optimiser-flow.mermaid`, which is this lesson as a
+- The flow diagram, [`docs/optimiser-flow.mermaid`](../../../../docs/optimiser-flow.mermaid), which is this lesson as a
   picture.
-- `perf/README.md`, for how the width of the search is measured and compared
+- [`perf/README.md`](../../../../perf/README.md), for how the width of the search is measured and compared
   across changes.
 - Any text on branch-and-bound or generate-and-test search, for the general
   pattern of a cheap bound that prunes before an expensive evaluation.

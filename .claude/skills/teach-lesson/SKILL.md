@@ -73,6 +73,13 @@ concept lesson's says which row it is.
 - **No narration of the task.** Not what was tried, in what order, or which
   files were touched. The idea, where it lives, what proved it.
 - **Code only where it carries the point** better than prose can, and short.
+- **File references are links.** Every path to a file in this repository is a
+  relative Markdown link from the lesson's own directory, in code font:
+  ``[`src/core/ascent.ts`](../../../src/core/ascent.ts)`` from a lesson three
+  levels under `docs/lessons/`. GitHub then opens the file from the lesson.
+  Function and constant names stay in plain code font and are not linked, and
+  line numbers are never part of a link: both move, and a stale line anchor is
+  worse than none. Check that every link resolves before committing.
 - **Prettier.** Run `npx prettier --write` on the file. CI checks `docs/`.
 
 ## Moment lessons
@@ -122,8 +129,8 @@ the reader might not know defined as it appears.
 
 ## In this codebase
 
-Where it appeared: the file, the function, the issue number. A short snippet
-only where the code carries the point.
+Where it appeared: the file, as a link, the function, the issue number. A
+short snippet only where the code carries the point.
 
 ## What made it real
 
@@ -195,8 +202,8 @@ sentence where it first appears.
 
 ## In this codebase
 
-Which function is which term of the idea. An annotated snippet. Where the code
-departs from the textbook, why.
+Which function is which term of the idea, with every file named as a link. An
+annotated snippet. Where the code departs from the textbook, why.
 
 ## What made it real
 
@@ -299,6 +306,7 @@ Both kinds:
 - [ ] Every term the reader might not know is defined at first use, or linked to the lesson that owns it
 - [ ] _What made it real_ carries a number, or says plainly that it does not
 - [ ] Nothing narrates the task
+- [ ] Every file path is a relative link that resolves; no line anchors
 - [ ] Prettier has run
 
 Moment lessons:
