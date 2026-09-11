@@ -80,8 +80,8 @@ quoted whole; the original is in that file's history.
 > bound to the moon, and a formula that cannot express a bound departure prices
 > every moon window at escape velocity instead of at what the window costs.
 >
-> **Concept:** P18, _Ejection: characteristic energy and the hyperbolic leg_, in
-> [the syllabus](../../README.md).
+> **Concept:** [P18](../../README.md#part-1--physics), _Ejection: characteristic
+> energy and the hyperbolic leg_.
 >
 > ## The idea
 >
@@ -133,8 +133,8 @@ quoted whole; the original is in that file's history.
 > physically is; it is often a valid state the model simply cannot express.
 
 What to notice. The title states the insight, and the _Concept_ line says which
-syllabus row it is an instance of; those are two different things in two
-places. _Why it matters_ is one sentence with a because, and the because is a
+syllabus row it is an instance of, the row's id being the link; those are two
+different things in two places. _Why it matters_ is one sentence with a because, and the because is a
 consequence for the application. Excess velocity, characteristic energy,
 sphere of influence, bound orbit and parking orbit are each defined in the
 sentence that first uses them, briefly, because the lesson that owns them

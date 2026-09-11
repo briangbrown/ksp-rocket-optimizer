@@ -5,8 +5,8 @@ because a moon's sphere of influence is so small that a ship can leave it still
 bound to the moon, and a formula that cannot express a bound departure prices
 every moon window at escape velocity instead of at what the window costs.
 
-**Concept:** P18, _Ejection: characteristic energy and the hyperbolic leg_, in
-[the syllabus](../../README.md).
+**Concept:** [P18](../../README.md#part-1--physics), _Ejection: characteristic
+energy and the hyperbolic leg_.
 
 ## The idea
 

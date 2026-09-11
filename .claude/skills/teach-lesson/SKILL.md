@@ -37,6 +37,12 @@ already own; if a concept lesson owns the term, link to it instead. Words this
 repository uses in a plain-English sense — cut, group, core, column, the brief,
 the still — are terms.
 
+**Referring to a row.** Write the row's id as a link and its title after it:
+`[P18](…), _Ejection: characteristic energy and the hyperbolic leg_`. The link
+goes to the concept lesson's file once it is written, and until then to the
+row's part of the syllabus, `docs/lessons/README.md#part-1--physics` and so on.
+Nothing else is needed; "in the syllabus" is what the link says.
+
 ## Rules for both kinds
 
 - **The title says what the lesson is about, in plain words.** A concept
@@ -102,7 +108,7 @@ Under a screen. Prefer cutting to compressing.
 
 **Why it matters:** <one complete sentence: the application cannot ... because ...>
 
-**Concept:** <the syllabus row or concept lesson this illustrates; see _Growing the syllabus_ if none fits>
+**Concept:** <[row id](lesson file, or the row's part of the syllabus), _row title_; see _Growing the syllabus_ if none fits>
 
 ## The idea
 
@@ -163,7 +169,7 @@ or three screens; cut anything that does not teach.
 
 **Why it matters:** <the row's because, as one complete sentence>
 
-**Before this:** <links to the lessons the row Needs, or "nothing">
+**Before this:** <the rows it Needs, each as [id](link), _title_; or "nothing">
 
 ## A worked case
 
