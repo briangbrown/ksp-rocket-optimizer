@@ -24,7 +24,7 @@ one illustrates a concept below, it links to that concept's lesson.
 Both kinds file under the same tree, `docs/lessons/<category>/<topic>/`, with the
 categories `physics`, `solver`, `renderer`, `ui`, `architecture`,
 `verification`, `part-data` and `typescript`. The tree is for browsing by
-principle. The strands below are the reading order across it.
+principle. The four parts below are the reading order across it.
 
 ## How to read the tables
 
@@ -46,7 +46,7 @@ module — is not defined.
 
 ---
 
-## Strand 1 — Physics
+## Part 1 — Physics
 
 The rocket, the air it climbs through, and the orbits it flies once it is out.
 
@@ -78,7 +78,7 @@ The rocket, the air it climbs through, and the orbits it flies once it is out.
 | P24  | Three geometries for moons                             | Inside one system, out to your own moon, and down to the body you are circling are priced differently; two of them have no ejection at all.                                                                       | P18, P22 | —                                                                                                                                                                                                                                                                                                                                                                                                                      | `findWindow` branches in `src/core/transfer.ts`              |
 | P25  | Landing and ascent elsewhere                           | Legs on and off other bodies are tabulated or computed from surface gravity and atmosphere; the route cannot be priced without them.                                                                              | P5, P13  | Δv map (the community's table of Δv for every leg in the Kerbal system)                                                                                                                                                                                                                                                                                                                                                | `ascentLeg`, `landLeg` in `src/core/orbits.ts`               |
 
-## Strand 2 — Algorithms and the solver
+## Part 2 — Algorithms and the solver
 
 How a search over rockets is made small enough to run on a phone, and the
 numerical methods under it.
@@ -102,7 +102,7 @@ numerical methods under it.
 | A15  | Objectives, tie-breaks, and the coupling term               | Mass, cost and part count are minimised with a small mass term to break ties; the relations between them — cheapest is never dearer than lightest — are invariants the tests hold.                                  | A6     | tie-break (a second quantity that decides between equal firsts); coupling term (a small addition to the score that ties one objective to another); invariant (a relation that must hold whatever the input)                                                                               | `scoreOf`, `better` in `src/core/solver.ts`                              |
 | A16  | Placing labels by scored search                             | Names on the transfer drawing are placed by trying candidates most-constrained first and scoring overlap with real text metrics; it is a small constraint-satisfaction problem drawn on a canvas.                   | —      | constraint satisfaction (finding values that meet a set of limits at once); text metrics (the measured width and height of rendered text)                                                                                                                                                 | `place` in `src/ui/components/transfer.tsx`                              |
 
-## Strand 3 — Language and platform
+## Part 3 — Language and platform
 
 TypeScript, React, the browser, Web Workers, three.js and GLSL: what each one
 does that the application leans on. The last three rows are algorithms that
@@ -131,9 +131,9 @@ depend on the graphics lessons before them.
 | L19★ | Hidden-line removal with a surface-id buffer               | The build view draws what is behind the rocket as dashes; an id pass, a depth test and arc length measured on the geometry are how a schematic is made from a solid render.                                           | L12, L13, L14 | hidden line (an edge behind a surface, drawn dashed in a schematic); surface-id buffer (a render target holding, per pixel, which part is in front); depth test (comparing a fragment's distance with what is already drawn there); arc length (distance measured along a curve)                                 | `src/ui/components/shaders.ts`, `hidden-lines.ts`             |
 | L20  | Compressing a design into a link                           | The share link deflates the configuration against a default the reader can rebuild, so sixty tech-node names fit in a hash; and it inflates it with a cap, because a link is untrusted input.                         | L1            | deflate and inflate (the compression and decompression the browser provides); URL fragment (the part of an address after `#`, never sent to the server); untrusted input (anything a user or a link can hand the program, to be validated before use)                                                            | `src/ui/link.ts`                                              |
 
-## Strand 4 — Verification
+## Part 4 — Verification
 
-How the numbers in the other strands are checked, and what each check cannot see.
+How the numbers in the other parts are checked, and what each check cannot see.
 
 | #   | Lesson                               | Because                                                                                                                                                                                              | Needs  | Defines                                                                                                                                                                     | Where                                                |
 | --- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
@@ -147,7 +147,7 @@ How the numbers in the other strands are checked, and what each check cannot see
 
 ## Writing order
 
-Concept lessons are written in the order the strands are read, core rows first,
+Concept lessons are written in the order the parts are read, core rows first,
 one at a time, each reviewed before the next. The first is P9, the gravity turn,
 as the piece that calibrates the template.
 
