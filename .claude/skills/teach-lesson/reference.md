@@ -102,7 +102,9 @@ Under today's rules the opener would read: "Pricing a departure from its
 excess velocity matters because a moon's sphere of influence is so small that
 the ship leaves it still bound, and a formula that cannot express a bound
 departure prices every moon window at escape velocity instead." And the title
-would name the concept: "Characteristic energy, not excess velocity".
+would state the insight: "Characteristic energy, not excess velocity". The
+concept it applies is the syllabus's P18, and that is what the _Concept_ line
+is for.
 
 What it does right, and what a moment lesson must keep: one idea, the place it
 bit, and the number that settled it. No debugging story, no list of files.

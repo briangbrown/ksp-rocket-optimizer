@@ -39,10 +39,14 @@ the still — are terms.
 
 ## Rules for both kinds
 
-- **The title names the concept.** A reader scanning a list of titles should
-  know what each one is about. "The gravity turn", "Lambert's problem",
-  "Discriminated unions and narrowing". Not an aphorism, however apt: "A
-  Constant Cannot Look Wrong" tells the reader nothing until they have read it.
+- **The title says what the lesson is about, in plain words.** A concept
+  lesson's title is its row's: "The gravity turn", "Lambert's problem",
+  "Discriminated unions and narrowing". A moment lesson's title is the insight
+  — the specific thing learned, stated as a claim about the thing it concerns:
+  "Characteristic energy, not excess velocity", "A select keeps focus after a
+  tap". A reader scanning a list of titles should know what each one is about.
+  Not an aphorism, however apt: "A Constant Cannot Look Wrong" and "Refuse a
+  Bomb Before Holding It" tell the reader nothing until they have read it.
 - **_Why it matters_ is a complete sentence with a because.** It says what the
   application cannot do without the idea, not where the idea applies. "The
   gravity turn matters because without it every ascent the solver prices is a
@@ -94,7 +98,7 @@ a lesson. But a lesson never stands in for a rule, or the guard is lost.
 Under a screen. Prefer cutting to compressing.
 
 ```markdown
-# <Title — the concept>
+# <Title — the insight: the thing it concerns, and what is true of it>
 
 **Why it matters:** <one complete sentence: the application cannot ... because ...>
 
@@ -276,7 +280,7 @@ that no longer exists, and a written lesson whose _As of_ is far behind
 
 Both kinds:
 
-- [ ] The title names the concept, in plain words
+- [ ] The title says what the lesson is about, in plain words: the row's title for a concept lesson, the insight for a moment lesson
 - [ ] _Why it matters_ is a complete sentence and says what the application cannot do without the idea
 - [ ] Every term the reader might not know is defined at first use, or linked to the lesson that owns it
 - [ ] _What made it real_ carries a number, or says plainly that it does not
