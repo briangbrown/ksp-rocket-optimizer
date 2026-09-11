@@ -11,10 +11,9 @@ stage below, and nothing for the search to search.
 
 ## A worked case
 
-Take a one-tonne pod and put a Terrier under it: a small vacuum engine of
-0.5 t. Under that, stack FL-T400 tanks. Each holds 2 t of propellant and weighs
-0.25 t empty, so it weighs 2.25 t full. The Terrier throws its exhaust at
-3,384 m/s.
+Take a one-tonne pod. Under it, stack FL-T400 tanks: each holds 2 t of
+propellant and weighs 0.25 t empty, so 2.25 t full. Under the tanks, a Terrier,
+a small vacuum engine of 0.5 t that throws its exhaust at 3,384 m/s.
 
 How fast can this stage change the pod's speed? Add up the mass with the tanks
 full, add it up again with them empty, and take the natural logarithm of the
@@ -30,8 +29,8 @@ ratio, times the exhaust speed.
 
 The first tank buys 2,579 m/s. The fourth buys 460. The tenth buys about 170.
 Every tank adds the same 2 t of propellant, and each one is worth less than the
-one before, because it has to lift all the tanks above it and its own empty
-shell. Keep going for ever and the stage never passes 7,436 m/s: that is the
+one before, because its propellant has to lift every other tank's empty shell
+as well as its own. Keep going for ever and the stage never passes 7,436 m/s: that is the
 exhaust speed times the logarithm of 9, and 9 is what a stock tank's full mass
 is to its empty mass. A single Terrier stage on stock tanks cannot reach 7,437
 m/s with any amount of propellant, and that ceiling is the reason rockets have
