@@ -133,6 +133,12 @@ type AscentOk = {
   /* A stage ran dry during the burn and the one above took over. Ordinary
      staging, but the pilot has to do it mid-burn. */
   circStaged: boolean;
+  /* Which stage was live when the orbit was made round: the one that has to
+     finish the job, and the one whose thrust-to-weight the flight card judges
+     for it. The top stage of a launch group need not fly in the ascent at all
+     — since #347 a stage that only burns in space sits at the space floor —
+     so judging the top stage was warning about a stage that never lit. */
+  circStage: number;
   gLoss: number;
   dLoss: number;
   sLoss: number;
@@ -500,6 +506,7 @@ function flyAscent(veh: Vehicle, opt: AscentOpt): AscentResult {
           circProp,
           circShort,
           circStaged,
+          circStage: liveIx,
           gLoss,
           dLoss,
           sLoss,
