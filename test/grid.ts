@@ -185,8 +185,18 @@ export function missionCases() {
    and #97's phantom part only on parts, because that is the only objective that
    counts them. #125 */
 export function sweepCases() {
+  const duna = missionCases().find((c) => c.name === "Duna-pay3.5")!;
   return [
     ...missionCases(),
+    /* A cut straight after the ascent: the group that begins in low Kerbin
+       orbit and lands on Duna. Before #347 it was sized as if it lit on the
+       pad — Kerbin's gravity under a landing floor, solids on a stage that
+       separates in vacuum, an Isp at 0.62 atm — and nothing in the sweep
+       had a cut group with a landing in it to show it. */
+    {
+      name: "Duna-pay3.5-cut-after-ascent",
+      input: { ...duna.input, cuts: [0] },
+    },
     ...OBJECTIVES.map((objective) => ({
       name: `Mun-pay20-asparagus-${objective}`,
       input: asparagusInput(objective),

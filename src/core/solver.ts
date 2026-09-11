@@ -150,7 +150,108 @@ type GroupInput = {
   objective?: Objective;
   minK: number;
   maxK: number;
+  /* The legs this group flies, in flight order, each with the fraction of the
+     group's Δv at which it ends (the last is 1), its kind, the gravity its
+     burn is judged against and the body it burns at. Plain data, so it crosses
+     the seam and rides to the unit workers. Absent from callers that have a
+     Δv and nothing else — the design grid — and then every stage is judged as
+     the group's kind says, which is what the grid pins. With it, each stage
+     is judged by the legs its own slice of the Δv covers: the pressure it
+     lights at, the gravity it fights and the floor that fits. A cut group
+     that began in orbit used to get the pad's pressure, Kerbin's gravity and
+     the landing floor for every stage, and solid boosters on a stage that
+     separates in vacuum. #347 */
+  legs?: ReadonlyArray<GroupLeg>;
 };
+
+type GroupLeg = {
+  end: number;
+  kind: string;
+  g: number;
+  body: string | null;
+};
+
+/* What one stage of a chain is judged against, from the legs its slice of the
+   group's Δv covers. `lo` and `hi` are fractions of the group's Δv, bottom
+   stage first; `ordinal` counts the stages before this one that also start
+   inside the same ascent leg, which is what STAGE_PRESSURE is indexed by. */
+/* The landing floor, per body. A stage that lands must out-thrust the body's
+   pull by enough to stop a fall, and what stops a fall is the net
+   deceleration, (TWR − 1)·g, not the ratio: 1.6 everywhere bought 0.29 m/s² on
+   Minmus and 4.7 on Tylo, which is backwards from where landings are hard. So
+   every lander is asked for the same LANDING_MARGIN of net deceleration,
+   floor = 1 + margin / g, clamped: tiny moons would otherwise demand ratios
+   the smallest engine already exceeds, and heavy bodies keep a margin a
+   suicide burn can be flown at. About 2 on the Mun, 1.3 on Tylo. A landing
+   through more than an atmosphere of air keeps its own lower floor, because
+   thick air punishes a hard descent. #347 */
+const LANDING_MARGIN = 2; // m/s² of deceleration in hand, beyond hovering
+const LANDING_FLOOR_MIN = 1.3;
+const LANDING_FLOOR_MAX = 2.5;
+const landingFloor = (g: number, p0: number) =>
+  p0 > 1
+    ? 1.35
+    : Math.min(
+        LANDING_FLOOR_MAX,
+        Math.max(LANDING_FLOOR_MIN, 1 + LANDING_MARGIN / g),
+      );
+
+type StageParams = {
+  twrMin: number;
+  g: number;
+  pRef: number;
+  pSt: number;
+  maxBurn: number;
+  mounts: boolean;
+};
+
+function stageParamsFor(
+  legs: ReadonlyArray<GroupLeg & { p0: number }>,
+  lo: number,
+  hi: number,
+  ordinalIn: (legIx: number) => number,
+): StageParams {
+  const eps = 1e-9;
+  let start = 0;
+  let twrMin = 0.5,
+    g = legs[0].g,
+    demand = -1;
+  let pRef = 0,
+    pSt = 0,
+    mounts = false;
+  let startIx = -1;
+  legs.forEach((l, j) => {
+    const s0 = start;
+    start = l.end;
+    if (l.end <= lo + eps || s0 >= hi - eps) return; // no overlap
+    const climbs = l.kind === "ascent" || l.kind === "ascentBack";
+    const lands = l.kind === "land";
+    const atStart = lo <= s0 + eps;
+    if (startIx < 0) {
+      startIx = j;
+      if (climbs) {
+        pRef = l.p0 * STAGE_PRESSURE[Math.min(ordinalIn(j), 3)];
+        pSt = atStart ? l.p0 : pRef; // it lights where it sits
+        mounts = atStart && l.p0 > 0.1;
+      }
+    }
+    /* The floor each leg would ask of a stage flying it, and the acceleration
+       that floor amounts to; the most demanding leg sets the stage's. */
+    const floor = climbs
+      ? atStart
+        ? 1.25
+        : 0.8
+      : lands
+        ? landingFloor(l.g, l.p0)
+        : 0.5;
+    if (floor * l.g > demand) {
+      demand = floor * l.g;
+      twrMin = floor;
+      g = l.g;
+    }
+  });
+  return { twrMin, g, pRef, pSt, maxBurn: pSt > 0.5 ? 200 : 420, mounts };
+}
 
 function solveStage({
   dv,
@@ -1139,6 +1240,7 @@ function prepare({
   above = { h: 0, w: 0 },
   bodyName,
   objective = "mass",
+  legs: groupLegs,
 }: GroupInput) {
   /* Which art the geometry tables are read from, set before anything asks for a
      height or a frontal area. Every way into the search comes through here —
@@ -1157,7 +1259,16 @@ function prepare({
   const twrBottom =
     kind === "launch" ? 1.25 : kind === "land" ? (pSurf > 1 ? 1.35 : 1.6) : 0.5;
   const twrUpper = kind === "launch" ? 0.8 : kind === "land" ? 1.1 : 0.5;
+  /* Each leg with the surface pressure of the body it burns at, in absolute
+     atmospheres, for the stages that light on that surface. */
+  const legs = groupLegs
+    ? groupLegs.map((l) => ({
+        ...l,
+        p0: l.body && BODY[l.body] ? atmoFor(l.body).p(0) / 101.325 : 0,
+      }))
+    : null;
   return {
+    legs,
     dv,
     payload,
     payloadDia,
@@ -1291,8 +1402,28 @@ function solveUnit(
     pSurf,
     twrBottom,
     twrUpper,
+    legs,
   } = p;
   const out: Array<ChainCandidate> = [];
+  /* Where each stage's slice of the Δv begins and ends, bottom stage first. */
+  const bounds: Array<[number, number]> = [];
+  {
+    let acc = 0;
+    for (const sh of shares) {
+      bounds.push([acc, acc + sh]);
+      acc += sh;
+    }
+  }
+  /* Which ascent leg each stage starts in, if any, so STAGE_PRESSURE can be
+     indexed by a stage's place within that climb rather than within the
+     group. */
+  const startLeg = (lo: number) =>
+    legs ? legs.findIndex((l) => l.end > lo + 1e-9) : -1;
+  const ordinalIn = (i: number, legIx: number) => {
+    let n = 0;
+    for (let j = 0; j < i; j++) if (startLeg(bounds[j][0]) === legIx) n++;
+    return n;
+  };
   {
     {
       /* The per-stage score is only a heuristic for picking within a stage; the
@@ -1366,9 +1497,27 @@ function solveUnit(
             // solve top down
             const bottom = i === 0;
             const sdv = dv * shares[i];
-            const twrMin = bottom ? twrBottom : twrUpper;
-            const pRef = pSurf * STAGE_PRESSURE[Math.min(i, 3)];
-            const pSt = bottom ? pSurf : pRef; // it lights where it sits
+            /* Judged by the legs this stage flies where the group says which
+               they are, and by the group's kind where it does not. */
+            const sp: StageParams = legs
+              ? stageParamsFor(legs, bounds[i][0], bounds[i][1], (legIx) =>
+                  ordinalIn(i, legIx),
+                )
+              : {
+                  twrMin: bottom ? twrBottom : twrUpper,
+                  g,
+                  pRef: pSurf * STAGE_PRESSURE[Math.min(i, 3)],
+                  pSt: bottom ? pSurf : pSurf * STAGE_PRESSURE[Math.min(i, 3)],
+                  maxBurn: pSurf > 0.5 && bottom ? 200 : 420,
+                  mounts:
+                    (kind === "launch" || kind === "land") &&
+                    (bottom ? pSurf : pSurf * STAGE_PRESSURE[Math.min(i, 3)]) >
+                      0.1,
+                };
+            const twrMin = sp.twrMin;
+            const gS = sp.g;
+            const pRef = sp.pRef;
+            const pSt = sp.pSt; // it lights where it sits
             const extra = 0; // decouplers and adapters are costed as real parts now
             /* What sits directly above this stage. The chain is pre-sized and filled
            from the top down, so index i+1 is already solved when i is reached —
@@ -1389,7 +1538,7 @@ function solveUnit(
               excluded,
               needGimbal,
               twrMin,
-              g,
+              g: gS,
               hasStageBelow: !bottom,
               noPlate: variant === 2,
               expansions,
@@ -1398,7 +1547,7 @@ function solveUnit(
               pRef,
               pSurf: pSt,
               extra,
-              maxBurn: pSurf > 0.5 && bottom ? 200 : 420,
+              maxBurn: sp.maxBurn,
               objective: pick,
             });
             /* Radial boosters are worth trying on any stage that climbs out of air,
@@ -1421,8 +1570,7 @@ function solveUnit(
              this used to ask for a solid in the roster before it would try
              any mount at all, so a career with liquid engines and no SRBs
              never saw a radial column unless asparagus was on. #160 */
-            const wantMounts =
-              boosters && (kind === "launch" || kind === "land") && pSt > 0.1;
+            const wantMounts = boosters && sp.mounts;
             if (
               wantMounts ||
               (asparagus && (kind === "launch" || kind === "land"))
@@ -1436,7 +1584,7 @@ function solveUnit(
                 excluded,
                 needGimbal,
                 twrMin,
-                g,
+                g: gS,
                 extra,
                 srbs,
                 pRef,
@@ -1453,7 +1601,7 @@ function solveUnit(
               ok = false;
               break;
             }
-            chain[i] = { sol: s, want: sdv, payloadIn: carried, twrMin, g };
+            chain[i] = { sol: s, want: sdv, payloadIn: carried, twrMin, g: gS };
             /* Recorded per stage rather than per finished chain: a chain that
                fails lower down still tells us what the cap would have bound on,
                and the capped pass would fail at the same stage. */
