@@ -1,38 +1,96 @@
 ---
 name: teach-lesson
-description: Write a short teaching lesson from an insight worked out while doing a task, saved under docs/lessons and tied to the commit it came from. Use after finishing a non-trivial fix, feature, refactor or investigation, or when the user asks for a lesson, a write-up, or to be taught something about work just done.
+description: Write a lesson under docs/lessons — a moment lesson right after finishing a non-trivial fix, feature, refactor or investigation, or a concept lesson from a row of the syllabus in docs/lessons/README.md. Use when work just done turned on an idea worth teaching, when the user asks for a lesson, a write-up or to be taught something, or when the user asks for a syllabus row to be written.
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 ---
 
 # Teach a lesson
 
-Take one thing you had to work out, and teach it. Not a summary of what you
-did — an explanation of the idea, so a reader who was not here understands it
-and could apply it somewhere else.
+Explain an idea so that a person who was not here understands it and could
+apply it somewhere else. Never a summary of what was done.
 
-## 1. Decide whether there is a lesson
+There are two kinds, for two readers. Decide which before writing anything.
+
+| Kind        | Reader                             | Written from           | Length              | Filed                                                 |
+| ----------- | ---------------------------------- | ---------------------- | ------------------- | ----------------------------------------------------- |
+| **Moment**  | the person who just did the work   | the task just finished | under a screen      | `<category>/<topic>/<name>-<hash>.md`, never revised  |
+| **Concept** | a person who has not done the work | a row of the syllabus  | as long as it needs | `<category>/<topic>/<name>.md`, revised as code moves |
+
+A moment lesson can be short because the reader supplies the concrete case:
+they just lived it. A concept lesson has no such reader and must supply the
+concrete case itself, first, before anything abstract. Writing a moment lesson
+for a reader who did not have the moment produces an aphorism about a bug, and
+that is the failure this skill was reworked to stop.
+
+## The reader, and the rule on terms
+
+Both kinds are written for a competent programmer who is not a physicist, a
+graphics programmer or a Kerbal player. Any term such a reader would not already
+know is defined in the sentence where it first appears. Ordinary programming
+vocabulary — cache, thread, JSON, module — is not.
+
+The syllabus, `docs/lessons/README.md`, has a _Defines_ column on every row
+naming the terms that lesson owns. A concept lesson defines exactly the terms in
+its row's cell, and may use a term from an earlier row by linking to the lesson
+that owns it. A moment lesson defines whatever it uses that the syllabus does not
+already own; if a concept lesson owns the term, link to it instead. Words this
+repository uses in a plain-English sense — cut, group, core, column, the brief,
+the still — are terms.
+
+**Referring to a row.** Write the row's id as a link to the syllabus and its
+title after it: `[P18](../../README.md#part-1--physics), _Ejection:
+characteristic energy and the hyperbolic leg_`. The id always links to the row's
+part of the syllabus, so every lesson can be followed back to the list it came
+from. The title is plain until the row's concept lesson is written, and then
+becomes a link to that file. Both kinds of lesson carry such a line directly
+under their title: a moment lesson's says which concept it is an instance of, a
+concept lesson's says which row it is.
+
+## Rules for both kinds
+
+- **The title says what the lesson is about, in plain words.** A concept
+  lesson's title is its row's: "The gravity turn", "Lambert's problem",
+  "Discriminated unions and narrowing". A moment lesson's title is the insight
+  — the specific thing learned, stated as a claim about the thing it concerns:
+  "Characteristic energy, not excess velocity", "A select keeps focus after a
+  tap". A reader scanning a list of titles should know what each one is about.
+  Not an aphorism, however apt: "A Constant Cannot Look Wrong" and "Refuse a
+  Bomb Before Holding It" tell the reader nothing until they have read it.
+- **_Why it matters_ is a complete sentence with a because.** It says what the
+  application cannot do without the idea, not where the idea applies. "The
+  gravity turn matters because without it every ascent the solver prices is a
+  vertical climb, and a vertical climb costs a third more Δv than the rocket
+  can carry." Not: "Any time an ascent is simulated." The reader should finish
+  the sentence knowing why to spend the next ten minutes.
+- **Numbers, not adjectives.** Every claim that can carry a measurement does — a
+  Δv, a count, a page height, an unchanged snapshot. Where nothing was measured,
+  say so and give the reasoning.
+- **Plain voice.** Explain; do not perform. The repository's prose is terse and
+  allusive by design, and that is the wrong register for teaching. Short
+  sentences, one idea each, the ordinary word.
+- **No narration of the task.** Not what was tried, in what order, or which
+  files were touched. The idea, where it lives, what proved it.
+- **Code only where it carries the point** better than prose can, and short.
+- **Prettier.** Run `npx prettier --write` on the file. CI checks `docs/`.
+
+## Moment lessons
+
+### 1. Decide whether there is one
 
 There is one when the work turned on something a competent reader would not
-already know:
+already know: a piece of physics, why the solver reaches a design the obvious
+approach does not, a three.js or GLSL behaviour, a React or layout pattern that
+was not the first thing tried, an architectural line and what it buys, a
+measurement that overturned a plausible assumption.
 
-- a piece of orbital mechanics, atmosphere or ascent physics the fix depended on
-- why the solver reaches a design the obvious approach does not
-- a three.js, GLSL or WebGL behaviour that decided how the drawing had to work
-- a React, layout or design-system pattern that was not the first thing tried
-- an architectural line — the `planMission` seam, the worker boundary, the two
-  part-data tables — and what it buys
-- a measurement that overturned a plausible assumption
+**Skip it** for mechanical work — renames, formatting, dependency bumps, copy
+edits, a fix whose whole content is "there was a typo" — and when the insight
+is only "this repository happens to do X". A thin lesson costs more than none.
 
-**Skip it** for mechanical work: renames, formatting, dependency bumps,
-copy edits, or a fix whose whole content is "there was a typo". Skip it also
-when the insight is only "this repository happens to do X" with nothing
-transferable behind it. A thin lesson costs more than no lesson.
+### 2. Route it first
 
-## 2. Route it — a lesson is not the only place learning goes
-
-This repository already has two homes for what you learn, and a lesson is the
-third. Read `CLAUDE.md` § _Recording what you learn_ before writing, and put
-it where it belongs:
+A lesson is the third home for what you learn, not the first. Read `CLAUDE.md`
+§ _Recording what you learn_.
 
 | What you have                 | Where it goes                                              |
 | ----------------------------- | ---------------------------------------------------------- |
@@ -41,51 +99,43 @@ it where it belongs:
 | A concept worth understanding | a lesson — this skill                                      |
 | Work still outstanding        | a filed issue, not prose                                   |
 
-They are not exclusive, and the best insights earn more than one. The
-excess-velocity clamp in #223 took all three: a rule so it cannot come back, a
-test that pins every planetary window to six decimals, and a lesson explaining
-why a negative characteristic energy is not an error to floor at zero.
+They are not exclusive. The excess-velocity clamp (#223) took a rule, a test and
+a lesson. But a lesson never stands in for a rule, or the guard is lost.
 
-The difference is the audience. **Rules are for the agent** and load when
-someone opens that part of the code; they are terse, and they exist to stop a
-repeat. **Lessons are for a person**, they are read once, and they exist to
-teach. Never write a lesson in place of a rule — you will lose the guard.
-
-## 3. Write it
+### 3. Write it
 
 Under a screen. Prefer cutting to compressing.
 
 ```markdown
-# <Title — the idea, not the ticket>
+# <Title — the insight: the thing it concerns, and what is true of it>
 
-**Why it matters:** one sentence on when this knowledge applies.
+**Concept:** <[row id](the row's part of the syllabus), _row title, linked to its lesson if written_; see _Growing the syllabus_ if none fits>
 
-## The concept
+**Why it matters:** <one complete sentence: the application cannot ... because ...>
 
-Two to four sentences. The idea itself, stated so it holds outside this
-repository.
+## The idea
+
+Two to four sentences. Stated so it holds outside this repository. Every term
+the reader might not know defined as it appears.
 
 ## In this codebase
 
-Where it appeared, named: the file, the function, the issue number. A short
-snippet only where the code carries the point better than prose.
+Where it appeared: the file, the function, the issue number. A short snippet
+only where the code carries the point.
 
 ## What made it real
 
 The measurement. The number that showed the old answer wrong and the new one
-right — a Δv, an unchanged snapshot, a frame time, a part count, a page height.
-If nothing was measured, say what was reasoned and why it holds.
+right. If nothing was measured, say what was reasoned and why it holds.
 
 ## Key takeaway
 
 One sentence worth remembering on its own.
 ```
 
-`reference.md` in this directory has the category list, a worked example, and
-the failure modes to avoid. Read it if you are unsure where a lesson belongs or
-what one should feel like.
+### 4. Save it
 
-## 4. Save it
+Commit the work first, so the hash names the right change. Then:
 
 ```bash
 git rev-parse --short HEAD
@@ -95,29 +145,173 @@ git rev-parse --short HEAD
 docs/lessons/<category>/<topic>/<name>-<short-hash>.md
 ```
 
-- **category** — `physics`, `solver`, `renderer`, `ui`, `architecture`,
-  `verification`, `part-data`, `typescript`
-- **topic** — the subject within it: `patched-conics`, `tank-packing`,
-  `layout-budgets`, `the-seam`
-- **name** — kebab-case, the idea: `energy-not-excess-velocity`
-- **short-hash** — the commit the lesson is about, which is `HEAD` once the
-  work is committed. Write the lesson after committing, not before, or the
-  hash points at the wrong thing.
+Category from `reference.md`; topic reused where one fits; name kebab-case, the
+concept. Say the takeaway inline when you report back, with the path.
 
-Reuse an existing category and topic where one fits. A new topic is fine; a new
-category should be rare.
+## Concept lessons
 
-## 5. Say the takeaway in the conversation
+### 1. Take the row
 
-Quote the takeaway line inline when you report back, with the path. The reader
-should get the point without opening the file, and know where it went.
+A concept lesson is written from one row of `docs/lessons/README.md` and only
+on request. The row supplies the title, the _because_, the prerequisites, the
+terms to define and the code to point at. Read the rows it _Needs_ — and their
+lessons, if written — before starting, so the reader who has followed the order
+is not told twice.
+
+Read `reference.md` § _The concept lesson_ before the first one: it has the
+worked example this template was calibrated on and the reasons the sections are
+in this order.
+
+### 2. Write it
+
+Concrete first, then the idea, then the code. As long as it needs, usually two
+or three screens; cut anything that does not teach.
+
+```markdown
+# <Title — the syllabus row's>
+
+**Syllabus:** <[row id](the row's part of the syllabus)>
+
+**Why it matters:** <the row's because, as one complete sentence>
+
+**Before this:** <the rows it Needs, each as [id](its part), _title, linked to its lesson if written_; or "nothing">
+
+## A worked case
+
+One concrete situation with real Kerbal numbers — a named engine, Kerbin's
+gravity, a 70 km atmosphere — worked through by hand. Small enough to redo with
+a calculator or a five-line node snippet, and the snippet given where it helps.
+The reader meets the idea here, in a case, before it is named.
+
+## The idea
+
+The general concept, from first principles: the equation and where it comes
+from, the intuition for its shape, the derivation where a derivation is what
+makes it stick. A diagram wherever geometry is involved — a mermaid block or a
+small ASCII figure. Every term in the row's _Defines_ cell defined in the
+sentence where it first appears.
+
+## In this codebase
+
+Which function is which term of the idea. An annotated snippet. Where the code
+departs from the textbook, why.
+
+## What made it real
+
+The measurement that settled it here: from the flown-in-game table, a snapshot
+that did or did not move, a profile, an issue's numbers.
+
+## Where it breaks
+
+The trap, explained rather than only guarded, with a pointer to the rule in
+`.claude/rules/` or the test that holds it.
+
+## Try it
+
+One concrete action in the repository: run a named test, change a constant and
+watch which number moves, plot something.
+
+## Check yourself
+
+Two or three questions answered from memory, each with its answer folded:
+
+<details><summary>Q1 ...</summary>
+
+...
+
+</details>
+
+## Further reading
+
+One to three references: a textbook chapter, a specification section, a paper.
+
+## Key takeaway
+
+One sentence.
+
+_As of <short hash of main when the lesson was last checked against the code>._
+```
+
+### 3. Save it, and link it from the syllabus
+
+```
+docs/lessons/<category>/<topic>/<name>.md
+```
+
+No hash in the filename; the _As of_ line carries it. Category from the row's
+area; topic reused where one fits. Then make the row's title a link to the file
+in `docs/lessons/README.md`, so the syllabus shows what is written, and in every
+other lesson that names the row — `grep -rl '\[P9\]' docs/lessons` finds
+them — so their references reach the lesson.
+
+### 4. One at a time
+
+Write one concept lesson, report its path and takeaway, and stop for review
+before the next. The template survives on the strength of the lessons the user
+has read and accepted, not on how many exist.
+
+## Growing the syllabus
+
+The syllabus is a list of what the application depends on, and the
+application grows. Two paths add rows; neither writes a lesson.
+
+**From a moment lesson.** Every moment lesson names the row it illustrates. When
+no row fits, the concept is missing. Add the row in the same pull request as
+the lesson, with the full shape — a _because_ that says what the application
+cannot do without it, the rows it _Needs_, the terms it would _Define_ checked
+against every existing _Defines_ cell so it does not take one that is owned,
+and the code it points at, verified to exist — and mark it `(proposed)` after
+the title. The lesson's _Concept_ line points at the new row. The user accepts
+the row by deleting the marker, or strikes it.
+
+**From a sweep.** On request, walk two lists against the syllabus and report
+what is missing; write nothing until the user has chosen.
+
+- Every entry in `.claude/rules/*.md`. A trap usually has a concept behind it.
+  Ask which row teaches that concept; if none does, propose one.
+- Every module under `src/core/`, every exported function in it, and
+  `src/ui/views.ts`, `src/ui/components/shaders.ts` and `hidden-lines.ts`. A
+  piece of code no _Where_ cell names is a concept the syllabus does not
+  teach, or a row that should name it.
+
+The sweep runs backwards as well. Report a row whose _Where_ names a symbol
+that no longer exists, and a written lesson whose _As of_ is far behind
+`main`, as stale.
+
+**Conventions that keep growth safe.**
+
+- Row numbers are identifiers. Never renumber, never reuse. A new row takes the
+  next number in its part and is placed where it belongs in the reading order,
+  so P26 may sit between P9 and P10.
+- A row's title becomes a link when its lesson is written; `(proposed)` marks a
+  row added outside a review. The table shows planned, proposed and written at
+  a glance.
+- A ★ is the user's to give.
 
 ## Checklist
 
-- [ ] The insight is transferable, not just a note about this repository
-- [ ] Anything that could bite again is in `.claude/rules/`, or is a test
-- [ ] The lesson explains an idea rather than narrating the task
+Both kinds:
+
+- [ ] The title says what the lesson is about, in plain words: the row's title for a concept lesson, the insight for a moment lesson
+- [ ] _Why it matters_ is a complete sentence and says what the application cannot do without the idea
+- [ ] Every term the reader might not know is defined at first use, or linked to the lesson that owns it
 - [ ] _What made it real_ carries a number, or says plainly that it does not
-- [ ] The path's category and topic already existed, or genuinely needed to
+- [ ] Nothing narrates the task
+- [ ] Prettier has run
+
+Moment lessons:
+
+- [ ] Anything that could bite again is in `.claude/rules/`, or is a test
+- [ ] The _Concept_ line names a syllabus row, or the row is added and marked `(proposed)`
 - [ ] The hash is the commit the work landed in
 - [ ] The takeaway is quoted in the conversation with the path
+
+Concept lessons:
+
+- [ ] The worked case comes first and can be reproduced by the reader
+- [ ] The terms defined are exactly the row's _Defines_ cell
+- [ ] The prerequisites are linked and not re-taught
+- [ ] There is a diagram wherever there is geometry
+- [ ] _Check yourself_ has questions with folded answers, and _Try it_ has one action
+- [ ] The _Syllabus_ line names the row, and the row's title links to the file in the syllabus and in every lesson that names it
+- [ ] The user has reviewed it before the next one is started
