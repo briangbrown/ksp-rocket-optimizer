@@ -204,7 +204,7 @@ describe("the flown engine's Isp curve", () => {
     );
     const inferred = ispCurve(swivel.iv, swivel.ia, ispCut(swivel));
     expect(ispFnFor(swivel)(5)).toBeCloseTo(
-      evalCurve(REAL_CURVE[swivel.n], 5),
+      evalCurve(must(REAL_CURVE.get(swivel.n), "the Swivel's curve"), 5),
       6,
     );
     expect(ispFnFor(swivel)(5)).toBeLessThan(inferred(5) / 4);
