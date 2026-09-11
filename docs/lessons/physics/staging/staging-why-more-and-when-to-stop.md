@@ -123,7 +123,7 @@ fighting air, so a solver tries several.
 
 ## In this codebase
 
-`planMission` in `src/core/plan.ts` decides how many stages to allow for each
+`planMission` in [`src/core/plan.ts`](../../../../src/core/plan.ts) decides how many stages to allow for each
 stretch of the mission from its Δv:
 
 ```ts
@@ -138,7 +138,7 @@ search then walks every count from one up to that cap: `minK` is 1 unless the
 user has forced a count, so a single stage is always tried and simply loses
 where the table above says it should.
 
-`splitShares` in `src/core/solver.ts` is the set of Δv shares tried at each
+`splitShares` in [`src/core/solver.ts`](../../../../src/core/solver.ts) is the set of Δv shares tried at each
 count. Two stages try 30/70 through 70/30 in steps of ten. Three try a grid of
 20 to 50% for each of the first two with the third taking the rest. Four and
 more try the even split and four tilts of it toward the bottom and toward the
@@ -186,7 +186,7 @@ that is the cap.
   form's favourite; the delivered design is the first candidate the simulator
   flies to budget. A change that leaves `best` untouched can still change what
   the user gets, and the design snapshot only sees `best`. The rule is in
-  `.claude/rules/solver.md` under _`best` is not what the user gets_.
+  [`.claude/rules/solver.md`](../../../../.claude/rules/solver.md) under _`best` is not what the user gets_.
 - **A share pattern of the wrong length.** `splitShares` must return exactly
   `k` entries for a count of `k`. A short one leaves a stage's share undefined,
   its Δv requirement becomes NaN, and because every comparison with NaN is

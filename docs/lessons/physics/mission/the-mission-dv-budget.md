@@ -132,7 +132,7 @@ solver finds the stage count for the whole span itself.
 
 ## In this codebase
 
-A leg is a plain record in `src/core/orbits.ts`:
+A leg is a plain record in [`src/core/orbits.ts`](../../../../src/core/orbits.ts):
 
 ```ts
 type Leg = {
@@ -160,10 +160,10 @@ decide the thrust floors of [P3](../staging/thrust-to-weight-and-burn-time.md).
 `buildRoute(destName, profile, chutes, origin, returning)` turns what the brief
 asked for into a From and a To, each a body and a state, and `routeFor`
 assembles the legs, taking Kerbin departures from the tabulated map, `DEST`,
-and computing the rest. `test/routes.test.ts` holds every route the brief can
+and computing the rest. [`test/routes.test.ts`](../../../../test/routes.test.ts) holds every route the brief can
 ask for, 5,904 of them, hashed; a diff there is a mission that moved.
 
-`planMission` in `src/core/plan.ts` cuts the route into groups by index, skips
+`planMission` in [`src/core/plan.ts`](../../../../src/core/plan.ts) cuts the route into groups by index, skips
 the free legs, and prices each group:
 
 ```ts
@@ -207,7 +207,7 @@ budgets built from them.
 ## Where it breaks
 
 - **Comparing a part with the whole.** The #167 case above. The rule is in
-  `.claude/rules/solver.md` under _The flown ascent is compared with what the
+  [`.claude/rules/solver.md`](../../../../.claude/rules/solver.md) under _The flown ascent is compared with what the
   chain carries for the climb_.
 - **A discount granted on trust.** The 18% figure for a parachute descent
   assumes parachutes are fitted. The tool lists them under the payload and adds
@@ -221,7 +221,7 @@ budgets built from them.
 - **The map is drawn upside down.** The route map lists the launchpad last,
   the way a rocket is read, so the scissors for cut i sit before leg i's row on
   the page and between it and leg i + 1. A slot too low everywhere is the
-  natural bug, and `test/route-map.test.tsx` holds the order.
+  natural bug, and [`test/route-map.test.tsx`](../../../../test/route-map.test.tsx) holds the order.
 - **Waiting is not priced.** A plane change timed at a node is nearly free in
   Δv and can cost a 24-day wait; the budget sees only the Δv. The README lists
   it as a known gap.

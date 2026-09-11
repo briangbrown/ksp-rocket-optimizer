@@ -139,7 +139,7 @@ surface gravity in gees times a g₀, and the g₀ has to be the game's own,
 
 ## In this codebase
 
-`eccentricAnomaly` in `src/core/kepler.ts` is Newton's method on the
+`eccentricAnomaly` in [`src/core/kepler.ts`](../../../../src/core/kepler.ts) is Newton's method on the
 equation, exactly as above:
 
 ```ts
@@ -186,10 +186,10 @@ at 9.81 Kerbin's year came out 1,600 s short, an hour of drift in the dates by
 the second window.
 
 Everything downstream reads `stateAt`. The window search in
-`src/core/transfer.ts` asks for the departure body at t and the arrival body
+[`src/core/transfer.ts`](../../../../src/core/transfer.ts) asks for the departure body at t and the arrival body
 at t plus the flight time and hands both positions to the Lambert solver
 ([P21](../../README.md#part-1--physics)); the encounter check in
-`src/core/encounter.ts` asks where each other body is as the ship passes; the
+[`src/core/encounter.ts`](../../../../src/core/encounter.ts) asks where each other body is as the ship passes; the
 transfer drawing in the interface draws the orbits from `orbitPoints`.
 
 ## What made it real
@@ -199,14 +199,14 @@ The g₀ is the measurement. Kerbin's sidereal year from the elements is
 1,572 s apart, and the comment rounds it to 1,600. That is an hour of drift in
 where every planet is by the time the second transfer window comes round, and
 it was found because the windows came out on the wrong dates.
-`test/transfer.test.ts` now holds that the ephemeris runs on the game's clock
+[`test/transfer.test.ts`](../../../../test/transfer.test.ts) now holds that the ephemeris runs on the game's clock
 and Kerbin's own year, and that the planets are where their stored numbers
 say at time zero.
 
 The anomaly wrap is the other one. Without it the plane-change branch of the
 window search, which converts a true anomaly back to a time, handed Newton a
 mean anomaly several turns from zero and got back a burn time a year off. The
-rule is recorded in `.claude/rules/solver.md` with the window traps.
+rule is recorded in [`.claude/rules/solver.md`](../../../../.claude/rules/solver.md) with the window traps.
 
 Newton's convergence is not something this repository measured; it is what
 the table above shows. Three steps to 10⁻¹² for Moho, from a start of M, on an

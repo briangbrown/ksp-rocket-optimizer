@@ -144,7 +144,7 @@ its grid, "go straight up", and prices the stack accordingly.
 
 ## In this codebase
 
-`flyAscent` in `src/core/ascent.ts` takes `lead` in radians and applies it in
+`flyAscent` in [`src/core/ascent.ts`](../../../../src/core/ascent.ts) takes `lead` in radians and applies it in
 two places: the handoff test and the pitch that follows it.
 
 ```ts
@@ -155,7 +155,7 @@ pitch = Math.min(Math.PI / 2, Math.max(pro - lead, opt.kick)); // the nose sits 
 `pro` is the tilt of the velocity through the air from vertical, and `pitch`
 is the nose's tilt from vertical, so `pro − lead` is a nose held `lead` above
 the velocity. Zero reproduces the classic turn to the bit, and a test in
-`test/ascent.test.ts` holds that a flight with `lead: 0` equals one with no
+[`test/ascent.test.ts`](../../../../test/ascent.test.ts) holds that a flight with `lead: 0` equals one with no
 lead at all.
 
 `optimiseTurn` does not add the lead as a third axis of the grid, which would

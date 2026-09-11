@@ -113,7 +113,7 @@ price.
 
 ## In this codebase
 
-`flyAscent` in `src/core/ascent.ts` carries two throttles for a stage with a
+`flyAscent` in [`src/core/ascent.ts`](../../../../src/core/ascent.ts) carries two throttles for a stage with a
 ring of boosters, and applies each to the right engines:
 
 ```ts
@@ -154,7 +154,7 @@ if (veh.stages[0] && veh.stages[0].boosters) {
 limiter is P11's fallback, `limit`, and `bLim` sends it to the ring when there
 is one, "the slider people actually reach for".
 
-The closed form in `boostedAscent`, `src/core/solver.ts`, sizes a boosted stage
+The closed form in `boostedAscent`, [`src/core/solver.ts`](../../../../src/core/solver.ts), sizes a boosted stage
 without flying it. Each solid in the roster becomes a mount with two figures,
 its mass flow and its burn time, `tB = fuelM / mdotB`; a solid that burns for
 under 20 s is skipped as too brief to be a stage, which excludes the Flea and

@@ -175,7 +175,7 @@ const soiR = (b: string) => {
 };
 ```
 
-`chainOf(body)` in `src/core/orbits.ts` lists a body and its parents out to
+`chainOf(body)` in [`src/core/orbits.ts`](../../../../src/core/orbits.ts) lists a body and its parents out to
 the Sun, and `transferDv` finds where two chains meet, the first body they
 share, and splits the trip there: the climb `up` from the origin's chain to
 the common body, a Hohmann transfer about it, and the descent `down` the
@@ -183,7 +183,7 @@ destination's chain. Each edge crossed is a leg. The comment in the code notes
 that "any shared primary, not only the Sun" works: Mun to Minmus is the same
 problem about Kerbin that Kerbin to Duna is about the Sun.
 
-The patch itself is in `src/core/transfer.ts`. `findWindow` asks Kepler where
+The patch itself is in [`src/core/transfer.ts`](../../../../src/core/transfer.ts). `findWindow` asks Kepler where
 the two bodies are, asks the Lambert solver
 ([P21](../../README.md#part-1--physics)) for the heliocentric arc between
 them, takes the ship's velocity on that arc relative to each body, and prices
@@ -196,10 +196,10 @@ const ej = ejection(sub(l.v1, s1.v), c3Out, mu1, rPark1, soi1);
 ```
 
 `soi1` and `soi2` are the two spheres, and they are what makes the patch a
-patch at the edge rather than at infinity. `src/core/encounter.ts` uses the
+patch at the edge rather than at infinity. [`src/core/encounter.ts`](../../../../src/core/encounter.ts) uses the
 same sphere the other way round: its `depth` is a closest approach measured in
 the met body's sphere radii, so under 1 means the game would have handed the
-ship over. `test/encounter.test.ts` holds the spheres against the game's
+ship over. [`test/encounter.test.ts`](../../../../test/encounter.test.ts) holds the spheres against the game's
 published figures, Kerbin's 84.16 Mm and the Mun's 2.43, and the shares of
 their orbits the moons' spheres cover: the Mun's 6.4%, Ike's 10.4%, Gilly's
 under 0.2%.
@@ -212,7 +212,7 @@ community transfer planner at the same departure and arrival: 12 m/s at
 Kerbin, 20 at Eve. Made at the edge, removing the 2μ/r_SOI the ship still had
 to climb after the patch, nine of that planner's selected transfers agree to
 the metre per second, ejection inclination included. The rule records it in
-`.claude/rules/solver.md`.
+[`.claude/rules/solver.md`](../../../../.claude/rules/solver.md).
 
 The Mun is the measurement the other way. The Mun's sphere is a fifth of its
 orbit and its boundary escape speed 232 m/s; a departure for Minmus leaves at
@@ -237,7 +237,7 @@ first lesson in this repository was written on it.
 - **Treating the Sun as having an edge.** The Sun orbits nothing, so its
   sphere is infinite and its `elements` throw. A dispatch on parentage has to
   ask `parentOf`, which returns null for it, rather than `elements`; the rule
-  is in `.claude/rules/solver.md`.
+  is in [`.claude/rules/solver.md`](../../../../.claude/rules/solver.md).
 - **Reading the table as physics.** For the real solar system the sphere is a
   boundary between two approximations and a trajectory crosses it smoothly.
   In the game the ship's reference body changes discontinuously at the edge,

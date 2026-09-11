@@ -122,7 +122,7 @@ worth flying, is a single representative pressure for the burn.
 
 ## In this codebase
 
-`ispFnFor` in `src/core/performance.ts` builds an engine's curve, and it is
+`ispFnFor` in [`src/core/performance.ts`](../../../../src/core/performance.ts) builds an engine's curve, and it is
 the one place the curve comes from:
 
 ```ts
@@ -139,7 +139,7 @@ pressure" by calling that function and caching the answer, because the solver
 asks it 124 million times in a solve and gets 116 distinct answers.
 
 `iv` and `ia` are the vacuum and sea-level figures from the parts table.
-`REAL_CURVE` in `src/data/curves.json` holds the three keys lifted from each
+`REAL_CURVE` in [`src/data/curves.json`](../../../../src/data/curves.json) holds the three keys lifted from each
 engine's config file; for an engine without one, `ispCurve` builds the same
 shape from the two figures and a guess at the third key.
 
@@ -154,7 +154,7 @@ at 5%, anything higher at 0. The comment above it says where those came from:
 the simulator was run over Kerbin, Duna and Laythe designs and the pressure of
 each step was averaged, weighted by the propellant burned in that step. A
 first stage burns most of its propellant low, so its mean is high. `solveGroup`
-in `src/core/solver.ts` multiplies by the launch body's surface pressure and
+in [`src/core/solver.ts`](../../../../src/core/solver.ts) multiplies by the launch body's surface pressure and
 passes the result to `ispAt`, and that Isp is the one `propellantFor` sizes the
 stage with. For the Swivel from Kerbin that is 272.6 s, the third row of the
 table above.

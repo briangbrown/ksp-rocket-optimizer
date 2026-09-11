@@ -118,7 +118,7 @@ each one's mass becoming the next one's payload.
 
 ## In this codebase
 
-`propellantFor` in `src/core/performance.ts` is the inverse form, line for line:
+`propellantFor` in [`src/core/performance.ts`](../../../../src/core/performance.ts) is the inverse form, line for line:
 
 ```ts
 function propellantFor(dv: number, dry: number, isp: number, k: number) {
@@ -135,7 +135,7 @@ function propellantFor(dv: number, dry: number, isp: number, k: number) {
 has been fitted with before the tanks are chosen. `k` comes from the tank table,
 where each tank carries its own empty-mass-per-tonne, so a stage built from
 stock tanks gets 0.125 and one from the lighter add-on tanks gets theirs.
-`solveStage` in `src/core/solver.ts` calls it once per engine and cluster count,
+`solveStage` in [`src/core/solver.ts`](../../../../src/core/solver.ts) calls it once per engine and cluster count,
 then hands the propellant to the tank packer.
 
 The forward form appears wherever the tool checks what a stage actually got,
@@ -153,7 +153,7 @@ and the logarithm is taken over that phase, the empty boosters drop, and the
 logarithm is taken again over the core alone. That is
 [A14](../../README.md#part-2--algorithms-and-the-solver).
 
-`G0` is 9.81 in `src/core/constants.ts`. It is a conversion constant here, from
+`G0` is 9.81 in [`src/core/constants.ts`](../../../../src/core/constants.ts). It is a conversion constant here, from
 specific impulse in seconds to exhaust speed in m/s, and not the gravity of any
 body; `flyAscent` computes the pull of gravity from the body's own numbers.
 
@@ -170,7 +170,7 @@ rounds it to 9.81, a difference of 0.034%. On a 3,400 m/s stage that is
 1.2 m/s, inside the half-percent tolerance above and of no consequence. The same
 0.034% in a gravitational parameter made Kerbin's year 1,600 s short and put an
 hour of drift into every transfer date by the second window, which is why
-`src/core/kepler.ts` keeps its own `G0_KSP = 9.80665`. The equation forgives the
+[`src/core/kepler.ts`](../../../../src/core/kepler.ts) keeps its own `G0_KSP = 9.80665`. The equation forgives the
 rounding; the calendar does not.
 
 ## Where it breaks

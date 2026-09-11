@@ -134,7 +134,7 @@ burn rather than subtracting two speeds.
 
 ## In this codebase
 
-`flyAscent` in `src/core/ascent.ts` leaves the coast when the rocket reaches
+`flyAscent` in [`src/core/ascent.ts`](../../../../src/core/ascent.ts) leaves the coast when the rocket reaches
 the top of its arc or clears the air, and the first thing it does there is
 check the apoapsis actually reached, since drag has been eating it on the way
 out:
@@ -178,9 +178,9 @@ orbit. The burn is costed to completion: if the last stage runs dry short of
 circular, what is left is added impulsively, so a rocket that cannot finish
 reports an ascent at least as expensive as one that can. And the total can
 never be less than the impulsive figure, `dvUsed + vC − vApo`, which
-`test/ascent.test.ts` holds as an invariant on the simulator directly.
+[`test/ascent.test.ts`](../../../../test/ascent.test.ts) holds as an invariant on the simulator directly.
 
-The circular speed appears once more, in `src/core/orbits.ts`, as
+The circular speed appears once more, in [`src/core/orbits.ts`](../../../../src/core/orbits.ts), as
 `vCirc(body)`, the speed of a low orbit ten kilometres above the air, which is
 the starting point for every departure leg the route model prices.
 
@@ -212,7 +212,7 @@ changed the answers; the integration is what made them possible to compute.
 
 - **Costing a failed burn at what one stage spent.** The #170 bug. A rocket
   that cannot finish must report at least what finishing would cost, or the
-  search will prefer it. The rule is in `.claude/rules/solver.md` under _A
+  search will prefer it. The rule is in [`.claude/rules/solver.md`](../../../../.claude/rules/solver.md) under _A
   flight's `total` is what the orbit needs_.
 - **Checking the apoapsis only at the peak.** A flight that leaves the air
   short of the target never reaches a peak inside the loop that checks it. The

@@ -164,8 +164,8 @@ way to know is to compare against a position you trust.
 
 ## In this codebase
 
-`elements(body)` in `src/core/kepler.ts` reads the six numbers from
-`src/data/bodies.json` and converts them to what the mathematics wants:
+`elements(body)` in [`src/core/kepler.ts`](../../../../src/core/kepler.ts) reads the six numbers from
+[`src/data/bodies.json`](../../../../src/data/bodies.json) and converts them to what the mathematics wants:
 metres, radians, and the parent's gravitational parameter. `toFrame` is the
 composed matrix:
 
@@ -201,7 +201,7 @@ drawing is top-down: it takes `stateAt`'s x and y and drops z, which is why an
 inclined orbit is drawn as the ellipse it projects to, foreshortened by the
 cosine of its inclination.
 
-`test/transfer.test.ts` pins the frame at epoch: every stock planet starts at
+[`test/transfer.test.ts`](../../../../test/transfer.test.ts) pins the frame at epoch: every stock planet starts at
 mean anomaly 3.14, opposite its periapsis, so Kerbin is at 180° and Duna at
 its node plus 180°, and the phase angle between them is Duna's node, 135.5°,
 which the test checks to a tenth of a degree; Kerbin's speed is 9,285 m/s, and
