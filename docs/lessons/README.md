@@ -119,9 +119,9 @@ does that the application leans on.
 | L16  | Canvas sizing and device pixels                            | A WebGL canvas has a buffer size and a CSS size, and resizing it per frame reallocates every render target; the dash period is in CSS pixels scaled to device pixels for the same reason.                             | L11, L12 | `ThreeView` in `three-view.tsx`                            |
 | L17  | What the toolchain checks and what it strips               | Vite and vitest strip types with esbuild and never check them, eslint has no TypeScript parser, so `tsc` is the only type gate; knowing which tool sees what decides where a bug can hide.                            | —        | `package.json`, `.github/workflows/build.yml`              |
 
-## Strand 4 — Making it hold
+## Strand 4 — Verification
 
-Short, and the reason the numbers in the other strands can be believed.
+How the numbers in the other strands are checked, and what each check cannot see.
 
 | #   | Lesson                               | Because                                                                                                                                                                                              | Needs  | Where                                                |
 | --- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------- |
