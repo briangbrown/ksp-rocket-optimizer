@@ -221,8 +221,9 @@ escape priced every moon departure at bare escape, 231 m/s from a low Mun
 orbit, whatever the window; priced at the edge the same departure is 209.
 Every one of the 84 planetary windows stayed identical to the last digit when
 the change went in, which is what proved it changed the moons and nothing
-else. [P18](../../README.md#part-1--physics) has the full story, and the
-first lesson in this repository was written on it.
+else. [P18](../../README.md#part-1--physics),
+_[Ejection: characteristic energy and the hyperbolic leg](ejection-energy-and-the-hyperbolic-leg.md)_,
+has the full story, and the first lesson in this repository was written on it.
 
 ## Where it breaks
 

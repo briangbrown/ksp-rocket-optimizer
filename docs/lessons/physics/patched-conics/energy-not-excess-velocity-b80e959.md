@@ -1,7 +1,7 @@
 # Characteristic energy, not excess velocity
 
-**Concept:** [P18](../../README.md#part-1--physics), _Ejection: characteristic
-energy and the hyperbolic leg_.
+**Concept:** [P18](../../README.md#part-1--physics), _[Ejection: characteristic
+energy and the hyperbolic leg](../orbits/ejection-energy-and-the-hyperbolic-leg.md)_.
 
 **Why it matters:** Pricing a departure from its excess velocity matters
 because a moon's sphere of influence is so small that a ship can leave it still
