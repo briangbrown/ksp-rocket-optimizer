@@ -216,7 +216,7 @@ through `applyConfig` as a paste, and a later effect writes `toLink(
 configText)` with `replaceState` after every change, once `hydrated`, or
 the default mission would overwrite the link being read.
 [`src/ui/config.ts`](../../../../src/ui/config.ts) is `parseConfig`, and
-`Boundary` in [`src/ui/main.tsx`](../../../../src/ui/main.tsx) is the last
+`Boundary` in [`src/main.tsx`](../../../../src/main.tsx) is the last
 line. The rules are in
 [`.claude/rules/ui.md`](../../../../.claude/rules/ui.md): _The address is
 the design_ and _A link is untrusted input, and `parseConfig` may not
@@ -293,7 +293,7 @@ change, so the address is the design and nothing else has to be.
 
 </details>
 
-<details><summary>A three-hundred-character hash inflates to 200 MB. How is it refused without the page holding 200 MB?</summary>
+<details><summary>A four-hundred-character hash inflates to 300 kB. How is it refused without the page holding it?</summary>
 
 The inflating stream is read piece by piece and the bytes counted as they
 arrive; the moment the count passes the 256 kB cap the reader is cancelled
