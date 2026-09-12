@@ -98,7 +98,7 @@ rocket was built to carry and the Δv its flight actually needed.
 The funnel has a cost of its own, which the syllabus's later rows take up. A
 closed form that is wrong in a way the simulator cannot see is never caught,
 because the simulator only flies what the closed form liked
-([A7](../../README.md#part-2--algorithms-and-the-solver)). And the design
+([A7](../../README.md#part-2--algorithms-and-the-solver), _[The candidate walk](the-candidate-walk.md)_). And the design
 snapshot pins the closed form's favourite, not the delivered rocket, so a
 change can leave the favourite untouched and still change what the user gets
 ([V1](../../README.md#part-4--verification)).
