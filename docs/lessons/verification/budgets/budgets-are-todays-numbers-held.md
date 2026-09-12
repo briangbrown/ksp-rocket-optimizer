@@ -112,7 +112,7 @@ practice if not in the file, and a green one with slack in it says nothing
 when the page grows back toward the line. Set the budget at what the page
 measures today, instead, and the test says one exact thing: this has not
 got worse. It is green the day it is written and red the first time anyone
-adds a paragraph, a small label, a wide table or a clickable , which is
+adds a paragraph, a small label, a wide table or a clickable `div`, which is
 when the person who did it is still in the room.
 
 Two rules follow, and the file states both. A pull request that improves a
