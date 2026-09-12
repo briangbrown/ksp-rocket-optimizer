@@ -21,13 +21,13 @@ Take one small module with four guards in it, the share link's `fromLink`,
 and its ten tests. Break one guard at a time in a copy, run the tests
 against the copy, and count what goes red:
 
-| Fault introduced in a copy of `link.ts`  | Tests red, of 10 | Which                                                  |
-| ---------------------------------------- | ---------------- | ------------------------------------------------------ |
-| Delete the `MAX_HASH` length check       | 1                | refuses a hash too long to be a design                 |
-| Remove the inflate cap (`Infinity`)      | 1                | refuses a hash that would inflate past the cap         |
-| Raise the inflate cap a thousandfold     | 1                | the same                                               |
-| Double the inflate cap, 256 kB to 512 kB | 0                | nothing: the exact cap is not pinned                   |
-| Change the format letter, `#c=` to `#d=` | 4                | round trip, plain visit, too long, large configuration |
+| Fault introduced in a copy of `link.ts`  | Tests red, of 10 | Which                                          |
+| ---------------------------------------- | ---------------- | ---------------------------------------------- |
+| Delete the `MAX_HASH` length check       | 1                | refuses a hash too long to be a design         |
+| Remove the inflate cap (`Infinity`)      | 1                | refuses a hash that would inflate past the cap |
+| Raise the inflate cap a thousandfold     | 1                | the same                                       |
+| Double the inflate cap, 256 kB to 512 kB | 0                | nothing: the exact cap is not pinned           |
+| Change the format letter, `#c=` to `#d=` | 3                | round trip, plain visit, large configuration   |
 
 The first row was 0 until this lesson was written. The test sent twenty
 thousand letter A's after `#c=`, which is not deflate at all, and `fromLink`
