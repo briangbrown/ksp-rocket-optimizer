@@ -14,8 +14,8 @@ order they arrive.
 
 **Before this:** [A1](../the-search/closed-form-first-simulation-last.md),
 _The shape of the search: closed form first, simulation last_, and
-[L5](../../README.md#part-3--languages-and-the-platform), _Web Workers:
-messages, cancellation, and structured clone_.
+[L5](../../README.md#part-3--languages-and-the-platform), _[Web Workers:
+messages, cancellation, and structured clone](../../ui/platform/web-workers-messages-cancellation-and-structured-clone.md)_.
 
 ## A worked case
 
