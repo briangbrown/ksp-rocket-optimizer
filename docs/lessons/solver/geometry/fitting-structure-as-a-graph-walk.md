@@ -241,7 +241,7 @@ lighter and cheaper on paper than the rocket you would have to build.
 ## Try it
 
 Run the test file above, then change the fit's `hasStageBelow` to `false`:
-the rejoin goes away and the structural mass falls from 0.56 to 0.41 t,
+the rejoin goes away and the structural mass falls from 0.56 to 0.36 t,
 because a cluster at the bottom of the rocket has nothing to present one
 node to. Then change `n` to 1: no coupler, no rejoin, 0.16 t. Then ask
 `adapterChain(tanks, 2.5, 1.25)` and see the empty sentinel, the answer the
