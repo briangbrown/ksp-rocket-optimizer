@@ -122,8 +122,7 @@ to make the local score see the downstream effect: charge every stage a
 little for its mass even when the objective is cost, so that a heavy cheap
 stage scores worse than a light dear one when the difference in mass is
 worth more below than the difference in price. That is the coupling term of
-[A15](../../README.md#part-2--algorithms-and-the-solver), _Objectives,
-tie-breaks, and the coupling term_, fitted by sweeping missions, and it
+[A15](../../README.md#part-2--algorithms-and-the-solver), _[Objectives, tie-breaks, and the coupling term](objectives-tie-breaks-and-the-coupling-term.md)_, fitted by sweeping missions, and it
 bounds the myopia without removing it. The other is to stop trusting the
 local choice: build the whole chain more than one way, under different local
 rules, and judge the chains on the real objective, which is the only thing
