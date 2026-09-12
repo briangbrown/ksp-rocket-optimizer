@@ -125,7 +125,7 @@ frame. So the buffers are allocated once at the largest box the transition
 passes through, the visible panel is a wrapper clipping the top-left corner,
 and the camera's frustum is made asymmetric so that corner frames exactly
 what a panel of that size would ([L16](../../README.md#part-3--language-and-platform),
-_Canvas sizing and device pixels_).
+_[Canvas sizing and device pixels](../canvas/canvas-sizing-and-device-pixels.md)_).
 
 ## In this codebase
 
