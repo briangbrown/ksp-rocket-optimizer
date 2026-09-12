@@ -136,7 +136,7 @@ the same 120 ms and arriving late on every chip; the stylesheet names the
 four colour properties it means. `flex: 1` sets the basis to `0`, and a flex
 line wraps on the items' bases, so a `flex: 1` item asks for no room and its
 row never breaks, which is [L9](../../README.md#part-3--language-and-platform),
-_Layout: flex basis, sticky, and stacking contexts_.
+_[Layout: flex basis, sticky, and stacking contexts](../layout/flex-basis-sticky-and-stacking-contexts.md)_.
 
 Why inline at all, rather than a stylesheet. The reference is one file of
 tokens and one generated string; a component says what a thing is and what
