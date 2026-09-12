@@ -132,7 +132,8 @@ const DIRS: Array<[number, number, "start" | "middle" | "end", number]> = [
   [-1, -1, "end", 2],
 ];
 
-/* Where a name goes: the least-cost of sixteen candidates, scored against
+/* Where a name goes: the least-cost of twenty-four candidates — eight
+   directions at three distances — scored against
    what is already down. `avoid` are boxes (markers, other names), `lines`
    the rays a name should not sit across. */
 function place(
