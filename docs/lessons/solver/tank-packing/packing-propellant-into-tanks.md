@@ -141,7 +141,7 @@ for mass. Up to six rounds, since one merge can enable another.
 Two limits shape the answers. A stage may have at most twelve tanks, eight
 in a parallel column, because a taller stack is a stack that falls over,
 which is [A13](../../README.md#part-2--algorithms-and-the-solver),
-_Slenderness as a constraint on the whole rocket_. And the packer covers
+_[Slenderness as a constraint on the whole rocket](../geometry/slenderness-as-a-constraint.md)_. And the packer covers
 the tonnage it is asked for, never falling short, because the tonnage is
 already the smallest that closes the budget ([A3](../numerics/bracketing-and-root-finding.md)):
 a tank that is slightly too big is a heavier rocket, and one that is slightly

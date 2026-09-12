@@ -167,7 +167,7 @@ flown.
 The pool is filtered before it is walked. Candidates within the slenderness
 limit come first and the over-limit ones are offered only if nothing
 compliant exists, which is [A13](../../README.md#part-2--algorithms-and-the-solver),
-_Slenderness as a constraint on the whole rocket_; and the whole walk runs
+_[Slenderness as a constraint on the whole rocket](../geometry/slenderness-as-a-constraint.md)_; and the whole walk runs
 only for a launch group on a body with an atmosphere, since there is nothing
 to simulate elsewhere.
 
