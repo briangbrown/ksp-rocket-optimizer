@@ -195,7 +195,7 @@ diameter among what is researched, cheapest first, with the decoupler's
 fallback rule for a diameter no researched part fits: the largest researched
 part no wider than the stack, as a player would use a TD-25 under a 5 m tank.
 The result is cached, which is [A11](../../README.md#part-2--algorithms-and-the-solver),
-_Memoisation, and what a cache key is_.
+_[Memoisation, and what a cache key is](../performance/memoisation-and-cache-keys.md)_.
 
 ## What made it real
 

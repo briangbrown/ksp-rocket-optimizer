@@ -176,8 +176,8 @@ const rank = (a: TankSet, b: TankSet) =>
 
 `simplify` is the consolidation pass, applied to the winner and kept only if
 it ranks no worse. Around the raw function sits `pickTanksMemo`, which is
-[A11](../../README.md#part-2--algorithms-and-the-solver), _Memoisation, and
-what a cache key is_: the same tonnage is asked for by many candidates, and
+[A11](../../README.md#part-2--algorithms-and-the-solver), _[Memoisation, and
+what a cache key is](../performance/memoisation-and-cache-keys.md)_: the same tonnage is asked for by many candidates, and
 the memo hangs off the pool array itself, one small map per objective and
 tank limit, capped at 20,000 entries because tonnages are continuous and a
 long search would otherwise fill the heap. The propellant asked for comes
