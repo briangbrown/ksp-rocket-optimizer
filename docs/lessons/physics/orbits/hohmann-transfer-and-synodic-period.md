@@ -241,7 +241,7 @@ orbits is somewhere near the circular half-ellipse but not on it. The
 search for a departure out to one of your own moons, `raiseSearch`, spans the
 moon's own period instead: the parking orbit's place in it is free, so the
 opportunity recurs with the moon, not with a synodic period.
-[P24](../../README.md#part-1--physics), _Three geometries for moons_, has
+[P24](../../README.md#part-1--physics), _[Three geometries for moons](three-geometries-for-moons.md)_, has
 that.
 
 ## What made it real
