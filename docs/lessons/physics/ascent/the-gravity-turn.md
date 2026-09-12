@@ -169,8 +169,10 @@ ground while its coast still reads as reaching orbit.
 a grid of kick speeds from 30 to 140 m/s in steps of 20 and kick angles from 3°
 to 25° in steps of 4, thirty-six flights, keeps the cheapest that stays under a
 cap on air pressure, then flies a finer grid within 15 m/s and 3° of that best.
-[A2](../../README.md#part-2--algorithms-and-the-solver) is about why a coarse grid then a local refinement, and
-why not a fine grid from the start.
+[A2](../../README.md#part-2--algorithms-and-the-solver), _[Grid search, then a
+seeded local refinement](../../solver/the-search/grid-search-then-seeded-refinement.md)_, is
+about why a coarse grid then a local refinement, and why not a fine grid from
+the start.
 
 ## What made it real
 
