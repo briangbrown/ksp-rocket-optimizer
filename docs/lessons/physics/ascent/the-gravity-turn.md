@@ -134,8 +134,8 @@ searchable: a whole trajectory is two numbers.
 ## In this codebase
 
 `flyAscent` in [`src/core/ascent.ts`](../../../../src/core/ascent.ts) flies the turn. It takes `vKick` and `kick`
-and integrates the flight in 0.1 s steps ([A4](../../README.md#part-2--algorithms-and-the-solver) covers the
-scheme). The kick and the follow are these lines:
+and integrates the flight in 0.1 s steps ([A4](../../README.md#part-2--algorithms-and-the-solver), _[Semi-implicit Euler at
+0.1 s](../../solver/numerics/semi-implicit-euler.md)_, covers the scheme). The kick and the follow are these lines:
 
 ```ts
 if (!kicked && sr >= opt.vKick) kicked = true; // sr: speed through the air
