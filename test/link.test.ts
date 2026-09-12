@@ -143,8 +143,29 @@ describe("a design as a link", () => {
   });
 
   it("refuses a hash too long to be a design", async () => {
-    const r = await fromLink("#c=" + "A".repeat(20_000));
+    /* A hash that decodes: 30,000 characters of noise deflate to about
+       27,000, well over MAX_HASH and well under the inflate cap, so only
+       the length check can refuse it. The first version of this test sent
+       20,000 letters that were not deflate at all, and passed with the
+       length check deleted. */
+    let x = 12345;
+    const rnd = () => (x = (x * 1103515245 + 12345) % 2147483648) / 2147483648;
+    const letters = "abcdefghijklmnopqrstuvwxyz0123456789 ";
+    const note = Array.from(
+      { length: 30_000 },
+      () => letters[Math.floor(rnd() * letters.length)],
+    ).join("");
+    const long = await toLink("KSP-PLANNER " + JSON.stringify({ note }));
+    expect(long.length).toBeGreaterThan(8192);
+    const r = await fromLink(long);
     expect(r?.error).toMatch(/did not carry a design/);
+    /* And the same noise at a sixth of the length reads back, so it is the
+       length that refused it and not the noise. */
+    const short = await toLink(
+      "KSP-PLANNER " + JSON.stringify({ note: note.slice(0, 5_000) }),
+    );
+    expect(short.length).toBeLessThan(8192);
+    expect((await fromLink(short))?.error).toBeUndefined();
   });
 
   it("encodes a large configuration rather than throwing", async () => {
