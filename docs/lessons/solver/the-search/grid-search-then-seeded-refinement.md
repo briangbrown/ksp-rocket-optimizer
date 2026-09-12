@@ -139,7 +139,8 @@ and the ridge between them, and a 7 × 7 patch shrunk nine times finds the
 floor of the right lobe to the second. There the coarse grid is kept and drawn,
 because the shape of the whole surface is itself the answer the reader wants.
 And within a single cell the one-dimensional version, golden-section search
-([A3](../../README.md#part-2--algorithms-and-the-solver)), finds where along an
+([A3](../../README.md#part-2--algorithms-and-the-solver), _[Bracketing and root
+finding](../numerics/bracketing-and-root-finding.md)_), finds where along an
 arc a plane change is cheapest.
 
 ## In this codebase
