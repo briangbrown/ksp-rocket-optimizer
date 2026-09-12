@@ -60,7 +60,8 @@ see a bad number in a CSS value after the fact.
 import { test } from "vitest";
 
 test("what jsdom answers", () => {
-  const c = document.createElement("canvas");
+  const c = document.createElement("canvas"); // one canvas holds one kind of context, so a second for 2d
+  const c2 = document.createElement("canvas");
   document.body.appendChild(c);
   const el = document.createElement("div");
   el.style.cssText = "width:300px;height:44px;position:absolute";
@@ -69,7 +70,7 @@ test("what jsdom answers", () => {
   const r = el.getBoundingClientRect();
   const probe: Record<string, unknown> = {
     "canvas.getContext('webgl2')": String(c.getContext("webgl2" as "2d")),
-    "canvas.getContext('2d')": String(c.getContext("2d")),
+    "canvas.getContext('2d')": String(c2.getContext("2d")),
     "typeof Worker": typeof Worker,
     "typeof CompressionStream": typeof CompressionStream,
     "window.visualViewport": String(window.visualViewport),
@@ -121,7 +122,7 @@ const exe =
     hasTouch: true,
   }); // the layout suite's phone
   await p.setContent(
-    `<meta name="viewport" content="width=device-width"><canvas id=c></canvas><div id=d style="width:300px;height:44px;position:absolute">Solve</div>`,
+    `<meta name="viewport" content="width=device-width"><canvas id=c></canvas><canvas id=c2></canvas><div id=d style="width:300px;height:44px;position:absolute">Solve</div>`,
   );
   console.log(
     await p.evaluate(() => {
@@ -133,7 +134,11 @@ const exe =
         "canvas.getContext('webgl2')": gl
           ? gl.getParameter(gl.VERSION)
           : String(gl),
-        "canvas.getContext('2d')": c.getContext("2d") ? "a context" : "null",
+        "canvas.getContext('2d')": document
+          .getElementById("c2")
+          .getContext("2d")
+          ? "a context"
+          : "null", // a second canvas
         "typeof Worker": typeof Worker,
         "typeof CompressionStream": typeof CompressionStream,
         "window.visualViewport": `${visualViewport.width}x${visualViewport.height}`,
