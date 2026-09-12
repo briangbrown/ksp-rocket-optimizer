@@ -133,7 +133,8 @@ So rather than a formula the game stores the measured shape as a curve with a
 few dozen fixed points and fits a spline through them. That is the same trick
 as the engine's `atmosphereCurve` in
 [P2](../engines/specific-impulse-and-pressure.md), and the same curve type:
-[A5](../../README.md#part-2--algorithms-and-the-solver) explains the
+[A5](../../README.md#part-2--algorithms-and-the-solver), _[Hermite curves: KSP's
+FloatCurve](../../solver/numerics/hermite-curves-floatcurve.md)_, explains the
 particular spline, Hermite, and how it is evaluated. For this lesson the point
 is that a spline through the right points is the shape, and a formula is only
 ever an approximation to it.

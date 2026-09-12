@@ -100,8 +100,9 @@ table of Isp against pressure in atmospheres: a key at 0 atm with the vacuum
 figure, a key at 1 atm with the sea-level figure, and a third key where the
 engine gives up altogether, somewhere between 3 and 12 atm depending on the
 engine. Between the keys the game draws a smooth curve rather than straight
-lines; [A5](../../README.md#part-2--algorithms-and-the-solver) is about that
-curve and how it is evaluated. For this lesson it is enough that at 0.62 atm the
+lines; [A5](../../README.md#part-2--algorithms-and-the-solver), _[Hermite curves:
+KSP's FloatCurve](../../solver/numerics/hermite-curves-floatcurve.md)_, is about
+that curve and how it is evaluated. For this lesson it is enough that at 0.62 atm the
 Swivel is not 276.6 s, which is what a straight line between 320 and 250 would
 give, but 272.6.
 
