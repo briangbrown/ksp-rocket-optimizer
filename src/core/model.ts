@@ -1,5 +1,6 @@
 import {
   PAYLOAD_ASPECT,
+  boosterRing,
   clusterSpan,
   engineLen,
   heightOf,
@@ -385,7 +386,10 @@ function stageParts(
       foot -= sections[k].h;
       if (sections[k].draw > ring) ring = sections[k].draw;
     }
-    const br = (S > 1 ? g.ringR : ring) + bd / 2;
+    /* Outside whatever it is bolted to, and far enough out that the ring
+       clears itself — `boosterRing` keeps both, and `stageSize` charges the
+       stage for the same radius. #420 */
+    const br = boosterRing(b.n, bd, S > 1 ? g.ringR : ring);
     /* Its real length, uncapped. It was truncated to the run it is bolted to,
        which is a part drawn at a size it is not — and it never needed to be:
        every booster the mission grid picks is shorter than the tanks it hangs

@@ -55,6 +55,23 @@ const stackRing = (S: number, columnWidth: number) => {
   return Math.max(columnWidth, gap);
 };
 
+/* How far a ring of radial boosters stands from the axis.
+
+   Two clearances, the same pair `stackRing` keeps and for the same reason. A
+   booster is bolted to the tank, so it stands half its own width outside
+   whatever it is bolted to. And the boosters have to clear each other: `n` of
+   them on a ring of radius R are `2 R sin(pi / n)` apart, which has to be at
+   least one booster wide.
+
+   Only the first was kept, so a ring of wide boosters ran through itself. It
+   takes both a broad booster and a lot of them, which is why nothing in the
+   grid had shown it: eight boosters 3.99 m wide on a 3.75 m core sat 3.05 m
+   apart and intersected by 0.94 m — in the sizing and in the drawing alike,
+   since both worked from the same half-width. Below three there is no
+   neighbour to clear. #420 */
+const boosterRing = (n: number, bd: number, coreHalf: number) =>
+  Math.max(coreHalf + bd / 2, n >= 3 ? bd / (2 * Math.sin(Math.PI / n)) : 0);
+
 const ENGINE_LEN: Record<string, number> = {
   0: 0.9,
   1: 1.6,
@@ -509,11 +526,14 @@ function stageSize(sol: Solution) {
     g.decoupler + g.adapters.reduce((a, x) => a + x.h, 0) + g.coupler;
   return {
     len: tank + g.engine + struct,
-    width:
-      (sol.boosters
-        ? span + 2 * widthOf(sol.boosters.part, diaOf(sol.boosters.part))
-        : span) +
-      2 * stackRing(S, span), // a ring of stacks around the middle one
+    width: (() => {
+      const core = span + 2 * stackRing(S, span); // a ring of stacks around the middle one
+      if (!sol.boosters) return core;
+      /* Across the ring and one booster, which is wider than the core plus two
+         boosters as soon as the ring has to open up to clear itself. */
+      const bd = widthOf(sol.boosters.part, diaOf(sol.boosters.part));
+      return 2 * boosterRing(sol.boosters.n, bd, core / 2) + bd;
+    })(),
     /* Width without the boosters. They are gone by about 18 km, so a stack that
        looks stout on the pad can be a pencil for the rest of the ascent — which
        is when it flips. The slenderness limit judges what is left. */
@@ -543,6 +563,7 @@ export {
   heightOf,
   packFor,
   packShapes,
+  boosterRing,
   ringPositions,
   stackGeometry,
   stackOf,
