@@ -1,5 +1,6 @@
 import { TALLY } from "./tally.js";
 import { BODY, atmoFor } from "./atmosphere.js";
+import { omegaOf } from "./orbits.js";
 import { G0 } from "./constants.js";
 import {
   heightOf,
@@ -23,6 +24,7 @@ import {
 import {
   STAGE_PRESSURE,
   ispAt,
+  finiteBurnDv,
   propellantFor,
   scoreOf,
   stageCost,
@@ -33,6 +35,7 @@ import type { Excluded, Expansions, Roster } from "./constants.js";
 import type { Engine, Tank } from "./catalogue.js";
 import type { Objective } from "./performance.js";
 import type { BoosterPart, Solution } from "./solution.js";
+import type { BurnOrbit } from "./orbits.js";
 import type { Pool, TankPool } from "./tanks.js";
 
 /* --------------------------------- solver ---------------------------------
@@ -62,6 +65,9 @@ type StageOpt = {
   pSurf?: number;
   extra: number;
   maxBurn?: number;
+  /* The legs this stage flies, each with its share of the requirement and the
+     rate of the orbit it is burnt in. Empty where the caller gave no route. */
+  burns?: ReadonlyArray<StageBurn>;
   objective?: Objective;
   needGimbal?: boolean;
   hasStageBelow?: boolean;
@@ -172,6 +178,9 @@ type GroupLeg = {
   kind: string;
   g: number;
   body: string | null;
+  /* Null on an ascent, a landing and an aerobrake, which are not spread
+     impulses, and on a group whose caller gave no route at all. */
+  orbit?: BurnOrbit | null;
 };
 
 /* What one stage of a chain is judged against, from the legs its slice of the
@@ -199,14 +208,70 @@ const landingFloor = (g: number, p0: number) =>
         Math.max(LANDING_FLOOR_MIN, 1 + LANDING_MARGIN / g),
       );
 
+/* One leg's share of a stage's Δv, and how fast the orbit it is burnt in turns.
+   `share` is a fraction of the stage's own requirement and the shares sum to 1;
+   `omega` is zero where the leg is not a spread impulse — an ascent, a landing,
+   an aerobrake — or where the caller gave no route. #410 */
+type StageBurn = { share: number; omega: number };
+
 type StageParams = {
   twrMin: number;
   g: number;
   pRef: number;
   pSt: number;
+  /* The clock, kept for the two cases an arc cannot be computed for: the pad,
+     where a long burn is gravity loss rather than impulsive error, and a group
+     solved with no legs at all. Infinite where the arc does the work. */
   maxBurn: number;
   mounts: boolean;
+  burns: ReadonlyArray<StageBurn>;
 };
+
+/* What a stage must carry to deliver `dv` across the legs it flies.
+
+   Each leg is a separate burn, made at a different point of a different orbit,
+   and what it costs above the impulse the route budgeted is set by the arc it
+   sweeps there — `finiteBurnDv` in performance.ts, and #409 for the form. So
+   the walk goes leg by leg, spending the stage down as it goes: a burn made
+   later is made lighter, takes less propellant for the same Δv, and sweeps
+   less arc for it.
+
+   The applied Δv is corrected once per leg rather than solved for. A second
+   pass would move it by the square of a few percent, which is nothing against
+   a tank quantum.
+
+   Null where any one of the burns sweeps an arc the closed form will not stand
+   behind, which is the refusal that replaces the clock.
+
+   What this does not model: several stages sharing one leg burn one after
+   another, so their arcs run on from each other and only the sequence as a
+   whole is centred on the ideal point. Priced independently, as here, a leg
+   split n ways is charged about n times less than it should be. The legs that
+   are split most are the ascents, which carry no arc at all; see
+   .claude/rules/solver.md. #410 */
+function needFor(
+  burns: ReadonlyArray<StageBurn>,
+  dv: number,
+  m0: number,
+  ve: number,
+  mdot: number,
+) {
+  let m = m0,
+    need = 0;
+  for (const b of burns) {
+    const d = dv * b.share;
+    let applied = d;
+    if (b.omega > 0) {
+      const t = (m - m * Math.exp(-d / ve)) / mdot;
+      const grown = finiteBurnDv(d, b.omega * t);
+      if (grown === null) return null;
+      applied = grown;
+    }
+    need += applied;
+    m *= Math.exp(-applied / ve);
+  }
+  return need;
+}
 
 function stageParamsFor(
   legs: ReadonlyArray<GroupLeg & { p0: number }>,
@@ -223,6 +288,12 @@ function stageParamsFor(
     pSt = 0,
     mounts = false;
   let startIx = -1;
+  /* The same overlap walk `burnPortions` does in the Δv domain, in the
+     fraction domain the group's shares live in. A stage's slice is not cut on
+     leg boundaries, so it can take part of one leg, all of several, or a piece
+     of each end — and each piece is a separate burn in its own orbit. #418 */
+  const span = hi - lo;
+  const burns: Array<StageBurn> = [];
   legs.forEach((l, j) => {
     const s0 = start;
     start = l.end;
@@ -230,6 +301,11 @@ function stageParamsFor(
     const climbs = l.kind === "ascent" || l.kind === "ascentBack";
     const lands = l.kind === "land";
     const atStart = lo <= s0 + eps;
+    if (span > eps)
+      burns.push({
+        share: (Math.min(hi, l.end) - Math.max(lo, s0)) / span,
+        omega: l.orbit ? omegaOf(l.orbit) : 0,
+      });
     if (startIx < 0) {
       startIx = j;
       if (climbs) {
@@ -253,7 +329,19 @@ function stageParamsFor(
       g = l.g;
     }
   });
-  return { twrMin, g, pRef, pSt, maxBurn: pSt > 0.5 ? 200 : 420, mounts };
+  /* The pad keeps its clock: down there a long burn is gravity loss, which is
+     a different thing from the impulsive error an arc measures, and the 200 s
+     is what the design snapshot has always been solved against. Above it the
+     arc does the work and there is no clock at all. */
+  return {
+    twrMin,
+    g,
+    pRef,
+    pSt,
+    maxBurn: pSt > 0.5 ? 200 : Infinity,
+    mounts,
+    burns,
+  };
 }
 
 function solveStage({
@@ -269,6 +357,7 @@ function solveStage({
   pSurf = 0,
   extra,
   maxBurn = 420,
+  burns = [],
   objective = "mass",
   needGimbal = false,
   hasStageBelow = false,
@@ -278,6 +367,10 @@ function solveStage({
   capCluster = 0,
 }: StageOpt): Solution | null {
   if (!isFinite(dv) || dv <= 0) return null; // refuse a nonsense requirement outright
+  /* Most stages have no arc to price — every leg of a launch group climbs, and
+     a burn made out between the planets sweeps nothing — so the walk is worth
+     skipping outright rather than running to add zero. */
+  const anyArc = burns.some((b) => b.omega > 0);
   /* A stage that flies through air has to steer. Without a gimbal you are relying
      on fins and reaction wheels alone, which is how a launch ends up pinwheeling
      off the pad — so by default an atmospheric stage needs a vectoring nozzle.
@@ -480,8 +573,30 @@ function solveStage({
           const { coup, shroud, adapt, rejoin, dec, joiner } = fit;
           const fixed = dryBase + fit.dry;
 
-          const mp = propellantFor(dv, fixed, ispE, k);
-          if (mp === null) continue;
+          const mp0 = propellantFor(dv, fixed, ispE, k);
+          if (mp0 === null) continue;
+          /* Where an arc is priced, aim the tanks at what the stage will
+             actually have to carry rather than at the map's figure, or every
+             candidate that a few percent would have saved is rejected for
+             being a few percent short. The estimate uses the mass the first
+             pass implies; the real one is checked below against the tanks that
+             were packed. */
+          let mp = mp0;
+          if (anyArc) {
+            const est = needFor(
+              burns,
+              dv,
+              fixed + mp0 * (1 + k),
+              ispE * G0,
+              mdot,
+            );
+            if (est === null) continue;
+            if (est !== dv) {
+              const grown = propellantFor(est, fixed, ispE, k);
+              if (grown === null) continue;
+              mp = grown;
+            }
+          }
           // Reject a diameter with no tank big enough to hold this propellant
           // sensibly — this is what stops 13x Oscar-B on a Spark.
           if (mp > 10 * biggest) continue;
@@ -503,11 +618,23 @@ function solveStage({
           const mf = fixed + tk.dryMass;
           const m0 = mf + tk.prop + adapt.prop;
           const got = ispE * G0 * Math.log(m0 / mf);
+          /* A necessary condition and the cheapest one: the arc can only grow
+             what is needed, never shrink it, so anything short of the map's
+             figure is short of the priced one too. */
           if (got < dv * 0.995) continue;
           const twr = thrust / (m0 * g);
           if (twr < twrMin) continue;
           const burn = (tk.prop + adapt.prop) / mdot;
-          if (burn > maxBurn) continue; // rules out clusters of tiny engines on heavy stages
+          /* Only the pad still keeps a clock, and only a group with no route
+             at all keeps the old vacuum one. */
+          if (burn > maxBurn) continue;
+          if (anyArc) {
+            const need = needFor(burns, dv, m0, ispE * G0, mdot);
+            /* An arc past what the closed form stands behind: refused, which
+               is what the 420 s clock used to do and on the right measure. */
+            if (need === null) continue;
+            if (got < need * 0.995) continue;
+          }
           scratch.engine = e;
           scratch.n = n;
           scratch.tanks = tk;
@@ -1521,6 +1648,11 @@ function solveUnit(
                   ordinalIn(i, legIx),
                 )
               : {
+                  /* No route, so nothing can say where a burn is made. The
+                     clock stands, exactly as it did: this is the path the
+                     design grid takes, and it is why that baseline cannot
+                     move under this change. */
+                  burns: [],
                   twrMin: bottom ? twrBottom : twrUpper,
                   g,
                   pRef: pSurf * STAGE_PRESSURE[Math.min(i, 3)],
@@ -1565,6 +1697,7 @@ function solveUnit(
               pSurf: pSt,
               extra,
               maxBurn: sp.maxBurn,
+              burns: sp.burns,
               objective: pick,
             });
             /* Radial boosters are worth trying on any stage that climbs out of air,

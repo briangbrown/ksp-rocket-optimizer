@@ -30,19 +30,21 @@ describe("the finite-burn penalty", () => {
     }
   });
 
-  it("agrees with the θ²/24 form while the arc is small, and passes it after", () => {
-    /* The first-order expansion is what #352 estimated with. It is within a
-       tenth of a percent out to half a radian and then starts flattering a
-       long burn, which is the reason the exact reciprocal is what ships. */
+  it("stays below the textbook fixed-thrust form, which nobody flies", () => {
+    /* sinc(θ/2) is the fixed-direction burn and θ²/24 its first-order form,
+       which is what #352 estimated with. Both charge for a burn flown worse
+       than anyone flies one; what ships is fitted to prograde and is therefore
+       cheaper, while still sitting above what a prograde burn actually loses —
+       held by the integrator below. */
     const rows: Array<string> = [];
     for (const arc of [0.1, 0.5, 1, 1.5, 2, 2.5, 3]) {
-      const exact = finiteBurnDv(1000, arc)! / 1000 - 1;
-      const first = (arc * arc) / 24;
+      const shipped = finiteBurnDv(1000, arc)! / 1000 - 1;
+      const fixed = 1 / sinc(arc / 2) - 1;
       rows.push(
-        `arc ${((arc * 180) / Math.PI).toFixed(0).padStart(4)}°  exact ${(100 * exact).toFixed(1).padStart(6)}%  θ²/24 ${(100 * first).toFixed(1).padStart(6)}%`,
+        `arc ${((arc * 180) / Math.PI).toFixed(0).padStart(4)}°  shipped ${(100 * shipped).toFixed(1).padStart(6)}%  fixed-thrust ${(100 * fixed).toFixed(1).padStart(6)}%  θ²/24 ${(100 * ((arc * arc) / 24)).toFixed(1).padStart(6)}%`,
       );
-      if (arc <= 0.5) expect(Math.abs(exact - first)).toBeLessThan(0.001);
-      else expect(exact).toBeGreaterThan(first);
+      expect(shipped, `arc ${arc}`).toBeLessThan(fixed);
+      expect(shipped, `arc ${arc}`).toBeGreaterThan(0);
     }
     console.log(rows.join("\n"));
   });
@@ -86,7 +88,7 @@ describe("the arc a burn sweeps", () => {
     /* And the clock the solver carries today, for scale: 420 s out of low
        Kerbin orbit is already a tenth of the leg it is flying. */
     const cap = burnArc(rows[0][1], 420);
-    expect(100 * (finiteBurnDv(1000, cap)! / 1000 - 1)).toBeCloseTo(8.7, 0);
+    expect(100 * (finiteBurnDv(1000, cap)! / 1000 - 1)).toBeCloseTo(3.7, 0);
   });
 });
 
@@ -171,62 +173,56 @@ function flyBurn(
 }
 
 describe("the closed form against a flown burn", () => {
-  it("never charges less than a flown burn loses, and not much more", () => {
-    /* The invariant worth holding is the direction of the error. The closed
-       form counts only the component along the intended direction; a flown
-       burn also gets work out of the radial component, so it keeps more than
-       sinc says and the model overcharges. Overcharging is the side to be
-       wrong on — an undercharging penalty ships optimistic Δv, which is the
-       failure the whole route budget exists to avoid.
+  it("never charges less than a prograde burn loses, and not much more", () => {
+    /* The invariant worth holding is the direction of the error. What ships is
+       fitted to a burn held prograde, which is how one is actually flown, and
+       it is fitted from just below: it charges a little more than the flown
+       burn loses at every arc. Overcharging is the side to be wrong on — an
+       undercharging penalty ships optimistic Δv, which is the failure the whole
+       route budget exists to avoid.
 
-       If anyone replaces the closed form with something that flatters a long
-       burn, the first assertion here goes red. */
+       If anyone refits this so that it flatters a long burn, the first
+       assertion here goes red. */
     const r0 = lowR("Kerbin");
     const rows: Array<string> = [];
     let worst = 0;
-    for (const arc of [0.25, 0.5, 0.75, 1, 1.25, 1.5]) {
-      const f = flyBurn("Kerbin", r0, arc, 950, 800, "inertial");
-      const model = sinc(f.swept / 2);
-      const over = (f.kept - model) / model;
+    for (const arc of [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]) {
+      const f = flyBurn("Kerbin", r0, arc, 950, 800, "prograde");
+      const charged = 1000 / finiteBurnDv(1000, f.swept)!;
+      const over = (f.kept - charged) / charged;
       worst = Math.max(worst, over);
       rows.push(
-        `arc ${((f.swept * 180) / Math.PI).toFixed(0).padStart(4)}° (${f.seconds.toFixed(0).padStart(4)} s)  flown keeps ${(100 * f.kept).toFixed(2)}%  charged for ${(100 * model).toFixed(2)}%  overcharged ${(100 * over).toFixed(2)}%`,
+        `arc ${((f.swept * 180) / Math.PI).toFixed(0).padStart(4)}° (${f.seconds.toFixed(0).padStart(4)} s)  flown keeps ${(100 * f.kept).toFixed(2)}%  charged for ${(100 * charged).toFixed(2)}%  overcharged ${(100 * over).toFixed(2)}%`,
       );
       expect(
         f.kept,
-        `arc ${arc}: the model charges less than the burn actually loses`,
-      ).toBeGreaterThanOrEqual(model);
+        `arc ${arc}: the model charges less than a prograde burn actually loses`,
+      ).toBeGreaterThanOrEqual(charged);
     }
     console.log(
-      "inertially held thrust, 950 m/s from low Kerbin orbit:\n" +
-        rows.join("\n"),
+      "held prograde, 950 m/s from low Kerbin orbit:\n" + rows.join("\n"),
     );
-    /* 3.3% at 95° of arc, when this was written. It is a bound on how much a
-       later calibration could claim back, not a target. */
-    expect(worst, "the overcharge has grown").toBeLessThan(0.05);
+    /* 0.7% at 112° of arc, when this was fitted. */
+    expect(worst, "the fit has drifted").toBeLessThan(0.02);
   });
 
-  it("overcharges a pilot holding prograde by more still", () => {
-    /* Nobody flies a long burn inertially; prograde hold is what SAS does and
-       what a pilot does. A prograde burn keeps more again, so the shipped
-       penalty is conservative against the way the burn is actually flown, by
-       about four percent of the leg at 86° of arc.
-
-       That gap is the argument for calibrating the model to the prograde
-       curve later. It is deliberately not done here: this issue ships the
-       standard form and the measurement that says what it costs, and what to
-       do about it belongs with the solver change that starts reading it. */
+  it("sits under the fixed-thrust form, which is the pessimistic bound", () => {
+    /* An inertially held burn keeps less than a prograde one, and the textbook
+       sinc(θ/2) is what charges for it. Both bracket the shipped curve, and the
+       gap between them is what calibrating bought: nine points of a leg at
+       112° rather than one. */
     const r0 = lowR("Kerbin");
     const rows: Array<string> = [];
-    for (const arc of [0.5, 1, 1.5]) {
+    for (const arc of [0.5, 1, 1.5, 2]) {
       const i = flyBurn("Kerbin", r0, arc, 950, 800, "inertial");
       const p = flyBurn("Kerbin", r0, arc, 950, 800, "prograde");
-      const model = sinc(i.swept / 2);
+      const shipped = 1000 / finiteBurnDv(1000, i.swept)!;
       rows.push(
-        `arc ${((arc * 180) / Math.PI).toFixed(0).padStart(4)}°  charged for ${(100 * model).toFixed(2)}%  inertial keeps ${(100 * i.kept).toFixed(2)}%  prograde keeps ${(100 * p.kept).toFixed(2)}%`,
+        `arc ${((arc * 180) / Math.PI).toFixed(0).padStart(4)}°  inertial keeps ${(100 * i.kept).toFixed(2)}%  fixed-thrust charges ${(100 * sinc(i.swept / 2)).toFixed(2)}%  shipped charges ${(100 * shipped).toFixed(2)}%  prograde keeps ${(100 * p.kept).toFixed(2)}%`,
       );
       expect(p.kept).toBeGreaterThan(i.kept);
-      expect(p.kept).toBeGreaterThan(model);
+      expect(shipped).toBeGreaterThan(sinc(i.swept / 2));
+      expect(shipped).toBeLessThanOrEqual(p.kept);
     }
     console.log(rows.join("\n"));
   });

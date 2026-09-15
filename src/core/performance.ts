@@ -32,12 +32,17 @@ function propellantFor(dv: number, dry: number, isp: number, k: number) {
    was written for launches, is the same number meaning different things in
    every orbit. #409
 
-   Hold thrust in a fixed direction, centred on the point the impulse would have
-   been applied at, and the component along the intended direction averages
-   sin(θ/2)/(θ/2) over the arc. So a stage must carry dv/sinc(θ/2) to deliver dv,
-   and the first-order form of that penalty is θ²/24. The exact reciprocal is
-   used rather than the expansion: it costs one sine, and it keeps rising where
-   the expansion flattens out and starts flattering a long burn.
+   Hold thrust in a *fixed* direction, centred on the point the impulse would
+   have been applied at, and the component along the intended direction averages
+   sin(θ/2)/(θ/2) over the arc — the textbook first cut, whose first-order form
+   is θ²/24. Nobody flies that. SAS holds prograde, and a prograde burn keeps far
+   more of itself: 95.96% of a 90° arc against the 90.01% the fixed form charges.
+
+   So what ships is fitted to the burn as it is actually flown. `sinc(θ/3)`
+   tracks an integrated prograde burn to within 0.7% out to 112° of arc and sits
+   just below it the whole way, so it still overcharges rather than flatters.
+   The exact reciprocal is used rather than an expansion: it costs one sine, and
+   it keeps rising where an expansion flattens out.
 
    `test/finite-burn.test.ts` flies it: two-body motion with the thrust on,
    integrated, compared on the energy the burn actually bought. The closed form
@@ -58,11 +63,16 @@ function propellantFor(dv: number, dry: number, isp: number, k: number) {
    spread impulse but a spiral, and wants a different formula entirely. That is
    the low-thrust work, and it is why `ARC_MAX` refuses rather than extrapolates. */
 
-/* Half a revolution, where an inertially fixed thrust is pointing square across
-   the velocity at both ends of the burn and the model has nothing left to say.
+/* Half a revolution. Past it a burn is turning through more than it is pushing
+   along, and the fit above is extrapolation — it was flown out to 2 radians.
    The practical limit is far lower and belongs to the caller: what is refused
    here is what is meaningless, not what is unwise. */
 const ARC_MAX = Math.PI;
+
+/* How much of the arc the fitted curve is taken over. Two thirds of the half
+   angle a fixed-thrust burn would use, which is the whole of the difference
+   between the textbook form and a burn flown prograde. */
+const ARC_FIT = 3;
 
 /* The arc a burn sweeps, in radians. */
 const burnArc = (omega: number, seconds: number) => omega * seconds;
@@ -74,8 +84,8 @@ function finiteBurnDv(dv: number, arc: number) {
   if (!isFinite(arc) || arc < 0) return null;
   if (arc >= ARC_MAX) return null;
   if (arc === 0) return dv;
-  const half = arc / 2;
-  return (dv * half) / Math.sin(half);
+  const x = arc / ARC_FIT;
+  return (dv * x) / Math.sin(x);
 }
 
 /* ---------------------- pressure-corrected performance ----------------------
