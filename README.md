@@ -111,7 +111,7 @@ behaviour quietly designs a different rocket. One refactor believed to be
 harmless altered 31 of 72 designs without erroring. So the primary check is a
 **design snapshot** — 81 configurations of tech tier, payload, delta-v budget
 and objective, solved and compared against a committed baseline part by part,
-every number to four decimals. 66 build; the other 15 are legitimately
+every number to four decimals. 65 build; the other 16 are legitimately
 unbuildable at that tech level.
 
 Around it, a **mission sweep** solves sixteen whole missions the way the
