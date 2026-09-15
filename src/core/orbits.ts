@@ -598,6 +598,12 @@ const mu = (b: string) => SYS[b].gee * G0 * SYS[b].R ** 2;
 const lowAlt = (b: string) => (SYS[b].atm ? SYS[b].atm + 10000 : 10000);
 const lowR = (b: string) => SYS[b].R + lowAlt(b);
 const vCirc = (b: string) => Math.sqrt(mu(b) / lowR(b));
+/* The angular rate of a circular orbit of radius `r` about `b`, which is what
+   turns a burn's duration into the arc it sweeps and so into what it costs
+   above an impulse — `finiteBurnDv` in performance.ts. The Sun carries R and
+   gee like any other body, so a burn made out in solar orbit is asked for the
+   same way, and answers with an arc small enough to be free. #409 */
+const omegaAt = (b: string, r: number) => Math.sqrt(mu(b) / r ** 3);
 /* Synchronous orbit: the radius whose period matches the body's own rotation.
    It only exists if it clears the atmosphere and still sits inside the sphere of
    influence — which is why no tidally locked moon has one, since its synchronous
@@ -1394,6 +1400,7 @@ export {
   lowAlt,
   lowR,
   mu,
+  omegaAt,
   planeChanges,
   possible,
   relInc,

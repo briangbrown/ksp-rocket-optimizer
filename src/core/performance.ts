@@ -18,6 +18,66 @@ function propellantFor(dv: number, dry: number, isp: number, k: number) {
   return mp > 0 && mp < 1e5 ? mp : null;
 }
 
+/* ------------------------- a burn that is not an impulse -------------------------
+
+   Every leg of the route is priced as an impulse: all of the Δv delivered at a
+   point. A real burn is spread over time, and what it costs is not its duration
+   but the arc it sweeps while thrusting — the same 523 s is a hundred degrees of
+   a low Kerbin orbit and two hundredths of a degree of a solar one. So the
+   quantity to price against is
+
+       θ = ω · t,   ω = sqrt(μ / r³) at the burn point
+
+   and a fixed cap in seconds, which is what `solveStage` has carried since it
+   was written for launches, is the same number meaning different things in
+   every orbit. #409
+
+   Hold thrust in a fixed direction, centred on the point the impulse would have
+   been applied at, and the component along the intended direction averages
+   sin(θ/2)/(θ/2) over the arc. So a stage must carry dv/sinc(θ/2) to deliver dv,
+   and the first-order form of that penalty is θ²/24. The exact reciprocal is
+   used rather than the expansion: it costs one sine, and it keeps rising where
+   the expansion flattens out and starts flattering a long burn.
+
+   `test/finite-burn.test.ts` flies it: two-body motion with the thrust on,
+   integrated, compared on the energy the burn actually bought. The closed form
+   comes out conservative and knowably so. Against an inertially held burn it
+   overcharges by 0.1% of the leg at 17° of arc and 3.3% at 95°, because it
+   counts only the component along the intended direction and a real burn also
+   gets work out of the radial one. Against a pilot holding prograde — which is
+   what SAS does and what anyone actually flies — it overcharges by about 4% of
+   the leg at 86°.
+
+   That gap is left on the table on purpose. Overcharging keeps a long burn
+   honest; undercharging ships optimistic Δv, which is the failure the whole
+   route budget exists to avoid. Calibrating to the prograde curve is worth
+   doing and belongs with the change that starts reading this, where it can be
+   measured against designs rather than against a trajectory.
+
+   One thing this is not: a burn spread over more than a revolution is not a
+   spread impulse but a spiral, and wants a different formula entirely. That is
+   the low-thrust work, and it is why `ARC_MAX` refuses rather than extrapolates. */
+
+/* Half a revolution, where an inertially fixed thrust is pointing square across
+   the velocity at both ends of the burn and the model has nothing left to say.
+   The practical limit is far lower and belongs to the caller: what is refused
+   here is what is meaningless, not what is unwise. */
+const ARC_MAX = Math.PI;
+
+/* The arc a burn sweeps, in radians. */
+const burnArc = (omega: number, seconds: number) => omega * seconds;
+
+/* What a stage has to carry to deliver `dv` over an arc of `arc` radians, and
+   null where the arc is past what this stands behind. An arc of zero is the
+   impulse the rest of the route assumes, and costs what it says. */
+function finiteBurnDv(dv: number, arc: number) {
+  if (!isFinite(arc) || arc < 0) return null;
+  if (arc >= ARC_MAX) return null;
+  if (arc === 0) return dv;
+  const half = arc / 2;
+  return (dv * half) / Math.sin(half);
+}
+
 /* ---------------------- pressure-corrected performance ----------------------
    Stock atmosphereCurve is three keys: vacuum, sea level, then a cutoff where the
    engine quits, somewhere between 3 and 12 atm. Without the real cfg files the
@@ -188,6 +248,7 @@ function scoreOf(c: Solution, objective: Objective) {
 }
 
 export {
+  ARC_MAX,
   COUPLE_COST,
   COUPLE_PARTS,
   DECOUPLER_FUNDS,
@@ -195,6 +256,8 @@ export {
   STAGE_PRESSURE,
   TANK_FUNDS_DRY,
   TANK_FUNDS_PROP,
+  burnArc,
+  finiteBurnDv,
   ispAt,
   ispCut,
   ispFnFor,
