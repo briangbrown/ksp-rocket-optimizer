@@ -102,7 +102,8 @@ ratio, or a stage whose engine has a very high Isp, and either one burns for a
 long time near the floor. An engine with a great Isp and little thrust is the
 case that makes it bite. A Nerv has 800 s of Isp and 60 kN: at the upper-stage
 floor of 0.8 a Nerv stage with a mass ratio of 3 burns for (2/3) × 800 / 0.8 =
-667 s, more than eleven minutes, and the cap of 420 s refuses it. The most Δv
+667 s, more than eleven minutes, and the cap of 420 s refused it before #410
+priced the arc instead. The most Δv
 the cap lets a Nerv stage have at that floor is a mass ratio of 1.72, about
 4,270 m/s; for more, add engines or split the burn.
 
@@ -174,13 +175,26 @@ from its vacuum figure by the ratio of the two Isps, which is what
 the fixed mass flow from the vacuum figures. `g` is the local gravity of the
 stage's group: Kerbin's for a launch, the target body's for a landing.
 
-`maxBurn` is 420 s, and 200 s for the bottom stage of a launch from a body with
-more than half an atmosphere of surface pressure, which is Kerbin, Eve and
-Laythe:
+`maxBurn` is now only the pad's, 200 s for the bottom stage of a launch from a
+body with more than half an atmosphere of surface pressure, which is Kerbin,
+Eve and Laythe. Down there a long burn is gravity loss, which is what this
+lesson's derivation is about, and the clock is the right shape of guard.
+
+Above the air it is a different quantity entirely, and the 420 s that used to
+stand beside it was the same number meaning different things in every orbit. A
+vacuum burn's cost is the arc it sweeps while thrusting:
 
 ```ts
-maxBurn: pSurf > 0.5 && bottom ? 200 : 420,
+θ = ω · t,   ω = sqrt(μ / r³) at the burn point
 ```
+
+so the same 523 s is a hundred degrees of a low Kerbin orbit and two hundredths
+of a degree of a solar one. The stage is charged the Δv that arc costs it above
+the impulse the route budgeted, leg by leg, rather than refused on a clock —
+`finiteBurnDv` in `src/core/performance.ts` and `needFor` in the solver. The
+penalty is fitted to a burn held prograde and comes to 3.7% of a leg at the old
+cap's arc and 5.9% at 523 s from low Kerbin orbit. #410 has the measurements and
+[L19](../../README.md#part-3--language-and-platform) the geometry.
 
 Every solved stage also records `twrBurnout`, thrust over its dry mass and g,
 and the stage card shows the pair as "1.25 → 3.75". The flight card warns

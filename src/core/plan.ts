@@ -288,6 +288,9 @@ async function planFor(
              gOf(Kerbin) to a few more decimals. */
           g: l.kind === "ascent" ? g : (l.g ?? g),
           body: l.body ?? null,
+          /* Where this leg's burn is made, so the stage flying it can be
+             charged for the arc it sweeps rather than capped on a clock. #410 */
+          orbit: l.orbit ?? null,
         };
       });
     };

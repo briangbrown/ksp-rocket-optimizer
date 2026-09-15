@@ -7,11 +7,11 @@ Mun                liftoff=68.8      stages=3
 Minmus             liftoff=58.7      stages=4
 Duna               liftoff=117.5     stages=3
 Ike                liftoff=69.0      stages=4
-Dres               liftoff=194.8     stages=6
+Dres               liftoff=195.0     stages=6
 Jool               liftoff=—         stages=—
 Laythe             liftoff=—         stages=—
 Vall               liftoff=269.2     stages=6
 Tylo               liftoff=—         stages=—
 Pol                liftoff=148.5     stages=5
-Eeloo              liftoff=263.9     stages=5
+Eeloo              liftoff=265.0     stages=5
 Kerbol orbit       liftoff=—         stages=—

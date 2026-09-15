@@ -155,6 +155,24 @@ before changing the thing it names.
   vehicle. A mission with no cuts is one group, which is why neither baseline
   could see any of it. #102
 
+- **A vacuum burn is priced by its arc, not capped on a clock.** The 420 s that
+  stood beside the pad's 200 s was written for launches, where a long burn is
+  gravity loss. Above the air the cost of a long burn is the impulsive error,
+  and what sets it is the arc swept while thrusting — `θ = ω t`, `ω` from the
+  orbit the burn is made in, which every leg now carries (`Leg.orbit`). The
+  same 523 s is 100° of a low Kerbin orbit and 0.02° of a solar one. `needFor`
+  in `solver.ts` walks a stage's legs, spending it down as it goes, and grows
+  the requirement by `finiteBurnDv` per leg; `maxBurn` survives only for the
+  pad and for a group solved with no legs at all, which is the design grid.
+  Three things to know before touching it. The penalty is fitted to a burn held
+  prograde, not the textbook fixed-thrust form, which overcharges by nine points
+  of a leg at 112° — recalibrating to the pessimistic form made Tylo 3.5 t
+  unsolvable, because it needs six stages and `MAX_K` is six. Several stages
+  sharing one leg burn one after another, so their arcs run on and pricing them
+  independently undercharges a split leg; the legs split most are ascents, which
+  carry no arc. And `boostedAscent` has never had a burn constraint of either
+  kind. #410
+
 - **`best` is not what the user gets.** For an auto-stage-count launch,
   `planMission` walks `byK` cheapest-first through the ascent simulator and
   delivers the first candidate that flies. A change that leaves `best`
