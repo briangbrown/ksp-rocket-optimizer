@@ -1,0 +1,45 @@
+## Kerbin → Mun land & back
+  ascent      3400  Launchpad → 80 km orbit            —
+  transfer     860  LKO → Mun intercept                Kerbin r=680 km  T=31 min
+  capture      280  Capture → low Mun orbit            Mun r=210 km  T=39 min
+  land         580  Descent to Mun surface             —
+  ascentBack   580  Ascent from Mun surface            —
+  transfer     860  Return transfer to Kerbin          Mun r=210 km  T=39 min
+  aero           0  Aerobrake at Kerbin (heat shield)  —
+
+## Kerbin → Stationary orbit orbit
+  ascent      3400  Kerbin surface → low orbit         —
+  transfer     668  Raise apoapsis to 2,864 km         Kerbin r=680 km  T=31 min
+  capture      431  Circularise, one orbit per day     Kerbin r=3464 km  T=359 min
+
+## Kerbin → Duna land
+  ascent      3400  Launchpad → 80 km orbit            —
+  transfer     950  LKO → Kerbin escape                Kerbin r=680 km  T=31 min
+  transfer     130  Kerbin escape → Duna transfer      Sun r=13599840 km  T=153366 min
+  capture      250  Capture → low Duna orbit           Duna r=380 km  T=45 min
+  land         261  Descent to Duna surface            —
+
+## Kerbin → Minmus orbit plane-now
+  ascent      3400  Launchpad → 80 km orbit            —
+  transfer     930  LKO → Minmus intercept             Kerbin r=680 km  T=31 min
+  plane        239  Plane change 6.0° in the Kerbin system Kerbin r=680 km  T=31 min
+  capture      160  Capture → low Minmus orbit         Minmus r=70 km  T=46 min
+
+## Kerbin → Laythe land
+  ascent      3400  Launchpad → 80 km orbit            —
+  transfer     950  LKO → Kerbin escape                Kerbin r=680 km  T=31 min
+  transfer     980  Kerbin escape → Jool transfer      Sun r=13599840 km  T=153366 min
+  plane         54  Plane change 1.3° in the Sun system Sun r=68773560 km  T=1744059 min
+  capture      160  Jool capture                       Jool r=6210 km  T=96 min
+  transfer     930  Jool orbit → Laythe intercept      Jool r=6210 km  T=96 min
+  land         522  Descent to Laythe surface          —
+
+## Mun → Minmus land & back
+  ascent       580  Mun surface → low orbit            —
+  transfer     243  Leave Mun                          Mun r=210 km  T=39 min
+  plane         18  Plane change 6.0° in the Kerbin system Kerbin r=47000 km  T=17952 min
+  capture       87  Capture → low Minmus orbit         Minmus r=70 km  T=46 min
+  land         180  Descent to Minmus surface          —
+  ascentBack   180  Ascent from Minmus surface         —
+  transfer     261  Return transfer to Mun             Minmus r=70 km  T=46 min
+  aero         228  Capture at Mun                     Mun r=210 km  T=39 min

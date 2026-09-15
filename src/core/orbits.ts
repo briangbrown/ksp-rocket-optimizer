@@ -21,6 +21,12 @@ type PlaneChange = {
   system: string;
   cheap: number;
   costly: number;
+  /* The radii the two prices are quoted at, about `system`: the costly one in
+     the low orbit you are already in, the cheap one out at apoapsis where the
+     same turn costs less. Which of them a leg is flying decides the arc its
+     burn sweeps, and they are as far apart as the prices are. #418 */
+  rCostly: number;
+  rCheap: number;
 };
 
 type Leg = {
@@ -42,6 +48,9 @@ type Leg = {
      has a time, the mid-course plane change included. */
   window?: Window;
   at?: number;
+  /* Where this leg's burn is made, for pricing it above the impulse it is
+     budgeted as. Absent on an ascent, a landing and an aerobrake. */
+  orbit?: BurnOrbit;
 };
 
 /* A tabulated destination: the colour the route draws it in, its surface
@@ -83,506 +92,6 @@ type Profile = { name: string; note: string };
    Each destination is an ordered list of legs from the Kerbin launchpad, matching
    the community delta-v map. kind drives what each mission profile keeps.
    g = local surface gravity used for landing/ascent TWR checks.               */
-const ASCENT: Leg = {
-  label: "Launchpad → 80 km orbit",
-  dv: 3400,
-  kind: "ascent",
-  body: "Kerbin",
-  g: 9.81,
-  atm: true,
-};
-const ESCAPE: Leg = {
-  label: "LKO → Kerbin escape",
-  dv: 950,
-  kind: "transfer",
-  body: "Kerbin",
-  g: 9.81,
-};
-
-/* Colours are literals rather than references to the UI palette: core must not
-   import from ui. The field is in fact dead — nothing reads DEST[x].color — so
-   it can go entirely, but removing it is a shape change and this step only
-   moves code. */
-const DEST: Readonly<Record<string, Dest>> = {
-  "Low Kerbin Orbit": { color: "#4A9BE0", legs: [ASCENT] },
-  "Keostationary orbit": {
-    color: "#4A9BE0",
-    legs: [
-      ASCENT,
-      {
-        label: "LKO → keostationary transfer",
-        dv: 1115,
-        kind: "transfer",
-        body: "Kerbin",
-        g: 9.81,
-      },
-      {
-        label: "Circularize at 2 868 km",
-        dv: 1030,
-        kind: "capture",
-        body: "Kerbin",
-        g: 9.81,
-      },
-    ],
-  },
-  Mun: {
-    color: "#F5A623",
-    g: 1.63,
-    legs: [
-      ASCENT,
-      {
-        label: "LKO → Mun intercept",
-        dv: 860,
-        kind: "transfer",
-        body: "Mun",
-        g: 1.63,
-      },
-      {
-        label: "Capture → low Mun orbit",
-        dv: 280,
-        kind: "capture",
-        body: "Mun",
-        g: 1.63,
-      },
-      {
-        label: "Descent to Mun surface",
-        dv: 580,
-        kind: "land",
-        body: "Mun",
-        g: 1.63,
-      },
-    ],
-  },
-  Minmus: {
-    color: "#4FD1A5",
-    g: 0.491,
-    legs: [
-      ASCENT,
-      {
-        label: "LKO → Minmus intercept",
-        dv: 930,
-        kind: "transfer",
-        body: "Minmus",
-        g: 0.491,
-      },
-      {
-        label: "Capture → low Minmus orbit",
-        dv: 160,
-        kind: "capture",
-        body: "Minmus",
-        g: 0.491,
-      },
-      {
-        label: "Descent to Minmus surface",
-        dv: 180,
-        kind: "land",
-        body: "Minmus",
-        g: 0.491,
-      },
-    ],
-  },
-  Duna: {
-    color: "#E2603F",
-    g: 2.94,
-    atm: true,
-    legs: [
-      ASCENT,
-      ESCAPE,
-      {
-        label: "Kerbin escape → Duna transfer",
-        dv: 130,
-        kind: "transfer",
-        body: "Duna",
-        g: 2.94,
-      },
-      {
-        label: "Capture → low Duna orbit",
-        dv: 250,
-        kind: "capture",
-        body: "Duna",
-        g: 2.94,
-      },
-      {
-        label: "Descent to Duna surface",
-        dv: 1450,
-        kind: "land",
-        body: "Duna",
-        g: 2.94,
-        atm: true,
-      },
-    ],
-  },
-  Ike: {
-    color: "#E2603F",
-    g: 1.1,
-    legs: [
-      ASCENT,
-      ESCAPE,
-      {
-        label: "Kerbin escape → Duna transfer",
-        dv: 130,
-        kind: "transfer",
-        body: "Duna",
-        g: 2.94,
-      },
-      {
-        label: "Duna capture",
-        dv: 250,
-        kind: "capture",
-        body: "Duna",
-        g: 2.94,
-      },
-      {
-        label: "Duna orbit → Ike intercept",
-        dv: 30,
-        kind: "transfer",
-        body: "Ike",
-        g: 1.1,
-      },
-      {
-        label: "Capture → low Ike orbit",
-        dv: 180,
-        kind: "capture",
-        body: "Ike",
-        g: 1.1,
-      },
-      {
-        label: "Descent to Ike surface",
-        dv: 390,
-        kind: "land",
-        body: "Ike",
-        g: 1.1,
-      },
-    ],
-  },
-  Eve: {
-    color: "#A177DB",
-    g: 16.7,
-    atm: true,
-    legs: [
-      ASCENT,
-      ESCAPE,
-      {
-        label: "Kerbin escape → Eve transfer",
-        dv: 90,
-        kind: "transfer",
-        body: "Eve",
-        g: 16.7,
-      },
-      {
-        label: "Capture → low Eve orbit",
-        dv: 1330,
-        kind: "capture",
-        body: "Eve",
-        g: 16.7,
-      },
-      {
-        label: "Eve surface ↔ low orbit",
-        dv: 8000,
-        kind: "land",
-        body: "Eve",
-        g: 16.7,
-        atm: true,
-      },
-    ],
-  },
-  Gilly: {
-    color: "#A177DB",
-    g: 0.049,
-    legs: [
-      ASCENT,
-      ESCAPE,
-      {
-        label: "Kerbin escape → Eve transfer",
-        dv: 90,
-        kind: "transfer",
-        body: "Eve",
-        g: 16.7,
-      },
-      { label: "Eve capture", dv: 80, kind: "capture", body: "Eve", g: 16.7 },
-      {
-        label: "Eve orbit → Gilly intercept",
-        dv: 60,
-        kind: "transfer",
-        body: "Gilly",
-        g: 0.049,
-      },
-      {
-        label: "Capture → low Gilly orbit",
-        dv: 410,
-        kind: "capture",
-        body: "Gilly",
-        g: 0.049,
-      },
-      {
-        label: "Descent to Gilly surface",
-        dv: 30,
-        kind: "land",
-        body: "Gilly",
-        g: 0.049,
-      },
-    ],
-  },
-  Moho: {
-    color: "#E85D75",
-    g: 2.7,
-    legs: [
-      ASCENT,
-      ESCAPE,
-      {
-        label: "Kerbin escape → Moho transfer",
-        dv: 760,
-        kind: "transfer",
-        body: "Moho",
-        g: 2.7,
-      },
-      {
-        label: "Capture → low Moho orbit",
-        dv: 2410,
-        kind: "capture",
-        body: "Moho",
-        g: 2.7,
-      },
-      {
-        label: "Descent to Moho surface",
-        dv: 870,
-        kind: "land",
-        body: "Moho",
-        g: 2.7,
-      },
-    ],
-  },
-  Dres: {
-    color: "#B9A06B",
-    g: 1.13,
-    legs: [
-      ASCENT,
-      ESCAPE,
-      {
-        label: "Kerbin escape → Dres transfer",
-        dv: 610,
-        kind: "transfer",
-        body: "Dres",
-        g: 1.13,
-      },
-      {
-        label: "Capture → low Dres orbit",
-        dv: 1290,
-        kind: "capture",
-        body: "Dres",
-        g: 1.13,
-      },
-      {
-        label: "Descent to Dres surface",
-        dv: 430,
-        kind: "land",
-        body: "Dres",
-        g: 1.13,
-      },
-    ],
-  },
-  "Jool orbit": {
-    color: "#86B24A",
-    g: 7.85,
-    legs: [
-      ASCENT,
-      ESCAPE,
-      {
-        label: "Kerbin escape → Jool transfer",
-        dv: 980,
-        kind: "transfer",
-        body: "Jool",
-        g: 7.85,
-      },
-      {
-        label: "Capture into Jool orbit",
-        dv: 160,
-        kind: "capture",
-        body: "Jool",
-        g: 7.85,
-      },
-    ],
-  },
-  Laythe: {
-    color: "#86B24A",
-    g: 7.85,
-    atm: true,
-    legs: [
-      ASCENT,
-      ESCAPE,
-      {
-        label: "Kerbin escape → Jool transfer",
-        dv: 980,
-        kind: "transfer",
-        body: "Jool",
-        g: 7.85,
-      },
-      {
-        label: "Jool capture",
-        dv: 160,
-        kind: "capture",
-        body: "Jool",
-        g: 7.85,
-      },
-      {
-        label: "Jool orbit → Laythe intercept",
-        dv: 930,
-        kind: "transfer",
-        body: "Laythe",
-        g: 7.85,
-      },
-      {
-        label: "Descent to Laythe surface",
-        dv: 2900,
-        kind: "land",
-        body: "Laythe",
-        g: 7.85,
-        atm: true,
-      },
-    ],
-  },
-  Tylo: {
-    color: "#86B24A",
-    g: 7.85,
-    legs: [
-      ASCENT,
-      ESCAPE,
-      {
-        label: "Kerbin escape → Jool transfer",
-        dv: 980,
-        kind: "transfer",
-        body: "Jool",
-        g: 7.85,
-      },
-      {
-        label: "Jool capture",
-        dv: 160,
-        kind: "capture",
-        body: "Jool",
-        g: 7.85,
-      },
-      {
-        label: "Jool orbit → Tylo intercept",
-        dv: 400,
-        kind: "transfer",
-        body: "Tylo",
-        g: 7.85,
-      },
-      {
-        label: "Descent to Tylo surface",
-        dv: 2270,
-        kind: "land",
-        body: "Tylo",
-        g: 7.85,
-      },
-    ],
-  },
-  Vall: {
-    color: "#86B24A",
-    g: 2.31,
-    legs: [
-      ASCENT,
-      ESCAPE,
-      {
-        label: "Kerbin escape → Jool transfer",
-        dv: 980,
-        kind: "transfer",
-        body: "Jool",
-        g: 7.85,
-      },
-      {
-        label: "Jool capture",
-        dv: 160,
-        kind: "capture",
-        body: "Jool",
-        g: 7.85,
-      },
-      {
-        label: "Jool orbit → Vall intercept",
-        dv: 620,
-        kind: "transfer",
-        body: "Vall",
-        g: 2.31,
-      },
-      {
-        label: "Descent to Vall surface",
-        dv: 860,
-        kind: "land",
-        body: "Vall",
-        g: 2.31,
-      },
-    ],
-  },
-  Pol: {
-    color: "#86B24A",
-    g: 0.373,
-    legs: [
-      ASCENT,
-      ESCAPE,
-      {
-        label: "Kerbin escape → Jool transfer",
-        dv: 980,
-        kind: "transfer",
-        body: "Jool",
-        g: 7.85,
-      },
-      {
-        label: "Jool capture",
-        dv: 160,
-        kind: "capture",
-        body: "Jool",
-        g: 7.85,
-      },
-      {
-        label: "Jool orbit → Pol intercept",
-        dv: 160,
-        kind: "transfer",
-        body: "Pol",
-        g: 0.373,
-      },
-      {
-        label: "Descent to Pol surface",
-        dv: 130,
-        kind: "land",
-        body: "Pol",
-        g: 0.373,
-      },
-    ],
-  },
-  Eeloo: {
-    color: "#6FD7E8",
-    g: 1.69,
-    legs: [
-      ASCENT,
-      ESCAPE,
-      {
-        label: "Kerbin escape → Eeloo transfer",
-        dv: 1140,
-        kind: "transfer",
-        body: "Eeloo",
-        g: 1.69,
-      },
-      {
-        label: "Capture → low Eeloo orbit",
-        dv: 1370,
-        kind: "capture",
-        body: "Eeloo",
-        g: 1.69,
-      },
-      {
-        label: "Descent to Eeloo surface",
-        dv: 620,
-        kind: "land",
-        body: "Eeloo",
-        g: 1.69,
-      },
-    ],
-  },
-};
-
-const PROFILES: Readonly<Record<string, Profile>> = bodiesData.PROFILES;
-
-/* Build the leg list for a destination + profile, including return legs. */
 /* Stock system, from the Kopernicus dump. mu = geeASL*g0*R^2.
    ascent = surface <-> low orbit, the one figure worth keeping tabulated
    because it is dominated by drag and gravity losses, not orbital mechanics. */
@@ -610,6 +119,577 @@ const omegaAt = (b: string, r: number) => Math.sqrt(mu(b) / r ** 3);
    radius is its own orbit around the planet. */
 const syncR = (b: string) =>
   Math.cbrt((mu(b) * rotOf(b) * rotOf(b)) / (4 * Math.PI * Math.PI));
+
+/* ------------------------- where a burn is made -------------------------
+
+   A leg's Δv is priced as an impulse. What a real burn costs above that is set
+   by the arc it sweeps, and the arc is its duration against the orbit it is
+   made in — `finiteBurnDv` in performance.ts, and #409 for the reasoning.
+
+   Which orbit that is cannot be read off a leg's `body`, because the two route
+   builders mean opposite things by it: a computed transfer names the body it
+   departs, a tabulated one names the body it is headed for, so `LKO → Mun
+   intercept` says Mun and burns at Kerbin. Nor can it be read off `kind`:
+   `Circularize at 2 868 km` is a capture about Kerbin at stationary radius,
+   twelve times the period of the low orbit a rule would have assumed.
+
+   So every leg that makes an orbital burn carries where it makes it. An
+   ascent, a landing and an aerobrake carry nothing: the first two are not
+   spread impulses at all, and the pad keeps its own cap. #418 */
+type BurnOrbit = { body: string; r: number };
+
+const lowOrbit = (b: string): BurnOrbit => ({ body: b, r: lowR(b) });
+const syncOrbit = (b: string): BurnOrbit => ({ body: b, r: syncR(b) });
+const orbitAt = (body: string, r: number): BurnOrbit => ({ body, r });
+/* Out between the planets, where a burn of any length sweeps nothing. */
+const solarAt = (r: number): BurnOrbit => ({ body: "Sun", r });
+const omegaOf = (o: BurnOrbit) => omegaAt(o.body, o.r);
+
+const ASCENT: Leg = {
+  label: "Launchpad → 80 km orbit",
+  dv: 3400,
+  kind: "ascent",
+  body: "Kerbin",
+  g: 9.81,
+  atm: true,
+};
+const ESCAPE: Leg = {
+  label: "LKO → Kerbin escape",
+  dv: 950,
+  kind: "transfer",
+  body: "Kerbin",
+  orbit: lowOrbit("Kerbin"),
+  g: 9.81,
+};
+
+/* Colours are literals rather than references to the UI palette: core must not
+   import from ui. The field is in fact dead — nothing reads DEST[x].color — so
+   it can go entirely, but removing it is a shape change and this step only
+   moves code. */
+const DEST: Readonly<Record<string, Dest>> = {
+  "Low Kerbin Orbit": { color: "#4A9BE0", legs: [ASCENT] },
+  "Keostationary orbit": {
+    color: "#4A9BE0",
+    legs: [
+      ASCENT,
+      {
+        label: "LKO → keostationary transfer",
+        dv: 1115,
+        kind: "transfer",
+        body: "Kerbin",
+        orbit: lowOrbit("Kerbin"),
+        g: 9.81,
+      },
+      {
+        label: "Circularize at 2 868 km",
+        dv: 1030,
+        kind: "capture",
+        body: "Kerbin",
+        orbit: syncOrbit("Kerbin"),
+        g: 9.81,
+      },
+    ],
+  },
+  Mun: {
+    color: "#F5A623",
+    g: 1.63,
+    legs: [
+      ASCENT,
+      {
+        label: "LKO → Mun intercept",
+        dv: 860,
+        kind: "transfer",
+        body: "Mun",
+        orbit: lowOrbit("Kerbin"),
+        g: 1.63,
+      },
+      {
+        label: "Capture → low Mun orbit",
+        dv: 280,
+        kind: "capture",
+        body: "Mun",
+        orbit: lowOrbit("Mun"),
+        g: 1.63,
+      },
+      {
+        label: "Descent to Mun surface",
+        dv: 580,
+        kind: "land",
+        body: "Mun",
+        g: 1.63,
+      },
+    ],
+  },
+  Minmus: {
+    color: "#4FD1A5",
+    g: 0.491,
+    legs: [
+      ASCENT,
+      {
+        label: "LKO → Minmus intercept",
+        dv: 930,
+        kind: "transfer",
+        body: "Minmus",
+        orbit: lowOrbit("Kerbin"),
+        g: 0.491,
+      },
+      {
+        label: "Capture → low Minmus orbit",
+        dv: 160,
+        kind: "capture",
+        body: "Minmus",
+        orbit: lowOrbit("Minmus"),
+        g: 0.491,
+      },
+      {
+        label: "Descent to Minmus surface",
+        dv: 180,
+        kind: "land",
+        body: "Minmus",
+        g: 0.491,
+      },
+    ],
+  },
+  Duna: {
+    color: "#E2603F",
+    g: 2.94,
+    atm: true,
+    legs: [
+      ASCENT,
+      ESCAPE,
+      {
+        label: "Kerbin escape → Duna transfer",
+        dv: 130,
+        kind: "transfer",
+        body: "Duna",
+        orbit: solarAt(smaOf("Kerbin")),
+        g: 2.94,
+      },
+      {
+        label: "Capture → low Duna orbit",
+        dv: 250,
+        kind: "capture",
+        body: "Duna",
+        orbit: lowOrbit("Duna"),
+        g: 2.94,
+      },
+      {
+        label: "Descent to Duna surface",
+        dv: 1450,
+        kind: "land",
+        body: "Duna",
+        g: 2.94,
+        atm: true,
+      },
+    ],
+  },
+  Ike: {
+    color: "#E2603F",
+    g: 1.1,
+    legs: [
+      ASCENT,
+      ESCAPE,
+      {
+        label: "Kerbin escape → Duna transfer",
+        dv: 130,
+        kind: "transfer",
+        body: "Duna",
+        orbit: solarAt(smaOf("Kerbin")),
+        g: 2.94,
+      },
+      {
+        label: "Duna capture",
+        dv: 250,
+        kind: "capture",
+        body: "Duna",
+        orbit: lowOrbit("Duna"),
+        g: 2.94,
+      },
+      {
+        label: "Duna orbit → Ike intercept",
+        dv: 30,
+        kind: "transfer",
+        body: "Ike",
+        orbit: lowOrbit("Duna"),
+        g: 1.1,
+      },
+      {
+        label: "Capture → low Ike orbit",
+        dv: 180,
+        kind: "capture",
+        body: "Ike",
+        orbit: lowOrbit("Ike"),
+        g: 1.1,
+      },
+      {
+        label: "Descent to Ike surface",
+        dv: 390,
+        kind: "land",
+        body: "Ike",
+        g: 1.1,
+      },
+    ],
+  },
+  Eve: {
+    color: "#A177DB",
+    g: 16.7,
+    atm: true,
+    legs: [
+      ASCENT,
+      ESCAPE,
+      {
+        label: "Kerbin escape → Eve transfer",
+        dv: 90,
+        kind: "transfer",
+        body: "Eve",
+        orbit: solarAt(smaOf("Kerbin")),
+        g: 16.7,
+      },
+      {
+        label: "Capture → low Eve orbit",
+        dv: 1330,
+        kind: "capture",
+        body: "Eve",
+        orbit: lowOrbit("Eve"),
+        g: 16.7,
+      },
+      {
+        label: "Eve surface ↔ low orbit",
+        dv: 8000,
+        kind: "land",
+        body: "Eve",
+        g: 16.7,
+        atm: true,
+      },
+    ],
+  },
+  Gilly: {
+    color: "#A177DB",
+    g: 0.049,
+    legs: [
+      ASCENT,
+      ESCAPE,
+      {
+        label: "Kerbin escape → Eve transfer",
+        dv: 90,
+        kind: "transfer",
+        body: "Eve",
+        orbit: solarAt(smaOf("Kerbin")),
+        g: 16.7,
+      },
+      {
+        label: "Eve capture",
+        dv: 80,
+        kind: "capture",
+        body: "Eve",
+        orbit: lowOrbit("Eve"),
+        g: 16.7,
+      },
+      {
+        label: "Eve orbit → Gilly intercept",
+        dv: 60,
+        kind: "transfer",
+        body: "Gilly",
+        orbit: lowOrbit("Eve"),
+        g: 0.049,
+      },
+      {
+        label: "Capture → low Gilly orbit",
+        dv: 410,
+        kind: "capture",
+        body: "Gilly",
+        orbit: lowOrbit("Gilly"),
+        g: 0.049,
+      },
+      {
+        label: "Descent to Gilly surface",
+        dv: 30,
+        kind: "land",
+        body: "Gilly",
+        g: 0.049,
+      },
+    ],
+  },
+  Moho: {
+    color: "#E85D75",
+    g: 2.7,
+    legs: [
+      ASCENT,
+      ESCAPE,
+      {
+        label: "Kerbin escape → Moho transfer",
+        dv: 760,
+        kind: "transfer",
+        body: "Moho",
+        orbit: solarAt(smaOf("Kerbin")),
+        g: 2.7,
+      },
+      {
+        label: "Capture → low Moho orbit",
+        dv: 2410,
+        kind: "capture",
+        body: "Moho",
+        orbit: lowOrbit("Moho"),
+        g: 2.7,
+      },
+      {
+        label: "Descent to Moho surface",
+        dv: 870,
+        kind: "land",
+        body: "Moho",
+        g: 2.7,
+      },
+    ],
+  },
+  Dres: {
+    color: "#B9A06B",
+    g: 1.13,
+    legs: [
+      ASCENT,
+      ESCAPE,
+      {
+        label: "Kerbin escape → Dres transfer",
+        dv: 610,
+        kind: "transfer",
+        body: "Dres",
+        orbit: solarAt(smaOf("Kerbin")),
+        g: 1.13,
+      },
+      {
+        label: "Capture → low Dres orbit",
+        dv: 1290,
+        kind: "capture",
+        body: "Dres",
+        orbit: lowOrbit("Dres"),
+        g: 1.13,
+      },
+      {
+        label: "Descent to Dres surface",
+        dv: 430,
+        kind: "land",
+        body: "Dres",
+        g: 1.13,
+      },
+    ],
+  },
+  "Jool orbit": {
+    color: "#86B24A",
+    g: 7.85,
+    legs: [
+      ASCENT,
+      ESCAPE,
+      {
+        label: "Kerbin escape → Jool transfer",
+        dv: 980,
+        kind: "transfer",
+        body: "Jool",
+        orbit: solarAt(smaOf("Kerbin")),
+        g: 7.85,
+      },
+      {
+        label: "Capture into Jool orbit",
+        dv: 160,
+        kind: "capture",
+        body: "Jool",
+        orbit: lowOrbit("Jool"),
+        g: 7.85,
+      },
+    ],
+  },
+  Laythe: {
+    color: "#86B24A",
+    g: 7.85,
+    atm: true,
+    legs: [
+      ASCENT,
+      ESCAPE,
+      {
+        label: "Kerbin escape → Jool transfer",
+        dv: 980,
+        kind: "transfer",
+        body: "Jool",
+        orbit: solarAt(smaOf("Kerbin")),
+        g: 7.85,
+      },
+      {
+        label: "Jool capture",
+        dv: 160,
+        kind: "capture",
+        body: "Jool",
+        orbit: lowOrbit("Jool"),
+        g: 7.85,
+      },
+      {
+        label: "Jool orbit → Laythe intercept",
+        dv: 930,
+        kind: "transfer",
+        body: "Laythe",
+        orbit: lowOrbit("Jool"),
+        g: 7.85,
+      },
+      {
+        label: "Descent to Laythe surface",
+        dv: 2900,
+        kind: "land",
+        body: "Laythe",
+        g: 7.85,
+        atm: true,
+      },
+    ],
+  },
+  Tylo: {
+    color: "#86B24A",
+    g: 7.85,
+    legs: [
+      ASCENT,
+      ESCAPE,
+      {
+        label: "Kerbin escape → Jool transfer",
+        dv: 980,
+        kind: "transfer",
+        body: "Jool",
+        orbit: solarAt(smaOf("Kerbin")),
+        g: 7.85,
+      },
+      {
+        label: "Jool capture",
+        dv: 160,
+        kind: "capture",
+        body: "Jool",
+        orbit: lowOrbit("Jool"),
+        g: 7.85,
+      },
+      {
+        label: "Jool orbit → Tylo intercept",
+        dv: 400,
+        kind: "transfer",
+        body: "Tylo",
+        orbit: lowOrbit("Jool"),
+        g: 7.85,
+      },
+      {
+        label: "Descent to Tylo surface",
+        dv: 2270,
+        kind: "land",
+        body: "Tylo",
+        g: 7.85,
+      },
+    ],
+  },
+  Vall: {
+    color: "#86B24A",
+    g: 2.31,
+    legs: [
+      ASCENT,
+      ESCAPE,
+      {
+        label: "Kerbin escape → Jool transfer",
+        dv: 980,
+        kind: "transfer",
+        body: "Jool",
+        orbit: solarAt(smaOf("Kerbin")),
+        g: 7.85,
+      },
+      {
+        label: "Jool capture",
+        dv: 160,
+        kind: "capture",
+        body: "Jool",
+        orbit: lowOrbit("Jool"),
+        g: 7.85,
+      },
+      {
+        label: "Jool orbit → Vall intercept",
+        dv: 620,
+        kind: "transfer",
+        body: "Vall",
+        orbit: lowOrbit("Jool"),
+        g: 2.31,
+      },
+      {
+        label: "Descent to Vall surface",
+        dv: 860,
+        kind: "land",
+        body: "Vall",
+        g: 2.31,
+      },
+    ],
+  },
+  Pol: {
+    color: "#86B24A",
+    g: 0.373,
+    legs: [
+      ASCENT,
+      ESCAPE,
+      {
+        label: "Kerbin escape → Jool transfer",
+        dv: 980,
+        kind: "transfer",
+        body: "Jool",
+        orbit: solarAt(smaOf("Kerbin")),
+        g: 7.85,
+      },
+      {
+        label: "Jool capture",
+        dv: 160,
+        kind: "capture",
+        body: "Jool",
+        orbit: lowOrbit("Jool"),
+        g: 7.85,
+      },
+      {
+        label: "Jool orbit → Pol intercept",
+        dv: 160,
+        kind: "transfer",
+        body: "Pol",
+        orbit: lowOrbit("Jool"),
+        g: 0.373,
+      },
+      {
+        label: "Descent to Pol surface",
+        dv: 130,
+        kind: "land",
+        body: "Pol",
+        g: 0.373,
+      },
+    ],
+  },
+  Eeloo: {
+    color: "#6FD7E8",
+    g: 1.69,
+    legs: [
+      ASCENT,
+      ESCAPE,
+      {
+        label: "Kerbin escape → Eeloo transfer",
+        dv: 1140,
+        kind: "transfer",
+        body: "Eeloo",
+        orbit: solarAt(smaOf("Kerbin")),
+        g: 1.69,
+      },
+      {
+        label: "Capture → low Eeloo orbit",
+        dv: 1370,
+        kind: "capture",
+        body: "Eeloo",
+        orbit: lowOrbit("Eeloo"),
+        g: 1.69,
+      },
+      {
+        label: "Descent to Eeloo surface",
+        dv: 620,
+        kind: "land",
+        body: "Eeloo",
+        g: 1.69,
+      },
+    ],
+  },
+};
+
+const PROFILES: Readonly<Record<string, Profile>> = bodiesData.PROFILES;
+
+/* Build the leg list for a destination + profile, including return legs. */
 /* The test used to read `(parent && SYS[parent].sma !== undefined) || parent`,
    whose second half makes the first dead: whenever there is a parent the whole
    disjunction is true regardless. What is left is the parent alone, which is
@@ -703,7 +783,14 @@ function planeChanges(origin: string, dest: string) {
   const up = co.slice(0, co.indexOf(common));
   const down = cd.slice(0, cd.indexOf(common)).reverse();
   const out: Array<PlaneChange> = [];
-  const add = (deg: number, v: number, system: string, cheapV?: number) => {
+  const add = (
+    deg: number,
+    v: number,
+    system: string,
+    r: number,
+    cheapV?: number,
+    cheapR?: number,
+  ) => {
     if (deg < 0.15) return;
     const half = Math.sin((deg / 2) * RAD);
     out.push({
@@ -711,13 +798,20 @@ function planeChanges(origin: string, dest: string) {
       system,
       cheap: Math.round(2 * (cheapV ?? v) * half),
       costly: Math.round(2 * v * half),
+      rCostly: r,
+      rCheap: cheapR ?? r,
     });
   };
 
   // shedding the origin's own inclination on the way out
   up.forEach((b, k) => {
     if (k === up.length - 1) return;
-    add(SYS[b].inc || 0, Math.sqrt(mu(up[k + 1]) / smaOf(b)), up[k + 1]);
+    add(
+      SYS[b].inc || 0,
+      Math.sqrt(mu(up[k + 1]) / smaOf(b)),
+      up[k + 1],
+      smaOf(b),
+    );
   });
 
   // the main one, at the level both bodies share
@@ -732,7 +826,9 @@ function planeChanges(origin: string, dest: string) {
       relInc(upEnd, dnEnd),
       Math.sqrt(m / Math.min(r1, r2)),
       common,
+      Math.min(r1, r2),
       Math.sqrt(m * (2 / Math.max(r1, r2) - 1 / at)),
+      Math.max(r1, r2),
     );
   }
 
@@ -740,7 +836,7 @@ function planeChanges(origin: string, dest: string) {
   down.forEach((b, k) => {
     const next = down[k + 1];
     if (!next) return;
-    add(SYS[next].inc || 0, Math.sqrt(mu(b) / smaOf(next)), b);
+    add(SYS[next].inc || 0, Math.sqrt(mu(b) / smaOf(next)), b, smaOf(next));
   });
   return out;
 }
@@ -815,6 +911,9 @@ function transferDv(
       dv: Math.round(w ? w.eject : h.out),
       kind: "transfer",
       body: dest,
+      /* `up` is empty, so the burn is made in the low orbit of the body the
+         route is already circling, which is the origin and the centre both. */
+      orbit: lowOrbit(origin),
       ...(w ? { window: w, at: w.depart } : {}),
     });
   } else
@@ -829,6 +928,9 @@ function transferDv(
         dv: Math.round(injectC3(v, c3)),
         kind: "transfer",
         body: b,
+        /* The same radius `v` above was taken at: low orbit on the first rung
+           of the climb, and the rung below's own orbit on every one after. */
+        orbit: orbitAt(b, k === 0 ? lowR(b) : smaOf(up[k - 1])),
         ...(leaves ? { window: w, at: w.depart } : {}),
         ...(leaves && w.next
           ? {
@@ -849,11 +951,17 @@ function transferDv(
       kind: "plane",
       body: down[0],
       at: w.plane.at,
+      /* Out on the transfer ellipse about the shared primary. `system` below
+         says "Sun", which is wrong for a moon-to-moon window and is not this
+         change's to fix; `common` is the centre either way. */
+      orbit: orbitAt(common, (rO + rD) / 2),
       plane: {
         deg: w.plane.deg,
         system: "Sun",
         cheap: Math.round(w.plane.dv),
         costly: Math.round(w.plane.dv),
+        rCostly: (rO + rD) / 2,
+        rCheap: (rO + rD) / 2,
       },
     });
 
@@ -873,6 +981,9 @@ function transferDv(
         dv: Math.round(dv),
         kind: "capture",
         body: b,
+        /* Periapsis is down at the moon's orbit, not at low orbit: that is the
+           whole point of capturing only just enough to be bound. */
+        orbit: orbitAt(b, rp),
       });
       const hh = hohmann(b, rp, rp); // already at the moon's radius
       void hh;
@@ -882,6 +993,7 @@ function transferDv(
         dv: Math.round(w ? w.capture : h.in),
         kind: "capture",
         body: b,
+        orbit: lowOrbit(b),
       });
     } else {
       legs.push({
@@ -889,6 +1001,7 @@ function transferDv(
         dv: Math.round(injectC3(vCirc(b), c3)),
         kind: "capture",
         body: b,
+        orbit: lowOrbit(b),
       });
     }
   });
@@ -900,6 +1013,7 @@ function transferDv(
       dv: Math.round(h.in),
       kind: "capture",
       body: dest,
+      orbit: lowOrbit(dest),
     });
   /* And the leg that leaves carries the drawing of it. The figures stay the
      Hohmann ones they were — this is a picture, not a re-pricing. #223 */
@@ -1004,6 +1118,7 @@ function syncLegs(b: string, up: boolean): Array<Leg> {
           kind: "transfer",
           body: b,
           g: gOf(b),
+          orbit: lowOrbit(b),
         },
         {
           label: "Circularise, one orbit per day",
@@ -1011,6 +1126,7 @@ function syncLegs(b: string, up: boolean): Array<Leg> {
           kind: "capture",
           body: b,
           g: gOf(b),
+          orbit: syncOrbit(b),
         },
       ]
     : [
@@ -1020,6 +1136,7 @@ function syncLegs(b: string, up: boolean): Array<Leg> {
           kind: "transfer",
           body: b,
           g: gOf(b),
+          orbit: syncOrbit(b),
         },
         {
           label: `Circularise in low ${b} orbit`,
@@ -1027,6 +1144,7 @@ function syncLegs(b: string, up: boolean): Array<Leg> {
           kind: "capture",
           body: b,
           g: gOf(b),
+          orbit: lowOrbit(b),
         },
       ];
 }
@@ -1044,6 +1162,7 @@ const arrival = (b: string): Leg => {
     body: b,
     g: gOf(b),
     free: air,
+    ...(air ? {} : { orbit: lowOrbit(b) }),
   };
 };
 
@@ -1221,6 +1340,10 @@ function routeFor(
       body: to.body,
       g: gOf(to.body),
       plane: pc,
+      /* Whichever of the two prices this row is flying, taken at the radius
+         that price was quoted at: low orbit when it goes now, apoapsis when it
+         waits for a node. */
+      orbit: orbitAt(pc.system, planeNow ? pc.rCostly : pc.rCheap),
     }));
     base.splice(at < 0 ? base.length : at, 0, ...rows);
   }
@@ -1288,6 +1411,10 @@ function routeFor(
           kind: "transfer",
           body: capLeg.body,
           g: capLeg.g,
+          /* Undoing the capture, so it is burnt where the capture was — which
+             for a stationary arrival is nowhere near the low orbit a rule
+             from `kind` would have assumed. */
+          ...(capLeg.orbit ? { orbit: capLeg.orbit } : {}),
         });
       const home = base
         .filter((l) => l.kind === "transfer" || l.kind === "plane")
@@ -1319,6 +1446,10 @@ function routeFor(
         body: origin,
         g: gOf(origin),
         ...(down ? { window: down } : {}),
+        /* Named for where it is going and burnt where it is leaving: out of
+           the low orbit of the body being departed, which is where the leg
+           above has just put the craft. */
+        orbit: lowOrbit(to.body),
       });
     }
     back.push(arrival(origin));
@@ -1356,6 +1487,61 @@ function endpointsOf(destName: string, profile: string, origin: string) {
   return { from, to: { body, state } };
 }
 
+/* ------------------- a stage's slice of the route, leg by leg -------------------
+
+   A stage is given a contiguous slice of the group's Δv, and the slice is not
+   cut on leg boundaries: the shares are chosen by the search, so a stage takes
+   whatever legs its slice lands on and often only part of them. Three shapes
+   come out of that, and a burn is priced differently in each:
+
+   - one stage, one leg — `first && last`, and the stage flies the whole of it;
+   - several stages sharing one leg — each gets a part, and they burn one after
+     another, so the arcs they sweep run on from each other;
+   - one stage, several legs — several burns in several orbits, which is the
+     case the single `burn` figure in `solveStage` cannot express at all: on
+     Mun 12 t a 392 s Nerv stage is 31 s of transfer, 79 s of capture, 155 s of
+     descent and 113 s of climbing back out.
+
+   `scale` is what the budget was multiplied by on the way in — the margin —
+   so the caller can hand over the raw legs and its own slice bounds. #418 */
+type BurnPortion = {
+  leg: Leg;
+  /* What this slice flies of the leg, and what the whole leg is, both scaled. */
+  dv: number;
+  legDv: number;
+  /* Whether this slice opens the leg and whether it closes it. Both true is a
+     leg flown whole; either false and another stage flies the rest. */
+  first: boolean;
+  last: boolean;
+};
+
+function burnPortions(
+  legs: ReadonlyArray<Leg>,
+  lo: number,
+  hi: number,
+  scale = 1,
+): Array<BurnPortion> {
+  const out: Array<BurnPortion> = [];
+  const eps = 1e-9;
+  let start = 0;
+  for (const leg of legs) {
+    const legDv = leg.dv * scale;
+    const end = start + legDv;
+    const a = Math.max(lo, start);
+    const b = Math.min(hi, end);
+    if (b - a > eps)
+      out.push({
+        leg,
+        dv: b - a,
+        legDv,
+        first: a <= start + eps,
+        last: b >= end - eps,
+      });
+    start = end;
+  }
+  return out;
+}
+
 function buildRoute(
   destName: string,
   profile: string,
@@ -1388,6 +1574,7 @@ export {
   SYS,
   bodyKey,
   buildRoute,
+  burnPortions,
   chainOf,
   computedLegs,
   defaultCuts,
@@ -1398,9 +1585,11 @@ export {
   hohmann,
   inject,
   lowAlt,
+  lowOrbit,
   lowR,
   mu,
   omegaAt,
+  omegaOf,
   planeChanges,
   possible,
   relInc,
@@ -1413,6 +1602,8 @@ export {
   vCirc,
 };
 export type {
+  BurnOrbit,
+  BurnPortion,
   Dest,
   Endpoint,
   Leg,
