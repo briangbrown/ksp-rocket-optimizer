@@ -69,6 +69,15 @@ const stackRing = (S: number, columnWidth: number) => {
    apart and intersected by 0.94 m — in the sizing and in the drawing alike,
    since both worked from the same half-width. Below three there is no
    neighbour to clear. #420 */
+/* Whether `n` boosters of width `bd` fit around a core of that half-width at
+   all: bolted on, they sit on a ring of `coreHalf + bd / 2` and are
+   `2 R sin(pi / n)` apart, which has to be at least one of them wide. Where
+   this is false there is no ring to draw — the booster cannot float and cannot
+   share space with its neighbour — so the count is refused where it is chosen
+   rather than drawn around. #423 */
+const boostersFit = (n: number, bd: number, coreHalf: number) =>
+  n < 3 || 2 * (coreHalf + bd / 2) * Math.sin(Math.PI / n) >= bd - 1e-9;
+
 const boosterRing = (n: number, bd: number, coreHalf: number) =>
   Math.max(coreHalf + bd / 2, n >= 3 ? bd / (2 * Math.sin(Math.PI / n)) : 0);
 
@@ -564,6 +573,7 @@ export {
   packFor,
   packShapes,
   boosterRing,
+  boostersFit,
   ringPositions,
   stackGeometry,
   stackOf,

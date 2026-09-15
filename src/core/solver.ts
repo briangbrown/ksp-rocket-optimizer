@@ -5,7 +5,10 @@ import {
   heightOf,
   packFor,
   stackGeometry,
+  boostersFit,
+  clusterSpan,
   stageSize,
+  widthOf,
   useArt,
 } from "./geometry.js";
 import {
@@ -975,6 +978,20 @@ function boostedAscent({
       for (const nb of counts) {
         {
           const { c, k, usable, grp } = core;
+          /* How many actually fit around the core. Bolted to it they cannot
+             float and cannot share space with each other, so a count that does
+             not fit is not a stage to be sized — it is one that cannot be
+             built. The core's span is the same max of tank and cluster the
+             geometry takes; boosters never run with parallel columns, so there
+             is no ring of stacks to widen it. #423 */
+          if (
+            !boostersFit(
+              nb,
+              widthOf(b, diaOf(b)),
+              Math.max(grp.dia, clusterSpan(nc, widthOf(c, diaOf(c)))) / 2,
+            )
+          )
+            continue;
           const mdotC = (nc * c.fv) / (c.iv * G0);
           /* Pressure comes from the body being left, not from Kerbin. Eve's
              surface is 5 atm, where the real curves put a Terrier at zero — its

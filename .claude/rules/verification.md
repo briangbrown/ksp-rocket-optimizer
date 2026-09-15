@@ -14,8 +14,10 @@ files.
 **The design snapshot** solves a fixed grid of 81 configurations — three tech
 tiers, three payloads, three delta-v budgets, three objectives — and compares
 every resulting design against a committed baseline, part by part, every
-number to four decimals (`src/core/signature.ts`). 66 produce a design; the
-other 15 are legitimately unbuildable at that tech level. It is the check that matters here, because the
+number to four decimals (`src/core/signature.ts`). 65 produce a design; the
+other 16 are legitimately unbuildable at that tech level — one of them since
+#423, which refused a ring of eight 2.5 m booster columns round a 2.5 m core
+because six is all that fit. It is the check that matters here, because the
 characteristic failure in this codebase is silent — a refactor believed to be
 behaviour-preserving once altered 31 of 72 designs without erroring. It is also
 what makes the suite cost what it does; the other checks run alongside it rather
