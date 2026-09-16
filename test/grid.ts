@@ -201,6 +201,28 @@ export function sweepCases() {
       name: `Mun-pay20-asparagus-${objective}`,
       input: asparagusInput(objective),
     })),
+    /* A return from a moon of Jool, cut before the landing, on the parts
+       objective: the mission that was answered with one Kickback flying the
+       landing, the climb off Pol, the transfer home and the aerobrake — four
+       ignitions of a motor that cannot be relit. #435
+
+       Three things the sweep was thin on meet here. `parts` is the objective
+       that most readily reaches for a solid, because a solid is one part and
+       carries its own fuel; a cut past the middle of the route gives the upper
+       group several legs of its own to fly; and Pol is far enough out that the
+       return group's budget is small enough for a solid to cover. None of the
+       sweep's other rows has all three, which is why 169 delivered stages held
+       exactly one solid and it covered a single burn. */
+    {
+      name: "Pol-pay2.5-cut-parts",
+      input: {
+        ...duna.input,
+        route: buildRoute("Pol", "land", true, "Kerbin", true, false),
+        cuts: [6],
+        payload: 2.5,
+        objective: "parts" as Objective,
+      },
+    },
   ];
 }
 
