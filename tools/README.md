@@ -79,6 +79,43 @@ tree's spelling is the key, and "Advanced Metalworks" for "Advanced
 MetalWorks" hid a coupler for months. `test/parts-data.test.ts` holds every
 part to a node the tree has.
 
+## Power parts — the ion gap
+
+Electric propulsion is refused by `sizeable` in `src/core/solver.ts` because
+nothing models the plant that feeds it: there are no panels, no batteries and
+no generator in `src/data/`, and no line in a stage's mass or cost for any of
+them. The 420 s burn cap used to keep ion engines out by accident; #410
+replaced it with an arc and the accident went with it, so the exclusion is now
+made on purpose and #413 is what lifts it.
+
+1. On the machine with the install, from a PowerShell prompt in the KSP root
+   (the folder with `GameData` in it):
+
+       powershell -ExecutionPolicy Bypass -File tools\pack-power.ps1
+
+   It writes `ksp-power-parts.zip` into that same folder: every `.cfg` that
+   mentions `ModuleDeployableSolarPanel`, `ModuleGenerator`,
+   `ModuleResourceConverter` or an `ElectricCharge` resource, every ReStock
+   patch, and `Physics.cfg`. A couple of megabytes; no meshes and no textures.
+
+   Matched on what a file holds rather than where it sits. The folder these
+   parts live in has moved between versions and differs again under ReStock,
+   and a wrong path guess fails silently by collecting nothing — where a module
+   name does not move. It over-collects on purpose: a command pod stores charge
+   too, and a few hundred kilobytes of parts nobody asked for is a much better
+   failure than a missing battery.
+
+2. Here: nothing yet. #413 is what reads it.
+
+What comes out of it, once there is something to read it with: a panel's charge
+rate and whether it tracks the sun, a battery's stored charge, the generator's
+output, a fuel cell's rates, and for each the mass, cost and tech node —
+mass and cost being the whole point, since an ion stage that does not carry its
+own power plant is an engine flying on nothing. The ion engine's own draw is a
+`PROPELLANT` line in its cfg, which `pack-engines.ps1` already collects, and
+`Physics.cfg` carries the solar constants so the falloff with distance is read
+rather than assumed.
+
 ## The icon — `public/favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`
 
 The nut (#206): a hex nut framing a rocket in Kerbin's teal, drawn once as
