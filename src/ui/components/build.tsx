@@ -125,9 +125,18 @@ export function stagingSteps(solved: ReadonlyArray<SolvedStage>) {
   return steps;
 }
 
-/* What a step draws: the whole vehicle for the elevation, and the bottom live
-   stage for the plan. Boosters are filtered out once they have gone, so the
-   panel is sized for the rocket on screen rather than for parts that left. */
+/* What a step draws: the whole vehicle, for every view. Boosters are filtered
+   out once they have gone, so the panel is sized for the rocket on screen
+   rather than for parts that left.
+
+   The plan used to get a model of its own, built from the bottom live stage
+   alone — and `modelOf` sets the payload on top of whatever it is handed, so
+   that drawing was the bottom stage with the payload resting straight on it:
+   three stages too low on a four-stage rocket, with nothing of the stages in
+   between. The plan is the one view built to rely on occlusion, looking up
+   with the engines hiding the tanks by design, and a stack with its middle
+   missing let the payload show through parts that would have covered it. One
+   model, so the plan is the rocket seen from below. #437 */
 export function stepModels(
   solved: ReadonlyArray<SolvedStage>,
   cur: Step,
@@ -137,11 +146,7 @@ export function stepModels(
   const live = solved.slice(cur.drop);
   const payD = payloadDiaOf(payload, payloadDia);
   const attached = (p: { ring?: number }) => cur.boost || p.ring === undefined;
-  return {
-    live,
-    model: modelOf(live, payload, payD).filter(attached),
-    planModel: modelOf(live.slice(0, 1), payload, payD).filter(attached),
-  };
+  return { live, model: modelOf(live, payload, payD).filter(attached) };
 }
 
 /* ------------------------------- the build view -------------------------------
@@ -506,16 +511,18 @@ function BuildView({
   const model = shot.A.model;
   const live =
     frame && shot.B ? (at === base ? shot.A.live : shot.B.live) : shot.A.live;
-  /* The plan shows the bottom live stage alone, so between two steps it is a
-     different shape with nothing in common. It fades through rather than
-     moving: out over the first half, swapped where nothing is on screen, back
-     in over the second. */
+  /* Looking straight up, a stage separating moves towards the camera and
+     the orthographic picture of it does not change until it is gone — so the
+     plan cannot show the separation as motion the way the elevation does.
+     Between two steps it fades through instead: out over the first half,
+     swapped where nothing is on screen, back in over the second, with the
+     spent stage's plate gone and the next stage's engines in its place. */
   const planModel =
     frame && shot.B && motion
       ? motion.t < 0.5
-        ? shot.A.planModel
-        : shot.B.planModel
-      : shot.A.planModel;
+        ? shot.A.model
+        : shot.B.model
+      : shot.A.model;
   const planFade = motion ? Math.abs(2 * motion.t - 1) : 1;
 
   /* Twice, over two chains. `pad` is the vehicle that leaves the pad and `now`

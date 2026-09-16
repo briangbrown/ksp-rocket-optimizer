@@ -100,6 +100,14 @@ them.
   way — the elevation, which always has a payload in it, was right alongside
   it. Clear rather than return.
 
+- **`modelOf` sets the payload on whatever it is handed.** Give it a slice of
+  the live stages and the payload sits straight on the slice — so a plan
+  built from the bottom stage alone drew that stage, then the payload three
+  stages too low, and none of the stack between; the one view built to rely on
+  occlusion let the pod show through parts that would have hidden it. Every
+  view draws the one model `stepModels` returns. A view that wants less of the
+  rocket filters that model; it does not ask `modelOf` for a shorter one. #437
+
 - **`renderer.setSize(w, h, false)` does not size the canvas.** The third
   argument suppresses the CSS width and height, and the canvas is
   `devicePixelRatio` times bigger in device pixels — so it lays out at that
