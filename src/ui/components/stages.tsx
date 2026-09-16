@@ -19,7 +19,12 @@ const arcCost = (sol: Solution) => {
   const deg = Math.round((f.arc * 180) / Math.PI);
   return {
     value: `+${fmt(f.added)} m/s`,
-    note: `${deg}° on the ${f.kind}${f.body ? ` at ${f.body}` : ""}`,
+    /* The pass count is the one place a reader is told the burn is not flown
+       in one go — an ejection split across periapsis kicks is an orbit of
+       waiting between each, and the Δv already has the saving in it. */
+    note:
+      `${deg}° on the ${f.kind}${f.body ? ` at ${f.body}` : ""}` +
+      (f.passes > 1 ? `, in ${f.passes} passes` : ""),
   };
 };
 
