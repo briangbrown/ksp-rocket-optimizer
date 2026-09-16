@@ -105,16 +105,43 @@ made on purpose and #413 is what lifts it.
    too, and a few hundred kilobytes of parts nobody asked for is a much better
    failure than a missing battery.
 
-2. Here: nothing yet. #413 is what reads it.
+2. Here:
 
-What comes out of it, once there is something to read it with: a panel's charge
-rate and whether it tracks the sun, a battery's stored charge, the generator's
-output, a fuel cell's rates, and for each the mass, cost and tech node —
-mass and cost being the whole point, since an ion stage that does not carry its
-own power plant is an engine flying on nothing. The ion engine's own draw is a
-`PROPELLANT` line in its cfg, which `pack-engines.ps1` already collects, and
-`Physics.cfg` carries the solar constants so the falloff with distance is read
-rather than assumed.
+       node tools/power-parts.mjs path/to/ksp-power-parts.zip
+
+   It rewrites `src/data/power.json` and reports what it found. With `--check`
+   it compares instead and exits 1 on a difference, which is how to tell
+   whether a game or mod update moved a number.
+
+What comes out: a panel's charge rate and whether it tracks the sun, a
+battery's stored charge, the generator's output, a fuel cell's rates and what
+it burns, and for each the mass, cost and tech node — mass and cost being the
+whole point, since an ion stage that does not carry its own power plant is an
+engine flying on nothing.
+
+Two of those numbers are not in the files as numbers. **An engine's draw** is a
+propellant ratio: KSP needs a mass flow of `thrust / (Isp · g0)`, the mixture's
+density is the ratio-weighted sum of what it burns, and each propellant's rate
+is the one divided by the other times its ratio. Electric charge is massless,
+so it adds nothing to the density and all of the draw — the Dawn's 1.8 against
+xenon's 0.1 at a density of 0.0001 comes out at 8.74 charge a second, which is
+what the game shows. **A tech node** is named by its id in a config and by the
+tree's own title in `src/data/tech.json`, and the two are not a transformation
+of each other: `largeElectrics` is "High-Power Electrics". The gates fail
+closed, so a name the tree does not have hides the part for good rather than
+erroring; the tool carries the table and stops on an id it does not know, and
+`test/power-data.test.ts` holds every name in it against the tree.
+
+`Physics.cfg` gives the flux a panel's rate is quoted at — 1360 W/m² at the
+homeworld's orbital distance — so the falloff with distance is read rather than
+assumed. It goes as the inverse square, which is what makes an ion stage at
+Eeloo need 111 Gigantors or 82 generators for its seven engines; the last test
+in `power-data.test.ts` does that arithmetic and prints it.
+
+The pack over-collects, since a command pod stores charge too, and the reader
+keeps only what a power plant is made of. Three ReStock+ parts arrive named by
+their id because that mod keeps its strings in a Localization folder the pack
+does not take; the tool says which.
 
 ## The icon — `public/favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`
 
