@@ -335,6 +335,30 @@ function needFor(
    engine is the only thing that burns it. */
 const sizeable = (e: { f: ReadonlyArray<string> }) => !e.f.includes("Xe");
 
+/* How many separate ignitions a stage's slice of the route amounts to.
+
+   Each leg is a burn made at its own point of its own orbit, with a coast in
+   between, so legs and ignitions are the same count — with one exception. Two
+   climbs off the same body back to back are one continuous run to orbit, with
+   nothing shut down between them, and a stage covering only those has lit once.
+   No route in the catalogue currently puts two together; the rule says what it
+   means rather than counting blindly, so the next one that does is right by
+   construction. #435 */
+const climbing = (kind: string) => kind === "ascent" || kind === "ascentBack";
+function ignitions(burns: ReadonlyArray<StageBurn>) {
+  let n = 0;
+  for (let i = 0; i < burns.length; i++) {
+    const prev = i > 0 ? burns[i - 1] : null;
+    const continuous =
+      prev !== null &&
+      climbing(burns[i].kind) &&
+      climbing(prev.kind) &&
+      burns[i].body === prev.body;
+    if (!continuous) n++;
+  }
+  return n;
+}
+
 function stageParamsFor(
   legs: ReadonlyArray<GroupLeg & { p0: number }>,
   lo: number,
@@ -456,6 +480,18 @@ function solveStage({
      a burn made out between the planets sweeps nothing — so the walk is worth
      skipping outright rather than running to add zero. */
   const anyArc = burns.some((b) => b.omega > 0);
+  /* A solid cannot be throttled, shut down or relit: once it is lit it burns
+     its grain to depletion. So a stage whose own engine is a solid flies
+     exactly one burn. It may take part of a leg — the stage below finishes the
+     rest, burning after it rather than with it — but not two legs, because two
+     legs are two ignitions with a coast between them. Before this a Pol return
+     was offered as one Kickback covering a landing, a climb, a transfer and an
+     aerobrake: a design that is flyable only on paper. #435
+
+     The ordinary use of a solid is a strap-on ring, which `boostedAscent`
+     builds on a different path and which this does not touch: the ring lights
+     at liftoff, burns out and is dropped, and that is one burn. */
+  const manyBurns = ignitions(burns) > 1;
   /* A stage that flies through air has to steer. Without a gimbal you are relying
      on fins and reaction wheels alone, which is how a launch ends up pinwheeling
      off the pad — so by default an atmospheric stage needs a vectoring nozzle.
@@ -513,6 +549,7 @@ function solveStage({
 
   for (const e of engines) {
     if (!sizeable(e)) continue;
+    if (manyBurns && e.f.includes("SF")) continue;
     if (gimbalNeeded && !(e.gim > 0)) continue;
 
     const cap = maxCluster(e, unlocked, excluded);
