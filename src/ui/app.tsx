@@ -222,7 +222,7 @@ export default function RocketWorks() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [setNote]);
   const route = useMemo(
     () =>
       routeFor(
@@ -412,26 +412,31 @@ export default function RocketWorks() {
     needGimbal,
     maxAspect,
     asparagus,
+    /* Read by the solver for its geometry tables as well as by the roster
+       memos above: the two usually move together, but a toggle that leaves
+       the filtered roster the same still has to re-solve. */
+    expansions,
   ]);
 
-  const runSim = (
-    pick: (s: PlanStage) => boolean,
-    bodyName: string,
-  ): Ascent | null => {
-    const v = buildVehicleFor(stages, pick, bodyName, payloadDia);
-    if (!v) return null;
-    try {
-      const alt = orbitAlt(bodyName);
-      const r = simCached(v, alt);
-      /* A vehicle that cannot fly is worth saying out loud — silence reads as
-         "not simulated" when it actually means "this design cannot work". */
-      return r && r.ok
-        ? { ...r, veh: v, bodyName, target: alt }
-        : { ok: false, veh: v, bodyName, target: alt };
-    } catch {
-      return null;
-    }
-  };
+  const runSim = useCallback(
+    (pick: (s: PlanStage) => boolean, bodyName: string): Ascent | null => {
+      const v = buildVehicleFor(stages, pick, bodyName, payloadDia);
+      if (!v) return null;
+      try {
+        const alt = orbitAlt(bodyName);
+        const r = simCached(v, alt);
+        /* A vehicle that cannot fly is worth saying out loud — silence reads
+           as "not simulated" when it actually means "this design cannot
+           work". */
+        return r && r.ok
+          ? { ...r, veh: v, bodyName, target: alt }
+          : { ok: false, veh: v, bodyName, target: alt };
+      } catch {
+        return null;
+      }
+    },
+    [stages, payloadDia],
+  );
 
   /* Where the top of the screen actually is.
 
@@ -467,7 +472,7 @@ export default function RocketWorks() {
 
   const ascent = useMemo(
     () => runSim((s) => s.isLaunch, origin),
-    [stages, origin],
+    [runSim, origin],
   );
 
   /* Climbing back off an atmosphere deserves the same treatment as the pad —
@@ -476,7 +481,7 @@ export default function RocketWorks() {
     const leg = route.find((l) => l.kind === "ascentBack");
     if (!leg) return null;
     return runSim((s) => s.legs.some((l) => l.kind === "ascentBack"), leg.body);
-  }, [stages, route]);
+  }, [runSim, route]);
 
   const geom = useMemo(() => {
     return stackGeometry(stages, payload, payloadDia);

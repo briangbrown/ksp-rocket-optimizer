@@ -38,7 +38,7 @@ npm test           # the whole suite — see Verification below
 npm run test:bless # accept current solver output as the new baseline
 npm run test:visual # the build view drawn and the layout measured, in a real browser
 npm run typecheck  # tsc — the only type gate, see Code style
-npm run lint       # eslint, one rule: no-undef
+npm run lint       # eslint, two rules: no-undef on the JS, exhaustive-deps on src/ui
 npm run format     # prettier; format:check verifies
 ```
 
@@ -98,10 +98,12 @@ than habit:
 > in JavaScript is the configuration at the root and the two benchmark scripts
 > node runs directly.
 >
-> `npm run typecheck` is a CI step and is what stands in `no-undef`'s place —
-> eslint here has no TypeScript parser, so it lints none of the source, and
-> neither the build nor the suite can see a type error either: vite and vitest
-> both strip types with esbuild and never check them.
+> `npm run typecheck` is a CI step and is what stands in `no-undef`'s place
+> for the source — eslint reads TypeScript through Babel's parser, which knows
+> the syntax and nothing of the types, so `no-undef` would flag every
+> type-only name — and neither the build nor the suite can see a type error
+> either: vite and vitest both strip types with esbuild and never check
+> them.
 >
 > `.claude/typescript-style-guide.md` is the conventions reference. Its opening
 > section lists four rules this project deliberately breaks — read that before
@@ -122,10 +124,16 @@ than habit:
 - **Physics constants and part tables are UPPER_SNAKE.**
 - **Prettier formats everything.** `npm run format:check` verifies it, `npm run
 format` fixes it, and CI runs the former. Nothing in `src/` is excluded.
-- **eslint runs one rule, `no-undef`.** Not a style gate — prettier owns
-  formatting and the conventions above are this project's own, so a preset would
-  spend its time arguing with decisions already made. Do not add rules to it
-  without a bug they would have caught.
+- **eslint runs two rules.** `no-undef` on what is still JavaScript, and
+  `react-hooks/exhaustive-deps` on `src/ui` — the second because a memo that
+  left `asparagus` out of its dependencies shipped a share link describing a
+  different rocket from the one on screen (#430, #431). Not a style gate —
+  prettier owns formatting and the conventions above are this project's own,
+  so a preset would spend its time arguing with decisions already made. Do
+  not add rules to it without a bug they would have caught. Where a
+  dependency is left out on purpose, the disable carries the reason on the
+  same line, and there is one so far: the pace of a staging transition in
+  `build.tsx`.
 - **Comment the non-obvious physics** — where a constant came from, why a curve
   has the shape it does, which KSP behaviour is being reproduced. Not what the
   code does.

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ChevronDown,
@@ -1080,10 +1080,12 @@ function useNote(): [Note | null, (n: Note | null) => void, CSSProperties] {
       clearTimeout(gone);
     };
   }, [note]);
-  const set = (n: Note | null) => {
+  /* Stable, as a state setter is, so an effect that fires a note can list it
+     honestly without being rebuilt every render. */
+  const set = useCallback((n: Note | null) => {
     setFading(false);
     setNote(n);
-  };
+  }, []);
   return [
     note,
     set,
