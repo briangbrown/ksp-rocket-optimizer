@@ -273,6 +273,23 @@ function needFor(
   return need;
 }
 
+/* Engines this solver can size at all.
+
+   Electric propulsion needs a power plant — panels sized for the sun at the
+   far end of the mission, batteries to carry the load through eclipse, or a
+   generator where neither will do — and none of it is in the part tables or in
+   a stage's mass and cost. The 420 s clock used to keep these out by accident,
+   because a Dawn emptying the smallest xenon container burns for 834 s; #410
+   replaced the clock with an arc, the accident went with it, and the mass
+   objective started answering Eeloo with fourteen ion engines and 25-minute
+   burns whose power system nothing had paid for.
+
+   So the exclusion is made on purpose, in one place, and #415 is what lifts
+   it: model the plant, price it, and give a many-revolution burn the spiral Δv
+   it actually costs. Xenon is the marker because the catalogue's one electric
+   engine is the only thing that burns it. */
+const sizeable = (e: { f: ReadonlyArray<string> }) => !e.f.includes("Xe");
+
 function stageParamsFor(
   legs: ReadonlyArray<GroupLeg & { p0: number }>,
   lo: number,
@@ -419,6 +436,7 @@ function solveStage({
   };
 
   for (const e of engines) {
+    if (!sizeable(e)) continue;
     if (gimbalNeeded && !(e.gim > 0)) continue;
 
     const cap = maxCluster(e, unlocked, excluded);
@@ -920,6 +938,7 @@ function boostedAscent({
     cap: number;
   }> = [];
   for (const c of engines) {
+    if (!sizeable(c)) continue;
     /* A boosted core still flies through the whole atmosphere, so it needs to
        steer just as much as an unboosted one. This check was only in solveStage,
        which let a Reliant core through the moment boosters were involved. */
