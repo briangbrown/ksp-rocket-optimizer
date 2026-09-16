@@ -74,6 +74,63 @@ const ARC_MAX = Math.PI;
    between the textbook form and a burn flown prograde. */
 const ARC_FIT = 3;
 
+/* ---------------------------- flown in passes ----------------------------
+
+   A long ejection is not flown in one go. The way it is actually done is a
+   periapsis kick: burn a share of it each time round, coming back to the same
+   point of the same orbit, until the apoapsis is where it needs to be. Each
+   pass sweeps a fraction of the arc, and since the penalty goes as the square
+   of the arc while the Δv only divides, `n` passes cost the whole burn
+   `1 / n²` of what one pass costs — a 14% penalty in one pass is under 1% in
+   four.
+
+   The arithmetic falls out exactly: `n` passes of `dv/n` over `arc/n` come to
+   `dv · x / sin x` with `x = arc / (3n)`, which is `finiteBurnDv(dv, arc / n)`.
+   Splitting a burn is dividing its arc.
+
+   Two things this does not model. The orbit is more eccentric after each kick,
+   so periapsis comes round slower and the craft is moving faster through it;
+   and the passes have to fit inside whatever window the leg is flown on. Both
+   push in the direction of fewer passes than the arithmetic alone would take.
+
+   Only a transfer is flown this way. A capture has one periapsis to work with
+   and has to be bound by the end of it, an ascent and a landing are not orbital
+   burns at all, and a plane change gets two nodes an orbit rather than one. #412 */
+
+/* What one more pass has to save to be worth flying.
+
+   This is the one number in the model that trades Δv against a player's time,
+   and it is here rather than hidden in a cap because that is what it is. A
+   pass is an orbit of waiting — cheap, since a coast warps at up to 100,000×
+   — and then a burn that has to be flown attended at no more than 4× physics
+   warp. Nobody splits a burn to save five metres a second; everybody splits one
+   to save two hundred. Twenty-five is the middle of that, and it is the number
+   to move when the brief grows a control for how a mission is flown. #416 */
+const PASS_WORTH = 25;
+/* Beyond this the orbit is so eccentric that the arc per pass stops falling the
+   way the arithmetic says, and the waiting stops fitting in a window. */
+const MAX_PASSES = 8;
+
+/* What a burn costs flown in as many passes as earn their keep, and how many
+   that is. Null where no number of passes brings the arc inside what the
+   closed form stands behind. */
+function splitBurn(dv: number, arc: number) {
+  for (let n = 1; n <= MAX_PASSES; n++) {
+    const here = finiteBurnDv(dv, arc / n);
+    if (here === null) continue; // even split this far it sweeps too much
+    let passes = n,
+      applied = here;
+    while (passes < MAX_PASSES) {
+      const next = finiteBurnDv(dv, arc / (passes + 1));
+      if (next === null || applied - next < PASS_WORTH) break;
+      passes++;
+      applied = next;
+    }
+    return { applied, passes };
+  }
+  return null;
+}
+
 /* The arc a burn sweeps, in radians. */
 const burnArc = (omega: number, seconds: number) => omega * seconds;
 
@@ -266,8 +323,11 @@ export {
   STAGE_PRESSURE,
   TANK_FUNDS_DRY,
   TANK_FUNDS_PROP,
+  MAX_PASSES,
+  PASS_WORTH,
   burnArc,
   finiteBurnDv,
+  splitBurn,
   ispAt,
   ispCut,
   ispFnFor,

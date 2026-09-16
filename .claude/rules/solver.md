@@ -173,6 +173,22 @@ before changing the thing it names.
   carry no arc. And `boostedAscent` has never had a burn constraint of either
   kind. #410
 
+- **A transfer is flown in periapsis kicks; a capture is not.** Splitting a
+  burn is exactly dividing its arc — `n` passes of `dv/n` over `arc/n` sum to
+  one burn over `arc/n` — so the penalty falls as `1/n²` while the Δv only
+  divides. `splitBurn` takes another pass while one saves more than
+  `PASS_WORTH`, which at 25 m/s is the model's only trade of Δv against a
+  player's time and the number to move when the brief grows a control for it.
+  Only `kind === "transfer"` splits: a capture has one periapsis and has to be
+  bound by the end of it, an ascent and a landing are not orbital burns, and a
+  plane change gets two nodes an orbit rather than one. Two things it does not
+  model, both pushing toward fewer passes than the arithmetic alone: the orbit
+  is more eccentric after each kick, and the passes have to fit inside the
+  window the leg is flown on. And watch the threshold — the chain search is a
+  heuristic, so a lower one is not monotonically better: at 3 m/s the Eeloo cut
+  mission came out 302 t against 224 t at 25, the cheaper stages having led the
+  greedy pass into a worse chain. #412
+
 - **`best` is not what the user gets.** For an auto-stage-count launch,
   `planMission` walks `byK` cheapest-first through the ascent simulator and
   delivers the first candidate that flies. A change that leaves `best`

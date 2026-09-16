@@ -26,6 +26,7 @@ import {
   ispAt,
   finiteBurnDv,
   propellantFor,
+  splitBurn,
   scoreOf,
   stageCost,
   stageParts,
@@ -262,7 +263,8 @@ type StageParams = {
    reason. Only a candidate that is accepted ever reads it. */
 let worstArc = 0,
   worstKind = "",
-  worstBody: string | null = null;
+  worstBody: string | null = null,
+  worstPasses = 1;
 
 function needFor(
   burns: ReadonlyArray<StageBurn>,
@@ -277,20 +279,32 @@ function needFor(
   worstArc = 0;
   worstKind = "";
   worstBody = null;
+  worstPasses = 1;
   for (const b of burns) {
     const d = dv * b.share;
     let applied = d;
     if (b.omega > 0) {
       const t = (m - m * Math.exp(-d / ve)) / mdot;
       const arc = b.omega * t;
-      const grown = finiteBurnDv(d, arc);
-      if (grown === null) return null;
-      applied = grown;
+      /* A transfer is flown in periapsis kicks where they earn their keep; a
+         capture has one periapsis and has to be bound by the end of it. */
+      let passes = 1;
+      if (b.kind === "transfer") {
+        const split = splitBurn(d, arc);
+        if (split === null) return null;
+        applied = split.applied;
+        passes = split.passes;
+      } else {
+        const grown = finiteBurnDv(d, arc);
+        if (grown === null) return null;
+        applied = grown;
+      }
       if (applied - d > dearest) {
         dearest = applied - d;
         worstArc = arc;
         worstKind = b.kind;
         worstBody = b.body;
+        worstPasses = passes;
       }
     }
     need += applied;
@@ -695,6 +709,7 @@ function solveStage({
                 arc: worstArc,
                 kind: worstKind,
                 body: worstBody,
+                passes: worstPasses,
               };
           }
           scratch.engine = e;

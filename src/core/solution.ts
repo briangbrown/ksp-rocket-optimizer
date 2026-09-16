@@ -151,6 +151,9 @@ type Solution = {
     arc: number;
     kind: string;
     body: string | null;
+    /* How many periapsis passes that leg is flown in. One unless splitting it
+       earned its keep, which only a transfer can do. #412 */
+    passes: number;
   } | null;
   total: number;
   wet: number;
