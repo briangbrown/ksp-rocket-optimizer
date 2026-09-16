@@ -141,6 +141,17 @@ type Solution = {
   packed?: Pack | null;
   asparagus?: boolean;
   dropTank?: boolean;
+  /* What this stage's finite burns cost it above the impulses the route
+     budgeted, and the one leg that paid most of it — a stage flying several
+     legs makes several burns, so there is no single arc to quote. Null where
+     nothing was priced, which is every stage of a launch and every stage of a
+     group solved without a route. #411 */
+  finite?: {
+    added: number;
+    arc: number;
+    kind: string;
+    body: string | null;
+  } | null;
   total: number;
   wet: number;
   dry: number;

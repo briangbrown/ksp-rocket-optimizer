@@ -5,6 +5,24 @@ import type { ManifestRow } from "../../core/manifest.js";
 import type { PlanStage } from "../../core/plan.js";
 import type { Solution } from "../../core/solution.js";
 
+/* What a stage's finite burns cost it, and where most of it went.
+
+   A stage flying several legs makes several burns, in several orbits, so there
+   is no single arc to put beside the single burn time — the solver walks them
+   leg by leg and keeps the total and the dearest one. Below a metre a second
+   there is nothing worth a reader's attention, and most stages are there: a
+   launch sweeps no arc at all and a burn made between the planets sweeps
+   nothing worth charging for. #411 */
+const arcCost = (sol: Solution) => {
+  const f = sol.finite;
+  if (!f || f.added < 0.5) return null;
+  const deg = Math.round((f.arc * 180) / Math.PI);
+  return {
+    value: `+${fmt(f.added)} m/s`,
+    note: `${deg}° on the ${f.kind}${f.body ? ` at ${f.body}` : ""}`,
+  };
+};
+
 /* The part's name, where the row has one to give. */
 const partName = (p: ManifestRow["part"]) => (p && "n" in p ? (p.n ?? "") : "");
 
@@ -246,6 +264,17 @@ function StageStack({ stages, color, splitBy, onSetSplit }: StageStackProps) {
                                 value={`${fmt(sol.prop, 1)} t`}
                               />
                               <Stat inline label="Burn" value={hms(sol.burn)} />
+                              {(() => {
+                                const a = arcCost(sol);
+                                return a ? (
+                                  <Stat
+                                    inline
+                                    label="Arc cost"
+                                    value={a.value}
+                                    note={a.note}
+                                  />
+                                ) : null;
+                              })()}
                             </div>
                           </div>
                         ) : (
