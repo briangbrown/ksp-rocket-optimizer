@@ -530,6 +530,7 @@ export default function RocketWorks() {
       chutes,
       needGimbal,
       planeNow,
+      asparagus,
       maxAspect,
       leaveAfter,
       stay,
