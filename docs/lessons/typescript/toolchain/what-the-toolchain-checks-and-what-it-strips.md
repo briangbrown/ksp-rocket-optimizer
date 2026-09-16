@@ -267,4 +267,4 @@ types nor names, so a green build proves what each of those five tools was
 able to see and nothing more, and the typecheck step is the one place a type
 error can fail.
 
-_As of b34b81a._
+_As of 17704a5._
