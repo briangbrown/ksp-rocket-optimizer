@@ -377,24 +377,47 @@ function stageParts(
        under a 3.75 m stack, so a ring held at the tank's radius and run down
        past the engine sat 0.117 m inside it. */
     let foot = tankBase;
-    /* Outboard of the radial engines, where the column has them: they take
-       the wall first, and the ring stands against them. */
-    let ring = hold / 2 + (g.radial ? g.ed : 0);
     for (let k = sections.length - 1; k >= 0; k--) {
       if (sections[k].h <= 0) continue;
       if (sections[k].reach < hold / 2) break;
       foot -= sections[k].h;
-      if (sections[k].draw > ring) ring = sections[k].draw;
     }
-    /* Outside whatever it is bolted to, and far enough out that the ring
-       clears itself — `boosterRing` keeps both, and `stageSize` charges the
-       stage for the same radius. #420 */
-    const br = boosterRing(b.n, bd, S > 1 ? g.ringR : ring);
     /* Its real length, uncapped. It was truncated to the run it is bolted to,
        which is a part drawn at a size it is not — and it never needed to be:
        every booster the mission grid picks is shorter than the tanks it hangs
        from, so the cap only ever hid how wrong the length underneath it was. */
     const bh = boosterLength(b, bd);
+    /* The walk says how far down the foot *may* go; this says how far it can
+       go and still be held. The game holds a radially attached part by its
+       surface-attach node, and on a solid booster that node is at mid-height,
+       so the decoupler on the tank wall has to meet the booster's middle: at
+       least half of it stands beside the tanks, whatever its nozzle lines up
+       with. A Clydesdale beside three Mammoths does that from the engines'
+       base with metres to spare and lines its nozzle up with theirs, as the
+       game shows. A 1.77 m Mite beside two Boars does not: lowered to their
+       base it ran its whole length alongside the engine block and topped out
+       1.04 m below the tank, bolted to nothing, and twenty of the sweep's 119
+       boosters did the same. So the foot is the walk's answer only where the
+       booster is long enough for it, and otherwise rises until its middle is
+       level with the tank base. #86 and #109 are about how far down the foot
+       may go; this is the other half of the same joint. #438 */
+    foot = Math.max(foot, tankBase - bh / 2);
+    /* Outboard of the radial engines, where the column has them: they take
+       the wall first, and the ring stands against them. Then out past
+       whatever the booster actually runs alongside between its foot and the
+       tanks — not every section the walk passed, since a booster raised clear
+       of the engines has nothing to clear there. */
+    let ring = hold / 2 + (g.radial ? g.ed : 0);
+    let top = tankBase;
+    for (let k = sections.length - 1; k >= 0 && top > foot + 1e-9; k--) {
+      if (sections[k].h <= 0) continue;
+      if (sections[k].draw > ring) ring = sections[k].draw;
+      top -= sections[k].h;
+    }
+    /* Outside whatever it is bolted to, and far enough out that the ring
+       clears itself — `boosterRing` keeps both, and `stageSize` charges the
+       stage for the same radius. #420 */
+    const br = boosterRing(b.n, bd, S > 1 ? g.ringR : ring);
     const col = b.part.column;
     /* Numbered across the model, so two stages carrying boosters at the same
        angle are still two rings. */
