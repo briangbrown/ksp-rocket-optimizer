@@ -1,0 +1,249 @@
+{
+  "about": "Electric power parts, by tools/power-parts.mjs from a KSP install's own configs. Mass in tonnes, cost in funds, rates in units of ElectricCharge a second, stored in units. A panel's rate is its output at the homeworld's orbital distance; solar flux falls as the square of distance from the sun, which is what solarLuminosityAtHome in Physics.cfg is quoted at.",
+  "sun": {
+    "solarLuminosityAtHome": 1360,
+    "solarInsolationAtHome": 0.15
+  },
+  "panels": [
+    {
+      "id": "largeSolarPanel",
+      "n": "Gigantor XL Solar Array",
+      "m": 0.3,
+      "cost": 3000,
+      "t": "High-Power Electrics",
+      "rate": 24.4,
+      "tracks": true,
+      "breakable": true
+    },
+    {
+      "id": "solarPanelOX10C",
+      "n": "OX-10C Photovoltaic Panels",
+      "m": 0.09,
+      "cost": 1200,
+      "t": "High-Power Electrics",
+      "rate": 8.25,
+      "tracks": true,
+      "breakable": true
+    },
+    {
+      "id": "solarPanelOX10L",
+      "n": "OX-10L 1x5 Photovoltaic Panels",
+      "m": 0.09,
+      "cost": 1200,
+      "t": "High-Power Electrics",
+      "rate": 8.25,
+      "tracks": true,
+      "breakable": true
+    },
+    {
+      "id": "solarPanels4",
+      "n": "OX-4L 1x6 Photovoltaic Panels",
+      "m": 0.0175,
+      "cost": 380,
+      "t": "Advanced Electrics",
+      "rate": 1.64,
+      "tracks": true,
+      "breakable": true
+    },
+    {
+      "id": "solarPanels3",
+      "n": "OX-4W 3x2 Photovoltaic Panels",
+      "m": 0.0175,
+      "cost": 380,
+      "t": "Advanced Electrics",
+      "rate": 1.64,
+      "tracks": true,
+      "breakable": true
+    },
+    {
+      "id": "solarPanels5",
+      "n": "OX-STAT Photovoltaic Panels",
+      "m": 0.005,
+      "cost": 75,
+      "t": "Electrics",
+      "rate": 0.35,
+      "tracks": false,
+      "breakable": false
+    },
+    {
+      "id": "LgRadialSolarPanel",
+      "n": "OX-STAT-XL Photovoltaic Panels",
+      "m": 0.04,
+      "cost": 600,
+      "t": "Advanced Electrics",
+      "rate": 2.8,
+      "tracks": false,
+      "breakable": false
+    },
+    {
+      "id": "solarPanelSP10C",
+      "n": "SP-10C Photovoltaic Panels",
+      "m": 0.13,
+      "cost": 1400,
+      "t": "High-Power Electrics",
+      "rate": 8.25,
+      "tracks": true,
+      "breakable": true
+    },
+    {
+      "id": "solarPanelSP10L",
+      "n": "SP-10L 1x5 Photovoltaic Panels",
+      "m": 0.13,
+      "cost": 1400,
+      "t": "High-Power Electrics",
+      "rate": 8.25,
+      "tracks": true,
+      "breakable": true
+    },
+    {
+      "id": "solarPanels2",
+      "n": "SP-L 1x6 Photovoltaic Panels",
+      "m": 0.025,
+      "cost": 440,
+      "t": "Advanced Electrics",
+      "rate": 1.64,
+      "tracks": true,
+      "breakable": true
+    },
+    {
+      "id": "solarPanels1",
+      "n": "SP-W 3x2 Photovoltaic Panels",
+      "m": 0.025,
+      "cost": 440,
+      "t": "Advanced Electrics",
+      "rate": 1.64,
+      "tracks": true,
+      "breakable": true
+    }
+  ],
+  "cells": [
+    {
+      "id": "FuelCell",
+      "n": "Fuel Cell",
+      "m": 0.05,
+      "cost": 750,
+      "t": "High-Power Electrics",
+      "rate": 1.5,
+      "burns": [
+        {
+          "r": "LiquidFuel",
+          "rate": 0.0016875
+        },
+        {
+          "r": "Oxidizer",
+          "rate": 0.0020625
+        }
+      ]
+    },
+    {
+      "id": "FuelCellArray",
+      "n": "Fuel Cell Array",
+      "m": 0.24,
+      "cost": 4500,
+      "t": "Specialized Electrics",
+      "rate": 18,
+      "burns": [
+        {
+          "r": "LiquidFuel",
+          "rate": 0.02025
+        },
+        {
+          "r": "Oxidizer",
+          "rate": 0.02475
+        }
+      ]
+    },
+    {
+      "id": "restock-apu-radial-1",
+      "n": "restock-apu-radial-1",
+      "m": 0.075,
+      "cost": 700,
+      "t": "Specialized Electrics",
+      "rate": 1.5,
+      "burns": [
+        {
+          "r": "MonoPropellant",
+          "rate": 0.006
+        }
+      ]
+    }
+  ],
+  "batteries": [
+    {
+      "id": "restock-battery-1875-1",
+      "n": "restock-battery-1875-1",
+      "m": 0.125,
+      "cost": 2800,
+      "t": "High-Power Electrics",
+      "stored": 2500
+    },
+    {
+      "id": "restock-battery-375-1",
+      "n": "restock-battery-375-1",
+      "m": 0.5,
+      "cost": 11250,
+      "t": "Experimental Electrics",
+      "stored": 10000
+    },
+    {
+      "id": "batteryPack",
+      "n": "Z-100 Rechargeable Battery Pack",
+      "m": 0.005,
+      "cost": 80,
+      "t": "Basic Science",
+      "stored": 100
+    },
+    {
+      "id": "batteryBank",
+      "n": "Z-1k Rechargeable Battery Bank",
+      "m": 0.05,
+      "cost": 880,
+      "t": "High-Power Electrics",
+      "stored": 1000
+    },
+    {
+      "id": "batteryBankMini",
+      "n": "Z-200 Rechargeable Battery Bank",
+      "m": 0.01,
+      "cost": 360,
+      "t": "Electrics",
+      "stored": 200
+    },
+    {
+      "id": "ksp_r_largeBatteryPack",
+      "n": "Z-400 Rechargeable Battery",
+      "m": 0.02,
+      "cost": 550,
+      "t": "Advanced Electrics",
+      "stored": 400
+    },
+    {
+      "id": "batteryBankLarge",
+      "n": "Z-4K Rechargeable Battery Bank",
+      "m": 0.2,
+      "cost": 4500,
+      "t": "Specialized Electrics",
+      "stored": 4000
+    }
+  ],
+  "generators": [
+    {
+      "id": "rtg",
+      "n": "PB-NUK Radioisotope Thermoelectric Generator",
+      "m": 0.08,
+      "cost": 23300,
+      "t": "Experimental Electrics",
+      "rate": 0.75
+    }
+  ],
+  "engines": [
+    {
+      "id": "ionEngine",
+      "n": "IX-6315 \"Dawn\" Electric Propulsion System",
+      "m": 0.25,
+      "cost": 8000,
+      "t": "Ion Propulsion",
+      "draw": 8.7404
+    }
+  ]
+}
