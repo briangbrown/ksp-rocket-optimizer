@@ -212,7 +212,14 @@ const landingFloor = (g: number, p0: number) =>
    `share` is a fraction of the stage's own requirement and the shares sum to 1;
    `omega` is zero where the leg is not a spread impulse — an ascent, a landing,
    an aerobrake — or where the caller gave no route. #410 */
-type StageBurn = { share: number; omega: number };
+type StageBurn = {
+  share: number;
+  omega: number;
+  /* What the leg is and where, so a stage can say which of its burns the arc
+     cost went on rather than quoting one number for several. */
+  kind: string;
+  body: string | null;
+};
 
 type StageParams = {
   twrMin: number;
@@ -249,6 +256,14 @@ type StageParams = {
    split n ways is charged about n times less than it should be. The legs that
    are split most are the ascents, which carry no arc at all; see
    .claude/rules/solver.md. #410 */
+/* The leg the last walk spent most of its arc cost on. Module scratch rather
+   than a returned object: the walk runs once per candidate in the widest loop
+   in the program, and `solveStage` reuses a scratch Solution for the same
+   reason. Only a candidate that is accepted ever reads it. */
+let worstArc = 0,
+  worstKind = "",
+  worstBody: string | null = null;
+
 function needFor(
   burns: ReadonlyArray<StageBurn>,
   dv: number,
@@ -257,15 +272,26 @@ function needFor(
   mdot: number,
 ) {
   let m = m0,
-    need = 0;
+    need = 0,
+    dearest = -1;
+  worstArc = 0;
+  worstKind = "";
+  worstBody = null;
   for (const b of burns) {
     const d = dv * b.share;
     let applied = d;
     if (b.omega > 0) {
       const t = (m - m * Math.exp(-d / ve)) / mdot;
-      const grown = finiteBurnDv(d, b.omega * t);
+      const arc = b.omega * t;
+      const grown = finiteBurnDv(d, arc);
       if (grown === null) return null;
       applied = grown;
+      if (applied - d > dearest) {
+        dearest = applied - d;
+        worstArc = arc;
+        worstKind = b.kind;
+        worstBody = b.body;
+      }
     }
     need += applied;
     m *= Math.exp(-applied / ve);
@@ -322,6 +348,8 @@ function stageParamsFor(
       burns.push({
         share: (Math.min(hi, l.end) - Math.max(lo, s0)) / span,
         omega: l.orbit ? omegaOf(l.orbit) : 0,
+        kind: l.kind,
+        body: l.orbit ? l.orbit.body : l.body,
       });
     if (startIx < 0) {
       startIx = j;
@@ -413,7 +441,15 @@ function solveStage({
      rather than the `for...in` this used to be — the scratch is a plain object
      literal with nothing on its prototype, so the two copy exactly the same
      properties. */
-  const keep = (c: Solution): Solution => ({ ...c });
+  /* The scratch candidate carries `finite` on every pass so its shape stays
+     the same one; a stage that paid nothing drops the key on the way out, so a
+     launch — which sweeps no arc at all — looks exactly as it did before there
+     was such a thing to carry. #411 */
+  const keep = (c: Solution): Solution => {
+    const out = { ...c };
+    if (out.finite == null) delete out.finite;
+    return out;
+  };
   const consider = (cand: Solution) => {
     if (!cand) return;
     TALLY.stages++;
@@ -646,12 +682,20 @@ function solveStage({
           /* Only the pad still keeps a clock, and only a group with no route
              at all keeps the old vacuum one. */
           if (burn > maxBurn) continue;
+          let finite: Solution["finite"] = null;
           if (anyArc) {
             const need = needFor(burns, dv, m0, ispE * G0, mdot);
             /* An arc past what the closed form stands behind: refused, which
                is what the 420 s clock used to do and on the right measure. */
             if (need === null) continue;
             if (got < need * 0.995) continue;
+            if (need > dv)
+              finite = {
+                added: need - dv,
+                arc: worstArc,
+                kind: worstKind,
+                body: worstBody,
+              };
           }
           scratch.engine = e;
           scratch.n = n;
@@ -674,6 +718,7 @@ function solveStage({
           scratch.twrBurnout = thrust / (mf * g);
           scratch.prop = tk.prop + adapt.prop;
           scratch.isp = Math.round(ispE);
+          scratch.finite = finite;
           consider(scratch);
         }
       }
