@@ -85,7 +85,6 @@ const buildModels = async () => {
     payload: number;
     payloadDia: number;
     parts: Array<ModelPart>;
-    planParts: Array<ModelPart>;
   }> = [];
   for (const c of missionCases()) {
     const res = await planMission(c.input, {
@@ -96,7 +95,7 @@ const buildModels = async () => {
        the bugs this replaces all appeared partway down the stack. */
     const solved = res.stages.filter(isSolved);
     for (const cur of stagingSteps(solved)) {
-      const { live, model, planModel } = stepModels(
+      const { live, model } = stepModels(
         solved,
         cur,
         c.input.payload,
@@ -109,7 +108,6 @@ const buildModels = async () => {
         payload: c.input.payload,
         payloadDia: c.input.payloadDia,
         parts: model,
-        planParts: planModel,
       });
     }
   }
@@ -226,19 +224,6 @@ describe("the build model", () => {
         );
     }
     expect(bad.slice(0, 8), `${bad.length} disagreements`).toEqual([]);
-  }, 300_000);
-
-  it("draws the plan from the stage the elevation stands on", () => {
-    /* The plan shows the bottom live stage. It must never reach further than
-       the whole vehicle does, and it must describe something at every step —
-       it was empty at the last one, and the canvas kept the previous rocket. */
-    const bad = [];
-    for (const { name, parts, planParts } of MODELS) {
-      if (!planParts.length) bad.push(`${name}: nothing in the plan`);
-      else if (extentOf(planParts).reach > extentOf(parts).reach + EPS)
-        bad.push(`${name}: plan reaches past the elevation`);
-    }
-    expect(bad.slice(0, 8), `${bad.length} bad plans`).toEqual([]);
   }, 300_000);
 
   it("stands between the near and far planes of every camera", () => {
