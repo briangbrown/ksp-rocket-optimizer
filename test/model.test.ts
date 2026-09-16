@@ -320,6 +320,61 @@ describe("the build model", () => {
     expect(bad.slice(0, 6), `${bad.length} floating boosters`).toEqual([]);
   }, 300_000);
 
+  it("stands at least half of every ring part beside the tanks", () => {
+    /* The game holds a radially attached part by its surface-attach node,
+       which on a solid booster is at mid-height, and the decoupler that node
+       meets is on a tank wall. So the booster's middle has to be level with
+       the tank run: at least half of it beside the tanks, or the whole run
+       where the run is the shorter.
+
+       The check above asks whether the *foot* stands against something, and
+       the foot can be against the engine block with the whole booster below
+       the tanks — a 1.77 m Mite beside two Boars stood on the engines' base
+       with its top 1.04 m short of the tank, and 20 of the sweep's 119
+       boosters did the same. Third face of one joint (#86, #109, #438), and
+       the check none of the three had: a part bolted to something is touching
+       it. */
+    const bad = [];
+    let checked = 0;
+    for (const { name, parts } of MODELS) {
+      /* A liquid column is several shapes on one ring number; the ring as a
+         whole is what has to reach. */
+      const rings = new Map<
+        number,
+        { lo: number; hi: number; stage: number }
+      >();
+      for (const p of parts) {
+        if (p.ring === undefined) continue;
+        const r = rings.get(p.ring);
+        if (!r)
+          rings.set(p.ring, { lo: p.y, hi: p.y + p.h, stage: p.stage ?? 0 });
+        else {
+          r.lo = Math.min(r.lo, p.y);
+          r.hi = Math.max(r.hi, p.y + p.h);
+        }
+      }
+      for (const [ring, r] of rings) {
+        checked++;
+        const tanks = parts.filter(
+          (t) =>
+            t.ring === undefined && t.role === "tank" && t.stage === r.stage,
+        );
+        const runLo = Math.min(...tanks.map((t) => t.y));
+        const runHi = Math.max(...tanks.map((t) => t.y + t.h));
+        const beside = Math.min(r.hi, runHi) - Math.max(r.lo, runLo);
+        const need = Math.min((r.hi - r.lo) / 2, runHi - runLo);
+        if (beside < need - EPS)
+          bad.push(
+            `${name}: ring ${ring} spans y ${r.lo.toFixed(2)}–${r.hi.toFixed(2)}, the tanks ${runLo.toFixed(2)}–${runHi.toFixed(2)}: ${beside.toFixed(2)} m beside them, ${need.toFixed(2)} needed`,
+          );
+      }
+    }
+    expect(checked, "no rings in the grid to check").toBeGreaterThan(4);
+    expect(bad.slice(0, 8), `${bad.length} rings not held by a tank`).toEqual(
+      [],
+    );
+  }, 300_000);
+
   it("draws a tank run tank by tank, not as one tube", () => {
     /* Two tanks of the same diameter stacked end to end are continuous in depth
        and in normals, so the outline pass finds that seam by surface id or not
@@ -495,5 +550,53 @@ describe("a booster beside a wide engine", () => {
     const b = boosters[0];
     const inner = Math.hypot(b.x, b.z) - b.r;
     expect((inner - (engine.r + 0)) / inner).toBeLessThan(CLEAR);
+  });
+});
+
+describe("a booster too short to reach the tanks from the engine's base", () => {
+  /* The same stage with a 1.77 m Mite in place of the 11 m Castor. The walk
+     still says the foot may go to the Mammoth's base — the engine is as wide as
+     the tanks — but a Mite stood there runs its whole length beside the engine
+     and never reaches the tank wall its decoupler is on. #438 */
+  const MITE = named(DATA.engines, "Mite");
+  const SHORT: Solution = {
+    ...STRAPPED,
+    boosters: { ...STRAPPED.boosters!, part: MITE, n: 2 },
+  };
+
+  it("is raised until its middle is level with the tank base", () => {
+    const parts = modelOf([{ sol: SHORT }], 5, 2.5);
+    const engine = must(
+      parts.find((p) => p.role === "engine" && !p.ring),
+      "the engine",
+    );
+    const tankBase = Math.min(
+      ...parts.filter((p) => p.role === "tank" && !p.ring).map((p) => p.y),
+    );
+    const boosters = parts.filter((p) => p.ring !== undefined);
+    expect(boosters.length, "no boosters drawn").toBe(2);
+    for (const b of boosters) {
+      /* Short enough that the rule bites: standing on the base, the whole
+         booster would be below the tanks. */
+      expect(b.h).toBeLessThan(engine.h);
+      expect(b.y + b.h / 2).toBeCloseTo(tankBase, 6);
+      expect(b.y).toBeGreaterThan(engine.y);
+    }
+  });
+
+  it("still clears the bells its lower half runs alongside", () => {
+    /* Raised, the Mite's middle is at the tank base, so its lower half is
+       still beside the top of the Mammoth's bells — 3.98 m across under a
+       3.75 m stack — and has to stand off them exactly as the Castor does.
+       Only a booster raised clear of a section altogether stops clearing it. */
+    const parts = modelOf([{ sol: SHORT }], 5, 2.5);
+    const engine = must(
+      parts.find((p) => p.role === "engine" && !p.ring),
+      "the engine",
+    );
+    const b = parts.find((p) => p.ring !== undefined)!;
+    const inner = Math.hypot(b.x, b.z) - b.r;
+    expect(inner).toBeGreaterThanOrEqual(engine.r - EPS);
+    expect(b.y).toBeLessThan(engine.y + engine.h);
   });
 });

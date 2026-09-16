@@ -21,6 +21,20 @@ before changing the thing it names.
   of something rather than sitting under it. `isRadial` is the distinction, not
   a tolerance. #109
 
+- **A booster's foot has two bounds, and the walk is only one of them.** The
+  walk down from the tanks says how far the foot _may_ go — past every section
+  as wide as the tank. It says nothing about whether the booster, once
+  lowered, still reaches anything: a 1.77 m Mite beside two Boars stood on the
+  engines' base with its top a metre below the tank, and 20 of the sweep's 94
+  rings did the same. The game holds a radial part by its surface-attach node,
+  which on a solid booster is at mid-height, so the other bound is
+  `tankBase − bh / 2`: at least half the booster stands beside the tanks, and
+  the nozzle lines up with the engines' only where the booster is long enough
+  for it. The standoff is then taken over the sections the raised booster
+  actually runs alongside, not every section the walk passed.
+  `test/model.test.ts` holds the rule over every ring in the grid. Third face
+  of one joint after #86 and #109. #438
+
 - **A radial engine is beside the tank, in `stageGeom` as in the drawing.**
   Its stage spans the tank and an engine either side (`td + 2·ed`), and the
   stack is longer only by what hangs below the tank — `RADIAL_HANG`, a
