@@ -1,6 +1,7 @@
 import { TALLY } from "./tally.js";
 import { BODY, atmoFor } from "./atmosphere.js";
-import { omegaOf } from "./orbits.js";
+import { SYS, omegaOf } from "./orbits.js";
+import { darkFraction } from "./power.js";
 import { G0 } from "./constants.js";
 import {
   heightOf,
@@ -233,6 +234,10 @@ type StageParams = {
   maxBurn: number;
   mounts: boolean;
   burns: ReadonlyArray<StageBurn>;
+  /* Where a power plant would have to work: the least sunlight any of this
+     stage's burns is made in, and the worst shadow it has to cross. Only an
+     electric engine reads it, and none is offered yet. #414 */
+  power: { flux: number; dark: number; period: number };
 };
 
 /* What a stage must carry to deliver `dv` across the legs it flies.
@@ -351,6 +356,13 @@ function stageParamsFor(
      of each end — and each piece is a separate burn in its own orbit. #418 */
   const span = hi - lo;
   const burns: Array<StageBurn> = [];
+  /* A plant that cannot run at the farthest point the stage burns cannot fly
+     the mission, so the worst of them is what it is sized for. A burn made in
+     solar orbit is its own distance from the sun and has nothing to hide
+     behind; one made about a body takes that body's distance and shadow. */
+  let flux = 1,
+    dark = 0,
+    period = 0;
   legs.forEach((l, j) => {
     const s0 = start;
     start = l.end;
@@ -365,6 +377,19 @@ function stageParamsFor(
         kind: l.kind,
         body: l.orbit ? l.orbit.body : l.body,
       });
+    if (l.orbit) {
+      const b = l.orbit.body;
+      const sun = b === "Sun" ? l.orbit.r : (SYS[b]?.sma ?? NaN);
+      if (isFinite(sun) && sun > 0) {
+        const f = (SYS.Kerbin.sma! / sun) ** 2;
+        if (f < flux) flux = f;
+      }
+      const shade = b === "Sun" ? 0 : darkFraction(SYS[b].R, l.orbit.r);
+      if (shade > dark) {
+        dark = shade;
+        period = (2 * Math.PI) / omegaOf(l.orbit);
+      }
+    }
     if (startIx < 0) {
       startIx = j;
       if (climbs) {
@@ -400,6 +425,7 @@ function stageParamsFor(
     maxBurn: pSt > 0.5 ? 200 : Infinity,
     mounts,
     burns,
+    power: { flux, dark, period },
   };
 }
 
@@ -1732,6 +1758,7 @@ function solveUnit(
                      design grid takes, and it is why that baseline cannot
                      move under this change. */
                   burns: [],
+                  power: { flux: 1, dark: 0, period: 0 },
                   twrMin: bottom ? twrBottom : twrUpper,
                   g,
                   pRef: pSurf * STAGE_PRESSURE[Math.min(i, 3)],
