@@ -143,6 +143,34 @@ keeps only what a power plant is made of. Three ReStock+ parts arrive named by
 their id because that mod keeps its strings in a Localization folder the pack
 does not take; the tool says which.
 
+## Radial parts — the standoff
+
+Anything bolted to the side of a stack stands off it by the thickness of what
+holds it — a booster on a TT-38K, a packed tank on a TT-38K braced with a
+cubic strut — and the model places every one of them flush (#422). And a
+radial part hangs from its surface-attach node, so where that node sits along
+a booster decides how high the booster can hang (#438). Neither number is in
+`src/data/` yet: `structure.json` carries `d: null` for every radial
+decoupler and `geometry.json` has no entry for them.
+
+1. On the machine with the install, from a PowerShell prompt in the KSP root
+   (the folder with `GameData` in it):
+
+       powershell -ExecutionPolicy Bypass -File tools\pack-radial.ps1
+
+   It writes `ksp-radial-parts.zip` into that same folder: every `.cfg` that
+   mentions `ModuleAnchoredDecoupler` (the radial decouplers and the
+   manifold), `strutCube` (the cubic strut), a `SolidFuel` propellant (every
+   solid booster) or a `node_attach` line, every ReStock patch, and
+   `PartDatabase.cfg` from the root. A few megabytes; no meshes and no
+   textures. `PartDatabase.cfg` is the one that matters — the game writes it
+   on first launch and it holds every part's measured bounding box — so if the
+   script says it is missing, run the game once and pack again.
+
+2. Here: the reader for this pack is written against the pack once it has
+   arrived, so that it is tested on what the install actually holds rather
+   than on what a config is remembered to say. #422 is the issue.
+
 ## The icon — `public/favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`
 
 The nut (#206): a hex nut framing a rocket in Kerbin's teal, drawn once as
