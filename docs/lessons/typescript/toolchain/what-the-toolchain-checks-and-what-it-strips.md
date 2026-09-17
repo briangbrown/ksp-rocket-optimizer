@@ -5,11 +5,12 @@
 **Why it matters:** Knowing which tool sees what matters because a green build
 here is five tools in a row, and only one of them reads the types: Vite and
 vitest hand every TypeScript file to esbuild, which strips the annotations
-and never checks them, eslint has no TypeScript parser and lints none of the
-source, and Node itself now runs a `.ts` file by stripping it too, so a
-string assigned to a `number` builds, bundles, passes the suite and runs,
-and fails only in `tsc` or at the call that expected a number; where a bug
-can hide is decided by which tool was given the chance to see it.
+and never checks them, eslint reads the source through a parser that knows
+the syntax and none of the types, and Node itself now runs a `.ts` file by
+stripping it too, so a string assigned to a `number` builds, bundles, passes
+the suite and runs, and fails only in `tsc` or at the call that expected a
+number; where a bug can hide is decided by which tool was given the chance to
+see it.
 
 **Before this:** nothing in particular. The syllabus rows on
 [L2](../types/discriminated-unions-and-narrowing.md), _Discriminated unions
@@ -29,10 +30,10 @@ Read the first row across. esbuild removes `: number` and emits the rest; a
 vitest test containing that line passes, and asserting that `dv` is a
 string passes too. `tsc` is the one tool that reads the annotation and
 refuses. Node 24 strips the types the same way esbuild does and runs the
-file until the string is asked for a method it does not have. eslint never
-sees the file at all: its configuration lints `*.js` at the root and the
-two benchmark scripts, and on a `.ts` file it reports "File ignored because
-no matching configuration was supplied".
+file until the string is asked for a method it does not have. eslint's
+`no-undef` never sees the file: that rule runs on `*.js` at the root and the
+two benchmark scripts, and on a `.ts` file outside `src/ui` eslint reports
+"File ignored because no matching configuration was supplied".
 
 The second row is why eslint is still there. An undefined name is not a
 type error to esbuild, which resolves no names across scopes and emits the
@@ -84,14 +85,23 @@ file-by-file conversion of the source to TypeScript was held to its
 snapshot precisely because none of the other tools would have noticed a
 converted file changing its meaning.
 
-eslint is a different kind of check, and here a narrow one. It runs one
-rule, `no-undef`, because that rule catches a class of bug esbuild
-compiles happily: a constant referenced before its definition, a helper
-renamed in one place and not the other, a variable used outside its scope.
-But eslint parses with its own parser, which does not read TypeScript, so
-it lints only the JavaScript that is left, the configuration at the root and
-the two benchmark scripts; for the source, `tsc` stands in `no-undef`'s
-place and finds a good deal more besides. Prettier is the fourth tool and
+eslint is a different kind of check, and here a narrow one: two rules, each
+with a bug behind it. `no-undef` catches a class of bug esbuild compiles
+happily — a constant referenced before its definition, a helper renamed in
+one place and not the other, a variable used outside its scope — and runs on
+the JavaScript that is left, the configuration at the root and the two
+benchmark scripts; for the source, `tsc` stands in its place and finds a
+good deal more besides. `react-hooks/exhaustive-deps` catches a hook whose
+dependency list leaves out something its body reads, and runs on `src/ui`.
+For that, eslint has to read TypeScript, and how it does so is the point of
+this lesson in miniature: the parser is Babel's, which knows TypeScript's
+_syntax_ and nothing of its types — enough to see which names an effect
+reads and which its array lists, which is all the rule needs. The parser
+that does know the types, `@typescript-eslint`, is built on the TypeScript
+compiler's JavaScript API, and the compiler here is 7, the native one,
+which ships no such API. So even the linter that reads the source is a
+stripper, not a gate, and `no-undef` is not run on what it parses: without
+types it would flag every type-only name. Prettier is the fourth tool and
 reads neither types nor names: it reformats, and the check is that
 reformatting changes nothing.
 
@@ -99,7 +109,8 @@ reformatting changes nothing.
    tool          reads types?   resolves names?   what a pass proves
    ─────────     ────────────   ───────────────   ────────────────────────────────────────────
    prettier      no             no                the file is formatted
-   eslint        no (.js only)  yes               no undefined name in root *.js and perf/*.mjs
+   eslint        no             yes (.js)         no undefined name in root *.js and perf/*.mjs
+                 no (syntax)    within a hook     every name a hook in src/ui reads is in its list
    tsc           YES            yes               the program type-checks — the one gate
    vitest        no (esbuild)   no                the tests' assertions hold on stripped code
    vite build    no (esbuild)   no                the syntax parsed and the imports resolved
@@ -124,16 +135,19 @@ runs them in that order, with a comment on each step saying why it stands
 where it does; the Typecheck step's is the rule in one sentence:
 
 ```yaml
-# ... a file that has been converted to TypeScript is not linted at all —
-# eslint here has no TS parser — so this is what stands in `no-undef`'s
-# place for it, and finds a good deal more besides. Neither the build nor
-# the suite can see any of it: vite and vitest both strip types with
-# esbuild and never check them. #11
+# ... eslint reads the TypeScript through Babel's parser, which knows the
+# syntax and none of the types, so `no-undef` is not run on it — this is
+# what stands in its place for the source, and finds a good deal more
+# besides. Neither the build nor the suite can see any of it: vite and
+# vitest both strip types with esbuild and never check them. #11
 ```
 
-[`eslint.config.js`](../../../../eslint.config.js) is one rule over
-`["*.js", "perf/**/*.mjs"]`, and its comment records what moved to
-`tsconfig.json` when the source became TypeScript.
+[`eslint.config.js`](../../../../eslint.config.js) is `no-undef` over
+`["*.js", "perf/**/*.mjs"]` and `react-hooks/exhaustive-deps` over
+`src/ui`, the second read through `@babel/eslint-parser` with the
+`typescript` parser plugin — and `jsx` as well for `.tsx`, kept off `.ts`
+because with it a generic arrow's `<T>` is a tag. Its comment says why the
+TypeScript-aware parser is not an option here.
 [`tsconfig.json`](../../../../tsconfig.json) is the gate's configuration:
 `strict`, `noEmit`, `isolatedModules` and `verbatimModuleSyntax`, which keep
 every file strippable one at a time, `noUnusedLocals` and
@@ -163,6 +177,16 @@ The formatter's place in the order has its own number: `CLAUDE.md` said the
 format check ran in CI before it did, and an export list went eight
 characters over and reached a pull request unnoticed, #111.
 
+The second lint rule has its own as well. `configText` in `app.tsx`
+serialised `asparagus` into the configuration string and left it out of the
+memo's dependency list, so toggling asparagus never rewrote the string, and
+a link shared from that page described the previous rocket while the page
+solved the new one (#430). `exhaustive-deps` is the rule that reads exactly
+that, and it was not running because eslint read no TypeScript; switched on
+over `src/ui` it found the same fault in eight more hooks, one of them the
+solve effect itself, which did not list `expansions` (#431). With the memo
+put back the way it was, the rule reports it in under a second.
+
 ## Where it breaks
 
 - **Believing a green `vite build`.** It proves syntax and imports. A type
@@ -173,12 +197,16 @@ characters over and reached a pull request unnoticed, #111.
   it is the ordinary case.
 - **Running a `.ts` script with Node and calling it checked.** Node strips.
   Run `tsc --noEmit` on it, or put it under the `include` the gate reads.
-- **Adding a lint rule for a style preference.** The one rule is a
+- **Adding a lint rule for a style preference.** The two rules are a
   correctness gate; prettier owns formatting and the conventions are this
   project's own. Add a rule only with a bug it would have caught.
 - **A `.ts` file eslint quietly ignores.** "File ignored" is a warning, not
-  an error, and `eslint .` exits clean over the whole source. `tsc` is the
-  check for it.
+  an error, and `eslint .` exits clean over `src/core`, `test/` and
+  `visual/`, none of which it reads. `tsc` is the check for them.
+- **Mistaking the linter's parser for a type gate.** Babel reads the
+  syntax; a rule that needs a type — is this callback stable, is this value
+  a ref — cannot be run on it, and `exhaustive-deps` is chosen because it
+  needs none.
 
 ## Try it
 
@@ -200,14 +228,15 @@ program's types and can see that a string was assigned to a number.
 
 </details>
 
-<details><summary>eslint runs one rule here. What class of bug does it catch, and why does it catch it only in JavaScript?</summary>
+<details><summary>eslint runs two rules here. Why is <code>no-undef</code> run only on the JavaScript, when eslint does read the TypeScript for the other rule?</summary>
 
-An undefined name: a constant used before its definition, a helper renamed
-in one place, a variable outside its scope, all of which esbuild emits
-happily because it resolves no names across scopes. eslint here has no
-TypeScript parser, so it sees only the `.js` and `.mjs` files its
-configuration names; for the TypeScript source, `tsc` finds the same bugs
-and more.
+Because it reads the TypeScript through Babel's parser, which knows the
+syntax and none of the types. `no-undef` asks whether every name is
+declared, and in TypeScript half the names are types — an interface, a
+type alias, a generic parameter — that a syntax-only parser cannot resolve,
+so the rule would flag the whole source. `exhaustive-deps` asks only which
+names a hook's body reads and which its array lists, which is syntax; and
+for the undefined names in the source, `tsc` finds them and more.
 
 </details>
 
@@ -233,9 +262,9 @@ only tool able to say so.
 ## Key takeaway
 
 Only `tsc` reads the types: Vite, vitest and Node strip them with no check,
-eslint parses no TypeScript at all, and prettier reads neither types nor
-names, so a green build proves what each of those five tools was able to
-see and nothing more, and the typecheck step is the one place a type error
-can fail.
+eslint reads the syntax and none of the types, and prettier reads neither
+types nor names, so a green build proves what each of those five tools was
+able to see and nothing more, and the typecheck step is the one place a type
+error can fail.
 
-_As of b34b81a._
+_As of 17704a5._

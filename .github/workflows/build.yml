@@ -79,16 +79,20 @@ jobs:
 
       # Before the tests: no-undef finds in a second what the suite can only
       # find if its grid happens to reach the branch. esbuild resolves no
-      # cross-scope names, so the build is no help at all here.
+      # cross-scope names, so the build is no help at all here. And
+      # exhaustive-deps, over src/ui, finds the hook whose dependency list
+      # leaves out something it reads — which no test saw until a share link
+      # described a different rocket from the one on screen. #431
       - name: Lint
         if: needs.changes.outputs.docs-only != 'true'
         run: npm run lint
 
-      # And the same argument, one step further: a file that has been converted
-      # to TypeScript is not linted at all — eslint here has no TS parser — so
-      # this is what stands in `no-undef`'s place for it, and finds a good deal
-      # more besides. Neither the build nor the suite can see any of it: vite
-      # and vitest both strip types with esbuild and never check them. #11
+      # And the same argument, one step further: eslint reads the TypeScript
+      # through Babel's parser, which knows the syntax and none of the types,
+      # so `no-undef` is not run on it — this is what stands in its place for
+      # the source, and finds a good deal more besides. Neither the build nor
+      # the suite can see any of it: vite and vitest both strip types with
+      # esbuild and never check them. #11
       - name: Typecheck
         if: needs.changes.outputs.docs-only != 'true'
         run: npm run typecheck

@@ -13,6 +13,7 @@ import { Maximize, Minimize, Pause, Play } from "lucide-react";
 
 import { payloadDiaOf, stackGeometry } from "../../core/geometry.js";
 import { extentOf, modelOf } from "../../core/model.js";
+import type { Extent } from "../views.js";
 import { stageCost, stageParts } from "../../core/performance.js";
 import { missionSignature } from "../../core/signature.js";
 import { fmt } from "../format.js";
@@ -107,6 +108,16 @@ const NoWebGL = () => (
    property of the solver — `planMission` knows nothing about a boosters-away
    step — so a test that slices the stages itself is checking a rocket the
    application never shows. #63 step 4. */
+/* What a phone panel holding a view needs: its width over its height in
+   metres, or the plan, which is square. A floor on the width so a very small
+   rocket still gets a panel with room in it. Pure in the extent it is handed,
+   so the memo that samples nine of them can say what it depends on. */
+const paneOf = (view: string, of: Extent) => {
+  if (view === "plan") return "plan" as const;
+  const n = framing(view, of);
+  return { aspect: Math.max(1, n.w * 2) / Math.max(0.1, n.h * 2) };
+};
+
 export function stagingSteps(solved: ReadonlyArray<SolvedStage>) {
   const steps: Array<Step> = [{ label: "On the pad", drop: 0, boost: true }];
   if (solved.length && solved[0].sol.boosters)
@@ -422,11 +433,12 @@ function BuildView({
       return;
     }
     setAnim({ a: lo, t: back ? 1 : 0 });
-    /* Read here and deliberately not a dependency: the pace belongs to the
-       transition that is running, not to the state of the button. Stopping
-       mid-play changes `playing` and `goal` without changing which pair of
-       steps is in flight, so this effect is not rebuilt and the separation
-       finishes at the speed it began. */
+    /* Read here and deliberately not a dependency — the disable below is
+       this sentence: the pace belongs to the transition that is running, not
+       to the state of the button. Stopping mid-play changes `playing` and
+       `goal` without changing which pair of steps is in flight, so this
+       effect is not rebuilt and the separation finishes at the speed it
+       began. */
     const ms = playing ? PLAY_MS : STEP_MS;
     const t0 = performance.now();
     let id = requestAnimationFrame(function tick(now: number) {
@@ -441,6 +453,7 @@ function BuildView({
       }
     });
     return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `playing` sets the pace of the transition already running, see above
   }, [moving, back, lo, from, animates]);
 
   /* Full screen holds focus the way the setup sheet does: in on entry, Tab
@@ -469,16 +482,19 @@ function BuildView({
      threw on `.drop`. On a phone the staging plays itself through once after
      every load, so an edit to the brief in those seconds was a blank page. */
   const base = Math.min(motion ? motion.a : from, last);
+  /* Whether there is a transition, not where it has got to: `motion` moves
+     every frame and the two models it runs between do not. */
+  const inMotion = motion !== null;
   const shot = useMemo(() => {
     const A = stepModels(solved, steps[base], payload, payloadDia);
-    if (!motion || base + 1 > last) return { A, B: null, sep: null };
+    if (!inMotion || base + 1 > last) return { A, B: null, sep: null };
     const B = stepModels(solved, steps[base + 1], payload, payloadDia);
     return {
       A,
       B,
       sep: separation(A.model, B.model, steps[base], steps[base + 1]),
     };
-  }, [solved, steps, base, motion !== null, last, payload, payloadDia]);
+  }, [solved, steps, base, inMotion, last, payload, payloadDia]);
   /* The arrival's choreography, built once for the design and not once a
      frame, for the same reason as `shot`. */
   const asm = useMemo(() => assembly(shot.A.model), [shot.A.model]);
@@ -556,14 +572,6 @@ function BuildView({
      would leave it drawn small in the middle of it. `framing` carries no
      three.js, so asking it costs the bundle nothing. */
   const ext = frame ? frame.extent : extentOf(model);
-  /* What a phone panel holding a view needs: its width over its height in
-     metres, or the plan, which is square. A floor on the width so a very
-     small rocket still gets a panel with room in it. */
-  const paneOf = (view: string, of = ext) => {
-    if (view === "plan") return "plan" as const;
-    const n = framing(view, of);
-    return { aspect: Math.max(1, n.w * 2) / Math.max(0.1, n.h * 2) };
-  };
   /* The sheet, where the layout is wide: four views at once, the three
      orthographic ones to one scale — `sheetSizes` in views.ts. The phone
      keeps the two panels and the isometric toggle: four panels do not fit
@@ -592,7 +600,12 @@ function BuildView({
   const titleH = full ? TITLE_BLOCK : 0;
   const ah =
     sized && box.h ? Math.max(1, box.h - HEAD - scrubH - titleH) : INLINE_H;
-  const pair = pairSizes({ aw, ah }, paneOf(views[0]), paneOf(views[1]), GAP);
+  const pair = pairSizes(
+    { aw, ah },
+    paneOf(views[0], ext),
+    paneOf(views[1], ext),
+    GAP,
+  );
   /* The sheet lays its own header lines out, so it is handed the row. */
   const sz = sheetSizes({ aw, ah: ah + HEAD }, needs, GAP, HEAD);
 

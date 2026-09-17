@@ -865,6 +865,7 @@ export default function ThreeView({
     width,
     height,
     extent,
+    sweep,
     midY,
     offsets,
     theme,
