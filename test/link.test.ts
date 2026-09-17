@@ -30,6 +30,7 @@ const config = (over: Record<string, unknown> = {}) =>
     needGimbal: false,
     planeNow: false,
     asparagus: false,
+    regime: "standard",
     maxAspect: 14,
     expansions: { mh: false, rs: true },
     tech: [...withDeps(DATA.nodes, tier(5))].sort(),
@@ -50,6 +51,10 @@ describe("a design as a link", () => {
         cuts: [1, 4],
         splits: [[0, 2]],
       }),
+      /* The burns control rides in the link: two people opening one link
+         must get one answer, and the rung decides which designs are offered.
+         #416 */
+      config({ regime: "low" }),
     ]) {
       const hash = await toLink(text);
       expect(hash.startsWith("#c=")).toBe(true);
@@ -103,6 +108,9 @@ describe("a design as a link", () => {
       { excluded: { a: 1 } },
       { tech: ["__proto__", "constructor"] },
       { dest: "x".repeat(1_000_000) },
+      /* A rung this version does not have, or no string at all. */
+      { regime: "warp" },
+      { regime: 3 },
     ]) {
       const r = parseConfig(config(over));
       expect(r.error, JSON.stringify(over)).toBeUndefined();

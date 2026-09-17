@@ -71,6 +71,10 @@ function propellantFor(dv: number, dry: number, isp: number, k: number) {
    ever swept more than 0.75 in a pass; what brought it in was the ion engine,
    whose burns sit exactly at whatever edge the model allows. */
 const ARC_MAX = 2;
+/* A sixth of a revolution: the most a burn may sweep in one pass and still be
+   near enough an impulse that the map's figure is the figure — a 1.9%
+   penalty at the edge. The `impulsive` rung of the burns control. #416 */
+const IMPULSIVE_ARC = 1;
 /* One revolution. A burn that sweeps more than this — passes and all — is not
    a long impulse flown in kicks, it is a spiral, and is priced as one where
    the leg has a spiral price and refused where it has not. Below it a
@@ -336,6 +340,7 @@ function scoreOf(c: Solution, objective: Objective) {
 
 export {
   ARC_MAX,
+  IMPULSIVE_ARC,
   SPIRAL_ARC,
   COUPLE_COST,
   COUPLE_PARTS,

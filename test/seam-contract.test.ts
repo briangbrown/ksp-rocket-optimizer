@@ -56,6 +56,7 @@ function sampleInput(): PlanInput {
     origin: "Kerbin",
     splitBy: [],
     boosters: true,
+    regime: "standard",
   };
 }
 

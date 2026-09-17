@@ -139,6 +139,9 @@ describe("a design as a link", () => {
     expect(url.origin + url.pathname).toBe(location.origin + location.pathname);
     const back = await fromLink(url.hash);
     expect(back && "text" in back && back.text).toMatch(/^KSP-PLANNER \{/);
+    /* The burns control is in the link: two people opening it get one
+       answer. #416 */
+    expect(back && "text" in back && back.text).toMatch(/"regime":"standard"/);
     expect(rocketNote("good")?.textContent).toBe("Link copied.");
     /* The address bar carries the same link without asking. */
     expect(location.hash).toBe(url.hash);

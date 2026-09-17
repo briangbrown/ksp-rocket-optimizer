@@ -19,7 +19,11 @@ afterEach(cleanup);
 
 async function ionPlan(): Promise<Plan> {
   const c = sweepCases().find((x) => x.name === "Tylo-pay3.5")!;
-  const p = await planMission({ ...c.input, objective: "mass" });
+  const p = await planMission({
+    ...c.input,
+    objective: "mass",
+    regime: "low",
+  });
   if (p && p.stages.some((s) => s.sol?.plant)) return p;
   throw new Error("the Tylo 3.5 t mass plan no longer carries a plant");
 }

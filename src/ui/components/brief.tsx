@@ -3,9 +3,13 @@ import { STATES, SYS, fromReason, toReason } from "../../core/orbits.js";
 import { DAY, kerbalDate, utOf } from "../../core/kepler.js";
 import type { Endpoint, State } from "../../core/orbits.js";
 import type { TransferType } from "../../core/transfer.js";
+import { REGIMES } from "../../core/constants.js";
+import type { Regime } from "../../core/constants.js";
 import {
   OBJECTIVES,
   OBJECTIVE_HINT,
+  REGIME_HINT,
+  REGIME_LABEL,
   STATE_LABEL,
   bodyLabel,
   fmt,
@@ -78,6 +82,8 @@ type BriefProps = {
   crossfeedOk: boolean;
   asparagus: boolean;
   onAsparagus: (on: boolean) => void;
+  regime: Regime;
+  onRegime: (r: Regime) => void;
   objective: Objective;
   onObjective: (o: Objective) => void;
   needGimbal: boolean;
@@ -490,6 +496,43 @@ function Brief(p: BriefProps) {
                   hint: "Leave in the plane and tilt up to the target with one burn on the way. Often cheaper; harder to place in the game.",
                 },
               ]}
+            />
+          </div>
+          <div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginBottom: SPACE.md,
+              }}
+            >
+              <span className="label">Burns</span>
+              <Disclosure
+                label="About the burns"
+                style={{ marginLeft: SPACE.xs }}
+              >
+                <div>
+                  What you are willing to fly, as a ladder. A rung changes
+                  nothing about how a design is priced — the same rocket costs
+                  the same Δv on every one — it only decides which designs are
+                  offered. It is part of the mission and travels in the link.
+                </div>
+                {REGIMES.map((k) => (
+                  <div key={k}>
+                    <strong>{REGIME_LABEL[k]}.</strong> {REGIME_HINT[k]}
+                  </div>
+                ))}
+              </Disclosure>
+            </div>
+            <Choice
+              label="Burns"
+              value={p.regime}
+              onChange={p.onRegime}
+              options={REGIMES.map((k) => ({
+                value: k,
+                label: REGIME_LABEL[k],
+                hint: REGIME_HINT[k],
+              }))}
             />
           </div>
           {p.returning && (

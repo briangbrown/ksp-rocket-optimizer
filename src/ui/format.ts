@@ -1,6 +1,7 @@
 import { kerbalDate } from "../core/kepler.js";
 import type { Endpoint, State } from "../core/orbits.js";
 import type { Objective } from "../core/performance.js";
+import type { Regime } from "../core/constants.js";
 
 const NAME_WORDS: Readonly<Record<string, ReadonlyArray<string>>> = {
   flyby: ["Drive-By", "Wave", "Peek", "Flyby", "Glance", "Sightsee"],
@@ -156,6 +157,26 @@ const OBJECTIVE_HINT: Readonly<Record<Objective, string>> = {
     "Fewest parts favours self-contained boosters and the largest tanks that fit, and will accept a heavier rocket to save a part.",
 };
 
+/* The burns control: what the reader is willing to fly, as a ladder, with
+   one sentence each on what a rung unlocks and what it costs. The rung is a
+   filter on what is offered and never on how a design is priced, and it is
+   part of the mission — it rides in the configuration and the link — so two
+   people opening one link get one answer. #416 */
+const REGIME_LABEL: Readonly<Record<Regime, string>> = {
+  impulsive: "Impulsive only",
+  standard: "Standard",
+  long: "Long burns",
+  low: "Low thrust",
+};
+const REGIME_HINT: Readonly<Record<Regime, string>> = {
+  impulsive:
+    "One burn a leg, under a sixth of an orbit. Conventional engines, and the map's figures at their most accurate.",
+  standard:
+    "One burn a leg, up to a third of an orbit, with what the long burn costs priced and shown. Where most missions sit.",
+  long: "Periapsis kicks: a burn split over several passes with an orbit of waiting between each, up to a revolution in all. Unlocks the Nerv where its burns are long.",
+  low: "Spirals over many revolutions — hours of burning at a time — and the electric engines that make them, with the power plant and the spiral Δv both paid. Lighter rockets, far longer to fly.",
+};
+
 /* The set brief, as one line: `Kerbin → Mun · land & return · 2.5 t ·
    cheapest`. A function of the mission and nothing else, so a table can
    check it — test/brief-line.test.ts walks every profile, origin and
@@ -240,6 +261,8 @@ export {
   NAME_WORDS,
   OBJECTIVES,
   OBJECTIVE_HINT,
+  REGIME_HINT,
+  REGIME_LABEL,
   ARRIVE_WORD,
   STATE_LABEL,
   bodyLabel,

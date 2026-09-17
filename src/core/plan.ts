@@ -4,7 +4,8 @@ import { buildVehicleFor, simCached } from "./ascent.js";
 import { stackOf, useArt } from "./geometry.js";
 import { missionHardware } from "./parts.js";
 import { solveGroup, solveGroupWith } from "./solver.js";
-import type { Expansions } from "./constants.js";
+import { REGIME_DEFAULT } from "./constants.js";
+import type { Expansions, Regime } from "./constants.js";
 import type { Engine, Tank } from "./catalogue.js";
 import type { Leg } from "./orbits.js";
 import type { Objective } from "./performance.js";
@@ -37,6 +38,10 @@ type PlanInput = {
   /* Which segment is forced to how many stages, as pairs rather than a Map. */
   splitBy: ReadonlyArray<[number, number]>;
   boosters: boolean;
+  /* Which regime of burn the mission will fly — `Regime` in constants.ts.
+     Part of the mission, so it rides in the configuration and the link;
+     `REGIME_DEFAULT` where a caller or an older link has none. #416 */
+  regime?: Regime;
 };
 
 /* One delivered stage: the solved design, the legs it flies, and where it sits
@@ -176,6 +181,7 @@ async function planFor(
     asparagus,
     origin,
     boosters,
+    regime = REGIME_DEFAULT,
   } = input;
 
   /* Before anything else: the geometry tables the whole solve and the drawing
@@ -318,6 +324,7 @@ async function planFor(
       above,
       bodyName,
       objective,
+      regime,
       minK: forced || 1,
       maxK: forced || autoK,
     });
@@ -458,6 +465,7 @@ async function planFor(
           above,
           bodyName,
           objective,
+          regime,
           minK: forced || 1,
           maxK: forced || autoK,
         });

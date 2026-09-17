@@ -56,6 +56,7 @@ export function missionInput(dest: string, lvl: number): PlanInput {
     origin: "Kerbin",
     splitBy: [],
     boosters: true,
+    regime: "standard",
   };
 }
 
@@ -89,6 +90,7 @@ export function missionConfig(lvl = 9, dest = "Mun") {
       stay: 0,
       transfer: "best",
       asparagus: false,
+      regime: "standard",
       maxAspect: 14,
       expansions: { mh: false, rs: false },
       tech: [...tierUnlocks(lvl)].sort(),
