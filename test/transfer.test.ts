@@ -188,6 +188,30 @@ describe("the window search", () => {
     const duna = findWindow("Kerbin", "Duna", rK, rD, 0, true)!;
     expect(duna.next).toBeNull();
   });
+  it("descends every basin the grid sees, not only the cheapest cell's", () => {
+    /* #319: the coarse grid's cheapest cell can sit in the wrong lobe, and
+       a refine from it alone polished the wrong minimum. Jool→Eeloo from
+       Year 1 Day 137 delivered 3,193 m/s that way; the basin 600 days off
+       refines to 3,102. Dres→Moho from Day 412 was 6,772 against 6,671. */
+    const je = findWindow(
+      "Jool",
+      "Eeloo",
+      6_200_000,
+      260_000,
+      137 * DAY,
+      true,
+    )!;
+    expect(je.total).toBeLessThan(3110);
+    const dm = findWindow("Dres", "Moho", 178_000, 350_000, 411 * DAY, true)!;
+    expect(dm.total).toBeLessThan(6700);
+    /* And a lobe whose floor lies past the period's end is the next window,
+       not a start for this one: Duna→Dres from Day 412 keeps its first
+       window at Year 2 Day 131 and names the 500 m/s cheaper one after. */
+    const dd = findWindow("Duna", "Dres", rD, 178_000, 411 * DAY, true)!;
+    expect(kerbalDate(dd.depart)).toMatchObject({ year: 2, day: 131 });
+    expect(dd.total).toBeCloseTo(2206, -1);
+    expect(dd.next!.total).toBeLessThan(1700);
+  });
   it("starts where it is told, and the next window is a synodic period on", () => {
     const first = findWindow("Kerbin", "Duna", rK, rD, 0, true)!;
     const later = findWindow(
@@ -285,8 +309,9 @@ describe("the plot", () => {
   it("is the search's own grid, with the window in its cheapest cell", () => {
     /* #213: the coarse grid the search prices is kept on the window as
        plain numbers, rounded. Its cheapest cell in the first synodic period
-       is the one the refinement started from, so it lies within a cell of
-       the window reported and prices no lower than it. */
+       is one of the basins the refinement descended from, and for Duna the
+       one delivered, so it lies within a cell of the window reported and
+       prices no lower than it. */
     const w = findWindow("Kerbin", "Duna", rK, rD, 0, true);
     expect(w).not.toBeNull();
     const p = w!.plot;
