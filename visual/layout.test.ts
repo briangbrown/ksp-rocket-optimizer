@@ -267,6 +267,30 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
     ).toBeLessThanOrEqual(budget.targets);
   });
 
+  it("measures a target by what of it is shown", async () => {
+    /* The check above sizes each target by the box a reader gets, not the
+       one the element asked for. Proved on a planted case rather than
+       trusted: a 44 px button on a 22 px line inside a sideways scroller,
+       the shape #148 shipped, has to read 22 tall here — and did not,
+       before the measure cut a target to its clipping ancestors. #311 */
+    await page.evaluate(() => {
+      const row = document.createElement("div");
+      row.id = "clip-probe";
+      row.style.cssText = "overflow-x:auto;height:22px;width:200px";
+      const b = document.createElement("button");
+      b.textContent = "clip probe";
+      b.style.cssText = "width:44px;height:44px;display:block";
+      row.appendChild(b);
+      document.body.appendChild(row);
+    });
+    const planted = (await page.evaluate(measure)).targets.find(
+      (t) => t.text === "clip probe",
+    );
+    await page.evaluate(() => document.getElementById("clip-probe")?.remove());
+    expect(planted, "the planted button was not found").toBeDefined();
+    expect(planted).toMatchObject({ w: 44, h: 22, cut: "44×44" });
+  });
+
   it("can be reached from the keyboard", () => {
     expect(
       n.unreachable,
