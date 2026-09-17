@@ -335,7 +335,18 @@ function main() {
       console.error(`  ${name}: ${e.message}`);
       continue;
     }
-    if (part && !found.has(part.id)) found.set(part.id, { ...part, src: name });
+    /* Whose part it is, from where it sits: the two expansions the app can
+       switch off ship their parts under their own folders, and a part the
+       install does not offer is refused by `offered` in core/constants.ts
+       exactly as a tank or an engine from the same folder is. Without the
+       flag a ReStock+ battery was chosen for a plant with ReStock off. #415 */
+    const owner = /^ReStockPlus\//.test(name)
+      ? { rs: 1 }
+      : /^SquadExpansion\/MakingHistory\//.test(name)
+        ? { mh: 1 }
+        : {};
+    if (part && !found.has(part.id))
+      found.set(part.id, { ...part, ...owner, src: name });
   }
 
   const unnamed = [...found.values()].filter((x) => x.n === x.id);

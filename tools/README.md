@@ -81,12 +81,14 @@ part to a node the tree has.
 
 ## Power parts — the ion gap
 
-Electric propulsion is refused by `sizeable` in `src/core/solver.ts` because
-nothing models the plant that feeds it: there are no panels, no batteries and
-no generator in `src/data/`, and no line in a stage's mass or cost for any of
-them. The 420 s burn cap used to keep ion engines out by accident; #410
-replaced it with an arc and the accident went with it, so the exclusion is now
-made on purpose and #413 is what lifts it.
+An electric engine is an engine flying on nothing until the plant that feeds
+it is on the rocket, and until #413 there were no panels, no batteries and no
+generator in `src/data/` to put there. This pack is where they came from;
+`sizePlant` in `src/core/power.ts` sizes and prices a plant from them, and
+#415 admitted the engine where the stage's route lets the plant and the
+spiral be priced. Every part here carries `rs` or `mh` where it is an
+expansion's, read off the folder it was packed from, and `offered` refuses it
+with the expansion off exactly as it refuses a tank.
 
 1. On the machine with the install, from a PowerShell prompt in the KSP root
    (the folder with `GameData` in it):

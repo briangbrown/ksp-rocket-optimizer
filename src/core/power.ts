@@ -1,6 +1,7 @@
 import powerData from "../data/power.json";
 import { TANK_FUNDS_DRY, TANK_FUNDS_PROP } from "./performance.js";
-import type { Excluded, Roster } from "./constants.js";
+import { offered } from "./constants.js";
+import type { Excluded, Expansions, Roster } from "./constants.js";
 import type { Objective } from "./performance.js";
 
 /* ------------------------------ the power plant ------------------------------
@@ -54,12 +55,18 @@ type Draw = {
   period: number;
 };
 
-type PlantPart = { n: string; c: number };
+/* One kind of part in the plant, its count, and what one of them weighs and
+   costs — so a parts list can show the rows and the sums still agree. */
+type PlantPart = { n: string; c: number; m: number; cost: number };
 type Plant = {
   parts: ReadonlyArray<PlantPart>;
   /* Tonnes, including the fuel a cell burns and the tank it rides in. */
   m: number;
   cost: number;
+  /* The fuel a cell burns over the stage's burn and the tankage holding it,
+     which is mass and money on the rocket and no part in the list. Absent on
+     a plant that makes its charge from light or decay. */
+  fuel?: { m: number; cost: number };
   /* Which of the three it came out as, for the card and for a reader working
      out why a design weighs what it does. */
   how: "panels" | "generator" | "cell";
@@ -74,13 +81,22 @@ const LF_DENSITY = 0.005;
    are at an eighth, and the rest are close. */
 const TANK_DRY_FRACTION = 0.125;
 
-const unlockedFor = <T extends { n: string; t: string | null }>(
+/* Researched, not struck off, and in this install: the same three gates a
+   tank or an engine passes, so a ReStock+ battery is not picked with ReStock
+   off. */
+const unlockedFor = <
+  T extends { n: string; t: string | null; rs?: number; mh?: number },
+>(
   parts: ReadonlyArray<T>,
   unlocked: Roster,
   excluded: Excluded,
+  expansions: Expansions | null | undefined,
 ): Array<T> =>
   parts.filter(
-    (p) => (p.t === null || unlocked.has(p.t)) && !excluded?.has(p.n),
+    (p) =>
+      (p.t === null || unlocked.has(p.t)) &&
+      !excluded?.has(p.n) &&
+      offered(p, expansions),
   );
 
 const better = (a: Plant, b: Plant, objective: Objective) =>
@@ -106,6 +122,7 @@ function sizePlant(
   unlocked: Roster,
   excluded: Excluded,
   objective: Objective,
+  expansions: Expansions | null | undefined = null,
 ): Plant | null {
   if (!(draw.ec > 0)) return null;
   if (!isFinite(draw.ec) || !isFinite(draw.seconds)) return null;
@@ -121,7 +138,12 @@ function sizePlant(
   const sunlit = draw.period * (1 - draw.dark);
   const crossesDark = draw.dark > 0 && draw.seconds > sunlit;
 
-  for (const panel of unlockedFor(data.panels, unlocked, excluded)) {
+  for (const panel of unlockedFor(
+    data.panels,
+    unlocked,
+    excluded,
+    expansions,
+  )) {
     const rate = panel.rate * draw.flux;
     if (!(rate > 0)) continue;
     /* Big enough to run the engine, and where the shadow is crossed, big
@@ -129,36 +151,46 @@ function sizePlant(
     const needed = crossesDark ? draw.ec / (1 - draw.dark) : draw.ec;
     const n = Math.ceil(needed / rate);
     if (!isFinite(n) || n <= 0 || n > 10_000) continue;
-    const parts: Array<PlantPart> = [{ n: panel.n, c: n }];
+    const parts: Array<PlantPart> = [
+      { n: panel.n, c: n, m: panel.m, cost: panel.cost },
+    ];
     let m = n * panel.m;
     let cost = n * panel.cost;
     if (crossesDark) {
       const store = draw.ec * draw.period * draw.dark;
-      const cell = unlockedFor(data.batteries, unlocked, excluded).sort(
-        (a, b) => b.stored / b.m - a.stored / a.m,
-      )[0];
+      const cell = unlockedFor(
+        data.batteries,
+        unlocked,
+        excluded,
+        expansions,
+      ).sort((a, b) => b.stored / b.m - a.stored / a.m)[0];
       if (!cell) continue; // nothing to carry the dark side with
       const b = Math.ceil(store / cell.stored);
       if (!isFinite(b) || b > 10_000) continue;
-      parts.push({ n: cell.n, c: b });
+      parts.push({ n: cell.n, c: b, m: cell.m, cost: cell.cost });
       m += b * cell.m;
       cost += b * cell.cost;
     }
     take({ parts, m, cost, how: "panels" });
   }
 
-  for (const gen of unlockedFor(data.generators, unlocked, excluded)) {
+  for (const gen of unlockedFor(
+    data.generators,
+    unlocked,
+    excluded,
+    expansions,
+  )) {
     const n = Math.ceil(draw.ec / gen.rate);
     if (!isFinite(n) || n <= 0 || n > 10_000) continue;
     take({
-      parts: [{ n: gen.n, c: n }],
+      parts: [{ n: gen.n, c: n, m: gen.m, cost: gen.cost }],
       m: n * gen.m,
       cost: n * gen.cost,
       how: "generator",
     });
   }
 
-  for (const cell of unlockedFor(data.cells, unlocked, excluded)) {
+  for (const cell of unlockedFor(data.cells, unlocked, excluded, expansions)) {
     const n = Math.ceil(draw.ec / cell.rate);
     if (!isFinite(n) || n <= 0 || n > 10_000) continue;
     /* What it drinks while it runs, and the tank that holds it. A cell that
@@ -168,10 +200,14 @@ function sizePlant(
     const fuel = n * perSecond * LF_DENSITY * draw.seconds;
     const tank = fuel * TANK_DRY_FRACTION;
     take({
-      parts: [{ n: cell.n, c: n }],
+      parts: [{ n: cell.n, c: n, m: cell.m, cost: cell.cost }],
       m: n * cell.m + fuel + tank,
       cost: n * cell.cost + fuel * TANK_FUNDS_PROP + tank * TANK_FUNDS_DRY,
       how: "cell",
+      fuel: {
+        m: fuel + tank,
+        cost: fuel * TANK_FUNDS_PROP + tank * TANK_FUNDS_DRY,
+      },
     });
   }
 

@@ -291,6 +291,10 @@ async function planFor(
           /* Where this leg's burn is made, so the stage flying it can be
              charged for the arc it sweeps rather than capped on a clock. #410 */
           orbit: l.orbit ?? null,
+          /* And what it costs as a spiral, as a multiple of the impulse — a
+             ratio, so the margin applied to `dv` above scales it too. #415 */
+          spiral: l.spiral !== undefined && l.dv > 0 ? l.spiral / l.dv : null,
+          spiralAfter: !!l.spiralAfter,
         };
       });
     };

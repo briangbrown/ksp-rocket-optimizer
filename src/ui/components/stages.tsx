@@ -16,6 +16,15 @@ import type { Solution } from "../../core/solution.js";
 const arcCost = (sol: Solution) => {
   const f = sol.finite;
   if (!f || f.added < 0.5) return null;
+  const where = `the ${f.kind}${f.body ? ` at ${f.body}` : ""}`;
+  /* A spiral is not an arc of anything: the burn goes round and round, and
+     what it costs is the spiral price of the leg rather than a penalty on an
+     impulse. Say so, and say how many turns. #415 */
+  if (f.spiral)
+    return {
+      value: `+${fmt(f.added)} m/s`,
+      note: `flown as a spiral over ${fmt(f.arc / (2 * Math.PI), 1)} revolutions on ${where}`,
+    };
   const deg = Math.round((f.arc * 180) / Math.PI);
   return {
     value: `+${fmt(f.added)} m/s`,
@@ -23,8 +32,7 @@ const arcCost = (sol: Solution) => {
        in one go — an ejection split across periapsis kicks is an orbit of
        waiting between each, and the Δv already has the saving in it. */
     note:
-      `${deg}° on the ${f.kind}${f.body ? ` at ${f.body}` : ""}` +
-      (f.passes > 1 ? `, in ${f.passes} passes` : ""),
+      `${deg}° on ${where}` + (f.passes > 1 ? `, in ${f.passes} passes` : ""),
   };
 };
 
@@ -217,6 +225,32 @@ function StageStack({ stages, color, splitBy, onSetSplit }: StageStackProps) {
                                 </span>
                               </div>
                             )}
+                            {sol.plant && (
+                              /* What the engine runs on: the plant is mass
+                                 and money on this stage, and a reader who
+                                 sees an ion engine wants to know what feeds
+                                 it before anything else. #415 */
+                              <div
+                                style={{
+                                  marginBottom: SPACE.md,
+                                  color: C.muted,
+                                }}
+                              >
+                                {sol.plant.parts.map((x, i) => (
+                                  <span key={x.n}>
+                                    {i ? " + " : "+ "}
+                                    <strong>{x.c}×</strong> {x.n}
+                                  </span>
+                                ))}
+                                <span style={{ color: C.dim }}>
+                                  {"  power · "}
+                                  {fmt(sol.plant.m, 2)} t
+                                  {sol.plant.fuel
+                                    ? ", fuel for the burn included"
+                                    : ""}
+                                </span>
+                              </div>
+                            )}
                             <div
                               style={{
                                 display: "flex",
@@ -255,7 +289,10 @@ function StageStack({ stages, color, splitBy, onSetSplit }: StageStackProps) {
                                     ? `${sol.twr.toFixed(2)} → ${sol.boosters.twrSep.toFixed(2)} → ${sol.twrBurnout.toFixed(2)}`
                                     : `${sol.twr.toFixed(2)} → ${sol.twrBurnout.toFixed(2)}`
                                 }
-                                good={sol.twr >= s.twrMin}
+                                /* An electric stage has no thrust floor:
+                                   its burns are spirals and the spiral
+                                   price is what its low thrust costs. */
+                                good={sol.twr >= s.twrMin || !!sol.plant}
                               />
                               <Stat inline label="Isp" value={`${sol.isp} s`} />
                               <Stat

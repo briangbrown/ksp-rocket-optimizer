@@ -61,13 +61,21 @@ function propellantFor(dv: number, dry: number, isp: number, k: number) {
 
    One thing this is not: a burn spread over more than a revolution is not a
    spread impulse but a spiral, and wants a different formula entirely. That is
-   the low-thrust work, and it is why `ARC_MAX` refuses rather than extrapolates. */
+   `spiralOf` in orbits.ts, and `SPIRAL_ARC` below is where one regime hands
+   over to the other. #415 */
 
-/* Half a revolution. Past it a burn is turning through more than it is pushing
-   along, and the fit above is extrapolation — it was flown out to 2 radians.
-   The practical limit is far lower and belongs to the caller: what is refused
-   here is what is meaningless, not what is unwise. */
-const ARC_MAX = Math.PI;
+/* As far as the fit was flown: two radians, 115°. Past it the form is
+   extrapolation — the fit sits under the prograde curve out to here and the
+   curve turns away from it beyond — so a pass that sweeps more is refused
+   rather than priced. It stood at π until #415, and nothing in either baseline
+   ever swept more than 0.75 in a pass; what brought it in was the ion engine,
+   whose burns sit exactly at whatever edge the model allows. */
+const ARC_MAX = 2;
+/* One revolution. A burn that sweeps more than this — passes and all — is not
+   a long impulse flown in kicks, it is a spiral, and is priced as one where
+   the leg has a spiral price and refused where it has not. Below it a
+   transfer is split into passes as before. #415 */
+const SPIRAL_ARC = 2 * Math.PI;
 
 /* How much of the arc the fitted curve is taken over. Two thirds of the half
    angle a fixed-thrust burn would use, which is the whole of the difference
@@ -139,7 +147,7 @@ const burnArc = (omega: number, seconds: number) => omega * seconds;
    impulse the rest of the route assumes, and costs what it says. */
 function finiteBurnDv(dv: number, arc: number) {
   if (!isFinite(arc) || arc < 0) return null;
-  if (arc >= ARC_MAX) return null;
+  if (arc > ARC_MAX) return null;
   if (arc === 0) return dv;
   const x = arc / ARC_FIT;
   return (dv * x) / Math.sin(x);
@@ -270,6 +278,9 @@ function stageCost(c: Solution) {
       (c.boosters.part.cost +
         (c.boosters.part.column ? c.boosters.part.column.funds || 0 : 0) +
         RADIAL_DECOUPLER_FUNDS);
+  /* The power plant, priced in `sizePlant` with the fuel a cell burns and
+     the tank it rides in. #415 */
+  if (c.plant) f += c.plant.cost;
   return f;
 }
 const stageParts = (c: Solution) =>
@@ -296,7 +307,9 @@ const stageParts = (c: Solution) =>
       (1 +
         (c.boosters.part.nEng ?? 1) +
         (c.boosters.part.column ? c.boosters.part.column.count : 0))
-    : 0);
+    : 0) +
+  /* Every panel, battery, generator or cell of the plant. #415 */
+  (c.plant ? c.plant.parts.reduce((a, x) => a + x.c, 0) : 0);
 
 /* Selection is greedy per stage: a cheap-but-heavy upper stage makes everything
    below it bigger, and a stage cannot see that while it is being sized. Mass is
@@ -311,11 +324,19 @@ const COUPLE_COST = 1500,
 function scoreOf(c: Solution, objective: Objective) {
   if (objective === "cost") return stageCost(c) + c.total * COUPLE_COST;
   if (objective === "parts") return stageParts(c) + c.total / COUPLE_PARTS;
-  return c.total * (1 + 0.006 * (c.n + (c.tanks ? c.tanks.count : 0)));
+  return (
+    c.total *
+    (1 +
+      0.006 *
+        (c.n +
+          (c.tanks ? c.tanks.count : 0) +
+          (c.plant ? c.plant.parts.reduce((a, x) => a + x.c, 0) : 0)))
+  );
 }
 
 export {
   ARC_MAX,
+  SPIRAL_ARC,
   COUPLE_COST,
   COUPLE_PARTS,
   DECOUPLER_FUNDS,

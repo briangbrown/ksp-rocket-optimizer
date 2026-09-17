@@ -165,7 +165,8 @@
           "r": "MonoPropellant",
           "rate": 0.006
         }
-      ]
+      ],
+      "rs": 1
     }
   ],
   "batteries": [
@@ -175,7 +176,8 @@
       "m": 0.125,
       "cost": 2800,
       "t": "High-Power Electrics",
-      "stored": 2500
+      "stored": 2500,
+      "rs": 1
     },
     {
       "id": "restock-battery-375-1",
@@ -183,7 +185,8 @@
       "m": 0.5,
       "cost": 11250,
       "t": "Experimental Electrics",
-      "stored": 10000
+      "stored": 10000,
+      "rs": 1
     },
     {
       "id": "batteryPack",

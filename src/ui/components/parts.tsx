@@ -27,6 +27,7 @@ const ROW_INK: Readonly<Record<string, string>> = {
   adapter: KIND.adapter,
   struct: KIND.decoupler,
   tank: C.muted,
+  power: KIND.hardware,
 };
 
 /* What the swatch beside a part says about it, for the reader who cannot
@@ -37,6 +38,7 @@ const ROW_KIND: Readonly<Record<string, string>> = {
   adapter: "adapter",
   struct: "decoupler",
   tank: "tank",
+  power: "power",
 };
 
 type PartsTableProps = {
@@ -245,6 +247,21 @@ function PartsTable({ stages, payload, hardware, color }: PartsTableProps) {
       tot: eng.qty * wet(eng),
       kind: "engine",
     });
+    /* The plant an electric engine runs on, after the engine it feeds. A
+       cell's fuel and tankage is one row with no part behind it, as the
+       decoupler a booster hangs on is. #415 */
+    of("power").forEach((r) =>
+      rows.push({
+        stage: n,
+        part: r.part
+          ? partName(r.part)
+          : "Liquid fuel and oxidiser for the cells, and tankage",
+        qty: r.qty,
+        each: r.mass,
+        tot: r.qty * r.mass,
+        kind: "power",
+      }),
+    );
     if (s.sol.boosters) {
       /* Decoupler first: it goes on the tank before the booster goes on it, and
          the list is meant to be read as a build order. */

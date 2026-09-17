@@ -20,7 +20,7 @@ describe("the finite-burn penalty", () => {
   it("charges nothing for an impulse and more for every arc after it", () => {
     expect(finiteBurnDv(1000, 0)).toBe(1000);
     let last = 1000;
-    for (const arc of [0.1, 0.25, 0.5, 1, 1.5, 2, 3]) {
+    for (const arc of [0.1, 0.25, 0.5, 1, 1.5, 1.75, 2]) {
       const got = finiteBurnDv(1000, arc);
       expect(got, `arc ${arc}`).not.toBeNull();
       expect(got!, `arc ${arc} is not dearer than ${last}`).toBeGreaterThan(
@@ -37,7 +37,7 @@ describe("the finite-burn penalty", () => {
        cheaper, while still sitting above what a prograde burn actually loses —
        held by the integrator below. */
     const rows: Array<string> = [];
-    for (const arc of [0.1, 0.5, 1, 1.5, 2, 2.5, 3]) {
+    for (const arc of [0.1, 0.5, 1, 1.5, 1.75, 2]) {
       const shipped = finiteBurnDv(1000, arc)! / 1000 - 1;
       const fixed = 1 / sinc(arc / 2) - 1;
       rows.push(
@@ -50,7 +50,11 @@ describe("the finite-burn penalty", () => {
   });
 
   it("refuses an arc it has nothing to say about", () => {
-    expect(finiteBurnDv(1000, ARC_MAX)).toBeNull();
+    /* Up to `ARC_MAX` is what the integrator below flew; past it the fit is
+       extrapolation and a spiral is the right form. #415 */
+    expect(finiteBurnDv(1000, ARC_MAX)).not.toBeNull();
+    expect(finiteBurnDv(1000, ARC_MAX + 0.01)).toBeNull();
+    expect(finiteBurnDv(1000, 3)).toBeNull();
     expect(finiteBurnDv(1000, 4)).toBeNull();
     expect(finiteBurnDv(1000, -1)).toBeNull();
     expect(finiteBurnDv(1000, NaN)).toBeNull();
@@ -213,7 +217,10 @@ describe("the closed form against a flown burn", () => {
        112° rather than one. */
     const r0 = lowR("Kerbin");
     const rows: Array<string> = [];
-    for (const arc of [0.5, 1, 1.5, 2]) {
+    /* Short of 2: an inertial burn asked for an arc sweeps more than it,
+       since the craft speeds up as it goes, and past 2 the fit has nothing to
+       say. */
+    for (const arc of [0.5, 1, 1.5, 1.75]) {
       const i = flyBurn("Kerbin", r0, arc, 950, 800, "inertial");
       const p = flyBurn("Kerbin", r0, arc, 950, 800, "prograde");
       const shipped = 1000 / finiteBurnDv(1000, i.swept)!;
