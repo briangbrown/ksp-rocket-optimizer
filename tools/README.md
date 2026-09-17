@@ -233,6 +233,49 @@ area had been left at the garbage cube's 1.277 while its height was read from
 stock; it now reads 1.3 from the stock cube like the other two. Neither
 baseline moved.
 
+## Part nodes — `src/data/nodes.json`
+
+Where each part joins its neighbours, for the `.craft` writer (#460, #461): a
+craft names parts by their config `name` and trusts every position it
+carries, and the drag cube is a bounding box, not a node — an engine's top
+node is well inside its box, and a tank's box overhangs its nodes by the lip.
+
+1. On the machine with the install, from a PowerShell prompt in the KSP root:
+
+       powershell -ExecutionPolicy Bypass -File tools\pack-craft.ps1
+
+   It writes `ksp-craft.zip` into that folder: `GameData\ModuleManager.ConfigCache`
+   (every part as the game loaded it, patches applied — if it is missing, run
+   the game once), `PartDatabase.cfg`, `KSP.log`, the stock crafts under
+   `Ships\`, and every craft in every save. The same zip serves the craft
+   writer's validation later (#467): the crafts the game saved back and the
+   log of loading them come home in it.
+
+2. Here, with the caches unzipped — one from a stock install and one from the
+   ReStock install, in that order:
+
+       node tools/part-nodes.mjs path/to/stock/ModuleManager.ConfigCache path/to/restock/ModuleManager.ConfigCache
+       npm run format
+
+   It writes one table per art into `src/data/nodes.json` and prints what it
+   found; `--check` compares the committed file as data (prettier lays it out)
+   and exits 1 on a difference. A cache with ReStock's patches in it is the
+   ReStock art. Making History's parts are absent from a stock cache and MH
+   remodels nothing, so a stock entry with no part there is filled from the
+   ReStock cache and marked `via`.
+
+What comes out, per title the part tables place (plus the command parts that
+stand in for a payload and the cubic strut): the config name as a craft spells
+it — the game turns `_` into `.` on load, so `ksp_r_largeBatteryPack` in the
+cache is `ksp.r.largeBatteryPack` in a craft; every stack node by id with
+position, direction and size in the part's own frame; the surface-attach node;
+the attach rules; the default variant and the variants; the resources held
+full; dry mass; tech node; whether it commands; and the modules in prefab
+order, which is what the craft writer's launch test needs (#467). The first run
+found ReStock moves the nodes of five parts (the Mammoth, the TVR-200, two heat
+shields, the Mk16), and that ReStock+ rebalances the Oscar-B against what
+`parts.json` says (#468).
+
 ## The icon — `public/favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`
 
 The nut (#206): a hex nut framing a rocket in Kerbin's teal, drawn once as

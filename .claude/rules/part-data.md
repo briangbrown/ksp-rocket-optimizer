@@ -32,6 +32,17 @@ size_z)`. A cylinder fills its own bounding box, so honest cubes read 0.29
   `tools/README.md` is the procedure. Do not edit `PART_H` or `PART_A` by
   hand: regenerate. #316
 
+- **A part's nodes are not its box, and a stacked craft's boxes overlap.**
+  `src/data/nodes.json` (`tools/part-nodes.mjs`, from `ModuleManager.ConfigCache`)
+  carries each part's stack nodes; `geometry.json` carries its drag cube. A
+  tank's box is 50–100 mm taller than its node span — the rim and end caps —
+  so two tanks stacked node to node overlap by a lip, and an engine's bell
+  hangs past its bottom node by most of its height. Place a craft by nodes,
+  never by `PART_H`, and do not expect stacked boxes to touch (#461, for
+  #464). Regenerate the file rather than edit it; `--check` compares it as
+  data because prettier lays it out. ReStock moves the nodes of five parts,
+  which is why it has two tables like the geometry. #461
+
 - **There are two sets of measurements, and which one is live is solve-scoped.**
   ReStock replaces the models of parts that already exist, so a part is a
   different size depending on whether it is installed — the Poodle presents
