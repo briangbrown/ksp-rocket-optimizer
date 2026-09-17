@@ -281,9 +281,15 @@ before changing the thing it names.
   hands down, so `chainScore` now couples at `COUPLE_COST` / `COUPLE_PARTS`
   for every group but the launch group; and the sweep's asparagus mission
   moved from the Mun to Minmus, because the better search found the Mun 20 t
-  rocket 17% lighter without a drop tank on it. Measured against the sweep on
-  the objective asked for: 24 of 45 solved case-objectives better, 4 worse,
-  at 1.4× the solve — against 2.75× for a lattice twice as fine. Of the four,
+  rocket 17% lighter without a drop tank on it. Only stage counts within
+  `REFINE_NEAR` (30%) of the group's best on the chain score get the wave —
+  at 15% a k=2 chain 24% behind on the lattice, which the wave took to the
+  front, was left behind. Measured against the sweep on the objective asked
+  for: 24 of 45 solved case-objectives better, 4 worse. The mission benchmark
+  (tier 9, five destinations) goes 6.4 s → 9.7 s and the grid 13.3 s →
+  18.7 s, against 2.75× for a lattice twice as fine; at the app's default
+  tier 5 the solve is fifteen times faster and the wave is a fraction of a
+  second. Of the four,
   two are Tylo 3.5 t's cost and parts objectives, which have no plan of their
   own and are served the lightest; one is a slenderness cliff on Eeloo cut;
   one is a part. #447
