@@ -198,7 +198,7 @@ export function sweepCases() {
       input: { ...duna.input, cuts: [0] },
     },
     ...OBJECTIVES.map((objective) => ({
-      name: `Mun-pay20-asparagus-${objective}`,
+      name: `Minmus-pay20-asparagus-${objective}`,
       input: asparagusInput(objective),
     })),
     /* A return from a moon of Jool, cut before the landing, on the parts
@@ -234,13 +234,21 @@ export function sweepCases() {
    part for one came to carry no price. Twelve tonnes was not enough to reach for
    them; twenty is.
 
+   Minmus, since #447. It was the Mun until the second wave of Δv splits found
+   the Mun 20 t lightest rocket 17% lighter without a drop tank on it — three
+   liquid columns on the pad and nothing dropped above — and the guard in the
+   sweep that at least one asparagus row delivers a drop tank had nothing left
+   to hold. Twenty tonnes to Minmus and back still puts two on the second
+   stage, and at the cost and parts objectives still chooses against them,
+   which the two other rows pin.
+
    The sweep carries three of these now — see `sweepCases` — because checking a
    design against itself is not the same as pinning what the solver delivers, and
    this branch had produced three defects before anything looked at it. #125 */
 export function asparagusInput(objective: Objective): PlanInput {
   const unlocked = tierUnlocks(9);
   return {
-    route: buildRoute("Mun", "land", true, "Kerbin", true, false),
+    route: buildRoute("Minmus", "land", true, "Kerbin", true, false),
     cuts: [],
     payload: 20,
     payloadDia: 1.25,

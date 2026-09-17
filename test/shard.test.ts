@@ -70,20 +70,34 @@ describe("the sharded search", () => {
   }, 120_000);
 
   it("passes every unit exactly once, and nothing else", async () => {
-    const seen: Array<string> = [];
+    const waves: Array<Array<{ k: number; shares: Array<number> }>> = [];
     await solveGroupWith({ ...hot, minK: 1, maxK: 4 }, async (p, units) => {
       const { solveUnit } = await import("../src/core/solver.js");
-      for (const u of units) seen.push(`k=${u.k}:${u.shares.length}`);
+      waves.push(units);
       return units.map((u) => solveUnit(p, u.k, u.shares));
     });
-    /* 1 + 5 + 12 + 5 splits for k = 1..4. A change to splitShares is allowed to
-       move this; a change that quietly drops units is not. */
-    expect(seen.length).toBe(23);
-    expect(seen.filter((s) => s.startsWith("k=3")).length).toBe(12);
+    /* Two waves since #447: the lattice, then the refinement built round
+       what it found. 1 + 5 + 12 + 6 splits for k = 1..4 in the first. A
+       change to splitShares is allowed to move this; a change that quietly
+       drops units is not. */
+    expect(waves.length).toBe(2);
+    const [first, second] = waves;
+    expect(first.length).toBe(24);
+    expect(first.filter((u) => u.k === 3).length).toBe(12);
+    /* The second wave asks nothing the first did, and nothing twice. */
+    const key = (u: { k: number; shares: Array<number> }) =>
+      `${u.k}:${u.shares.map((x) => x.toFixed(3)).join("/")}`;
+    const seen = new Set(first.map(key));
+    expect(second.length).toBeGreaterThan(0);
+    for (const u of second) {
+      expect(seen.has(key(u)), `${key(u)} asked twice`).toBe(false);
+      seen.add(key(u));
+    }
     /* Every unit's shares must match its own k, or a worker would build a
-       chain of the wrong length. */
-    expect(seen.every((s) => s.split(":")[0] === `k=${s.split(":")[1]}`)).toBe(
-      true,
-    );
+       chain of the wrong length, and sum to the group. */
+    for (const u of [...first, ...second]) {
+      expect(u.shares.length).toBe(u.k);
+      expect(u.shares.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 9);
+    }
   }, 120_000);
 });
