@@ -6,6 +6,7 @@ import {
   PAYLOAD_ASPECT,
   stackGeometry,
   stageSize,
+  standoffOf,
 } from "../src/core/geometry.js";
 import {
   isSolved,
@@ -271,21 +272,26 @@ describe("the build model", () => {
     expect(bad.slice(0, 6), `${bad.length} at the wrong length`).toEqual([]);
   }, 300_000);
 
-  it("stands a radial booster against what it is bolted to", () => {
-    /* A booster's inner face is set at the tank's radius, because that is where
-       its decoupler goes. Its foot has to be there too. It stood on the stage's
-       base instead — alongside the engine, the coupler and the adapters, all
-       narrower than the tank — so it was drawn against nothing and read as
-       floating. Every booster-bearing stage in the mission grid had it, and
-       where a stage's own engine is a solid booster it ran to 25 m. #86 */
+  it("stands a radial booster a decoupler's thickness off what it is bolted to", () => {
+    /* A booster's inner face is set at the tank's radius plus its decoupler,
+       because that is what holds it there. Its foot has to be there too. It
+       stood on the stage's base instead — alongside the engine, the coupler
+       and the adapters, all narrower than the tank — so it was drawn against
+       nothing and read as floating. Every booster-bearing stage in the
+       mission grid had it, and where a stage's own engine is a solid booster
+       it ran to 25 m. #86. The decoupler's thickness is the one gap allowed:
+       the TT-38K is 0.22 m in this art, and the model used to place the
+       booster flush through it. #422 */
     const bad = [];
     let checked = 0;
+    const hold = standoffOf("TT-38K Radial Decoupler");
     for (const { name, parts } of MODELS) {
       for (const b of parts.filter((p) => p.ring !== undefined)) {
         checked++;
-        /* How far in the booster's near side reaches, and how far out the
-           stack does at the height its foot is at. */
-        const inner = Math.hypot(b.x, b.z) - b.r;
+        /* How far in the booster's near side reaches, less the decoupler it
+           is bolted through, and how far out the stack does at the height
+           its foot is at. */
+        const inner = Math.hypot(b.x, b.z) - b.r - hold;
         const widest = Math.max(
           0,
           ...parts
@@ -530,10 +536,12 @@ describe("a booster beside a wide engine", () => {
         b.y,
         `a ring part starts ${b.y.toFixed(2)} m up, at the tanks`,
       ).toBeCloseTo(0, 9);
-    /* And it is standing against the engine rather than past it: the gap is
-       the difference between a 3.75 m node and a 3.27 m measurement. */
+    /* And it is standing against the engine rather than past it, its
+       decoupler's thickness off: the gap is the difference between a 3.75 m
+       node and a 3.27 m measurement. */
     const b = boosters[0];
-    const inner = Math.hypot(b.x, b.z) - b.r;
+    const inner =
+      Math.hypot(b.x, b.z) - b.r - standoffOf("TT-38K Radial Decoupler");
     expect((inner - (engine.r + 0)) / inner).toBeLessThan(CLEAR);
   });
 });

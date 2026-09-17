@@ -33,7 +33,23 @@ before changing the thing it names.
   for it. The standoff is then taken over the sections the raised booster
   actually runs alongside, not every section the walk passed.
   `test/model.test.ts` holds the rule over every ring in the grid. Third face
-  of one joint after #86 and #109. #438
+  of one joint after #86 and #109. #438 The mid-height node is measured, not
+  remembered: every stock and ReStock solid booster's `node_attach` sits at
+  `y = 0` in the install's own configs (#422's tool read them).
+
+- **A radially attached part stands off by the thickness of what holds it.**
+  A booster on a TT-38K, a tank in a packed ring, a radial stack on its
+  cubic struts: each stands its holder's standoff proud of what it is bolted
+  to — `STANDOFF` in geometry.json, per art, from the holder's `node_attach`
+  and drag cube by `tools/radial-standoff.mjs`; 0.22–0.24 m for the TT-38K,
+  0.26 for the strut. `boosterRing`, `boostersFit` and `stackRing` carry it,
+  so the sizing and the drawing agree, and `standoffOf` is the one place it
+  is read. The model placed every one of them flush, understating a stage's
+  width by twice the standoff, which the slenderness limit and the drag area
+  both read: the Eeloo cut mission's seven-Terrier packed ring had been sized
+  as fitting a width it would not, and its stage became a Swivel's — 347.6 →
+  358.9 t. Nothing else in either baseline changed but recorded widths and
+  aspect ratios. #422
 
 - **A radial engine is beside the tank, in `stageGeom` as in the drawing.**
   Its stage spans the tank and an engine either side (`td + 2·ed`), and the

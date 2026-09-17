@@ -47,9 +47,16 @@ function watchNotes() {
     characterData: true,
   });
   return {
-    /* Every toast that appeared, in order, joined for the assertion. */
+    /* Every toast that appeared, in order, joined for the assertion.
+
+       Returns the moment one has appeared, so the cap costs nothing when
+       the page is quick; it is the cap that has to be generous. Forty
+       ticks — two seconds — was lost twice on CI with nothing seen at all:
+       the mount effect awaits the stored roster and the link's inflate
+       while the design snapshot runs in a sibling worker, and two seconds
+       of a contended machine is not enough for either. */
     async settled() {
-      for (let i = 0; i < 40; i++) {
+      for (let i = 0; i < 600; i++) {
         await act(async () => {
           await new Promise((r) => setTimeout(r, 50));
         });
