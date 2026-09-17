@@ -1,4 +1,5 @@
 import type { Coupler, Engine, Shroud, Tank } from "./catalogue.js";
+import type { Plant } from "./power.js";
 
 /* ---------------------------- what a solved stage is ----------------------------
 
@@ -152,9 +153,19 @@ type Solution = {
     kind: string;
     body: string | null;
     /* How many periapsis passes that leg is flown in. One unless splitting it
-       earned its keep, which only a transfer can do. #412 */
+       earned its keep, which only a transfer can do; zero where the burn is
+       a spiral over many revolutions and has no pass to count. #412 */
     passes: number;
+    /* Set where that leg was priced as a spiral — the low-thrust regime,
+       which an electric engine is always in — and absent otherwise, so a
+       stage that is not one reads exactly as it did. #415 */
+    spiral?: true;
   } | null;
+  /* The power plant an electric engine flies on — panels, a generator or a
+     fuel cell, with the battery the shadow needs — counted in `dry`, `cost`
+     and `parts` like any other hardware. Null on every stage whose engine
+     burns propellant alone. #414, #415 */
+  plant?: Plant | null;
   total: number;
   wet: number;
   dry: number;

@@ -51,6 +51,18 @@ type Leg = {
   /* Where this leg's burn is made, for pricing it above the impulse it is
      budgeted as. Absent on an ascent, a landing and an aerobrake. */
   orbit?: BurnOrbit;
+  /* What the leg costs flown as a spiral over many revolutions rather than as
+     an impulse — the low-thrust price, which an engine too weak to make the
+     burn in a fraction of an orbit pays instead of `dv`. Absent where the leg
+     has no orbit to spiral in. `spiralOf` below has the forms. #415 */
+  spiral?: number;
+  /* Set where that price presumes the leg before it was flown as a spiral by
+     the same craft: a capture from rest at the body's edge, which only a
+     craft that has already matched the body's speed arrives at; a raise from
+     the distance a spiral capture stopped at; a return that skips the escape
+     the leg before it made. A stage that starts spiralling on such a leg has
+     an excess the price does not include. */
+  spiralAfter?: true;
 };
 
 /* A tabulated destination: the colour the route draws it in, its surface
@@ -699,6 +711,180 @@ const soiR = (b: string) => {
   const p = SYS[b].parent;
   return p ? smaOf(b) * Math.pow(mu(b) / mu(p), 0.4) : Infinity;
 };
+
+/* ------------------------- the low-thrust price of a leg -------------------------
+
+   An impulse and a spiral are different manoeuvres with different prices, and
+   the second is not a correction to the first. `finiteBurnDv` in
+   performance.ts prices a burn that sweeps part of an orbit as an impulse
+   plus a penalty; that form is a perturbation, and it stops meaning anything
+   once the burn is longer than the orbit. A burn that goes on for many
+   revolutions — an ion engine's, always — is a spiral, and a spiral's Δv is
+   set by the circular speeds at its two ends:
+
+   - Between two circular orbits about one body it costs |v₁ − v₀|, the
+     difference of the circular speeds (Hohmann charges less, because the
+     impulses are made where the speed is highest).
+   - Out to escape it costs the whole circular speed v₀, against the
+     (√2 − 1)·v₀ ≈ 0.414·v₀ of an impulsive escape — a factor of 2.4, and the
+     reason an ion ejection from low Kerbin orbit is 2,280 m/s where the map
+     says 950. Down from escape into a circular orbit costs the same the other
+     way.
+   - A plane change of Δi at constant speed v costs Edelbaum's
+     2·v·sin(π·Δi/4), against the impulsive 2·v·sin(Δi/2) — about π/2 times
+     as much for a small angle, because the thrust is spent all round the
+     orbit rather than at the node where it counts.
+
+   Each leg's spiral is read off its own orbit and where it is going, with the
+   body tree in between: leaving a moon for another planet is an escape from
+   the moon, an escape from the planet made at the moon's distance, and then a
+   circular-to-circular spiral about the Sun. Arrival is the capture leg's
+   own; a return with nothing but an aerobrake at the end spirals all the way
+   down, since a spiral has no excess speed for the air to take. #415 */
+const vCircAt = (b: string, r: number) => Math.sqrt(mu(b) / r);
+/* The body and everything it orbits, innermost first. */
+const chainUp = (b: string): Array<string> => {
+  const out = [b];
+  for (let p = SYS[b]?.parent; p; p = SYS[p].parent) out.push(p);
+  return out;
+};
+/* The Edelbaum turn that costs `dv` impulsively at circular speed `v`:
+   Δi from 2·v·sin(Δi/2) = dv, then 2·v·sin(π·Δi/4). */
+const spiralTurn = (v: number, dv: number) => {
+  const di = 2 * Math.asin(Math.min(1, dv / (2 * v)));
+  return 2 * v * Math.sin((Math.PI * di) / 4);
+};
+/* The body on `d`'s chain that orbits `b` directly, where `d` is under `b`. */
+const childOf = (b: string, d: string) => {
+  const down = chainUp(d);
+  const at = down.indexOf(b);
+  return at > 0 ? down[at - 1] : undefined;
+};
+/* The leg after `i` that is not a plane change — a plane change is made on
+   the way and says nothing about where the way ends. */
+const after = (legs: ReadonlyArray<Leg>, i: number) => {
+  for (let k = i + 1; k < legs.length; k++)
+    if (legs[k].kind !== "plane") return legs[k];
+  return undefined;
+};
+const before = (legs: ReadonlyArray<Leg>, i: number) => {
+  for (let k = i - 1; k >= 0; k--) if (legs[k].kind !== "plane") return legs[k];
+  return undefined;
+};
+const capturesAbout = (l: Leg | undefined, b: string) =>
+  l?.kind === "capture" && l.orbit?.body === b;
+
+type Spiral = { dv: number; after: boolean };
+function spiralOf(legs: ReadonlyArray<Leg>, i: number): Spiral | undefined {
+  const l = legs[i];
+  const o = l.orbit;
+  if (!o || !SYS[o.body]) return undefined;
+  const B = o.body;
+  const v0 = vCircAt(B, o.r);
+  if (l.kind === "plane") return { dv: spiralTurn(v0, l.dv), after: false };
+  const prev = before(legs, i);
+  const next = after(legs, i);
+  if (l.kind === "capture") {
+    /* Circularising after a transfer about the same body — up to a
+       stationary orbit — is already done by the transfer's own spiral, which
+       ends circular. Otherwise a spiral down from rest at the edge: to the
+       distance of the moon the route goes on to, where it goes on to one —
+       the impulsive route captures low and climbs back out, and a spiral has
+       no reason to — and to this orbit where it does not. From rest, because
+       the transfer before it matched the body's speed; hence `after`. */
+    if (prev?.kind === "transfer" && prev.orbit?.body === B)
+      return { dv: 0, after: true };
+    const on =
+      next?.kind === "transfer" && next.orbit?.body === B
+        ? childOf(B, next.body)
+        : undefined;
+    return { dv: on ? vCircAt(B, smaOf(on)) : v0, after: true };
+  }
+  if (l.kind !== "transfer") return undefined;
+  const D = l.body;
+  if (!SYS[D]) return undefined;
+  if (D === B) {
+    /* Named for the body it stays about: a raise to a higher orbit where a
+       capture about the same body follows, an escape where nothing does. */
+    return {
+      dv: capturesAbout(next, B)
+        ? Math.abs(vCircAt(B, next!.orbit!.r) - v0)
+        : v0,
+      after: false,
+    };
+  }
+  /* Where the leg ends up: about `D` itself, put there by a capture leg
+     where the route has one, and otherwise spiralled all the way down to the
+     low orbit the next leg starts from. Not before an aerobrake: a spiral
+     arrives with no excess, and a fall from rest at the edge into the air is
+     the same entry an impulsive arrival makes, so the air still does the
+     capture for nothing. */
+  const descent = (into: string) =>
+    into === D && !(next && (capturesAbout(next, D) || next.kind === "aero"))
+      ? vCircAt(into, lowR(into))
+      : 0;
+  const up = chainUp(B);
+  const C = up.find((a) => chainUp(D).includes(a));
+  if (!C) return undefined;
+  if (C === B) {
+    /* Out to a body that orbits this one, at that body's distance — from
+       here, or from that distance already where the capture before this leg
+       spiralled down to it. */
+    const d1 = childOf(B, D)!;
+    const fromCapture = capturesAbout(prev, B);
+    const from = fromCapture ? smaOf(d1) : o.r;
+    return {
+      dv: Math.abs(vCircAt(B, smaOf(d1)) - vCircAt(B, from)) + descent(d1),
+      after: fromCapture,
+    };
+  }
+  /* Climb out: an escape from each body below the common one, made at the
+     distance the body below it orbits. A leg that only undoes a capture
+     stands immediately before this one on a return from orbit and has made
+     the first of those escapes already. */
+  const escapedAlready =
+    prev?.kind === "transfer" && prev.orbit?.body === B && prev.body === B;
+  let dv = 0;
+  let r = o.r;
+  for (let k = 0; up[k] !== C; k++) {
+    if (!(k === 0 && escapedAlready)) dv += vCircAt(up[k], r);
+    r = smaOf(up[k]);
+  }
+  /* Then about the common body: to the distance of whatever on the way down
+     orbits it, or, where the destination is that body itself, down to its
+     low orbit. */
+  const dSide = childOf(C, D);
+  if (dSide !== undefined)
+    return {
+      dv:
+        dv +
+        Math.abs(vCircAt(C, smaOf(dSide)) - vCircAt(C, r)) +
+        descent(dSide),
+      after: escapedAlready,
+    };
+  return {
+    dv:
+      dv +
+      (capturesAbout(next, C)
+        ? 0
+        : Math.abs(vCircAt(C, lowR(C)) - vCircAt(C, r))),
+    after: escapedAlready,
+  };
+}
+/* Every leg with a spiral price, priced. Applied once to a finished route,
+   because a leg's spiral depends on its neighbours — what follows a transfer
+   says whether it is an escape or a raise. */
+const withSpirals = (legs: Array<Leg>): Array<Leg> =>
+  legs.map((l, i) => {
+    const s = spiralOf(legs, i);
+    return s === undefined
+      ? l
+      : {
+          ...l,
+          spiral: Math.round(s.dv),
+          ...(s.after ? { spiralAfter: true as const } : {}),
+        };
+  });
 function hasSync(b: string) {
   if (!SYS[b] || !SYS[b].rot) return false;
   const r = syncR(b);
@@ -1243,7 +1429,7 @@ function routeFor(
       if (from.state === "surface") legs.push(arrival(origin));
       else if (from.state === "sync") legs.push(...syncLegs(origin, true));
     }
-    return legs;
+    return withSpirals(legs);
   }
 
   /* Another body. From Kerbin's surface or low orbit the map's own legs; from
@@ -1460,7 +1646,7 @@ function routeFor(
     if (from.state === "sync") back.push(...syncLegs(origin, true));
     legs = legs.concat(back);
   }
-  return legs;
+  return withSpirals(legs);
 }
 
 /* The app's old way of asking — a destination name, a profile, an origin —
@@ -1595,6 +1781,7 @@ export {
   relInc,
   routeFor,
   soiR,
+  spiralOf,
   STATES,
   syncR,
   toReason,

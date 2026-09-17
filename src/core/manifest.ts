@@ -25,7 +25,8 @@ type Role =
   | "engine"
   | "booster"
   | "booster-decoupler"
-  | "booster-tank";
+  | "booster-tank"
+  | "power";
 
 /* Whatever the row is about. Null where the row is a charge with no part behind
    it — the fallback decoupler, and the one every radial booster hangs on. */
@@ -208,6 +209,16 @@ export function eachRow(sol: Solution | null | undefined, add: AddRow) {
     if (b.part.column)
       for (const x of b.part.column.list)
         add("booster-tank", x.t, b.n * x.c, x.t.dry, x.t.cost, x.t.prop);
+  }
+
+  /* The power plant an electric engine flies on: each kind of part with its
+     count, and where a fuel cell makes the charge, the fuel it burns and the
+     tank that holds it as one row with no part behind it — the same shape as
+     the decoupler a booster hangs on. #415 */
+  if (sol.plant) {
+    for (const x of sol.plant.parts) add("power", x, x.c, x.m, x.cost);
+    if (sol.plant.fuel)
+      add("power", null, 1, sol.plant.fuel.m, sol.plant.fuel.cost);
   }
 }
 

@@ -77,7 +77,7 @@ describe("splitting a burn into passes", () => {
     const split = splitBurn(1000, arc)!;
     expect(split).not.toBeNull();
     expect(split.passes).toBeGreaterThan(1);
-    expect(arc / split.passes).toBeLessThan(ARC_MAX);
+    expect(arc / split.passes).toBeLessThanOrEqual(ARC_MAX);
   });
 
   it("never charges more than flying it in one go", () => {

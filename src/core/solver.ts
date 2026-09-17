@@ -1,7 +1,8 @@
 import { TALLY } from "./tally.js";
 import { BODY, atmoFor } from "./atmosphere.js";
 import { SYS, omegaOf } from "./orbits.js";
-import { darkFraction } from "./power.js";
+import { darkFraction, drawOf, sizePlant } from "./power.js";
+import type { Plant } from "./power.js";
 import { G0 } from "./constants.js";
 import {
   heightOf,
@@ -26,6 +27,7 @@ import {
   STAGE_PRESSURE,
   ispAt,
   finiteBurnDv,
+  SPIRAL_ARC,
   propellantFor,
   splitBurn,
   scoreOf,
@@ -70,6 +72,11 @@ type StageOpt = {
   /* The legs this stage flies, each with its share of the requirement and the
      rate of the orbit it is burnt in. Empty where the caller gave no route. */
   burns?: ReadonlyArray<StageBurn>;
+  /* Whether every one of those legs is a burn made in orbit, and where the
+     farthest of them is made — what an electric engine's plant is sized for.
+     Both as `StageParams` carries them. */
+  coasts?: boolean;
+  power?: StageParams["power"];
   objective?: Objective;
   needGimbal?: boolean;
   hasStageBelow?: boolean;
@@ -183,6 +190,14 @@ type GroupLeg = {
   /* Null on an ascent, a landing and an aerobrake, which are not spread
      impulses, and on a group whose caller gave no route at all. */
   orbit?: BurnOrbit | null;
+  /* What the leg costs as a spiral over many revolutions, as a multiple of
+     the impulsive Δv it is budgeted at — 2.4 on an escape from low orbit.
+     Null where the leg has no spiral price, which is every leg with no orbit
+     and every group solved without a route. #415 */
+  spiral?: number | null;
+  /* Whether that price stands only after the leg before was itself flown as
+     a spiral by the same stage. `Leg.spiralAfter` in orbits.ts. */
+  spiralAfter?: boolean;
 };
 
 /* What one stage of a chain is judged against, from the legs its slice of the
@@ -221,6 +236,15 @@ type StageBurn = {
      cost went on rather than quoting one number for several. */
   kind: string;
   body: string | null;
+  /* The low-thrust price of the leg, as a multiple of its impulsive one.
+     Zero where the leg has none, and then a burn too long for the closed
+     form is refused rather than spiralled. */
+  spiral: number;
+  /* Whether that price presumes the leg before was flown as a spiral by the
+     same stage — a capture from rest at the edge, which only a craft that
+     spiralled out to match the body's speed arrives at. A stage may not begin
+     its spiralling on such a leg. */
+  after: boolean;
 };
 
 type StageParams = {
@@ -234,6 +258,12 @@ type StageParams = {
   maxBurn: number;
   mounts: boolean;
   burns: ReadonlyArray<StageBurn>;
+  /* Whether every leg the stage flies is a burn made in orbit — a transfer, a
+     capture, a plane change — with nothing to climb or land. Only then is a
+     thrust floor meaningless for an engine whose burns are spirals: the
+     spiral price is what low thrust costs, and a floor on top of it would
+     charge for the same thing twice. False without a route. #415 */
+  coasts: boolean;
   /* Where a power plant would have to work: the least sunlight any of this
      stage's burns is made in, and the worst shadow it has to cross. Only an
      electric engine reads it, and none is offered yet. #414 */
@@ -270,8 +300,37 @@ let worstArc = 0,
   worstKind = "",
   worstBody: string | null = null,
   worstPasses = 1;
+/* Which of a stage's burns the walk has been told to fly as spirals whatever
+   their arc, and where it last asked for one. A capture from rest at the edge
+   is only what a craft that spiralled out to match the body arrives at: a
+   stage whose capture comes out a spiral has to have flown the transfer
+   before it as one too, even where that burn's own arc — weeks of thrusting
+   on a solar orbit of years — would have let it pass as a long impulse. So
+   the walk is run again with that burn forced, and again if that forces
+   another, until it settles or a burn with no spiral price is reached. Module
+   scratch for the same reason as the fields above. #415 */
+const forced: Array<boolean> = [];
+let retryAt = -1;
 
 function needFor(
+  burns: ReadonlyArray<StageBurn>,
+  dv: number,
+  m0: number,
+  ve: number,
+  mdot: number,
+) {
+  forced.length = 0;
+  for (let attempt = 0; attempt <= burns.length; attempt++) {
+    retryAt = -1;
+    const need = walkBurns(burns, dv, m0, ve, mdot);
+    if (need !== null) return need;
+    if (retryAt < 0) return null;
+    forced[retryAt] = true;
+  }
+  return null;
+}
+
+function walkBurns(
   burns: ReadonlyArray<StageBurn>,
   dv: number,
   m0: number,
@@ -285,24 +344,61 @@ function needFor(
   worstKind = "";
   worstBody = null;
   worstPasses = 1;
-  for (const b of burns) {
+  /* Whether the burn before this one, plane changes aside, was a spiral:
+     what a capture priced from rest at the edge has to follow. */
+  let lastSpiral = false;
+  let lastAt = -1;
+  for (let i = 0; i < burns.length; i++) {
+    const b = burns[i];
     const d = dv * b.share;
     let applied = d;
+    let spiral = false;
     if (b.omega > 0) {
       const t = (m - m * Math.exp(-d / ve)) / mdot;
       const arc = b.omega * t;
       /* A transfer is flown in periapsis kicks where they earn their keep; a
          capture has one periapsis and has to be bound by the end of it. */
       let passes = 1;
-      if (b.kind === "transfer") {
+      /* Three regimes by arc. Under `ARC_MAX` a pass is a long impulse and
+         costs the sinc penalty; up to a revolution a transfer is split into
+         passes that each stay under it; past a revolution the burn is a
+         spiral over many turns and costs the spiral price — the whole
+         circular speed to escape, the difference of circular speeds between
+         orbits, Edelbaum for a turn — where the leg has one, and is refused
+         where it has not. A capture or a turn that one pass cannot make is a
+         spiral or nothing. The two forms do not meet, and the solver keeps
+         clear of the gap on its own: nothing that can make a burn in a
+         fraction of an orbit is priced as a spiral, and an ion engine cannot
+         make one in less than several. #415 */
+      if (forced[i] || arc >= SPIRAL_ARC) spiral = true;
+      else if (b.kind === "transfer") {
         const split = splitBurn(d, arc);
-        if (split === null) return null;
-        applied = split.applied;
-        passes = split.passes;
+        if (split === null) spiral = true;
+        else {
+          applied = split.applied;
+          passes = split.passes;
+        }
       } else {
         const grown = finiteBurnDv(d, arc);
-        if (grown === null) return null;
-        applied = grown;
+        if (grown === null) spiral = true;
+        else applied = grown;
+      }
+      if (spiral) {
+        if (!(b.spiral > 0)) return null;
+        /* A capture from rest at the edge is only what a craft that
+           spiralled out to match the body arrives at; a stage that did not
+           make that spiral itself has an excess to kill that no spiral price
+           includes, and cannot kill it slowly. Where the burn before it can
+           be a spiral, ask for the walk again with it flown as one; where
+           there is none, or it has no spiral price, the stage cannot fly. */
+        if (b.after && !lastSpiral) {
+          if (lastAt < 0 || !(burns[lastAt].spiral > 0) || forced[lastAt])
+            return null;
+          retryAt = lastAt;
+          return null;
+        }
+        applied = d * b.spiral;
+        passes = 0;
       }
       if (applied - d > dearest) {
         dearest = applied - d;
@@ -312,28 +408,41 @@ function needFor(
         worstPasses = passes;
       }
     }
+    if (b.kind !== "plane") {
+      lastSpiral = spiral;
+      lastAt = i;
+    }
     need += applied;
     m *= Math.exp(-applied / ve);
   }
   return need;
 }
 
-/* Engines this solver can size at all.
+/* Electric propulsion, and when it is admitted.
 
-   Electric propulsion needs a power plant — panels sized for the sun at the
-   far end of the mission, batteries to carry the load through eclipse, or a
-   generator where neither will do — and none of it is in the part tables or in
-   a stage's mass and cost. The 420 s clock used to keep these out by accident,
-   because a Dawn emptying the smallest xenon container burns for 834 s; #410
-   replaced the clock with an arc, the accident went with it, and the mass
-   objective started answering Eeloo with fourteen ion engines and 25-minute
-   burns whose power system nothing had paid for.
+   An ion engine is an engine flying on nothing until two things are paid for.
+   A power plant — panels sized for the sun where the farthest burn is made,
+   a battery for the shadow, or a generator where neither will do — which is
+   mass and money the stage carries like any other part (#414, `sizePlant`).
+   And the spiral: a Dawn cannot make any burn in a fraction of an orbit, so
+   its burns are spirals over many revolutions and cost the spiral Δv, 2.4
+   times the impulse on an escape (#415, `spiralOf` in orbits.ts).
 
-   So the exclusion is made on purpose, in one place, and #415 is what lifts
-   it: model the plant, price it, and give a many-revolution burn the spiral Δv
-   it actually costs. Xenon is the marker because the catalogue's one electric
-   engine is the only thing that burns it. */
-const sizeable = (e: { f: ReadonlyArray<string> }) => !e.f.includes("Xe");
+   Both are known only where the stage has a route: the plant needs the sun
+   and the shadow at each burn, the spiral needs the orbit each burn is made
+   in. A group solved with no legs — the design grid — has neither, and there
+   an electric engine is left out because nothing can price it, which is what
+   keeps that baseline where it is. The 420 s clock used to keep ions out by
+   accident; #410 replaced the clock with an arc and the mass objective
+   answered Eeloo with fourteen ion engines and no power system; this is the
+   exclusion made on purpose and then lifted on purpose. Xenon is the marker
+   because the catalogue's one electric engine is the only thing that burns
+   it. */
+const electric = (e: { f: ReadonlyArray<string> }) => e.f.includes("Xe");
+const sizeable = (
+  e: { f: ReadonlyArray<string> },
+  burns: ReadonlyArray<StageBurn>,
+) => !electric(e) || burns.some((b) => b.omega > 0);
 
 /* How many separate ignitions a stage's slice of the route amounts to.
 
@@ -387,12 +496,14 @@ function stageParamsFor(
   let flux = 1,
     dark = 0,
     period = 0;
+  let coasts = true;
   legs.forEach((l, j) => {
     const s0 = start;
     start = l.end;
     if (l.end <= lo + eps || s0 >= hi - eps) return; // no overlap
     const climbs = l.kind === "ascent" || l.kind === "ascentBack";
     const lands = l.kind === "land";
+    if (!l.orbit) coasts = false;
     const atStart = lo <= s0 + eps;
     if (span > eps)
       burns.push({
@@ -400,10 +511,19 @@ function stageParamsFor(
         omega: l.orbit ? omegaOf(l.orbit) : 0,
         kind: l.kind,
         body: l.orbit ? l.orbit.body : l.body,
+        spiral: l.spiral ?? 0,
+        after: !!l.spiralAfter,
       });
     if (l.orbit) {
       const b = l.orbit.body;
-      const sun = b === "Sun" ? l.orbit.r : (SYS[b]?.sma ?? NaN);
+      /* How far from the sun the burn is made: the orbit's own radius about
+         the Sun, or the distance of the planet — a moon's `sma` is about its
+         planet, and read as a distance from the sun it put Tylo in Kerbin's
+         light. */
+      let planet = b;
+      while (SYS[planet]?.parent && SYS[planet].parent !== "Sun")
+        planet = SYS[planet].parent!;
+      const sun = b === "Sun" ? l.orbit.r : (SYS[planet]?.sma ?? NaN);
       if (isFinite(sun) && sun > 0) {
         const f = (SYS.Kerbin.sma! / sun) ** 2;
         if (f < flux) flux = f;
@@ -449,6 +569,7 @@ function stageParamsFor(
     maxBurn: pSt > 0.5 ? 200 : Infinity,
     mounts,
     burns,
+    coasts,
     power: { flux, dark, period },
   };
 }
@@ -467,6 +588,8 @@ function solveStage({
   extra,
   maxBurn = 420,
   burns = [],
+  coasts = false,
+  power = { flux: 1, dark: 0, period: 0 },
   objective = "mass",
   needGimbal = false,
   hasStageBelow = false,
@@ -524,6 +647,7 @@ function solveStage({
   const keep = (c: Solution): Solution => {
     const out = { ...c };
     if (out.finite == null) delete out.finite;
+    if (out.plant == null) delete out.plant;
     return out;
   };
   const consider = (cand: Solution) => {
@@ -548,9 +672,17 @@ function solveStage({
   };
 
   for (const e of engines) {
-    if (!sizeable(e)) continue;
+    if (!sizeable(e, burns)) continue;
     if (manyBurns && e.f.includes("SF")) continue;
     if (gimbalNeeded && !(e.gim > 0)) continue;
+    /* Charge a second per engine at full throttle, for a plant to make. Zero
+       for anything that burns propellant alone. */
+    const draw = drawOf(e.n);
+    /* No thrust floor for an electric engine whose every burn is in orbit:
+       its burns are spirals, and the spiral price is what its low thrust
+       costs. Anywhere it has to climb or land the floor stands, and keeps it
+       out. */
+    const floor = draw > 0 && coasts ? 0 : twrMin;
 
     const cap = maxCluster(e, unlocked, excluded);
     /* The cluster cap limits engines on one column, not engines on the stage. A
@@ -587,7 +719,7 @@ function solveStage({
          at, not its vacuum rating — using vacuum thrust here would overstate what
          one engine does and let the bound sit too low to be worth having. */
       const thrust1 = e.fv * (ispAt(e, pSurf) / e.iv);
-      if (n < Math.ceil((twrMin * (payload + extra) * g) / thrust1)) continue;
+      if (n < Math.ceil((floor * (payload + extra) * g) / thrust1)) continue;
 
       const thrust = n * e.fv * (ispAt(e, pSurf) / e.iv); // thrust where it lights
       const mdot = (n * e.fv) / (e.iv * G0); // mass flow is constant in KSP
@@ -658,6 +790,8 @@ function solveStage({
         scratch.twrBurnout = thrust / (mf * g);
         scratch.prop = n * e.fuelM;
         scratch.isp = Math.round(ispE);
+        scratch.finite = null;
+        scratch.plant = null;
         consider(scratch);
         continue;
       }
@@ -702,10 +836,32 @@ function solveStage({
           });
           if (!fit) continue;
           const { coup, shroud, adapt, rejoin, dec, joiner } = fit;
-          const fixed = dryBase + fit.dry;
+          let fixed = dryBase + fit.dry;
 
-          const mp0 = propellantFor(dv, fixed, ispE, k);
+          let mp0 = propellantFor(dv, fixed, ispE, k);
           if (mp0 === null) continue;
+          /* The plant an electric engine flies on, carried as dry mass. Its
+             size depends on the burn only through the shadow it has to cross
+             and the fuel a cell burns, so it is sized once on the burn the
+             first estimate implies, and checked below against the burn the
+             stage actually makes. Nothing to make the charge with — nothing
+             unlocked, or a demand no count of it meets — and the stage
+             cannot fly. */
+          let plant: Plant | null = null;
+          if (draw > 0) {
+            const seconds = (mp0 * (1 + k) + adapt.prop) / mdot;
+            plant = sizePlant(
+              { ec: n * draw, seconds, ...power },
+              unlocked,
+              excluded,
+              objective,
+              expansions,
+            );
+            if (!plant) continue;
+            fixed += plant.m;
+            mp0 = propellantFor(dv, fixed, ispE, k);
+            if (mp0 === null) continue;
+          }
           /* Where an arc is priced, aim the tanks at what the stage will
              actually have to carry rather than at the map's figure, or every
              candidate that a few percent would have saved is rejected for
@@ -746,24 +902,46 @@ function solveStage({
                   columnLen: null,
                 };
           if (!tk) continue;
-          const mf = fixed + tk.dryMass;
-          const m0 = mf + tk.prop + adapt.prop;
-          const got = ispE * G0 * Math.log(m0 / mf);
+          let mf = fixed + tk.dryMass;
+          let m0 = mf + tk.prop + adapt.prop;
+          let got = ispE * G0 * Math.log(m0 / mf);
           /* A necessary condition and the cheapest one: the arc can only grow
              what is needed, never shrink it, so anything short of the map's
              figure is short of the priced one too. */
           if (got < dv * 0.995) continue;
           const twr = thrust / (m0 * g);
-          if (twr < twrMin) continue;
+          if (twr < floor) continue;
           const burn = (tk.prop + adapt.prop) / mdot;
           /* Only the pad still keeps a clock, and only a group with no route
              at all keeps the old vacuum one. */
           if (burn > maxBurn) continue;
+          /* The plant, sized again on the burn the packed tanks make. Heavier
+             than what was budgeted for and the stage is short of Δv, which
+             the check below sees; lighter and the budgeted plant stands — a
+             part more than the minimum, and buildable. */
+          if (plant) {
+            const again = sizePlant(
+              { ec: n * draw, seconds: burn, ...power },
+              unlocked,
+              excluded,
+              objective,
+              expansions,
+            );
+            if (!again) continue;
+            if (again.m > plant.m + 1e-9) {
+              mf += again.m - plant.m;
+              m0 += again.m - plant.m;
+              plant = again;
+            }
+          }
+          got = ispE * G0 * Math.log(m0 / mf);
+          if (got < dv * 0.995) continue;
           let finite: Solution["finite"] = null;
           if (anyArc) {
             const need = needFor(burns, dv, m0, ispE * G0, mdot);
-            /* An arc past what the closed form stands behind: refused, which
-               is what the 420 s clock used to do and on the right measure. */
+            /* An arc past what the closed form stands behind and no spiral
+               price to fall back on: refused, which is what the 420 s clock
+               used to do and on the right measure. */
             if (need === null) continue;
             if (got < need * 0.995) continue;
             if (need > dv)
@@ -773,6 +951,7 @@ function solveStage({
                 kind: worstKind,
                 body: worstBody,
                 passes: worstPasses,
+                ...(worstPasses === 0 ? { spiral: true } : {}),
               };
           }
           scratch.engine = e;
@@ -797,6 +976,7 @@ function solveStage({
           scratch.prop = tk.prop + adapt.prop;
           scratch.isp = Math.round(ispE);
           scratch.finite = finite;
+          scratch.plant = plant;
           consider(scratch);
         }
       }
@@ -1061,7 +1241,9 @@ function boostedAscent({
     cap: number;
   }> = [];
   for (const c of engines) {
-    if (!sizeable(c)) continue;
+    /* A boosted core climbs off a pad, which is no place for an electric
+       engine whatever its route. */
+    if (electric(c)) continue;
     /* A boosted core still flies through the whole atmosphere, so it needs to
        steer just as much as an unboosted one. This check was only in solveStage,
        which let a Reliant core through the moment boosters were involved. */
@@ -1795,6 +1977,7 @@ function solveUnit(
                      design grid takes, and it is why that baseline cannot
                      move under this change. */
                   burns: [],
+                  coasts: false,
                   power: { flux: 1, dark: 0, period: 0 },
                   twrMin: bottom ? twrBottom : twrUpper,
                   g,
@@ -1841,6 +2024,8 @@ function solveUnit(
               extra,
               maxBurn: sp.maxBurn,
               burns: sp.burns,
+              coasts: sp.coasts,
+              power: sp.power,
               objective: pick,
             });
             /* Radial boosters are worth trying on any stage that climbs out of air,

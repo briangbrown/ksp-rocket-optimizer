@@ -203,6 +203,34 @@ before changing the thing it names.
   mission came out 302 t against 224 t at 25, the cheaper stages having led the
   greedy pass into a worse chain. #412
 
+- **A burn has three regimes by arc, and an ion engine lives in the third.**
+  Under `ARC_MAX` (2 rad, as far as the prograde fit was flown — it stood at
+  π until #415 and no baseline burn ever swept more than 0.75) a pass is a
+  long impulse and pays the sinc penalty; up to `SPIRAL_ARC` (one revolution)
+  a transfer is split into passes; past it the burn is a spiral and pays the
+  leg's spiral price — `spiralOf` in orbits.ts: the whole circular speed to
+  escape (2.4× the impulse from low Kerbin orbit), the difference of circular
+  speeds between orbits, Edelbaum for a turn, the body tree climbed on a
+  return, a descent to low orbit where no capture or aerobrake follows. A
+  leg with no spiral price is refused there, as before. Four things to know.
+  A spiral capture is priced from rest at the edge and carries
+  `spiralAfter`: it is only what a craft that spiralled out to match the
+  body arrives at, so `needFor` forces the burn before it into the spiral
+  regime (weeks of thrusting on a solar orbit would otherwise pass as a long
+  impulse) and refuses the stage where there is none — an ion stage may not
+  begin on a capture. An electric engine is admitted only where the stage has
+  legs with orbits (`sizeable`), so the design grid, solved without a route,
+  never sees one; and it has no thrust floor on a coast-only stage, because
+  the spiral price is what low thrust costs. The plant is sized on the burn
+  the first propellant estimate implies and checked against the burn the
+  packed tanks make; heavier and the stage is short, lighter and the budgeted
+  plant stands. And a light probe under a Dawn does not spiral at all: the
+  solver clusters engines to keep the arc under a revolution and pays kicks,
+  which is the price doing its job. The one sweep row that moved is Tylo
+  3.5 t, whose mass plan — standing in for a cost plan that has never solved
+  there — took a Dawn on twelve RTGs for the return: 1,911 t → 1,303 t, 737k
+  → 866k funds, and a 9.8-hour burn, which is what #416 is for. #415
+
 - **`best` is not what the user gets.** For an auto-stage-count launch,
   `planMission` walks `byK` cheapest-first through the ascent simulator and
   delivers the first candidate that flies. A change that leaves `best`
