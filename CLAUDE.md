@@ -13,6 +13,7 @@ changing it** — every entry is a regression a green build did not catch.
 | `src/ui/**`                         | `.claude/rules/ui.md` — panel widths, callback refs, `position: fixed`, `Field` drafts                                                                                            |
 | anything visible                    | `.claude/rules/design.md` — type roles, tokens, one idiom per job; the reference is `docs/design.md`                                                                              |
 | `src/data/**`                       | `.claude/rules/part-data.md` — measurements, not configuration                                                                                                                    |
+| `src/craft/**`, `src/core/craft.ts` | `.claude/rules/craft.md` — the .craft file format as the game writes it, the one adapter, refuse rather than repair                                                               |
 | `test/**`, `visual/**`              | `.claude/rules/verification.md` — what each check does                                                                                                                            |
 | TypeScript itself                   | `.claude/typescript-style-guide.md` — conventions, and two traps at the end                                                                                                       |
 

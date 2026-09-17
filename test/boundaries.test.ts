@@ -156,3 +156,40 @@ describe("what does not belong in committed code", () => {
     expect(bad, "console.log in committed source").toEqual([]);
   });
 });
+
+/* The craft module stands alone: it reads and writes a file format and
+   knows nothing of the solver, and only the adapter knows it. Both ways are
+   held here, so the format and the physics meet in exactly one file and a
+   change to either cannot reach the other by accident. #460, #462 */
+describe("the craft boundary", () => {
+  it("lets src/craft import nothing outside itself", () => {
+    const bad: Array<string> = [];
+    for (const path of files("src/craft")) {
+      const src = readFileSync(path, "utf8");
+      for (const spec of importsOf(src))
+        if (!/^\.\/[\w-]+\.js$/.test(spec)) bad.push(`${path} imports ${spec}`);
+    }
+    expect(bad, "src/craft reaches outside itself").toEqual([]);
+  });
+
+  it("lets only the adapter import src/craft", () => {
+    const allowed = new Set(["src/core/craft.ts"]);
+    const bad: Array<string> = [];
+    for (const path of [
+      ...files("src/core"),
+      ...files("src/ui"),
+      ...files("src/data"),
+    ]) {
+      const src = readFileSync(path, "utf8");
+      for (const spec of importsOf(src))
+        if (
+          /(^|\/)craft\/(index|craft|node|check|format|error)\.js$/.test(
+            spec,
+          ) &&
+          !allowed.has(path)
+        )
+          bad.push(`${path} imports ${spec}`);
+    }
+    expect(bad, "src/craft is imported outside the adapter").toEqual([]);
+  });
+});
