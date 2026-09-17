@@ -3,7 +3,7 @@ import { BODY, atmoFor } from "./atmosphere.js";
 import { SYS, omegaOf } from "./orbits.js";
 import { darkFraction, drawOf, sizePlant } from "./power.js";
 import type { Plant } from "./power.js";
-import { G0 } from "./constants.js";
+import { G0, REGIME_DEFAULT } from "./constants.js";
 import {
   heightOf,
   packFor,
@@ -27,6 +27,8 @@ import {
   STAGE_PRESSURE,
   ispAt,
   finiteBurnDv,
+  ARC_MAX,
+  IMPULSIVE_ARC,
   SPIRAL_ARC,
   propellantFor,
   splitBurn,
@@ -35,7 +37,7 @@ import {
   stageParts,
 } from "./performance.js";
 import { fitStructure, pickTanksMemo, poolsFor } from "./tanks.js";
-import type { Excluded, Expansions, Roster } from "./constants.js";
+import type { Excluded, Expansions, Regime, Roster } from "./constants.js";
 import type { Engine, Tank } from "./catalogue.js";
 import type { Objective } from "./performance.js";
 import type { BoosterPart, Solution } from "./solution.js";
@@ -77,6 +79,9 @@ type StageOpt = {
      Both as `StageParams` carries them. */
   coasts?: boolean;
   power?: StageParams["power"];
+  /* Which regime of burn the mission will fly — a filter on what is offered,
+     never on how a design is priced. `REGIME_DEFAULT` where absent. */
+  regime?: Regime;
   objective?: Objective;
   needGimbal?: boolean;
   hasStageBelow?: boolean;
@@ -166,6 +171,7 @@ type GroupInput = {
      `prepare` tests before asking for its surface pressure. */
   bodyName?: string;
   objective?: Objective;
+  regime?: Regime;
   minK: number;
   maxK: number;
   /* The legs this group flies, in flight order, each with the fraction of the
@@ -318,11 +324,12 @@ function needFor(
   m0: number,
   ve: number,
   mdot: number,
+  regime: Regime,
 ) {
   forced.length = 0;
   for (let attempt = 0; attempt <= burns.length; attempt++) {
     retryAt = -1;
-    const need = walkBurns(burns, dv, m0, ve, mdot);
+    const need = walkBurns(burns, dv, m0, ve, mdot, regime);
     if (need !== null) return need;
     if (retryAt < 0) return null;
     forced[retryAt] = true;
@@ -336,7 +343,14 @@ function walkBurns(
   m0: number,
   ve: number,
   mdot: number,
+  regime: Regime,
 ) {
+  /* What the mission will fly. The physics of a burn is the same on every
+     rung; a rung only refuses the designs that need a burn the reader has
+     not agreed to sit through. #416 */
+  const kicks = regime === "long" || regime === "low";
+  const spirals = regime === "low";
+  const onePass = regime === "impulsive" ? IMPULSIVE_ARC : ARC_MAX;
   let m = m0,
     need = 0,
     dearest = -1;
@@ -371,7 +385,7 @@ function walkBurns(
          fraction of an orbit is priced as a spiral, and an ion engine cannot
          make one in less than several. #415 */
       if (forced[i] || arc >= SPIRAL_ARC) spiral = true;
-      else if (b.kind === "transfer") {
+      else if (b.kind === "transfer" && kicks) {
         const split = splitBurn(d, arc);
         if (split === null) spiral = true;
         else {
@@ -379,12 +393,12 @@ function walkBurns(
           passes = split.passes;
         }
       } else {
-        const grown = finiteBurnDv(d, arc);
+        const grown = arc > onePass ? null : finiteBurnDv(d, arc);
         if (grown === null) spiral = true;
         else applied = grown;
       }
       if (spiral) {
-        if (!(b.spiral > 0)) return null;
+        if (!spirals || !(b.spiral > 0)) return null;
         /* A capture from rest at the edge is only what a craft that
            spiralled out to match the body arrives at; a stage that did not
            make that spiral itself has an excess to kill that no spiral price
@@ -442,7 +456,8 @@ const electric = (e: { f: ReadonlyArray<string> }) => e.f.includes("Xe");
 const sizeable = (
   e: { f: ReadonlyArray<string> },
   burns: ReadonlyArray<StageBurn>,
-) => !electric(e) || burns.some((b) => b.omega > 0);
+  regime: Regime,
+) => !electric(e) || (regime === "low" && burns.some((b) => b.omega > 0));
 
 /* How many separate ignitions a stage's slice of the route amounts to.
 
@@ -590,6 +605,7 @@ function solveStage({
   burns = [],
   coasts = false,
   power = { flux: 1, dark: 0, period: 0 },
+  regime = REGIME_DEFAULT,
   objective = "mass",
   needGimbal = false,
   hasStageBelow = false,
@@ -672,7 +688,7 @@ function solveStage({
   };
 
   for (const e of engines) {
-    if (!sizeable(e, burns)) continue;
+    if (!sizeable(e, burns, regime)) continue;
     if (manyBurns && e.f.includes("SF")) continue;
     if (gimbalNeeded && !(e.gim > 0)) continue;
     /* Charge a second per engine at full throttle, for a plant to make. Zero
@@ -876,6 +892,7 @@ function solveStage({
               fixed + mp0 * (1 + k),
               ispE * G0,
               mdot,
+              regime,
             );
             if (est === null) continue;
             if (est !== dv) {
@@ -938,7 +955,7 @@ function solveStage({
           if (got < dv * 0.995) continue;
           let finite: Solution["finite"] = null;
           if (anyArc) {
-            const need = needFor(burns, dv, m0, ispE * G0, mdot);
+            const need = needFor(burns, dv, m0, ispE * G0, mdot, regime);
             /* An arc past what the closed form stands behind and no spiral
                price to fall back on: refused, which is what the 420 s clock
                used to do and on the right measure. */
@@ -1708,6 +1725,7 @@ function prepare({
   above = { h: 0, w: 0 },
   bodyName,
   objective = "mass",
+  regime = REGIME_DEFAULT,
   legs: groupLegs,
 }: GroupInput) {
   /* Which art the geometry tables are read from, set before anything asks for a
@@ -1754,6 +1772,7 @@ function prepare({
     srbs,
     above,
     objective,
+    regime,
     pSurf,
     twrBottom,
     twrUpper,
@@ -1867,6 +1886,7 @@ function solveUnit(
     srbs,
     above,
     objective,
+    regime,
     pSurf,
     twrBottom,
     twrUpper,
@@ -2026,6 +2046,7 @@ function solveUnit(
               burns: sp.burns,
               coasts: sp.coasts,
               power: sp.power,
+              regime,
               objective: pick,
             });
             /* Radial boosters are worth trying on any stage that climbs out of air,

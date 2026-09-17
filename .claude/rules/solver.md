@@ -231,6 +231,19 @@ before changing the thing it names.
   there — took a Dawn on twelve RTGs for the return: 1,911 t → 1,303 t, 737k
   → 866k funds, and a 9.8-hour burn, which is what #416 is for. #415
 
+- **A setting in the brief filters what is offered; it never changes how a
+  design is priced.** Two people opening one link must get one rocket, so
+  every choice the solver reads rides in the configuration and the link, and
+  none of them touches a formula. The burns control (`Regime`, #416) is the
+  type case: `impulsive`, `standard`, `long` and `low` decide which regime of
+  burn a design may use — one pass under `IMPULSIVE_ARC`, one pass under
+  `ARC_MAX`, kicks up to a revolution, spirals and the electric engines that
+  make them — and a design admitted on any rung carries exactly the Δv it
+  would on any other. `walkBurns` refuses; it does not reprice. The default
+  is `standard`, on which the mission sweep is byte-identical to the one
+  before #415; `low` is where the Tylo 3.5 t ion return lives. A per-session
+  choice that is not in the link is a determinism bug, which is what #430 was.
+
 - **`best` is not what the user gets.** For an auto-stage-count launch,
   `planMission` walks `byK` cheapest-first through the ascent simulator and
   delivers the first candidate that flies. A change that leaves `best`

@@ -4,7 +4,8 @@ import { solve, cancelSolve } from "./solver-client.js";
 import { buildVehicleFor, simCached } from "../core/ascent.js";
 import { orbitAlt } from "../core/atmosphere.js";
 import { DATA } from "../core/catalogue.js";
-import { offered } from "../core/constants.js";
+import { REGIME_DEFAULT, offered } from "../core/constants.js";
+import type { Regime } from "../core/constants.js";
 import type { TransferType } from "../core/transfer.js";
 import { stackGeometry } from "../core/geometry.js";
 import { STATES, defaultCuts, possible, routeFor } from "../core/orbits.js";
@@ -122,6 +123,10 @@ export default function RocketWorks() {
      default; the reader may insist on one. */
   const [transfer, setTransfer] = useState<TransferType>("best");
   const [asparagus, setAsparagus] = useState(false);
+  /* Which regime of burn the mission will fly. Part of the mission, in the
+     configuration and the link, so two people opening one link get one
+     answer; a filter on what is offered, never on how a design is priced. */
+  const [regime, setRegime] = useState<Regime>(REGIME_DEFAULT);
   const [maxAspect, setMaxAspect] = useState(14);
   const [payloadDia, setPayloadDia] = useState(1.25);
   const [payload, setPayload] = useState(2.5);
@@ -355,6 +360,7 @@ export default function RocketWorks() {
           expansions,
           asparagus,
           objective,
+          regime,
           origin,
           boosters,
           /* Arrays, not the Sets and Map held in state. planMission rebuilds
@@ -412,6 +418,7 @@ export default function RocketWorks() {
     needGimbal,
     maxAspect,
     asparagus,
+    regime,
     /* Read by the solver for its geometry tables as well as by the roster
        memos above: the two usually move together, but a toggle that leaves
        the filtered roster the same still has to re-solve. */
@@ -512,6 +519,7 @@ export default function RocketWorks() {
         needGimbal,
         planeNow,
         asparagus,
+        regime,
         maxAspect,
         leaveAfter,
         stay,
@@ -536,6 +544,7 @@ export default function RocketWorks() {
       needGimbal,
       planeNow,
       asparagus,
+      regime,
       maxAspect,
       leaveAfter,
       stay,
@@ -572,6 +581,7 @@ export default function RocketWorks() {
     if (v.needGimbal !== undefined) setNeedGimbal(v.needGimbal);
     if (v.planeNow !== undefined) setPlaneNow(v.planeNow);
     if (v.asparagus !== undefined) setAsparagus(v.asparagus);
+    if (v.regime !== undefined) setRegime(v.regime);
     if (v.maxAspect !== undefined) setMaxAspect(v.maxAspect);
     if (v.leaveAfter !== undefined) setLeaveAfter(v.leaveAfter);
     if (v.stay !== undefined) setStay(v.stay);
@@ -800,6 +810,8 @@ export default function RocketWorks() {
       crossfeedOk={crossfeedOk}
       asparagus={asparagus}
       onAsparagus={edit(setAsparagus)}
+      regime={regime}
+      onRegime={edit(setRegime)}
       objective={objective}
       onObjective={edit(setObjective)}
       needGimbal={needGimbal}

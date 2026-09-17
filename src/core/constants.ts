@@ -48,5 +48,25 @@ const offered = (
   return !!(p.mh && x.mh) || !!(p.rs && x.rs);
 };
 
-export { G0, NONE, expBits, offered };
-export type { Excluded, Expansions, Roster };
+/* How a mission is willing to be flown: which regime of burn a design may
+   use, as a ladder. It is part of the mission, carried in the configuration
+   and the link, and it is a filter on what is offered — a design's physics is
+   the same under every rung; a rung only says which designs a reader will
+   sit through. Seconds would be the wrong unit: the same 523 s is 14% of
+   extra Δv from low Kerbin orbit and free out in solar orbit, so the ladder
+   is in what the burn is, not how long it takes. #416
+
+     impulsive  one burn a leg, under IMPULSIVE_ARC — predictions at their
+                most accurate, conventional engines
+     standard   one burn a leg, under ARC_MAX — as far as the finite-burn
+                form was flown; the default
+     long       periapsis kicks: several passes with an orbit of waiting
+                between each, up to a revolution in all
+     low        spirals over many revolutions, and the electric engines that
+                make them, with the power plant and the spiral Δv paid */
+type Regime = "impulsive" | "standard" | "long" | "low";
+const REGIMES: ReadonlyArray<Regime> = ["impulsive", "standard", "long", "low"];
+const REGIME_DEFAULT: Regime = "standard";
+
+export { G0, NONE, REGIMES, REGIME_DEFAULT, expBits, offered };
+export type { Excluded, Expansions, Regime, Roster };

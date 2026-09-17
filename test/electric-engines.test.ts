@@ -78,6 +78,8 @@ const groupOf = (picked: ReadonlyArray<Leg>, more: Partial<GroupInput> = {}) =>
     minK: 1,
     maxK: 1,
     objective: "mass",
+    /* The rung of the burns control that admits it. */
+    regime: "low",
     legs: legsFor(picked),
     ...more,
   });
@@ -139,6 +141,16 @@ describe("an ion engine", () => {
     /* And on a probe light enough to make the capture in a fraction of an
        orbit, the burn is a long impulse and needs nothing before it. */
     expect(groupOf([capture], { payload: 0.3 })).not.toBeNull();
+  });
+
+  it("is offered only on the rung of the burns control that asks for it", () => {
+    /* The control is a filter on what is offered and nothing else: the
+       same group on the default rung, and on the one that accepts long
+       burns, has no ion stage to give — its burns are spirals, and only the
+       last rung sits through those. */
+    expect(groupOf([escape], { payload: 40, regime: "standard" })).toBeNull();
+    expect(groupOf([escape], { payload: 40, regime: "long" })).toBeNull();
+    expect(groupOf([escape], { payload: 40 })).not.toBeNull();
   });
 
   it("is left out of a group solved without a route", () => {

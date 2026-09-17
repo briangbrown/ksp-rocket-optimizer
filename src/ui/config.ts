@@ -4,7 +4,8 @@ import { DEST, STATES, SYS, endpointsOf, possible } from "../core/orbits.js";
 import type { Endpoint, State } from "../core/orbits.js";
 import { MAX_K } from "../core/plan.js";
 import { withDeps } from "../core/tech.js";
-import type { Expansions } from "../core/constants.js";
+import { REGIMES } from "../core/constants.js";
+import type { Expansions, Regime } from "../core/constants.js";
 import type { Objective } from "../core/performance.js";
 
 /* ------------------------- reading a pasted configuration -------------------------
@@ -38,6 +39,8 @@ type Pasted = {
   needGimbal: boolean;
   planeNow: boolean;
   asparagus: boolean;
+  /* Which regime of burn the mission will fly: `Regime` in core/constants. */
+  regime: string;
   maxAspect: number;
   /* The transfer window search: leave no earlier than this UT, and stay at
      the destination at least this long before the window home. Seconds. */
@@ -67,6 +70,7 @@ type ConfigValues = {
   needGimbal?: boolean;
   planeNow?: boolean;
   asparagus?: boolean;
+  regime?: Regime;
   maxAspect?: number;
   leaveAfter?: number;
   stay?: number;
@@ -197,6 +201,13 @@ function readConfig(cfg: Pasted): ConfigParse {
   take("needGimbal", typeof cfg.needGimbal === "boolean", () => cfg.needGimbal);
   take("planeNow", typeof cfg.planeNow === "boolean", () => cfg.planeNow);
   take("asparagus", typeof cfg.asparagus === "boolean", () => cfg.asparagus);
+  /* A rung the app does not have is left at the default, like any other
+     field a link may carry from another version. */
+  take(
+    "regime",
+    (REGIMES as ReadonlyArray<unknown>).includes(cfg.regime),
+    () => cfg.regime as Regime,
+  );
   take("maxAspect", num(cfg.maxAspect, 2, 100), () => cfg.maxAspect);
   /* A thousand Kerbin years is past any save; a stay is bounded the same. */
   take("leaveAfter", num(cfg.leaveAfter, 0, 1e10), () => cfg.leaveAfter);
