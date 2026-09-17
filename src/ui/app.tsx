@@ -186,9 +186,17 @@ export default function RocketWorks() {
       unlocked.has("Fuel Systems"),
     [unlocked],
   );
+  /* Until the first solve has come back, the results have a shape and no
+     numbers; `Results` draws the sections' headings over skeleton lines. Set
+     when a run completes, delivered or not — a worker that failed to start
+     has no later run coming, and a page of skeletons is worse than a page
+     that says nothing solved. #139 */
+  const [first, setFirst] = useState(true);
   /* What the page has to say about the design as a whole — a link that did
-     not load, a link copied — at the top of *Your rocket*. #140 */
-  const [note, setNote, noteFade] = useNote();
+     not load, a link copied — at the top of *Your rocket*. Held while the
+     first solve is out, since nothing under that heading is drawn until it
+     is back. #140 */
+  const [note, setNote, noteFade] = useNote(first);
   useEffect(() => {
     let live = true;
     (async () => {
@@ -312,12 +320,6 @@ export default function RocketWorks() {
      wants. */
   const [stages, setStages] = useState<Array<PlanStage>>([]);
   const [busy, setBusy] = useState(false);
-  /* Until the first solve has come back, the results have a shape and no
-     numbers; `Results` draws the sections' headings over skeleton lines. Set
-     when a run completes, delivered or not — a worker that failed to start
-     has no later run coming, and a page of skeletons is worse than a page
-     that says nothing solved. #139 */
-  const [first, setFirst] = useState(true);
   const runId = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
 

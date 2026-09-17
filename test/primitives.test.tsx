@@ -16,6 +16,7 @@ import {
   Picker,
   Sheet,
   Toggle,
+  useNote,
 } from "../src/ui/components/primitives.jsx";
 import { MOTION } from "../src/ui/tokens.js";
 
@@ -221,5 +222,48 @@ describe("Disclosure", () => {
     expect(b.getAttribute("aria-expanded")).toBe("true");
     fireEvent.keyDown(window, { key: "Escape" });
     expect(region.hidden).toBe(true);
+  });
+});
+
+/* A toast held until it can be shown.
+
+   The results section draws none of its children until the first solve is
+   back, and a note set on mount — a link's "3 left at their defaults" — was
+   fading through that wait: gone before the section ever rendered it, on CI
+   whenever the solve took longer than the linger and on a phone whenever it
+   does. `held` stops the clock until the toast can be seen. */
+function Noted({ held }: { held: boolean }) {
+  const [note, setNote] = useNote(held);
+  return (
+    <div>
+      <button onClick={() => setNote({ severity: "info", title: "Loaded" })}>
+        set
+      </button>
+      <output>{note ? note.title : "none"}</output>
+    </div>
+  );
+}
+
+describe("a held toast", () => {
+  it("does not fade while held, and fades once released", () => {
+    vi.useFakeTimers();
+    try {
+      const { rerender } = render(<Noted held={true} />);
+      fireEvent.click(screen.getByText("set"));
+      expect(screen.getByRole("status").textContent).toBe("Loaded");
+      act(() => {
+        vi.advanceTimersByTime(MOTION.linger + MOTION.settle + 5000);
+      });
+      /* Twice the linger later, still there: nothing could have shown it. */
+      expect(screen.getByRole("status").textContent).toBe("Loaded");
+      rerender(<Noted held={false} />);
+      expect(screen.getByRole("status").textContent).toBe("Loaded");
+      act(() => {
+        vi.advanceTimersByTime(MOTION.linger + MOTION.settle + 10);
+      });
+      expect(screen.getByRole("status").textContent).toBe("none");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
