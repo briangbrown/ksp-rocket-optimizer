@@ -36,9 +36,19 @@ const PERMANENT = /has no WebGL/;
 
 function watchNotes() {
   const seen: Array<string> = [];
+  /* Every info callout, not the first: the permanent "no WebGL" notice is
+     an info callout too, and where it stands ahead of the toast in the
+     document, `querySelector` returned it, the permanent filter dropped it,
+     and the toast behind it was never read. That is what three CI runs saw
+     as no toast at all while every run here saw one — the two happened to
+     land in the other order. */
   const grab = () => {
-    const t = rocketNote("info")?.textContent?.trim();
-    if (t && !PERMANENT.test(t) && !seen.includes(t)) seen.push(t);
+    for (const el of document.querySelectorAll(
+      '#rocket .callout[data-severity="info"]',
+    )) {
+      const t = el.textContent?.trim();
+      if (t && !PERMANENT.test(t) && !seen.includes(t)) seen.push(t);
+    }
   };
   const mo = new MutationObserver(grab);
   mo.observe(document.body, {
