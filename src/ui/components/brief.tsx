@@ -154,7 +154,6 @@ function StateChoice({
         label={label}
         value={value}
         onChange={onChange}
-        style={{ gap: 6 }}
         options={states.map((s) => {
           const r = reason(s);
           return {
@@ -174,30 +173,39 @@ function StateChoice({
   );
 }
 
-/* One labelled group inside More options: the label the reader scans for,
-   then its controls on the same auto-fitting grid the fold has always used,
-   so a phone stacks them and a desktop sets them side by side. #451 */
-function OptionGroup({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+/* One group inside More options: its controls on the same auto-fitting grid
+   the brief's fields have always used, so a phone stacks them and a desktop
+   sets them side by side. The groups are told apart by the gap between them
+   and nothing else — a heading over each read as one more field label and
+   said nothing a reader needed. #451 */
+/* The gap between chips in a row: what `Choice` puts between its own, so a
+   row of toggles and a row of options read as one idiom. */
+const CHIP_GAP = 5;
+
+/* A chip and the note beside it, kept on one line together. */
+const Paired = ({ children }: { children: ReactNode }) => (
+  <span
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: CHIP_GAP,
+      whiteSpace: "nowrap",
+    }}
+  >
+    {children}
+  </span>
+);
+
+function OptionGroup({ children }: { children: ReactNode }) {
   return (
-    <div>
-      <div className="label" style={{ marginBottom: SPACE.md }}>
-        {label}
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gap: 18,
-          gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
-        }}
-      >
-        {children}
-      </div>
+    <div
+      style={{
+        display: "grid",
+        gap: SPACE.xl,
+        gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
+      }}
+    >
+      {children}
     </div>
   );
 }
@@ -330,7 +338,7 @@ function Brief(p: BriefProps) {
         style={{
           display: "flex",
           flexWrap: "wrap",
-          gap: 6,
+          gap: CHIP_GAP,
           marginBottom: SPACE.xl,
         }}
       >
@@ -339,7 +347,7 @@ function Brief(p: BriefProps) {
       <div
         style={{
           display: "grid",
-          gap: 18,
+          gap: SPACE.xl,
           gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
           marginBottom: SPACE.xl,
         }}
@@ -426,210 +434,222 @@ function Brief(p: BriefProps) {
         gap={SPACE.lg}
         style={{ marginBottom: SPACE.xl }}
       >
-        <OptionGroup label="When">
-          {/* The window search's start, as the game's clock says it: the
+        {/* One rhythm for the fold: a field's width apart between groups,
+            the fields' own gap within one. */}
+        <div style={{ display: "grid", gap: SPACE.xxl }}>
+          <OptionGroup>
+            {/* The window search's start, as the game's clock says it: the
               first window from this date is the one the transfer is priced
               on and drawn for. A day is enough to say — the window itself is
               found to the second. */}
-          <Field
-            label="Leave from year"
-            value={kerbalDate(p.leaveAfter).year}
-            min={1}
-            max={50}
-            step={1}
-            hardMax={1000}
-            onChange={(y) =>
-              p.onLeaveAfter(utOf(y, kerbalDate(p.leaveAfter).day))
-            }
-            hint="The transfer window is the first after this date, on the game's clock — Year 1 Day 1 is a new save."
-          />
-          <Field
-            label="and day"
-            value={kerbalDate(p.leaveAfter).day}
-            min={1}
-            max={426}
-            step={1}
-            onChange={(d) =>
-              p.onLeaveAfter(utOf(kerbalDate(p.leaveAfter).year, d))
-            }
-            hint="A Kerbin year is 426 six-hour days."
-          />
-          <Field
-            label="Stay at least"
-            value={Math.round(p.stay / DAY)}
-            min={0}
-            max={600}
-            step={5}
-            unit="days"
-            hardMax={5000}
-            onChange={(d) => p.onStay(d * DAY)}
-            hint={
-              p.returning
-                ? "The window home is the first after arrival plus this. Zero is the first window there is, which at Duna is most of a year anyway."
-                : "Counts on a return trip: the window home is the first after arrival plus this. Kept for when you switch the return on."
-            }
-          />
-        </OptionGroup>
-        <OptionGroup label="How you fly it">
-          <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: SPACE.md,
-              }}
-            >
-              <span className="label">Transfer</span>
-              <Disclosure
-                label="About transfer types"
-                style={{ marginLeft: SPACE.xs }}
-              >
-                <div>
-                  Ballistic flies the inclination in the ejection: one burn,
-                  with a normal component from an equatorial parking orbit. The
-                  easiest to set up in the game.
-                </div>
-                <div>
-                  Mid-course leaves in the plane and tilts up to the target with
-                  one burn on the way, where the ship is slowest. Often cheaper,
-                  but the burn has to land on the right point of the arc.
-                </div>
-                <div>
-                  Cheapest takes whichever of the two costs less for this
-                  window. The card says which was flown.
-                </div>
-              </Disclosure>
-            </div>
-            <Choice
-              label="Transfer"
-              value={p.transfer}
-              onChange={p.onTransfer}
-              options={[
-                {
-                  value: "best",
-                  label: "Cheapest",
-                  hint: "Whichever of the two costs less for this window.",
-                },
-                {
-                  value: "ballistic",
-                  label: "Ballistic",
-                  hint: "One burn: the inclination is flown in the ejection, as a normal component. Easier to fly.",
-                },
-                {
-                  value: "plane",
-                  label: "Mid-course",
-                  hint: "Leave in the plane and tilt up to the target with one burn on the way. Often cheaper; harder to place in the game.",
-                },
-              ]}
+            <Field
+              label="Leave from year"
+              value={kerbalDate(p.leaveAfter).year}
+              min={1}
+              max={50}
+              step={1}
+              hardMax={1000}
+              onChange={(y) =>
+                p.onLeaveAfter(utOf(y, kerbalDate(p.leaveAfter).day))
+              }
+              hint="The transfer window is the first after this date, on the game's clock — Year 1 Day 1 is a new save."
             />
-          </div>
-          <div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginBottom: SPACE.md,
-              }}
-            >
-              <span className="label">Burns</span>
-              <Disclosure
-                label="About the burns"
-                style={{ marginLeft: SPACE.xs }}
+            <Field
+              label="and day"
+              value={kerbalDate(p.leaveAfter).day}
+              min={1}
+              max={426}
+              step={1}
+              onChange={(d) =>
+                p.onLeaveAfter(utOf(kerbalDate(p.leaveAfter).year, d))
+              }
+              hint="A Kerbin year is 426 six-hour days."
+            />
+            <Field
+              label="Stay at least"
+              value={Math.round(p.stay / DAY)}
+              min={0}
+              max={600}
+              step={5}
+              unit="days"
+              hardMax={5000}
+              onChange={(d) => p.onStay(d * DAY)}
+              hint={
+                p.returning
+                  ? "The window home is the first after arrival plus this. Zero is the first window there is, which at Duna is most of a year anyway."
+                  : "Counts on a return trip: the window home is the first after arrival plus this. Kept for when you switch the return on."
+              }
+            />
+          </OptionGroup>
+          <OptionGroup>
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: SPACE.md,
+                }}
               >
-                <div>
-                  What you are willing to fly, as a ladder. A rung changes
-                  nothing about how a design is priced — the same rocket costs
-                  the same Δv on every one — it only decides which designs are
-                  offered. It is part of the mission and travels in the link.
-                </div>
-                {REGIMES.map((k) => (
-                  <div key={k}>
-                    <strong>{REGIME_LABEL[k]}.</strong> {REGIME_HINT[k]}
+                <span className="label">Transfer</span>
+                <Disclosure
+                  label="About transfer types"
+                  style={{ marginLeft: SPACE.xs }}
+                >
+                  <div>
+                    Ballistic flies the inclination in the ejection: one burn,
+                    with a normal component from an equatorial parking orbit.
+                    The easiest to set up in the game.
                   </div>
-                ))}
-              </Disclosure>
+                  <div>
+                    Mid-course leaves in the plane and tilts up to the target
+                    with one burn on the way, where the ship is slowest. Often
+                    cheaper, but the burn has to land on the right point of the
+                    arc.
+                  </div>
+                  <div>
+                    Cheapest takes whichever of the two costs less for this
+                    window. The card says which was flown.
+                  </div>
+                </Disclosure>
+              </div>
+              <Choice
+                label="Transfer"
+                value={p.transfer}
+                onChange={p.onTransfer}
+                options={[
+                  {
+                    value: "best",
+                    label: "Cheapest",
+                    hint: "Whichever of the two costs less for this window.",
+                  },
+                  {
+                    value: "ballistic",
+                    label: "Ballistic",
+                    hint: "One burn: the inclination is flown in the ejection, as a normal component. Easier to fly.",
+                  },
+                  {
+                    value: "plane",
+                    label: "Mid-course",
+                    hint: "Leave in the plane and tilt up to the target with one burn on the way. Often cheaper; harder to place in the game.",
+                  },
+                ]}
+              />
             </div>
-            <Choice
-              label="Burns"
-              value={p.regime}
-              onChange={p.onRegime}
-              options={REGIMES.map((k) => ({
-                value: k,
-                label: REGIME_LABEL[k],
-                hint: REGIME_HINT[k],
-              }))}
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: SPACE.md,
+                }}
+              >
+                <span className="label">Burns</span>
+                <Disclosure
+                  label="About the burns"
+                  style={{ marginLeft: SPACE.xs }}
+                >
+                  <div>
+                    What you are willing to fly, as a ladder. A rung changes
+                    nothing about how a design is priced — the same rocket costs
+                    the same Δv on every one — it only decides which designs are
+                    offered. It is part of the mission and travels in the link.
+                  </div>
+                  {REGIMES.map((k) => (
+                    <div key={k}>
+                      <strong>{REGIME_LABEL[k]}.</strong> {REGIME_HINT[k]}
+                    </div>
+                  ))}
+                </Disclosure>
+              </div>
+              <Choice
+                label="Burns"
+                value={p.regime}
+                onChange={p.onRegime}
+                options={REGIMES.map((k) => ({
+                  value: k,
+                  label: REGIME_LABEL[k],
+                  hint: REGIME_HINT[k],
+                }))}
+              />
+            </div>
+          </OptionGroup>
+          <OptionGroup>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: CHIP_GAP,
+              }}
+            >
+              {/* A toggle and its note wrap as one, or the note lands on the
+                  next line in front of the wrong chip. */}
+              <Paired>
+                <Toggle
+                  label="Parachutes fitted"
+                  on={p.airDescent && p.chutes}
+                  disabled={!p.airDescent}
+                  onChange={p.onChutes}
+                />
+                <Disclosure label="About parachutes">
+                  Parachutes cut landing Δv to ~18% wherever there is air to
+                  land through — Duna, Eve, Laythe, and Kerbin on the way home.
+                  Add a heat shield to the payload mass.
+                </Disclosure>
+              </Paired>
+              <Toggle
+                label="Radial boosters allowed"
+                on={p.boosters}
+                onChange={p.onBoosters}
+              />
+              {/* Greyed rather than gone where the tech is not researched, as
+                  parachutes are where there is no air. */}
+              <Paired>
+                <Toggle
+                  label="Asparagus staging"
+                  on={p.crossfeedOk && p.asparagus}
+                  disabled={!p.crossfeedOk}
+                  onChange={p.onAsparagus}
+                />
+                <Disclosure label="About asparagus staging">
+                  Liquid side stacks feed the core and drop in pairs as they
+                  empty, so the core is full when it is alone. It needs Fuel
+                  Systems researched for the crossfeed
+                  {p.crossfeedOk ? "." : ", which this roster does not have."}
+                </Disclosure>
+              </Paired>
+              <Toggle
+                label="Gimbal in atmosphere"
+                on={p.needGimbal}
+                onChange={p.onNeedGimbal}
+              />
+            </div>
+          </OptionGroup>
+          <OptionGroup>
+            <Field
+              label="Slenderness limit"
+              value={p.maxAspect}
+              min={6}
+              max={30}
+              step={0.5}
+              unit=":1"
+              hardMax={60}
+              onChange={p.onMaxAspect}
+              hint="Tallest the stack may be relative to its widest point, boosters excluded — they stage away inside the atmosphere and what is left has to stay pointed. A pencil wobbles, needs struts and flips under load."
             />
-          </div>
-        </OptionGroup>
-        <OptionGroup label="What may go on it">
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
-              gap: 5,
-            }}
-          >
-            <Toggle
-              label="Parachutes fitted"
-              on={p.airDescent && p.chutes}
-              disabled={!p.airDescent}
-              onChange={p.onChutes}
+            <Field
+              label="Extra Δv"
+              value={p.extraDv}
+              min={0}
+              max={1500}
+              step={10}
+              unit="m/s"
+              hardMax={9000}
+              onChange={p.onExtraDv}
+              hint="A flat reserve added after the margin, carried on the top stage — for rendezvous, a contract you have not planned yet, or getting home when the map was optimistic."
             />
-            <Disclosure label="About parachutes">
-              Parachutes cut landing Δv to ~18% wherever there is air to land
-              through — Duna, Eve, Laythe, and Kerbin on the way home. Add a
-              heat shield to the payload mass.
-            </Disclosure>
-            <Toggle
-              label="Radial boosters allowed"
-              on={p.boosters}
-              onChange={p.onBoosters}
-            />
-            {/* Greyed rather than gone where the tech is not researched, as
-                parachutes are where there is no air. */}
-            <Toggle
-              label="Asparagus staging"
-              on={p.crossfeedOk && p.asparagus}
-              disabled={!p.crossfeedOk}
-              onChange={p.onAsparagus}
-            />
-            <span className="note" style={{ color: C.dim }}>
-              {p.crossfeedOk
-                ? "liquid side stacks feed the core and drop in pairs"
-                : "asparagus needs Fuel Systems researched"}
-            </span>
-            <Toggle
-              label="Gimbal in atmosphere"
-              on={p.needGimbal}
-              onChange={p.onNeedGimbal}
-            />
-          </div>
-        </OptionGroup>
-        <OptionGroup label="Limits">
-          <Field
-            label="Slenderness limit"
-            value={p.maxAspect}
-            min={6}
-            max={30}
-            step={0.5}
-            unit=":1"
-            hardMax={60}
-            onChange={p.onMaxAspect}
-            hint="Tallest the stack may be relative to its widest point, boosters excluded — they stage away inside the atmosphere and what is left has to stay pointed. A pencil wobbles, needs struts and flips under load."
-          />
-          <Field
-            label="Extra Δv"
-            value={p.extraDv}
-            min={0}
-            max={1500}
-            step={10}
-            unit="m/s"
-            hardMax={9000}
-            onChange={p.onExtraDv}
-            hint="A flat reserve added after the margin, carried on the top stage — for rendezvous, a contract you have not planned yet, or getting home when the map was optimistic."
-          />
-        </OptionGroup>
+          </OptionGroup>
+        </div>
       </Section>
 
       <button className="chip" data-on={1} onClick={p.onDone}>

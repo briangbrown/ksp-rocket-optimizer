@@ -358,10 +358,10 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
          hover rule cannot fire here; a rule of this test's own shows the
          same box instead. The reading is the viewport twice, hint shown and
          hidden, at a grid of points over the part of the hint that lies
-         over the results — its top border, its padding and its first line
-         of text: drawn on top, the hint changes the pixels; drawn under,
-         the card is what is seen both times and nothing changes anywhere.
-         Three rows rather than one, because any single row can agree with
+         over the results — its top border, its padding and its first two
+         lines of text: drawn on top, the hint changes the pixels; drawn
+         under, the card is what is seen both times and nothing changes
+         anywhere. Four rows rather than one, because any single row can agree with
          what happens to be beneath it — in the light theme the hint and a
          card share a ground, a card's own rule sits under the border on some
          rockets, and a line of text has gaps. Device rows, because the
@@ -410,16 +410,23 @@ describe.each(SCREENS)("%s", (screen, viewport) => {
              full. */
           const k = devicePixelRatio;
           const top = r.bottom + 4;
-          const rows = [
-            Math.floor(top * k) + 1,
-            Math.round((top + px(s.borderTopWidth) + 1) * k),
+          /* And the second line of text as well as the first: with three
+             rows, a hint whose first line lay over a card's lighter ground
+             read 11 of 48 points changed against a bar of 12, drawn on top
+             the whole time. */
+          const line = (n: number) =>
             Math.round(
               (top +
                 px(s.borderTopWidth) +
                 px(s.paddingTop) +
-                px(s.lineHeight) / 2) *
+                px(s.lineHeight) * (n + 0.5)) *
                 k,
-            ),
+            );
+          const rows = [
+            Math.floor(top * k) + 1,
+            Math.round((top + px(s.borderTopWidth) + 1) * k),
+            line(0),
+            line(1),
           ];
           const out = [];
           for (const y of rows)

@@ -136,9 +136,11 @@ Two more things it holds since #184. On the phone it taps an icon and reads
 its tooltip's `display` twice, up at once and gone after `MOTION.linger` and
 a `settle`; on the desktop it opens the brief, shows the rightmost hint by a
 rule of its own — headless Chrome answers `hover: none` and will not emulate
-otherwise — and reads the viewport twice along the hint's first line of
-text where it crosses into the results column, requiring a quarter of the
-pixels to change. Palette-free on purpose: in the light theme the hint and a
+otherwise — and reads the viewport twice along the hint's border, padding and first two
+lines of text where it crosses into the results column, requiring a quarter
+of the pixels to change — three rows read 11 of 48 changed against a bar of
+12 with the hint drawn on top, once a spacing change moved it a few pixels
+(#451). Palette-free on purpose: in the light theme the hint and a
 card share a ground, and a check against the hint's own colour passed with
 the fault in place.
 

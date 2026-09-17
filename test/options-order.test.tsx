@@ -9,9 +9,10 @@ import { byText, click, openBrief, openFold, settle } from "./app-harness.js";
    The brief's options had accreted in the order they were built: the two
    least-touched limits opened the fold, and "Stay at least" — the other half
    of the departure date — sat three controls from it and vanished whenever
-   the return was switched off. Now the fold is four labelled groups in the
-   order a reader touches them, and every control stands whether or not it
-   counts for this mission, saying so when it does not. #451 */
+   the return was switched off. Now the fold is four groups in the order a
+   reader touches them, told apart by the gap between them — a heading over
+   each read as one more field label — and every control stands whether or
+   not it counts for this mission, saying so when it does not. #451 */
 
 afterEach(cleanup);
 
@@ -25,26 +26,22 @@ const labelled = (text: string) =>
   labels(document).some((l) => l.startsWith(text));
 
 describe("the mission's options", () => {
-  it("fold into four groups, most touched first, with the date whole", async () => {
+  it("fold in the order a reader touches them, with the date whole", async () => {
     render(<KSPMissionPlanner />);
     await settle();
     await openBrief();
     await openFold("More options");
     const seen = labels(document);
     const order = [
-      "When",
       "Leave from year",
       "and day",
       "Stay at least",
-      "How you fly it",
       "Transfer",
       "Burns",
-      "What may go on it",
       "Parachutes fitted",
       "Radial boosters allowed",
       "Asparagus staging",
       "Gimbal in atmosphere",
-      "Limits",
       "Slenderness limit",
       "Extra Δv",
     ];
