@@ -482,8 +482,18 @@ before changing the thing it names.
   synodic period, because two found a cheaper window two years on and the
   reader asked for the first; and the plane-change branch's burn time wraps
   the anomalies into [0, 2π) before Kepler's equation, or a Dres burn came
-  out 835 days before departure. A window is about 8 ms; a route with both
-  directions about 25 ms, cached on its arguments.
+  out 835 days before departure. A window is about 30 ms; a route with both
+  directions about 60 ms, cached on its arguments.
+  The refine descends from every local minimum of the coarse grid within
+  15% of its cheapest cell, not the cheapest cell alone, and walks each in
+  (departure, arrival) as well as (departure, flight time): the cheapest
+  cell is not always in the cheapest lobe, and the near misses lie along
+  constant arrival. Measured against a grid six times finer, the worst
+  planet-pair miss went from 173 m/s to 73 and windows over 10 m/s off from
+  19 of 252 to 6; Kerbin departures were already exact. A local minimum is
+  judged against neighbours across the period's end too, so a lobe whose
+  floor is in the next period stays the `next` window rather than being
+  delivered as the first — Duna→Dres from Day 412 is the case. #319
   The excess velocity is taken at infinity, from the relative velocity at
   the sphere of influence's edge: `atInfinity` in `transfer.ts` removes the
   2μ/r_soi the ship still has to climb after the patch. Without it every

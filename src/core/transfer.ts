@@ -432,6 +432,13 @@ function arcPoints(m: number, r1: Vec3, v1: Vec3, r2: Vec3, n = 48) {
 const DODGE_STEP = 2 * 3600;
 const DODGE_REACH = 9 * 21600;
 
+/* How many of the coarse grid's basins the refine descends from, and how
+   far above the cheapest cell a basin's floor may sit to be one of them.
+   Six and 15% took every wrong-basin miss in the measurement; beyond that
+   the remaining misses are inside the right basin. #319 */
+const BASINS = 6;
+const BASIN_NEAR = 1.15;
+
 const cache = new Map<string, Window | null>();
 
 /* The cheapest window from `t0` on, leaving a circular orbit of radius
@@ -1006,8 +1013,13 @@ function search(
     }
   if (!early) return null;
   /* Refine: a 7×7 grid about the best, shrinking, nine rounds — from a
-     step of days to one of seconds. */
-  const refine = (b: Best): Best => {
+     step of days to one of seconds. Walked twice from each start: once in
+     departure and flight time, the grid's own axes, and once in departure
+     and arrival. The misses the first walk leaves all lie along a line of
+     constant arrival — a day later out, a day less on the way — which an
+     axis-aligned pattern crosses only on its diagonal and stalls short of
+     as the step shrinks; on Duna→Moho that was 29 m/s. #319 */
+  const descend = (b: Best, byArrival: boolean): Best => {
     let { t: bt, tof: bf, c: bc } = b;
     let ht = step,
       hf = (fHi - fLo) / NF;
@@ -1015,10 +1027,14 @@ function search(
       let nt = bt,
         nf = bf,
         nc: Cell = bc;
+      const arr = bt + bf;
       for (let i = -3; i <= 3; i++)
         for (let j = -3; j <= 3; j++) {
           const t = Math.max(t0, bt + (ht * i) / 3);
-          const tof = Math.max(3600, bf + (hf * j) / 3);
+          const tof = Math.max(
+            3600,
+            byArrival ? arr + (hf * j) / 3 - t : bf + (hf * j) / 3,
+          );
           const c = at(t, tof);
           if (c && c.total < nc.total) {
             nc = c;
@@ -1034,7 +1050,70 @@ function search(
     }
     return { t: bt, tof: bf, c: bc };
   };
-  const best = refine(early);
+  const refine = (b: Best): Best => {
+    const r1 = descend(b, false);
+    const r2 = descend(b, true);
+    return r2.c.total < r1.c.total ? r2 : r1;
+  };
+  /* The coarse grid's local minima in the columns [i0, i1) — cells no
+     neighbour undercuts — cheapest first. The grid sees every lobe of the
+     plot, but the cheapest cell is not always in the cheapest lobe: a
+     Type I and a Type II transfer sit in different basins, and where the
+     wrong one's floor sampled lower the refine polished it — Jool→Eeloo
+     from Year 1 Day 137 delivered 3,193 m/s from a basin 600 days off the
+     one that refines to 3,102. So every basin within `BASIN_NEAR` of the
+     best is refined, up to `BASINS` of them, and the cheapest refined wins.
+     Measured over 252 planet-pair windows against a grid six times finer:
+     the worst miss fell from 173 m/s (Dres→Moho) to 73, the 95th percentile
+     from 13 to 6.5, and windows more than 10 m/s off from 19 to 6, for
+     twice the Lambert work — 15 ms a window to 30, once, then cached.
+     Every window leaving Kerbin was already exact.
+
+     Neighbours across the span's end count, so a cell on the slope of a
+     lobe whose floor is in the next period is not a start: that lobe is the
+     next window, and `next` is where it is reported. Duna→Dres from Year 1
+     Day 412 has one 500 m/s cheaper straddling the period's end, and the
+     first window is still the one at Year 2 Day 131. #319 */
+  const minima = (i0: number, i1: number): Array<Best> => {
+    const out: Array<Best> = [];
+    for (let i = i0; i < i1; i++)
+      for (let j = 0; j <= NF; j++) {
+        const v = totals[i * nf + j];
+        if (v < 0) continue;
+        let low = true;
+        for (let di = -1; di <= 1 && low; di++)
+          for (let dj = -1; dj <= 1; dj++) {
+            const ii = i + di,
+              jj = j + dj;
+            if ((!di && !dj) || ii < 0 || ii >= nt || jj < 0 || jj > NF)
+              continue;
+            const o = totals[ii * nf + jj];
+            if (o >= 0 && o < v) {
+              low = false;
+              break;
+            }
+          }
+        if (!low) continue;
+        const t = t0 + i * step,
+          tof = fLo + ((fHi - fLo) * j) / NF;
+        const c = at(t, tof);
+        if (c) out.push({ t, tof, c });
+      }
+    return out.sort((a, b) => a.c.total - b.c.total);
+  };
+  const refineBasins = (fallback: Best, i0: number, i1: number): Best => {
+    const starts = minima(i0, i1)
+      .filter((b) => b.c.total < fallback.c.total * BASIN_NEAR)
+      .slice(0, BASINS);
+    let best = refine(fallback);
+    for (const s of starts) {
+      const r = refine(s);
+      if (r.c.total < best.c.total) best = r;
+    }
+    return best;
+  };
+  const firstCols = Math.floor(first / step) + 1;
+  const best = refineBasins(early, 0, Math.min(nt, firstCols));
   const tof = Math.round(best.tof);
   let depart = Math.round(best.t);
   let c = best.c;
@@ -1086,7 +1165,7 @@ function search(
   const next =
     later && later.c.total < c.total * 0.98
       ? (() => {
-          const r = refine(later);
+          const r = refineBasins(later, Math.min(nt, firstCols), nt);
           return r.c.total < c.total * 0.98
             ? {
                 depart: Math.round(r.t),
