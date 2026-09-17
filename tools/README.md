@@ -190,6 +190,49 @@ files answered #438's question on the way: every stock and ReStock solid
 booster carries its surface-attach node at `y = 0`, mid-height, which is
 where the model hangs one.
 
+## Part geometry — `PART_H` and `PART_A`
+
+Every part's height and axial face area in `src/data/geometry.json`: the
+height is the slenderness limit and the elevation, the area is drag and the
+width a part presents. Both come off the drag cube the game measures from
+each part's model and writes to `PartDatabase.cfg` on first launch, one table
+per art because ReStock remodels parts that already exist (#118). The
+generator that first wrote the file was not tracked, so the check that would
+have caught a corrupt cube ran only from memory (#316).
+
+1. On the machine with the install, `tools/pack-radial.ps1` (above) already
+   packs what this needs: `PartDatabase.cfg` from the KSP root. The titles
+   come from `ModuleManager.ConfigCache` in `GameData/`, which holds every
+   part as the game loaded it and is the only file carrying both a part's id
+   and its title; copy it alongside.
+
+2. Here:
+
+       node tools/part-geometry.mjs path/to/PartDatabase.cfg path/to/ModuleManager.ConfigCache
+
+   It rewrites `PART_H` and `PART_A` in each art's table and prints what it
+   measured and what it refused; with `--check` it compares instead and exits
+   1 on a difference. Hand it every `PartDatabase.cfg` you have: one with
+   ReStock's cubes in it is the ReStock art, one without is stock. The parts
+   measured are every title in `parts.json`, `structure.json` and
+   `couplers.json`; a title naming two parts takes the visible one (#120); a
+   part with no cube — the Nerv, the engine plates — is left out and falls
+   back.
+
+What it refuses: any cube whose fill factor, the +Y face's area over the
+footprint its own box claims (`YP / (π/4 · size_x · size_z)`), is under 0.1.
+A cylinder fills its bounding box, so honest cubes run from 0.29 (the TT-70)
+to a median of 0.98 among the parts placed; ReStock's Mammoth, Twin-Boar and
+RAPIER ship no cube and the game generated garbage from their models, at
+0.00003, 0.055 and 0.014 (#110, #112). A refused part takes the same title's
+values from the other art on the command line — the stock cube is the wrong
+shape for a remodelled part, but it is a shape — and the run says so. With
+one database and a refusal it fails rather than guess. The first tracked run
+reproduced the committed tables to the digit but one: the RAPIER's ReStock
+area had been left at the garbage cube's 1.277 while its height was read from
+stock; it now reads 1.3 from the stock cube like the other two. Neither
+baseline moved.
+
 ## The icon — `public/favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`
 
 The nut (#206): a hex nut framing a rocket in Kerbin's teal, drawn once as

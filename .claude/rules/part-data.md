@@ -18,16 +18,19 @@ Changing a number here is changing a measurement.
   centred 151 m to one side and 271 m in front of the part it bounds, and its
   axial and side face areas came back byte-identical, which no real part gives.
   Re-baking does not fix this — the cause is in the ReStock asset, so the same
-  numbers come back. Those three heights, and the Mammoth's and Twin-Boar's
-  areas, are read from stock installs instead and are the only values here not
-  measured from the reference install.
+  numbers come back. Those three parts' heights and areas are read from a
+  stock install instead and are the only values here not measured from the
+  reference install.
 
-  The cheap test for the next extraction, which needs nothing but the file
-  itself: divide a part's axial face area by the footprint its own box claims,
-  `YP / (pi/4 * size_x * size_z)`. Across 524 parts that is 0.983 — a cylinder
-  fills its own bounding box. The three bad ones read 0.00003, 0.014 and 0.055.
-  Anything under about 0.1 that is not a dish or a solar panel is a cube that
-  does not describe its own part.
+  The test that catches it needs nothing but the file: divide a part's axial
+  face area by the footprint its own box claims, `YP / (pi/4 * size_x *
+size_z)`. A cylinder fills its own bounding box, so honest cubes read 0.29
+  to 0.98 among the parts placed; the three bad ones 0.00003, 0.014 and
+  0.055. `tools/part-geometry.mjs` is the generator, runs the test on every
+  cube it reads, refuses anything under 0.1 and says so, and `--check` tells
+  whether the committed tables are what the install's files produce.
+  `tools/README.md` is the procedure. Do not edit `PART_H` or `PART_A` by
+  hand: regenerate. #316
 
 - **There are two sets of measurements, and which one is live is solve-scoped.**
   ReStock replaces the models of parts that already exist, so a part is a
