@@ -1738,6 +1738,11 @@ function splitShares(k: number): Array<Array<number>> {
    asked again. */
 const REFINE_STEP = 0.05;
 const SNAP = 0.1;
+/* How far behind the group's best a stage count may be and still get its
+   second wave: 30% on the chain score. At 15% one grid case lost its
+   winner — a k=2 chain 24% behind on the lattice that the second wave took
+   to the front. */
+const REFINE_NEAR = 1.3;
 /* No stage below this share: a sliver of a stage is a decoupler and a tank
    for nothing, and the lattice has never offered one. */
 const SHARE_MIN = 0.05;
@@ -1834,6 +1839,19 @@ function refineUnits(
   for (const win of first.byK) {
     const k = win.k;
     if (k < 2) continue;
+    /* Only the stage counts in the running. A count whose lattice best is
+       far behind the group's best does not close the gap with a twentieth
+       of a share, and measured over the sweep at REFINE_NEAR nothing
+       delivered changes while the mission benchmark loses a fifth of its
+       time. A count that keeps the slenderness limit is always refined when
+       the best does not, since it wins on that alone; one that breaks it
+       never is when the best keeps it. */
+    if (
+      win.slim === first.slim &&
+      win.chainScore > first.chainScore * REFINE_NEAR
+    )
+      continue;
+    if (win.slim !== first.slim && !win.slim) continue;
     const shares = win.chain.map((s) => s.want / p.dv);
     /* The winner's neighbours, one boundary at a time. */
     const b = boundsOf(shares);
