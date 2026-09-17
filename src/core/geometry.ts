@@ -158,10 +158,11 @@ const useArt = (e: Expansions | null | undefined) => {
   art = e && !e.rs ? ART.stock : ART.restock;
 };
 
-/* Real part heights, measured off the drag cube bounding boxes in PartDatabase.
-   The modelled lengths were close for tanks but wrong for boosters — a Kickback
-   holds 19.5 t of solid fuel and is genuinely about 15 m long, which no simple
-   volume formula was going to land on. Six parts have no cube in any install —
+/* Real part heights, measured off the drag cube bounding boxes in PartDatabase
+   by tools/part-geometry.mjs (#316). The modelled lengths were close for
+   tanks but wrong for boosters — a Kickback holds 19.5 t of solid fuel and is
+   genuinely about 15 m long, which no simple volume formula was going to land
+   on. Six parts have no cube in any install —
    the Nerv and the five engine plates, which KSP computes at runtime because
    the shroud varies with what is mounted inside — and they fall back. */
 const PART_H = (n: string) => art.PART_H[n];
