@@ -232,7 +232,9 @@ describe("the search's dodge", () => {
       dodged,
       "no window needed a dodge, so this proves nothing",
     ).toBeGreaterThan(3);
-  });
+    /* Seventy-two windows at about 30 ms each here and twice that on CI,
+       since the search refines every basin (#319). */
+  }, 60_000);
 
   it("dodges the Ike encounter on the Duna departure that has one", () => {
     /* Duna to Eve on the first window of Year 1 leaves through Ike's sphere
