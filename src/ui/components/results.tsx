@@ -27,6 +27,8 @@ import type { Hardware } from "./parts.jsx";
 type RouteProps = {
   route: ReadonlyArray<Leg>;
   cuts: Set<number>;
+  /* Cuts the solver placed on its own — `Plan.autoCuts`. #449 */
+  autoCuts: ReadonlySet<number>;
   onToggleCut: (i: number) => void;
   onPlaneMode: (now: boolean) => void;
   stages: ReadonlyArray<PlanStage>;
@@ -102,14 +104,16 @@ const flightLine = (a: Ascent) =>
    #134, #137 */
 function RouteSection(p: RouteProps) {
   const [open, setOpen] = useState(p.cuts.size > 0);
+  const cutCount =
+    p.cuts.size + [...p.autoCuts].filter((i) => !p.cuts.has(i)).length;
   return (
     <Section
       id="route"
       heading="Where it goes"
       summary={`${p.route.length} legs · ${fmt(p.budget)} m/s · ${
-        p.cuts.size === 0
+        cutCount === 0
           ? "one span"
-          : `${p.cuts.size} cut${p.cuts.size === 1 ? "" : "s"}`
+          : `${cutCount} cut${cutCount === 1 ? "" : "s"}`
       }`}
       open={open}
       onToggle={() => setOpen(!open)}
@@ -119,9 +123,21 @@ function RouteSection(p: RouteProps) {
       <div className="note" style={{ marginBottom: SPACE.xl }}>
         Cut where the hardware parts company.
       </div>
+      {p.autoCuts.size > 0 && (
+        /* Said on the page, since the reader did not place it: one span had
+           spent every stage it may have, and cutting here made a better
+           rocket on the objective asked. #449 */
+        <Callout
+          severity="info"
+          title="The solver cut this mission after the climb to orbit."
+          more="One span had used every stage it may have, and two spans came out better on what you asked for. Tap the cut to keep it as your own, or cut elsewhere."
+          style={{ marginBottom: SPACE.lg }}
+        />
+      )}
       <RouteMap
         route={p.route}
         cuts={p.cuts}
+        autoCuts={p.autoCuts}
         onToggle={p.onToggleCut}
         color={p.color}
         stages={p.stages}

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from "vitest";
-import { render, cleanup } from "@testing-library/react";
+import { render, cleanup, fireEvent } from "@testing-library/react";
 import { RouteMap } from "../src/ui/components/route.jsx";
 import type { Leg } from "../src/core/orbits.js";
 
@@ -50,6 +50,7 @@ describe("the route map", () => {
       <RouteMap
         route={ROUTE}
         cuts={new Set([0])}
+        autoCuts={new Set()}
         onToggle={toggle}
         color="#fff"
         stages={[]}
@@ -81,5 +82,32 @@ describe("the route map", () => {
       "Add staging event after Orbit → escape",
       "Remove staging event after Launchpad → orbit",
     ]);
+  });
+
+  it("draws the solver's cut as a cut, says whose it is, and offers to keep it", () => {
+    /* A cut the solver placed where the reader placed none: shown where a
+       reader's cut would be, named as the solver's, and a tap keeps it as the
+       reader's own rather than removing it. #449 */
+    const toggle: Spy = Object.assign((i: number) => void (toggle.last = i), {
+      last: -1,
+    });
+    const { container } = render(
+      <RouteMap
+        route={ROUTE}
+        cuts={new Set()}
+        autoCuts={new Set([0])}
+        onToggle={toggle}
+        color="#fff"
+        stages={[]}
+        onPlaneMode={() => {}}
+      />,
+    );
+    const cut = container.querySelector('[aria-label^="Keep the staging"]');
+    expect(cut?.getAttribute("aria-label")).toBe(
+      "Keep the staging event the solver placed after Launchpad → orbit",
+    );
+    expect(cut?.textContent).toBe("separates here · the solver's cut");
+    fireEvent.click(cut!);
+    expect(toggle.last).toBe(0);
   });
 });
