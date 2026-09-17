@@ -260,6 +260,40 @@ before changing the thing it names.
   before #415; `low` is where the Tylo 3.5 t ion return lives. A per-session
   choice that is not in the link is a determinism bug, which is what #430 was.
 
+- **The Δv split is a lattice and then a second wave round its winners.**
+  `splitShares` is five splits at k=2, twelve at k=3, even plus five tilts
+  above — four of them top-heavy, because nine of ten k ≥ 4 winners at a
+  lattice twice as fine were, and the +0.4 bottom tilt never won. Then
+  `refineUnits` builds a second wave round the best chain at each k: the
+  Lagrange staging point for the engines it chose (`lagrangeShares`, exact
+  for the mass objective and within 0.2 of every winner measured), each
+  boundary moved `REFINE_STEP` either way, and a snap to a leg's end within
+  `SNAP`. The two waves are reduced apart and joined by `mergeResults`, so
+  each keeps its own runners-up: reduced together, the neighbours crowded the
+  lattice's own chain out of the three slots the walk flies, and on Low orbit
+  3.5 t lightest the one chain flown was grown into a 25.3 t rocket where the
+  lattice's 24.6 t two-stage chain had never had its turn. Three things this
+  exposed and fixed with it: the packing pass added a ring's brackets to a
+  stage's mass and not to its `cost`, `parts` or `score`, so a packed stage
+  ranked 1,848 funds under its bill — the sweep now holds every delivered
+  stage's `cost` and `parts` to `stageCost` and `stageParts`; an upper
+  group's chain was ranked on its own cost with no charge for the mass it
+  hands down, so `chainScore` now couples at `COUPLE_COST` / `COUPLE_PARTS`
+  for every group but the launch group; and the sweep's asparagus mission
+  moved from the Mun to Minmus, because the better search found the Mun 20 t
+  rocket 17% lighter without a drop tank on it. Only stage counts within
+  `REFINE_NEAR` (30%) of the group's best on the chain score get the wave —
+  at 15% a k=2 chain 24% behind on the lattice, which the wave took to the
+  front, was left behind. Measured against the sweep on the objective asked
+  for: 24 of 45 solved case-objectives better, 4 worse. The mission benchmark
+  (tier 9, five destinations) goes 6.4 s → 9.7 s and the grid 13.3 s →
+  18.7 s, against 2.75× for a lattice twice as fine; at the app's default
+  tier 5 the solve is fifteen times faster and the wave is a fraction of a
+  second. Of the four,
+  two are Tylo 3.5 t's cost and parts objectives, which have no plan of their
+  own and are served the lightest; one is a slenderness cliff on Eeloo cut;
+  one is a part. #447
+
 - **`best` is not what the user gets.** For an auto-stage-count launch,
   `planMission` walks `byK` cheapest-first through the ascent simulator and
   delivers the first candidate that flies. A change that leaves `best`

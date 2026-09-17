@@ -33,6 +33,8 @@ import {
   propellantFor,
   splitBurn,
   scoreOf,
+  COUPLE_COST,
+  COUPLE_PARTS,
   stageCost,
   stageParts,
 } from "./performance.js";
@@ -1685,10 +1687,14 @@ function splitShares(k: number): Array<Array<number>> {
         if (c >= 0.15 && c <= 0.6) out.push([a, b, c]);
       }
   } else {
-    // even, plus tilts toward the bottom and toward the top
+    /* Even, plus tilts — mostly toward the top. Of the ten k ≥ 4 winners in
+       the sweep at a lattice twice as fine, nine took a top-heavy split and
+       the tenth a slight bottom one; the +0.4 tilt never won and is gone,
+       and −0.1 and −0.3 are here because they did. The upper stages carry
+       the vacuum engines, so the staging optimum tilts upward. #447 */
     const even = 1 / k;
     out.push(Array(k).fill(even));
-    for (const tilt of [0.4, 0.2, -0.2, -0.4]) {
+    for (const tilt of [0.2, -0.1, -0.2, -0.3, -0.4]) {
       const sh = Array.from(
         { length: k },
         (_, i) => even * (1 + tilt * (1 - (2 * i) / (k - 1))),
@@ -1698,6 +1704,171 @@ function splitShares(k: number): Array<Array<number>> {
     }
   }
   return out.filter((sh) => sh.length === k && sh.every((x) => x > 0.05));
+}
+
+/* ------------------------- the second wave of splits -------------------------
+
+   The lattice is coarse, and what it lacks is resolution rather than shape:
+   at a step twice as fine, 31 of 54 sweep cases came out lighter or cheaper
+   on the objective asked for, by up to 26%, and 25 of the 48 winning splits
+   used a share the lattice does not have. A lattice twice as fine costs 2.75×
+   the solve; four times ran out of memory. So the lattice is searched once,
+   and then a second, targeted wave is built round what it found. #447
+
+   Three kinds of split go in the second wave, for each stage count the first
+   wave produced a chain at:
+
+   - **The Lagrange point.** For the engines the winning chain chose — each
+     stage's exhaust velocity `c` and structural coefficient `ε` — the
+     classical staging optimum: mass ratios `R_i = (c_i λ − 1) / (c_i ε_i λ)`
+     with λ chosen so the Δv adds up. On the mass objective every winner at
+     the fine lattice lay within 0.2 of this point on every share and most
+     within 0.1; the outliers were floors and the pad clock binding, which the
+     search finds for itself by the unit failing.
+   - **The winner's neighbours**, each boundary moved by `REFINE_STEP` either
+     way. Halving the lattice's step where it matters, and where the Lagrange
+     point is not the theory — cost and parts, which are minimising tank
+     quanta rather than mass.
+   - **Snaps to a leg's end.** A boundary within `SNAP` of a leg's end is moved
+     onto it, so a stage may own a burn whole: a solid may then fly it, an
+     electric stage may spiral it, and two stages stop sharing one burn.
+
+   Nothing in the wave changes how a design is priced; it only asks the same
+   question at a few more points. A split the lattice already asked is not
+   asked again. */
+const REFINE_STEP = 0.05;
+const SNAP = 0.1;
+/* How far behind the group's best a stage count may be and still get its
+   second wave: 30% on the chain score. At 15% one grid case lost its
+   winner — a k=2 chain 24% behind on the lattice that the second wave took
+   to the front. */
+const REFINE_NEAR = 1.3;
+/* No stage below this share: a sliver of a stage is a decoupler and a tank
+   for nothing, and the lattice has never offered one. */
+const SHARE_MIN = 0.05;
+
+/* The staging optimum for a chain's engines, as shares of its Δv, or null
+   where the chain's engines could not deliver the Δv at any split — every
+   stage at its mass-ratio limit falls short — or where a stage's structure
+   reads as nonsense. Bottom stage first, as `shares` are. */
+function lagrangeShares(
+  chain: ReadonlyArray<StageInChain>,
+  dv: number,
+): Array<number> | null {
+  const c = chain.map((s) => s.sol.isp * G0);
+  const e = chain.map((s) => {
+    const own = s.sol.total - s.payloadIn;
+    return own > 0 ? (s.sol.dry - s.payloadIn) / own : NaN;
+  });
+  if (c.some((x) => !(x > 0)) || e.some((x) => !(x > 0 && x < 0.95)))
+    return null;
+  /* Every stage at the edge of what its structure allows is the most Δv the
+     chain can give; below that there is a λ to find. */
+  const most = c.reduce((a, ci, i) => a + ci * Math.log(1 / e[i]), 0);
+  if (!(most > dv)) return null;
+  const total = (lam: number) => {
+    let t = 0;
+    for (let i = 0; i < c.length; i++) {
+      const R = (c[i] * lam - 1) / (c[i] * e[i] * lam);
+      if (!(R > 1)) return -Infinity;
+      t += c[i] * Math.log(R);
+    }
+    return t;
+  };
+  /* Σ c ln R rises with λ from −∞ at the largest 1/c toward `most`; bisect
+     in the log, since λ spans decades. */
+  let lo = Math.max(...c.map((ci) => 1 / ci)) * (1 + 1e-7);
+  let hi = lo * 1e9;
+  for (let i = 0; i < 200; i++) {
+    const mid = Math.sqrt(lo * hi);
+    if (total(mid) < dv) lo = mid;
+    else hi = mid;
+  }
+  const dvs = c.map((ci, i) => ci * Math.log((ci * hi - 1) / (ci * e[i] * hi)));
+  const sum = dvs.reduce((a, b) => a + b, 0);
+  return sum > 0 ? dvs.map((d) => d / sum) : null;
+}
+
+/* The boundaries of a split, as fractions of the group's Δv, and back. */
+const boundsOf = (shares: ReadonlyArray<number>) => {
+  const out: Array<number> = [];
+  let acc = 0;
+  for (let i = 0; i < shares.length - 1; i++) out.push((acc += shares[i]));
+  return out;
+};
+const sharesOf = (bounds: ReadonlyArray<number>) => {
+  const out: Array<number> = [];
+  let last = 0;
+  for (const b of bounds) {
+    out.push(b - last);
+    last = b;
+  }
+  out.push(1 - last);
+  return out;
+};
+const wellFormed = (shares: ReadonlyArray<number>) =>
+  shares.every((x) => x >= SHARE_MIN - 1e-9);
+const keyOf = (shares: ReadonlyArray<number>) =>
+  shares.map((x) => x.toFixed(3)).join("/");
+
+function refineUnits(
+  p: Prepared,
+  first: GroupResult | null,
+  tried: ReadonlyArray<{ k: number; shares: Array<number> }>,
+): Array<{ k: number; shares: Array<number> }> {
+  if (!first) return [];
+  const seen = new Set(tried.map((u) => `${u.k}:${keyOf(u.shares)}`));
+  const out: Array<{ k: number; shares: Array<number> }> = [];
+  const add = (k: number, shares: Array<number>) => {
+    if (!wellFormed(shares)) return;
+    const key = `${k}:${keyOf(shares)}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ k, shares });
+  };
+  const ends = p.legs ? p.legs.slice(0, -1).map((l) => l.end) : [];
+  const snapped = (shares: ReadonlyArray<number>) =>
+    sharesOf(
+      boundsOf(shares).map((b) => {
+        let best = b;
+        for (const e of ends)
+          if (Math.abs(e - b) < Math.abs(best - b)) best = e;
+        return Math.abs(best - b) <= SNAP ? best : b;
+      }),
+    );
+  for (const win of first.byK) {
+    const k = win.k;
+    if (k < 2) continue;
+    /* Only the stage counts in the running. A count whose lattice best is
+       far behind the group's best does not close the gap with a twentieth
+       of a share, and measured over the sweep at REFINE_NEAR nothing
+       delivered changes while the mission benchmark loses a fifth of its
+       time. A count that keeps the slenderness limit is always refined when
+       the best does not, since it wins on that alone; one that breaks it
+       never is when the best keeps it. */
+    if (
+      win.slim === first.slim &&
+      win.chainScore > first.chainScore * REFINE_NEAR
+    )
+      continue;
+    if (win.slim !== first.slim && !win.slim) continue;
+    const shares = win.chain.map((s) => s.want / p.dv);
+    /* The winner's neighbours, one boundary at a time. */
+    const b = boundsOf(shares);
+    for (let i = 0; i < b.length; i++)
+      for (const d of [-REFINE_STEP, REFINE_STEP]) {
+        const nb = b.slice();
+        nb[i] += d;
+        add(k, sharesOf(nb));
+      }
+    add(k, snapped(shares));
+    const lag = lagrangeShares(win.chain, p.dv);
+    if (lag) {
+      add(k, lag);
+      add(k, snapped(lag));
+    }
+  }
+  return out;
 }
 
 /* Everything a `(k, shares)` unit needs, hoisted out of solveGroup so the unit
@@ -2111,13 +2282,32 @@ function solveUnit(
           if (!ok) continue;
           /* Compare whole chains on the chosen measure, not just the final mass —
          otherwise splitting a segment always looks free in cost or part terms. */
-          const chainScore =
+          /* And on the mass a group hands down where there is a group below
+             to carry it: a launch group is the bottom of the rocket and its
+             mass costs nobody anything, but every other group's mass is
+             propellant and engines for the groups beneath, which are solved
+             later and cannot argue. The per-stage heuristic has always
+             coupled at COUPLE_COST and COUPLE_PARTS; the chain comparison
+             did not, so a cheaper-but-heavier upper group won its own
+             contest and lost the mission's — the Eeloo cut mission came out
+             11% dearer on the cost objective once packed rings were priced
+             honestly, the understated brackets having steered it to the
+             lighter chain by accident. #447 */
+          const couple = kind !== "launch";
+          const scoreChain = (stages: ReadonlyArray<Solution>) =>
             objective === "mass"
               ? carried
-              : sub.reduce(
+              : stages.reduce(
                   (a, x) => a + (objective === "cost" ? x.cost : x.parts),
                   0,
-                );
+                ) +
+                (couple
+                  ? objective === "cost"
+                    ? carried * COUPLE_COST
+                    : carried / COUPLE_PARTS
+                  : 0);
+          let chainScore = scoreChain(sub);
+          let packedAny = false;
           /* Slenderness is a property of the whole stack, so it can only be judged
          once the chain is complete. Chains inside the limit always beat chains
          outside it, whatever they score — a pencil that is 10% lighter is not a
@@ -2148,14 +2338,28 @@ function solveUnit(
            stages ended up wider than the stage they sat on. */
             /* One ring per column, so its brackets are paid once per column. */
             const packMass = pk.mass * (sol.stacks || 1);
-            const packedSol = {
+            const packedSol: Solution = {
               ...sol,
               packed: pk,
               dry: sol.dry + packMass,
               total: sol.total + packMass,
             };
+            /* The brackets are money and parts as well as mass, and the
+               stage's own figures have to say so: `chainScore` below ranks
+               chains on `cost` and `parts`, and `planMission` delivers the
+               cheaper of the cost plan and the mass plan on the same
+               figures. Left at the unpacked numbers, a packed ring read 1,848
+               funds cheaper than its bill, and a dearer rocket was delivered
+               as the cheaper one. #447 */
+            packedSol.cost = stageCost(packedSol);
+            packedSol.parts = stageParts(packedSol);
+            packedSol.score = scoreOf(packedSol, pick);
             chain[q] = { ...chain[q], sol: packedSol };
+            packedAny = true;
           }
+          /* Re-ranked on the packed figures where a ring was added. */
+          if (packedAny && objective !== "mass")
+            chainScore = scoreChain(chain.map((x) => x.sol));
           /* The whole stack, not this segment of it: everything already
              solved above, plus this chain, plus one payload on the nose. For
              the group that reaches the pad — the last one solved — that is
@@ -2180,11 +2384,47 @@ function solveUnit(
 }
 
 /* The whole search for one group, on this thread. */
+/* The two waves, reduced apart and then joined: the best at each stage count
+   is the better of the two, and the runners-up are both waves' runners-up.
+   Reduced together, the second wave's neighbours — several splits a twentieth
+   apart round one winner — filled every runner-up slot with near-copies of
+   it, and the lattice's own answer, a different chain altogether, fell out of
+   the list the candidate walk flies. On the Low orbit 3.5 t lightest brief
+   the one chain flown was then 5 m/s over budget, was grown, and came back
+   as a three-stage 25.3 t rocket where the lattice's 24.6 t two-stage chain
+   had never been given its turn. Each wave keeps its own runners-up, so the
+   walk sees both the lattice's spread and the refinement's precision. #447 */
+function mergeResults(
+  a: GroupResult | null,
+  b: GroupResult | null,
+): GroupResult | null {
+  if (!a) return b;
+  if (!b) return a;
+  const byK: Array<ChainCandidate> = [];
+  const losers: Array<ChainCandidate> = [];
+  for (const c of [...a.byK, ...b.byK]) {
+    const held = byK[c.k];
+    if (better(c, held)) {
+      if (held) losers.push(held);
+      byK[c.k] = c;
+    } else losers.push(c);
+  }
+  const best = better(b, a) ? b : a;
+  return {
+    ...best,
+    byK: byK.filter((c) => c !== undefined),
+    alts: [...a.alts, ...b.alts, ...losers],
+  };
+}
+
 function solveGroup(input: GroupInput) {
   const p = prepare(input);
-  return reduceUnits(
-    unitsOf(input.minK, input.maxK).map((u) => solveUnit(p, u.k, u.shares)),
-  );
+  const units = unitsOf(input.minK, input.maxK);
+  const first = reduceUnits(units.map((u) => solveUnit(p, u.k, u.shares)));
+  /* The second wave, built round what the first found. */
+  const more = refineUnits(p, first, units);
+  const second = reduceUnits(more.map((u) => solveUnit(p, u.k, u.shares)));
+  return mergeResults(first, second);
 }
 
 /* The same search, with the units handed to someone who can run them at the
@@ -2199,7 +2439,10 @@ async function solveGroupWith(
 ) {
   const p = prepare(input);
   const units = unitsOf(input.minK, input.maxK);
-  return reduceUnits(await fanOut(p, units));
+  const first = reduceUnits(await fanOut(p, units));
+  const more = refineUnits(p, first, units);
+  const second = more.length ? reduceUnits(await fanOut(p, more)) : null;
+  return mergeResults(first, second);
 }
 
 /* Which parts each node actually unlocks. 27 of the 63 stock nodes carry nothing
@@ -2208,6 +2451,8 @@ async function solveGroupWith(
 
 export {
   boostedAscent,
+  lagrangeShares,
+  mergeResults,
   solveGroup,
   solveGroupWith,
   solveStage,

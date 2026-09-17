@@ -3,7 +3,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup, act } from "@testing-library/react";
 import KSPMissionPlanner from "../src/ui/app.jsx";
 import { fromLink, toLink } from "../src/ui/link.js";
-import { allByLabel, click, settle } from "./app-harness.js";
+import { allByLabel, click, settle, solving } from "./app-harness.js";
 
 /* The design as a link, #140, from the page's side. A link that will not
    read is a callout over the default rocket and never a blank page; a link
@@ -36,9 +36,19 @@ const PERMANENT = /has no WebGL/;
 
 function watchNotes() {
   const seen: Array<string> = [];
+  /* Every info callout, not the first: the permanent "no WebGL" notice is
+     an info callout too, and where it stands ahead of the toast in the
+     document, `querySelector` returned it, the permanent filter dropped it,
+     and the toast behind it was never read. That is what three CI runs saw
+     as no toast at all while every run here saw one — the two happened to
+     land in the other order. */
   const grab = () => {
-    const t = rocketNote("info")?.textContent?.trim();
-    if (t && !PERMANENT.test(t) && !seen.includes(t)) seen.push(t);
+    for (const el of document.querySelectorAll(
+      '#rocket .callout[data-severity="info"]',
+    )) {
+      const t = el.textContent?.trim();
+      if (t && !PERMANENT.test(t) && !seen.includes(t)) seen.push(t);
+    }
   };
   const mo = new MutationObserver(grab);
   mo.observe(document.body, {
@@ -98,7 +108,17 @@ describe("a design as a link", () => {
     );
     const notes = watchNotes();
     render(<KSPMissionPlanner />);
-    expect(await notes.settled()).toMatch(/left at their defaults/);
+    const seen = await notes.settled();
+    /* Say what the page held when nothing was seen: this went red on CI
+       with nothing to read, and passed here every time. */
+    const callouts = [...document.querySelectorAll(".callout")].map(
+      (c) =>
+        `${c.getAttribute("data-severity")}: ${c.textContent?.trim().slice(0, 80)}`,
+    );
+    expect(
+      seen,
+      `no toast; callouts on the page: ${JSON.stringify(callouts)}; solving veil ${solving()}; hash ${location.hash.slice(0, 40)}`,
+    ).toMatch(/left at their defaults/);
     await settle();
     expect(document.querySelector("canvas, table")).toBeTruthy();
   }, 120_000);

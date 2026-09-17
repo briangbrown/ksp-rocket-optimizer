@@ -1065,11 +1065,21 @@ function Field({
    same wherever it is drawn. #139, #140 */
 type Note = { severity: Severity; title: string };
 
-function useNote(): [Note | null, (n: Note | null) => void, CSSProperties] {
+/* `held` while the note cannot be shown — the results section draws
+   skeleton lines and none of its children until the first solve is back —
+   so the linger starts when the reader can see the toast and not when it was
+   set. Without it a link's "3 left at their defaults" was set on mount,
+   faded through a three-second first solve, and was gone before the section
+   ever rendered it: on CI every time the solve was slow enough, and on a
+   phone whenever it is. */
+function useNote(
+  held = false,
+): [Note | null, (n: Note | null) => void, CSSProperties] {
   const [note, setNote] = useState<Note | null>(null);
   const [fading, setFading] = useState(false);
   useEffect(() => {
     if (!note || note.severity === "bad" || note.severity === "warn") return;
+    if (held) return;
     const fade = setTimeout(() => setFading(true), MOTION.linger);
     const gone = setTimeout(() => {
       setNote(null);
@@ -1079,7 +1089,7 @@ function useNote(): [Note | null, (n: Note | null) => void, CSSProperties] {
       clearTimeout(fade);
       clearTimeout(gone);
     };
-  }, [note]);
+  }, [note, held]);
   /* Stable, as a state setter is, so an effect that fires a note can list it
      honestly without being rebuilt every render. */
   const set = useCallback((n: Note | null) => {

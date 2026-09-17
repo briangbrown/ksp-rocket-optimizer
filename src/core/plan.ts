@@ -329,6 +329,9 @@ async function planFor(
       maxK: forced || autoK,
     });
     let res: ChainCandidate | null = solved;
+    /* The candidate that flew as it stood, kept beside the pick until the
+       pick has been grown and can be measured rather than estimated. */
+    let flewAsIs: ChainCandidate | null = null;
 
     /* The closed-form solver can pick a stage count the vehicle cannot fly —
          an upper stage that satisfies the rocket equation but has no pitch
@@ -375,6 +378,10 @@ async function planFor(
            whose score cannot beat the best estimate so far. #168 #169 */
       let pick: ChainCandidate | null = null;
       let bestEst = Infinity;
+      /* The best candidate that flew within what it carries. It needs no
+         growing, so what it is is what would be delivered — the one figure
+         in this walk that is not an estimate. */
+      let fits: ChainCandidate | null = null;
       for (const cand of order) {
         if (cand.chainScore >= bestEst) break;
         await onYield();
@@ -404,11 +411,14 @@ async function planFor(
             ? flown.total * (1 + margin / 100) - carries
             : 0;
         const est = cand.chainScore * Math.exp(over / GROW_VE);
+        if (over === 0 && (!fits || cand.chainScore < fits.chainScore))
+          fits = cand;
         if (est < bestEst) {
           bestEst = est;
           pick = cand;
         }
       }
+      flewAsIs = fits;
       /* Nothing in the compliant pool could be flown. Keep the best of them
            anyway — the design is the one the user asked for, and the flight card
            will show that the ascent could not be simulated. */
@@ -472,6 +482,20 @@ async function planFor(
         if (!grown) break;
         res = grown;
       }
+      /* Grown, the pick is a measurement and not an estimate, and it can be
+         held to the candidate that needed no growing. The estimate is the
+         rocket equation at one exhaust velocity for a chain of several, and a
+         second wave of candidates (#447) gave it more chances to be wrong:
+         on the Low orbit 3.5 t lightest brief it chose a three-stage chain
+         estimated to grow little over a two-stage one that had flown within
+         budget, and delivered 25.3 t against the 24.6 t already in hand. */
+      if (
+        flewAsIs &&
+        res &&
+        flewAsIs !== res &&
+        flewAsIs.chainScore < res.chainScore
+      )
+        res = flewAsIs;
     }
 
     if (!res) {

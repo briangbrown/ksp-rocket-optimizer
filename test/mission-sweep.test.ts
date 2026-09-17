@@ -5,6 +5,7 @@ import type { Expansions } from "../src/core/constants.js";
 import { sweepCases } from "./grid.js";
 import { missionSignature } from "../src/core/signature.js";
 import { stageGeom } from "../src/core/geometry.js";
+import { stageCost, stageParts } from "../src/core/performance.js";
 import type { PlanStage } from "../src/core/plan.js";
 
 /* The design the application actually delivers.
@@ -117,6 +118,7 @@ describe("mission sweep", () => {
     const out = [];
     const overlaps = [];
     const offRoster: Array<string> = [];
+    const misbilled: Array<string> = [];
     let dropTanks = 0;
     for (const c of sweepCases()) {
       const res = await planMission(c.input, {
@@ -136,6 +138,23 @@ describe("mission sweep", () => {
           dropTanks += res.stages.filter(
             (st) => st.sol?.boosters?.part.dropTank,
           ).length;
+        /* A stage's recorded cost and part count are its bill. The packing
+           pass added a ring's brackets to a stage's mass and left `cost` and
+           `parts` at the unpacked figures, so the chain ranking and the
+           cheapest-against-lightest comparison read a packed stage 1,848
+           funds under its price, and a dearer rocket was delivered as the
+           cheaper one. #447 */
+        res.stages.forEach((st, i) => {
+          if (!st.sol) return;
+          if (Math.abs(st.sol.cost - stageCost(st.sol)) > 1e-6)
+            misbilled.push(
+              `${c.name} stage ${i}: cost ${st.sol.cost} recorded, ${stageCost(st.sol)} billed`,
+            );
+          if (st.sol.parts !== stageParts(st.sol))
+            misbilled.push(
+              `${c.name} stage ${i}: ${st.sol.parts} parts recorded, ${stageParts(st.sol)} billed`,
+            );
+        });
       }
     }
     /* The crossfed rows have to actually build one.
@@ -156,6 +175,7 @@ describe("mission sweep", () => {
        the roster it was solved for does not have. #191 */
     expect(overlaps).toEqual([]);
     expect(offRoster).toEqual([]);
+    expect(misbilled).toEqual([]);
     await expect(out.join("\n")).toMatchFileSnapshot(
       "./__snapshots__/missions.txt",
     );

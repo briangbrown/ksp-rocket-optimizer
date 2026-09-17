@@ -13,11 +13,15 @@ import type { PlanInput } from "../src/core/plan.js";
    tiers where the Hammer and the Flea are researched, and with a solid in the
    roster the gate was already open. #160
 
-   The 3.5 t low-orbit mission on the mass objective, with every solid taken
-   out of the engine list the way the app takes out an excluded part, delivers
-   a pair of Thud columns; with the switch off it delivers no ring at all. The
-   switch is what the second half holds, since a test that only asked for the
-   column would pass on a solver that ignored the toggle. */
+   The 3.5 t Duna mission on the mass objective, with every solid taken out
+   of the engine list the way the app takes out an excluded part, delivers a
+   pair of liquid columns on the pad; with the switch off it delivers no ring
+   at all. The switch is what the second half holds, since a test that only
+   asked for the column would pass on a solver that ignored the toggle. It was
+   the 3.5 t low-orbit mission until #447's second wave of Δv splits found
+   that one lighter without a ring — 24.5 t either way — which is the search
+   working, not the gate closing; Duna 3.5 t still takes the columns and is
+   1.4 t heavier without them. */
 const solidFree = (input: PlanInput): PlanInput => ({
   ...input,
   objective: "mass",
@@ -25,8 +29,8 @@ const solidFree = (input: PlanInput): PlanInput => ({
 });
 
 describe("a roster with no solid boosters", () => {
-  const base = missionCases().find((c) => c.name === "Low orbit-pay3.5");
-  if (!base) throw new Error("the low-orbit 3.5 t mission has left the grid");
+  const base = missionCases().find((c) => c.name === "Duna-pay3.5");
+  if (!base) throw new Error("the Duna 3.5 t mission has left the grid");
 
   it("still gets a liquid radial column when boosters are allowed", async () => {
     const res = await planMission(solidFree(base.input), {
