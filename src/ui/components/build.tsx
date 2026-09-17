@@ -118,6 +118,27 @@ const paneOf = (view: string, of: Extent) => {
   return { aspect: Math.max(1, n.w * 2) / Math.max(0.1, n.h * 2) };
 };
 
+/* A clock over `ms` on requestAnimationFrame: `step(u)` each frame with `u`
+   from 0 to 1, `done()` once, and the cancel returned for an effect to hand
+   back. It runs from the first frame's own timestamp, not from
+   `performance.now()` at the call: a frame's timestamp is the frame's start
+   and can precede the call that scheduled it, and a clock started on
+   `performance.now()` read negative for a frame — the scrubber's handle
+   stepped 1.00 → 0.97 forward and 4.00 → 4.03 back at the start of every
+   separation (#211). The two clocks here clamped at zero to hide it; the
+   next one written would not have. Both use this. #254 */
+function frameClock(ms: number, step: (u: number) => void, done: () => void) {
+  let t0: number | null = null;
+  let id = requestAnimationFrame(function tick(now: number) {
+    if (t0 === null) t0 = now;
+    const u = Math.min(1, (now - t0) / ms);
+    step(u);
+    if (u < 1) id = requestAnimationFrame(tick);
+    else done();
+  });
+  return () => cancelAnimationFrame(id);
+}
+
 export function stagingSteps(solved: ReadonlyArray<SolvedStage>) {
   const steps: Array<Step> = [{ label: "On the pad", drop: 0, boost: true }];
   if (solved.length && solved[0].sol.boosters)
@@ -392,15 +413,10 @@ function BuildView({
     setArrival(null);
     if (!animates || !solved.length) return;
     setArrival({ t: 0 });
-    const t0 = performance.now();
-    let id = requestAnimationFrame(function tick(now: number) {
-      /* Clamped below as well as above: the frame's timestamp can precede
-         the `performance.now()` the clock started on, and a negative first
-         step ran the arrival, and the handle, backwards for a frame. */
-      const u = Math.min(1, Math.max(0, (now - t0) / ARRIVE_MS));
-      setArrival({ t: u });
-      if (u < 1) id = requestAnimationFrame(tick);
-      else {
+    return frameClock(
+      ARRIVE_MS,
+      (u) => setArrival({ t: u }),
+      () => {
         setArrival(null);
         if (!demoed.current && !railedNow.current && steps.length > 1) {
           demoed.current = true;
@@ -408,9 +424,8 @@ function BuildView({
           setPlaying(true);
           setGoal(steps.length - 1);
         }
-      }
-    });
-    return () => cancelAnimationFrame(id);
+      },
+    );
   }, [sig, animates, steps.length, solved.length]);
 
   /* One at a time, and the next begins where the last committed — so a jump of
@@ -440,19 +455,14 @@ function BuildView({
        effect is not rebuilt and the separation finishes at the speed it
        began. */
     const ms = playing ? PLAY_MS : STEP_MS;
-    const t0 = performance.now();
-    let id = requestAnimationFrame(function tick(now: number) {
-      /* Clamped below as well as above — see the arrival's clock. The
-         handle stepped the wrong way for a frame at every stop. */
-      const u = Math.min(1, Math.max(0, (now - t0) / ms));
-      setAnim({ a: lo, t: back ? 1 - u : u });
-      if (u < 1) id = requestAnimationFrame(tick);
-      else {
+    return frameClock(
+      ms,
+      (u) => setAnim({ a: lo, t: back ? 1 - u : u }),
+      () => {
         setAnim(null);
         setStep(back ? from - 1 : from + 1);
-      }
-    });
-    return () => cancelAnimationFrame(id);
+      },
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `playing` sets the pace of the transition already running, see above
   }, [moving, back, lo, from, animates]);
 

@@ -115,6 +115,16 @@ control shows and what it committed.
   z on the column itself is what puts the whole of it, tooltips included, in
   front. The layout suite reads the pixel where a hint crosses over. #184
 
+- **A frame clock starts on the first frame's timestamp, never on
+  `performance.now()`.** The timestamp `requestAnimationFrame` hands a frame
+  is the frame's start, and it can precede the `performance.now()` read by
+  the call that scheduled it — so `(now − t0) / ms` is negative for a frame,
+  and the scrubber's handle stepped 1.00 → 0.97 forward at the start of
+  every separation (#211). `frameClock` in `build.tsx` is the one clock: it
+  takes `t0` from its first frame and clamps at 1. Use it for the next
+  reveal, sweep or scroll rather than writing a third; `visual/stops.test.ts`
+  holds the handle to one direction. #254
+
 - **A tooltip on a phone is on a clock.** `:hover` on a touch browser is
   sticky — a tap sets it and nothing unsets it until the next tap — so the
   icon tooltip's hover rule is gated on `(hover: hover)` as the chip hint's
