@@ -13,6 +13,10 @@ import type { PlanStage } from "../../core/plan.js";
 type RouteMapProps = {
   route: ReadonlyArray<Leg>;
   cuts: ReadonlySet<number>;
+  /* Cuts the solver placed on its own, where one span had spent every stage
+     it may have and cutting made a better rocket. Drawn as cuts, said to be
+     the solver's, and a tap keeps one as the reader's own. #449 */
+  autoCuts: ReadonlySet<number>;
   onToggle: (i: number) => void;
   color: string;
   stages: ReadonlyArray<PlanStage>;
@@ -22,6 +26,7 @@ type RouteMapProps = {
 function RouteMap({
   route,
   cuts,
+  autoCuts,
   onToggle,
   color,
   stages,
@@ -42,7 +47,8 @@ function RouteMap({
       {rows.map((leg, ri) => {
         const i = route.length - 1 - ri;
         const last = i === shown.length - 1;
-        const isCut = cuts.has(i);
+        const auto = !cuts.has(i) && autoCuts.has(i);
+        const isCut = cuts.has(i) || auto;
         return (
           <div key={i}>
             {/* The rows run bottom-up, launchpad last, and a cut is "after
@@ -57,7 +63,9 @@ function RouteMap({
                    once it is placed — what separates there, in the row's own
                    words. #141 */
                 aria-label={
-                  `${isCut ? "Remove" : "Add"} staging event after ${leg.label}` +
+                  (auto
+                    ? `Keep the staging event the solver placed after ${leg.label}`
+                    : `${isCut ? "Remove" : "Add"} staging event after ${leg.label}`) +
                   (isCut && stagesThrough(i)
                     ? `: stage ${stagesThrough(i)} separates`
                     : "")
@@ -100,7 +108,7 @@ function RouteMap({
                   {isCut &&
                     (stagesThrough(i)
                       ? `stage ${stagesThrough(i)} separates`
-                      : "separates here")}
+                      : "separates here") + (auto ? " · the solver's cut" : "")}
                 </div>
               </button>
             )}

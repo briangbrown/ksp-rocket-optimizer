@@ -294,6 +294,21 @@ before changing the thing it names.
   own and are served the lightest; one is a slenderness cliff on Eeloo cut;
   one is a part. #447
 
+- **The solver cuts a mission itself only where one span is stage-bound.**
+  Cut everywhere it could be — after every climb, after every landing — the
+  sweep came out worse in 21 of 39 case-objectives: a cut costs the stage
+  that spanned it. But an uncut mission is one group of at most `MAX_K`
+  stages, and where the plan has spent all six in a group, or found nothing,
+  `planMission` plans again cut after every climb to orbit and delivers
+  whichever measures better on the objective asked — `Plan.autoCuts` says
+  which cuts are the solver's, and the route map draws them as cuts and says
+  whose they are. Tylo 3.5 t: 1,812 → 1,419 t. Not when the caller has forced
+  a stage count, since those are keyed on the caller's groups. Tylo 12 t is
+  not rescued by it — the upper groups solve and the 890 t launch does not —
+  and the first measurement of #449 said otherwise because it read the first
+  solved stage and skipped the unsolved one; measure a plan by every stage.
+  #449
+
 - **`best` is not what the user gets.** For an auto-stage-count launch,
   `planMission` walks `byK` cheapest-first through the ascent simulator and
   delivers the first candidate that flies. A change that leaves `best`

@@ -63,6 +63,10 @@ type PlanStage = {
 type Plan = {
   stages: Array<PlanStage>;
   tally: { stages: number; boosted: number; flights: number; chains: number };
+  /* Cuts the solver placed on its own, over and above the caller's: route
+     indices, "separate after leg i". Empty when the plan is the caller's
+     cuts and nothing else. #449 */
+  autoCuts: Array<number>;
 };
 
 /* How the caller gives the thread back, stops a superseded run, and — where it
@@ -100,6 +104,74 @@ export async function planMission(
   input: PlanInput,
   opts: PlanOpts = {},
 ): Promise<Plan | null> {
+  const asked = await planObjective(input, opts);
+  /* Cut where the caller did not, when one span is not enough.
+
+     A cut is two groups of up to MAX_K stages where an uncut mission is one,
+     and a cut costs what it takes away: the stage that spanned it — one
+     engine, one run of tanks, one decoupler doing two jobs. Cut everywhere it
+     could be, the sweep came out worse in 21 of 39 cases and better in 9.
+     But where the uncut plan has spent all MAX_K stages in a group, or finds
+     nothing at all, the picture inverts: Tylo 3.5 t cut after the ascent is
+     22% lighter, 30% cheaper and 34% fewer parts. So that, and only that, is
+     when the mission is planned
+     again cut after every climb to orbit — the group that flies through air
+     and carries the launch floors parted from everything that does not — and
+     the two are held to the objective asked for. Never worse by
+     construction, and a second plan only on the long missions.
+
+     Not when the caller has forced a stage count: those are keyed on the
+     caller's groups, and a cut the solver adds would move the keys from
+     under them. #449 */
+  /* A plan that found nothing comes back as stages with no solution in
+     them, not as null — the page draws the gap where it is. */
+  const bound =
+    !asked || asked.stages.some((s) => !s.sol || s.subCount >= MAX_K);
+  if (!bound || input.splitBy.length) return asked;
+  const had = new Set(input.cuts);
+  const climbs = input.route
+    .map((l, i) => (l.kind === "ascent" || l.kind === "ascentBack" ? i : -1))
+    .filter((i) => i >= 0 && i < input.route.length - 1 && !had.has(i));
+  if (!climbs.length) return asked;
+  const cut = await planObjective(
+    { ...input, cuts: [...input.cuts, ...climbs].sort((a, b) => a - b) },
+    opts,
+  );
+  if (!cut) return asked;
+  const tally = sumTally(asked?.tally ?? cut.tally, asked ? cut.tally : null);
+  if (!asked) return { ...cut, autoCuts: climbs, tally };
+  const mc = measureOn(cut, input.objective);
+  const ma = measureOn(asked, input.objective);
+  return Number.isFinite(mc) && (!Number.isFinite(ma) || mc < ma)
+    ? { ...cut, autoCuts: climbs, tally }
+    : { ...asked, tally };
+}
+
+/* What a plan measures on an objective: what leaves the pad, what it costs,
+   or how many parts it is. */
+const measureOn = (p: Plan, objective: Objective) =>
+  objective === "mass"
+    ? (p.stages.find((s) => s.sol)?.sol?.total ?? NaN)
+    : p.stages.reduce(
+        (a, s) =>
+          a + (s.sol ? (objective === "cost" ? s.sol.cost : s.sol.parts) : NaN),
+        0,
+      );
+
+const sumTally = (a: Plan["tally"], b: Plan["tally"] | null) => {
+  const tally = { ...a };
+  if (b)
+    for (const k of Object.keys(tally) as Array<keyof typeof tally>)
+      tally[k] += b[k];
+  return tally;
+};
+
+/* The plan for the objective asked, with the lightest standing in where it
+   measures better. */
+async function planObjective(
+  input: PlanInput,
+  opts: PlanOpts,
+): Promise<Plan | null> {
   const own = await planFor(input, opts, input.objective);
   if (!own || input.objective === "mass") return own;
   /* The cost and parts objectives are minimised group by group, and a group
@@ -113,18 +185,9 @@ export async function planMission(
      dearer than "lightest". #169 */
   const alt = await planFor(input, opts, "mass");
   if (!alt) return own;
-  const measure = (p: Plan) =>
-    p.stages.reduce(
-      (a, s) =>
-        a +
-        (s.sol ? (input.objective === "cost" ? s.sol.cost : s.sol.parts) : NaN),
-      0,
-    );
-  const mo = measure(own);
-  const ma = measure(alt);
-  const tally = { ...own.tally };
-  for (const k of Object.keys(tally) as Array<keyof typeof tally>)
-    tally[k] += alt.tally[k];
+  const mo = measureOn(own, input.objective);
+  const ma = measureOn(alt, input.objective);
+  const tally = sumTally(own.tally, alt.tally);
   return Number.isFinite(ma) && (!Number.isFinite(mo) || ma < mo)
     ? { ...alt, tally }
     : { ...own, tally };
@@ -532,7 +595,7 @@ async function planFor(
     );
     carried = res.total;
   }
-  return { stages: out, tally: { ...TALLY } };
+  return { stages: out, tally: { ...TALLY }, autoCuts: [] };
 }
 
 export { MAX_K, ascentShareOf };

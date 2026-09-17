@@ -319,6 +319,10 @@ export default function RocketWorks() {
      run in flight stops at its next yield instead of finishing work nobody
      wants. */
   const [stages, setStages] = useState<Array<PlanStage>>([]);
+  /* Cuts the delivered plan carries that the reader did not place. #449 */
+  const [autoCuts, setAutoCuts] = useState<ReadonlySet<number>>(
+    () => new Set(),
+  );
   const [busy, setBusy] = useState(false);
   const runId = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
@@ -384,6 +388,7 @@ export default function RocketWorks() {
          failed worker leaves the app showing "Solving" for good. */
       if (result) {
         setStages(result.stages);
+        setAutoCuts(new Set(result.autoCuts));
         if (
           !touched.current &&
           result.stages.length > 0 &&
@@ -830,6 +835,7 @@ export default function RocketWorks() {
     <RouteSection
       route={route}
       cuts={effCuts}
+      autoCuts={autoCuts}
       busy={first}
       onToggleCut={toggleCut}
       onPlaneMode={setPlaneNow}
