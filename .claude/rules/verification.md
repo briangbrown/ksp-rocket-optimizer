@@ -117,9 +117,15 @@ measures one theme and samples the other's palette. #131
 
 What it finds is decided by `visual/measure.ts`, which runs inside the page:
 a target is a form control or anything with a pointer cursor whose parent has
-none, which is how a `div` with an `onClick` is counted; text is measured on
-the element that owns it, not inherited. What it cannot see: a real GPU, a
-real phone's address bar or keyboard, a thumb, or whether the words it counted
+none, which is how a `div` with an `onClick` is counted; a target is sized by
+what of it is shown — its rect cut to every ancestor whose `overflow` on
+either axis is not `visible`, since a 44 px button on a 22 px line inside
+the drawing row's sideways scroller read 44 off its own rect and was 22 on
+the phone (#148, #311; the `cut` field in the detail file is the box it
+asked for, and a planted probe in the suite proves the cut); text is measured
+on the element that owns it, not inherited. What it cannot see: a real GPU, a
+real phone's address bar or keyboard, a thumb, a target under a sticky header
+or the solving bar (neither is its ancestor), or whether the words it counted
 are the right ones. Reintroduce a 10 px label, a 16 px button, a 3,000 px
 table or a clickable `div` and it names each one.
 

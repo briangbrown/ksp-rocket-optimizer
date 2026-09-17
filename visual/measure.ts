@@ -6,8 +6,12 @@ export type Box = {
   k: number;
   tag: string;
   text: string;
+  /* The width and height a reader gets: the element's box cut to every
+     ancestor that clips it. */
   w: number;
   h: number;
+  /* The box the element asked for, when it is not what the reader gets. */
+  cut?: string;
   group: number | null;
 };
 export type Small = { tag: string; text: string; px: number };
@@ -60,6 +64,41 @@ export const measure = (): Measure => {
      reached, and a chip inside a radiogroup carries the group's index too:
      a `Choice` puts one chip in the Tab order and the arrow keys reach the
      rest, so reaching the group is reaching the chip. */
+  /* What of an element's box a reader is shown: its rect cut to every
+     ancestor whose computed `overflow` on either axis is not `visible` —
+     `overflow-x: auto` computes `overflow-y` to `auto` too, so a scroller
+     sideways clips top and bottom as well. A 44 px button on a 22 px header
+     line inside the drawing row's scroller read 44 × 44 off its own rect
+     and was 22 px tall on the phone; the suite was green (#148). The walk
+     stops at `body` — the page scrolling is not a clip — and at a
+     `position: fixed` element, whose box the viewport frames, not its
+     parents. What it cannot see is a target under a sticky header or the
+     solving bar: neither is its ancestor. #311 */
+  const visible = (el: Element) => {
+    const r = el.getBoundingClientRect();
+    let { left, top, right, bottom } = r;
+    for (
+      let p: Element | null = el;
+      p && p !== document.body;
+      p = p.parentElement
+    ) {
+      const cs = getComputedStyle(p);
+      if (cs.position === "fixed") break;
+      if (p === el) continue;
+      if (cs.overflowX === "visible" && cs.overflowY === "visible") continue;
+      const c = p.getBoundingClientRect();
+      left = Math.max(left, c.left);
+      top = Math.max(top, c.top);
+      right = Math.min(right, c.right);
+      bottom = Math.min(bottom, c.bottom);
+    }
+    const w = Math.round(Math.max(0, right - left));
+    const h = Math.round(Math.max(0, bottom - top));
+    const bw = Math.round(r.width);
+    const bh = Math.round(r.height);
+    return { w, h, cut: w !== bw || h !== bh ? `${bw}×${bh}` : undefined };
+  };
+
   const isControl = (el: Element) =>
     /^(BUTTON|A|SELECT|TEXTAREA)$/.test(el.tagName) ||
     (el.tagName === "INPUT" && (el as HTMLInputElement).type !== "checkbox");
@@ -76,14 +115,15 @@ export const measure = (): Measure => {
     if (!isControl(el) && !pointer) continue;
     if (!shown(el) || (el as HTMLButtonElement).disabled) continue;
     if (el.tagName === "INPUT" && el.closest("label")) continue;
-    const r = el.getBoundingClientRect();
+    const { w, h, cut } = visible(el);
     el.setAttribute("data-k", String(targets.length));
     targets.push({
       k: targets.length,
       tag: el.tagName.toLowerCase(),
       text: name(el),
-      w: Math.round(r.width),
-      h: Math.round(r.height),
+      w,
+      h,
+      ...(cut === undefined ? {} : { cut }),
       group: (() => {
         const g = el.closest("[role=radiogroup]");
         return g ? groups.indexOf(g) : null;
