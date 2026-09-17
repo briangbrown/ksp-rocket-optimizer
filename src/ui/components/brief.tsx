@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Share2, Undo2 } from "lucide-react";
 import { STATES, SYS, fromReason, toReason } from "../../core/orbits.js";
 import { DAY, kerbalDate, utOf } from "../../core/kepler.js";
@@ -169,6 +170,34 @@ function StateChoice({
           {[...new Set(reasons)].join(". ")}.
         </div>
       )}
+    </div>
+  );
+}
+
+/* One labelled group inside More options: the label the reader scans for,
+   then its controls on the same auto-fitting grid the fold has always used,
+   so a phone stacks them and a desktop sets them side by side. #451 */
+function OptionGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div>
+      <div className="label" style={{ marginBottom: SPACE.md }}>
+        {label}
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gap: 18,
+          gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -380,7 +409,14 @@ function Brief(p: BriefProps) {
       </div>
 
       {/* The defaults are right for most missions, and these were fighting
-          the inputs above for a row. */}
+          the inputs above for a row. Inside the fold, four groups in the order
+          a reader touches them — the date, the flying, the hardware, the
+          limits — with the things that complete each other side by side:
+          the stay is the other half of the departure date and had drifted
+          three controls away from it. Nothing here shows or hides with the
+          mission: a control that comes and goes is one a reader cannot find
+          again, so the stay and asparagus stand where they are and say when
+          they do not count. #451 */}
       <Section
         bare
         level={3}
@@ -390,35 +426,7 @@ function Brief(p: BriefProps) {
         gap={SPACE.lg}
         style={{ marginBottom: SPACE.xl }}
       >
-        <div
-          style={{
-            display: "grid",
-            gap: 18,
-            gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))",
-          }}
-        >
-          <Field
-            label="Slenderness limit"
-            value={p.maxAspect}
-            min={6}
-            max={30}
-            step={0.5}
-            unit=":1"
-            hardMax={60}
-            onChange={p.onMaxAspect}
-            hint="Tallest the stack may be relative to its widest point, boosters excluded — they stage away inside the atmosphere and what is left has to stay pointed. A pencil wobbles, needs struts and flips under load."
-          />
-          <Field
-            label="Extra Δv"
-            value={p.extraDv}
-            min={0}
-            max={1500}
-            step={10}
-            unit="m/s"
-            hardMax={9000}
-            onChange={p.onExtraDv}
-            hint="A flat reserve added after the margin, carried on the top stage — for rendezvous, a contract you have not planned yet, or getting home when the map was optimistic."
-          />
+        <OptionGroup label="When">
           {/* The window search's start, as the game's clock says it: the
               first window from this date is the one the transfer is priced
               on and drawn for. A day is enough to say — the window itself is
@@ -446,6 +454,23 @@ function Brief(p: BriefProps) {
             }
             hint="A Kerbin year is 426 six-hour days."
           />
+          <Field
+            label="Stay at least"
+            value={Math.round(p.stay / DAY)}
+            min={0}
+            max={600}
+            step={5}
+            unit="days"
+            hardMax={5000}
+            onChange={(d) => p.onStay(d * DAY)}
+            hint={
+              p.returning
+                ? "The window home is the first after arrival plus this. Zero is the first window there is, which at Duna is most of a year anyway."
+                : "Counts on a return trip: the window home is the first after arrival plus this. Kept for when you switch the return on."
+            }
+          />
+        </OptionGroup>
+        <OptionGroup label="How you fly it">
           <div>
             <div
               style={{
@@ -535,74 +560,76 @@ function Brief(p: BriefProps) {
               }))}
             />
           </div>
-          {p.returning && (
-            <Field
-              label="Stay at least"
-              value={Math.round(p.stay / DAY)}
-              min={0}
-              max={600}
-              step={5}
-              unit="days"
-              hardMax={5000}
-              onChange={(d) => p.onStay(d * DAY)}
-              hint="The window home is the first after arrival plus this. Zero is the first window there is, which at Duna is most of a year anyway."
+        </OptionGroup>
+        <OptionGroup label="What may go on it">
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            <Toggle
+              label="Parachutes fitted"
+              on={p.airDescent && p.chutes}
+              disabled={!p.airDescent}
+              onChange={p.onChutes}
             />
-          )}
-          <div>
-            <div className="label" style={{ marginBottom: SPACE.md }}>
-              Atmosphere
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                gap: 5,
-              }}
-            >
-              <Toggle
-                label="Gimbal in atmosphere"
-                on={p.needGimbal}
-                onChange={p.onNeedGimbal}
-              />
-              <Toggle
-                label="Radial boosters allowed"
-                on={p.boosters}
-                onChange={p.onBoosters}
-              />
-              <Toggle
-                label="Parachutes fitted"
-                on={p.airDescent && p.chutes}
-                disabled={!p.airDescent}
-                onChange={p.onChutes}
-              />
-              <Disclosure label="About parachutes">
-                Parachutes cut landing Δv to ~18% wherever there is air to land
-                through — Duna, Eve, Laythe, and Kerbin on the way home. Add a
-                heat shield to the payload mass.
-              </Disclosure>
-            </div>
+            <Disclosure label="About parachutes">
+              Parachutes cut landing Δv to ~18% wherever there is air to land
+              through — Duna, Eve, Laythe, and Kerbin on the way home. Add a
+              heat shield to the payload mass.
+            </Disclosure>
+            <Toggle
+              label="Radial boosters allowed"
+              on={p.boosters}
+              onChange={p.onBoosters}
+            />
+            {/* Greyed rather than gone where the tech is not researched, as
+                parachutes are where there is no air. */}
+            <Toggle
+              label="Asparagus staging"
+              on={p.crossfeedOk && p.asparagus}
+              disabled={!p.crossfeedOk}
+              onChange={p.onAsparagus}
+            />
+            <span className="note" style={{ color: C.dim }}>
+              {p.crossfeedOk
+                ? "liquid side stacks feed the core and drop in pairs"
+                : "asparagus needs Fuel Systems researched"}
+            </span>
+            <Toggle
+              label="Gimbal in atmosphere"
+              on={p.needGimbal}
+              onChange={p.onNeedGimbal}
+            />
           </div>
-          {p.crossfeedOk && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: SPACE.md,
-                flexWrap: "wrap",
-              }}
-            >
-              <Toggle
-                label="Asparagus staging"
-                on={p.asparagus}
-                onChange={p.onAsparagus}
-              />
-              <span className="note" style={{ color: C.dim }}>
-                liquid side stacks feed the core and drop in pairs
-              </span>
-            </div>
-          )}
-        </div>
+        </OptionGroup>
+        <OptionGroup label="Limits">
+          <Field
+            label="Slenderness limit"
+            value={p.maxAspect}
+            min={6}
+            max={30}
+            step={0.5}
+            unit=":1"
+            hardMax={60}
+            onChange={p.onMaxAspect}
+            hint="Tallest the stack may be relative to its widest point, boosters excluded — they stage away inside the atmosphere and what is left has to stay pointed. A pencil wobbles, needs struts and flips under load."
+          />
+          <Field
+            label="Extra Δv"
+            value={p.extraDv}
+            min={0}
+            max={1500}
+            step={10}
+            unit="m/s"
+            hardMax={9000}
+            onChange={p.onExtraDv}
+            hint="A flat reserve added after the margin, carried on the top stage — for rendezvous, a contract you have not planned yet, or getting home when the map was optimistic."
+          />
+        </OptionGroup>
       </Section>
 
       <button className="chip" data-on={1} onClick={p.onDone}>
