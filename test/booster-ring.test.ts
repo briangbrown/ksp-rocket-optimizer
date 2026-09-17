@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { boosterRing } from "../src/core/geometry.js";
+import { boosterRing, standoffOf } from "../src/core/geometry.js";
 
 /* A ring of radial boosters has to clear two things: the core it is bolted to,
    and itself.
@@ -11,12 +11,15 @@ import { boosterRing } from "../src/core/geometry.js";
    red on the fault whatever the solver is choosing that week. #420 */
 
 const apart = (n: number, r: number) => 2 * r * Math.sin(Math.PI / n);
+/* The decoupler's thickness, which every booster stands off its core by —
+   0.22 m on ReStock's TT-38K, the art the tests run in. #422 */
+const HOLD = standoffOf("TT-38K Radial Decoupler");
 
 describe("a ring of radial boosters", () => {
   it("stands outside the core it is bolted to", () => {
     for (const n of [1, 2, 3, 4, 6, 8]) {
       const r = boosterRing(n, 1, 2); // narrow booster, wide core
-      expect(r, `${n} boosters`).toBeGreaterThanOrEqual(2 + 0.5 - 1e-9);
+      expect(r, `${n} boosters`).toBeGreaterThanOrEqual(2 + HOLD + 0.5 - 1e-9);
     }
   });
 
@@ -42,8 +45,12 @@ describe("a ring of radial boosters", () => {
        model checks reported. */
     const bd = 3.986;
     const bolted = boosterRing(1, bd, bd / 2);
-    expect(apart(8, bolted)).toBeCloseTo(3.051, 2);
-    expect(bd - apart(8, bolted)).toBeCloseTo(0.935, 2);
+    /* Flush, as it was when this was found; the decoupler's thickness has
+       since moved the ring out a little, and the overlap is smaller for it
+       but still there. #422 */
+    expect(apart(8, bolted - HOLD)).toBeCloseTo(3.051, 2);
+    expect(bd - apart(8, bolted - HOLD)).toBeCloseTo(0.935, 2);
+    expect(bd - apart(8, bolted)).toBeGreaterThan(0.7);
     const r = boosterRing(8, bd, bd / 2);
     expect(r).toBeGreaterThan(bolted);
     expect(apart(8, r)).toBeGreaterThanOrEqual(bd - 1e-9);
@@ -60,7 +67,7 @@ describe("a ring of radial boosters", () => {
       [6, 0.625, 1.875],
     ] as Array<[number, number, number]>)
       expect(boosterRing(n, bd, coreHalf), `${n}x${bd} on ${coreHalf}`).toBe(
-        coreHalf + bd / 2,
+        coreHalf + HOLD + bd / 2,
       );
   });
 });

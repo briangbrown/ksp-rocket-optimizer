@@ -47,12 +47,16 @@ function ringPositions(n: number) {
   return pts;
 }
 
-const stackRing = (S: number, columnWidth: number) => {
+/* How far a ring of columns stands from the centre one. Each is held off the
+   centre by `standoff` — the joiner between them, which the model used to
+   leave out and place the columns flush (#422) — and the ring has to open
+   until neighbours clear each other too. */
+const stackRing = (S: number, columnWidth: number, standoff = 0) => {
   if (S < 2) return 0;
   const neighbours = S - 1;
   const gap =
     neighbours < 2 ? 0 : columnWidth / (2 * Math.sin(Math.PI / neighbours));
-  return Math.max(columnWidth, gap);
+  return Math.max(columnWidth + standoff, gap);
 };
 
 /* How far a ring of radial boosters stands from the axis.
@@ -75,11 +79,19 @@ const stackRing = (S: number, columnWidth: number) => {
    this is false there is no ring to draw — the booster cannot float and cannot
    share space with its neighbour — so the count is refused where it is chosen
    rather than drawn around. #423 */
+/* Bolted on through its decoupler, so a booster's near face stands the
+   decoupler's thickness off the core — 0.24 m on a TT-38K — before its own
+   half-width is added. #422 */
 const boostersFit = (n: number, bd: number, coreHalf: number) =>
-  n < 3 || 2 * (coreHalf + bd / 2) * Math.sin(Math.PI / n) >= bd - 1e-9;
+  n < 3 ||
+  2 * (coreHalf + standoffOf(BOOSTER_HOLD) + bd / 2) * Math.sin(Math.PI / n) >=
+    bd - 1e-9;
 
 const boosterRing = (n: number, bd: number, coreHalf: number) =>
-  Math.max(coreHalf + bd / 2, n >= 3 ? bd / (2 * Math.sin(Math.PI / n)) : 0);
+  Math.max(
+    coreHalf + standoffOf(BOOSTER_HOLD) + bd / 2,
+    n >= 3 ? bd / (2 * Math.sin(Math.PI / n)) : 0,
+  );
 
 const ENGINE_LEN: Record<string, number> = {
   0: 0.9,
@@ -127,6 +139,12 @@ const engineLen = (e: PartBase) =>
 type ArtTables = {
   PART_H: Readonly<Record<string, number>>;
   PART_A: Readonly<Record<string, number>>;
+  /* How far a part held on the side of a stack stands off what holds it:
+     from the holder's attach point to its far face, along the attach
+     direction, off the drag cube and `node_attach` — tools/radial-standoff.mjs.
+     A TT-38K is 0.24 m thick in stock and 0.22 in ReStock; a cubic strut
+     0.26. #422 */
+  STANDOFF: Readonly<Record<string, number>>;
 };
 const ART: Readonly<Record<"stock" | "restock", ArtTables>> = geometryData;
 
@@ -152,6 +170,14 @@ const PART_H = (n: string) => art.PART_H[n];
    badly wrong — diaOf falls back to 1.25 m for anything with no stack profile,
    so a Twitch was being charged 1.23 m² of frontal area against a true 0.07. */
 const PART_A = (n: string) => art.PART_A[n];
+/* The standoff of a holder, by the name structure.json knows it by, and zero
+   for a part the table has no measurement of. */
+const standoffOf = (n: string) => art.STANDOFF[n] ?? 0;
+/* What holds a booster on: the TT-38K, one per booster, which is what
+   parts.ts charges for it. And what joins a radial stack to the core, and a
+   packed tank to the centre one: the cubic strut, and the TT-38K again. */
+const BOOSTER_HOLD = "TT-38K Radial Decoupler";
+const STACK_JOIN = "Cubic Octagonal Strut";
 /* Which art is live, for the renderer's engine meshes — the same choice
    `useArt` made for the geometry tables. #85 */
 const artName = (): "stock" | "restock" =>
@@ -384,7 +410,7 @@ function packFor(
            circles, which is a tighter shape than radial symmetry can build: at
            r=3 it put the ring 0.707 td from the middle where the tanks need a
            whole td, and they intersected. #63 */
-        width: td + 2 * stackRing(sh.r + 1, td),
+        width: td + 2 * stackRing(sh.r + 1, td, standoffOf(BOOSTER_HOLD)),
         tank: run.t,
         packedCount: n,
         spare: run.c - n,
@@ -451,7 +477,7 @@ function stageGeom(sol: Solution) {
   /* Where the ring of parallel stacks sits. Exposed rather than worked out
      again in the drawing — see the first entry in "Where the bodies are
      buried". */
-  const ringR = stackRing(S, span);
+  const ringR = stackRing(S, span, standoffOf(STACK_JOIN));
   const engineH = engineLen(sol.engine);
   const engine = radial
     ? Math.max(RADIAL_HANG * engineH, engineH - tank)
@@ -536,7 +562,7 @@ function stageSize(sol: Solution) {
   return {
     len: tank + g.engine + struct,
     width: (() => {
-      const core = span + 2 * stackRing(S, span); // a ring of stacks around the middle one
+      const core = span + 2 * stackRing(S, span, standoffOf(STACK_JOIN)); // a ring of stacks around the middle one
       if (!sol.boosters) return core;
       /* Across the ring and one booster, which is wider than the core plus two
          boosters as soon as the ring has to open up to clear itself. */
@@ -546,7 +572,9 @@ function stageSize(sol: Solution) {
     /* Width without the boosters. They are gone by about 18 km, so a stack that
        looks stout on the pad can be a pencil for the rest of the ascent — which
        is when it flips. The slenderness limit judges what is left. */
-    coreWidth: Math.max(span, td) + 2 * stackRing(S, Math.max(span, td)), // side by side, or a triangle
+    coreWidth:
+      Math.max(span, td) +
+      2 * stackRing(S, Math.max(span, td), standoffOf(STACK_JOIN)), // side by side, or a triangle
     stacks: S,
     area,
   };
@@ -563,6 +591,7 @@ export {
   PACK_SYM,
   PART_A,
   PART_H,
+  standoffOf,
   useArt,
   SPAN,
   areaOf,

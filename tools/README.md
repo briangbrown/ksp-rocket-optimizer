@@ -169,9 +169,26 @@ decoupler and `geometry.json` has no entry for them.
    on first launch and it holds every part's measured bounding box — so if the
    script says it is missing, run the game once and pack again.
 
-2. Here: the reader for this pack is written against the pack once it has
-   arrived, so that it is tested on what the install actually holds rather
-   than on what a config is remembered to say. #422 is the issue.
+2. Here, with the zip unpacked:
+
+       node tools/radial-standoff.mjs path/to/PartDatabase.cfg path/to/unpacked
+
+   It writes `STANDOFF` into each art's table in `src/data/geometry.json` and
+   prints what it found; with `--check` it compares instead and exits 1 on a
+   difference. Hand it every `PartDatabase.cfg` you have — stock and ReStock
+   measure the same part differently, and a database is matched to its art by
+   the heights the table already carries — and anything with the part configs
+   in it. The first run used a `ModuleManager.ConfigCache` from the install
+   for the configs, which holds every part as the game loaded it, and the two
+   databases already on hand from the engine work.
+
+What comes out: the distance from a holder's attach point to its far face,
+along the direction its `node_attach` says the parent lies in — the drag
+cube's least extent that way. A TT-38K stands a booster 0.237 m off the tank
+in stock and 0.218 in ReStock; a TT-70 0.69; a cubic strut 0.26. The same
+files answered #438's question on the way: every stock and ReStock solid
+booster carries its surface-attach node at `y = 0`, mid-height, which is
+where the model hangs one.
 
 ## The icon — `public/favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`
 
