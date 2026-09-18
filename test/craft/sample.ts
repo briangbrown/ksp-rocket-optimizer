@@ -18,6 +18,8 @@ const part = (
   stage: { ignite: null, drop: 0 },
   symmetry: [],
   modules: [],
+  variant: null,
+  attach: null,
   resources: [],
   ...over,
 });
@@ -58,6 +60,7 @@ function sample(): Craft {
           { id: "bottom", p: [0, -0.91, 0], d: down, to: "3" },
         ],
         modules: ["ModulePartVariants"],
+        variant: "BlackAndWhite",
         resources: LFO,
       }),
       part({
@@ -116,6 +119,7 @@ function sample(): Craft {
         stage: { ignite: 1, drop: 1 },
         symmetry: ["10"],
         modules: ["ModuleAnchoredDecoupler"],
+        attach: { p: [0.01, 0, 0], d: [1, 0, 0] },
       }),
       part({
         id: "10",
@@ -210,6 +214,8 @@ function gen(seed: number, maxParts = 60): Craft {
     stage: { ignite: number | null; drop: number };
     symmetry: Array<string>;
     modules: Array<string>;
+    variant: string | null;
+    attach: { p: Vec3; d: Vec3 } | null;
     resources: Array<{ name: string; amount: number; max: number }>;
   }> = [];
   const quat = (): Quat => {
@@ -233,6 +239,8 @@ function gen(seed: number, maxParts = 60): Craft {
       stage: { ignite: null as number | null, drop: 0 },
       symmetry: [] as Array<string>,
       modules: [] as Array<string>,
+      variant: null as string | null,
+      attach: null as { p: Vec3; d: Vec3 } | null,
       resources: [] as Array<{ name: string; amount: number; max: number }>,
     };
     if (i > 0) {
@@ -253,6 +261,17 @@ function gen(seed: number, maxParts = 60): Craft {
       p.nodes.push({ id: `free${p.nodes.length}`, p: vec(2), d: up, to: null });
     const nm = Math.floor(r() * 4);
     for (let k = 0; k < nm; k++) p.modules.push(pick(MODULES));
+    if (p.modules.includes("ModulePartVariants") && r() < 0.7)
+      p.variant = pick(["Dark", "White", "Size1", "Boattail"]);
+    if (p.parent?.via === "surface" && r() < 0.8)
+      p.attach = {
+        p: vec(1),
+        d: pick([
+          [1, 0, 0],
+          [0, 0, 1],
+          [0, 0, -1],
+        ] as Array<Vec3>),
+      };
     const nr = Math.floor(r() * 3);
     for (let k = 0; k < nr; k++) {
       const max = round(r() * 1000, 3);

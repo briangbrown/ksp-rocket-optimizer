@@ -6,7 +6,7 @@ import {
   stageGeom,
   tankRun,
 } from "./geometry.js";
-import { boosterLayout, columnsOf } from "./model.js";
+import { boosterLayout, columnsOf, radialPhase } from "./model.js";
 import { stagingOf } from "./staging.js";
 import { DATA } from "./catalogue.js";
 import { nodesOf, commandParts } from "./nodes.js";
@@ -66,11 +66,26 @@ const rotate = (q: Quat, v: Vec3): Vec => {
   ];
 };
 /* The turn about y that points a part's horizontal direction `d` along the
-   horizontal `target`: angles measured as atan2(x, z), which the turn adds to. */
+   horizontal `target`: angles measured as atan2(x, z), which the turn adds
+   to. For a surface-attached part `d` is its attach node's direction — the
+   outward normal at its own attach face — and the target is outward from
+   the axis: the game sets the node anti-parallel to the wall it meets, so
+   the part's face is toward the wall when its node points away from it.
+   Pointed inward, probe 1's Thuds stood bells-out (#467). */
 const faceWith = (d: Vec3, target: Vec3): Quat =>
   aboutY(Math.atan2(target[0], target[2]) - Math.atan2(d[0], d[2]));
 
 const mm = (x: number) => Math.round(x * 1000) / 1000 || 0;
+/* How high the lowest stack node stands above the VAB floor: room for the
+   bell below it. The Mammoth's hangs 1.2 m past its bottom node. */
+const FLOOR_CLEAR = 1.5;
+
+/* A surface-attach node points away from what it is bolted to: the editor
+   sets the node's direction along the wall's outward normal, one rule for
+   every part, read off the parts the reader re-placed by hand in probe 2
+   (a Twitch and a Shrimp, #467). What differs between parts is where the
+   mesh sits about its node, which the game handles and we never see. */
+const facing = (_title: string, outward: Vec3): Vec3 => outward;
 /* Rotations to seven places: a unit quaternion to within 1e-6, and no more
    digits than the file carries, so a read-back is the same numbers. */
 const q7 = (q: Quat): Quat =>
@@ -178,6 +193,10 @@ class Builder {
       stage,
       symmetry: [],
       modules: info.modules,
+      variant: info.modules.includes("ModulePartVariants")
+        ? (info.variant ?? null)
+        : null,
+      attach: null,
       resources,
     };
     const b: Built = { part, world, info };
@@ -201,6 +220,10 @@ class Builder {
     child.part = {
       ...child.part,
       parent: { id: parent.part.id, via: "surface" },
+      /* Its own attach node, for the long srfN form. */
+      attach: child.info.attach
+        ? { p: child.info.attach.p, d: child.info.attach.d }
+        : null,
     };
     this.byId.set(child.part.id, child);
   }
@@ -345,13 +368,16 @@ function holdOn(
 ): Built {
   const info = b.info(BOOSTER_HOLD);
   const u: Vec3 = [Math.cos(a), 0, Math.sin(a)];
-  const inward: Vec3 = [-u[0], 0, -u[2]];
+  /* Faced outward: a surface node's direction is the outward normal at the
+     part's own face, and the game sets it anti-parallel to the wall's —
+     inward put probe 1's engines bells-out (#467). */
+  const outward: Vec3 = u;
   const at = info.attach ?? {
     p: [0, 0, 0] as Vec3,
     d: [1, 0, 0] as Vec3,
     s: 1,
   };
-  const rot = faceWith(at.d, inward);
+  const rot = faceWith(at.d, facing(BOOSTER_HOLD, outward));
   /* Its attach point on the wall; the part's origin is that point less the
      attach offset, turned. */
   const ap = rotate(rot, at.p);
@@ -385,13 +411,16 @@ function boltOn(
 ): Built {
   const info = b.info(title);
   const a = Math.atan2(point[2] - cz, point[0] - cx);
-  const inward: Vec3 = [-Math.cos(a), 0, -Math.sin(a)];
+  const outward: Vec3 = [Math.cos(a), 0, Math.sin(a)];
   const at = info.attach ?? {
     p: [0, 0, 0] as Vec3,
     d: [1, 0, 0] as Vec3,
     s: 1,
   };
-  const rot = Math.hypot(at.d[0], at.d[2]) > 1e-6 ? faceWith(at.d, inward) : I;
+  const rot =
+    Math.hypot(at.d[0], at.d[2]) > 1e-6
+      ? faceWith(at.d, facing(title, outward))
+      : I;
   const ap = rotate(rot, at.p);
   /* The part's origin: the attach point sits at `point`, and where the
      caller wants the origin's own height set (`attachY`), the point's y is
@@ -633,14 +662,17 @@ function buildColumn(
   if (radial) {
     const first = tanks[0] ?? tankBase;
     const R = Math.max(g.td, g.pack ? g.pack.w : 0) / 2;
-    const r = g.ed / 2;
     const group: Array<Built> = [];
     for (let j = 0; j < g.perEng; j++) {
-      const a = ((j + 0.5) / g.perEng) * 2 * Math.PI + th;
+      const a = radialPhase(sol, g).phase + (j / g.perEng) * 2 * Math.PI + th;
+      /* Its attach node is at its origin, on the wall — the model's shape,
+         a bell of radius r outboard of it, is what hangs off that point.
+         Placed at the bell's centre the Twitches of probe 2 stood 17 cm off
+         the tank (#467). */
       const point: Vec = [
-        cx + Math.cos(a) * (R + r),
+        cx + Math.cos(a) * R,
         tankBaseY + Math.min(0.3, g.engineH / 2),
-        cz + Math.sin(a) * (R + r),
+        cz + Math.sin(a) * R,
       ];
       group.push(
         boltOn(b, `${path}/radial${j}`, e.n, first, point, cx, cz, engineStage),
@@ -759,7 +791,10 @@ function craftOf(
           const x = Math.cos(a) * rk,
             z = Math.sin(a) * rk;
           const rot = tInfo.attach
-            ? faceWith(tInfo.attach.d, [-Math.cos(a), 0, -Math.sin(a)])
+            ? faceWith(
+                tInfo.attach.d,
+                facing(pk.tank.n, [Math.cos(a), 0, Math.sin(a)]),
+              )
             : I;
           const tank = b.place(
             `s${i}/pack${L}/${r}`,
@@ -832,7 +867,7 @@ function craftOf(
           };
           const rot =
             Math.hypot(at.d[0], at.d[2]) > 1e-6
-              ? faceWith(at.d, [-Math.cos(a), 0, -Math.sin(a)])
+              ? faceWith(at.d, facing(bs.part.n, [Math.cos(a), 0, Math.sin(a)]))
               : I;
           const body = b.place(
             `s${i}/boost${k}`,
@@ -909,10 +944,13 @@ function craftOf(
           d: [1, 0, 0] as Vec3,
           s: 1,
         };
-        /* Turn the whole column so its tanks' attach faces look inward —
+        /* Turn the whole column so its tanks' attach nodes point outward and their faces meet the hold —
            their nodes are on the axis, so nothing moves — and hold it by its
            top tank, the root of its chain, at that tank's attach height. */
-        const rot = faceWith(at.d, [-Math.cos(a), 0, -Math.sin(a)]);
+        const rot = faceWith(
+          at.d,
+          facing(top.info.name, [Math.cos(a), 0, Math.sin(a)]),
+        );
         for (const part of [under, first, ...above])
           if (part) {
             part.part = { ...part.part, rot: q7(rot) };
@@ -994,8 +1032,17 @@ function craftOf(
     a.id === root.part.id ? -1 : c.id === root.part.id ? 1 : 0,
   );
 
-  /* Shift so the root sits where the editor puts a fresh one. */
-  const shift = 15 - root.part.pos[1];
+  /* Stand it on the floor. The editor's origin is the VAB floor, and a
+     craft hung from a root at the editor's spawn height ran seven metres
+     under it on probe 3, the Thumpers' tops just showing (#467). The lowest
+     stack node goes a bell's length above y = 0, since an engine hangs past
+     its bottom node by up to about that. */
+  let lowest = Infinity;
+  for (const p of b.parts)
+    for (const w of Object.values(p.world)) lowest = Math.min(lowest, w.p[1]);
+  const shift = Number.isFinite(lowest)
+    ? FLOOR_CLEAR - lowest
+    : 15 - root.part.pos[1];
   const shifted = parts.map((p) => ({
     ...p,
     pos: pos3(p.pos[0], p.pos[1] + shift, p.pos[2]),

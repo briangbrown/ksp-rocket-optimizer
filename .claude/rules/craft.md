@@ -108,15 +108,60 @@ delivered plan to a `Craft`, and the only module allowed to import
   the protocol. A question about what the game accepts gets a probe on the
   ladder, and its answer replaces the line below that asked it.
 
-- **Open until the game answers (#467):** whether a bare `PART` body with
-  `MODULE { name = X }` stubs launches; the `srfN` long form carries a collider
-  name we do not have, so the writer emits the two-field form
-  `srfAttach,<token>`; whether a ReStock variant needs `ModulePartVariants`
-  state named to draw the ReStock model. And what a `link` is to the game: in one 1.12.5 file the last part
-  `link`s the first, which our reader takes as "the first part has a parent"
-  and `checkCraft` as "not the root" — the game either re-roots to the first
-  PART on load or reads `link` as an edge rather than a child; our writer
-  writes root first with links downward, which the game's own 0.13 files
-  are, and `craft:conformance` reports the other form as a note, not a
-  failure. Each is a probe in the ladder; the
-  answer replaces this line.
+- **What the game said to probe 1 (#467, KSP 1.12.5 + ReStock).** A craft of
+  `MODULE { name = … }` stubs loads in the VAB and launches. The game kept
+  every position, rotation, parent and stage number as written, to the
+  millimetre. It rewrote three things, and the writer now writes them its
+  way: `istg` on a part with no icon is its stage's number (not −1), `sepI`
+  is `dstg` for every part but the root, and `srfN` is the long form
+  `srfAttach,<token>,<collider>,<p>,<d>,<p0>` with the collider left
+  empty — `sqor` is what marks a staged part. And a ReStock engine with no
+  `selectedVariant` in its `ModulePartVariants` stub draws nothing in the
+  VAB (its variants are whole meshes; a tank's are textures) and appears
+  only on the pad: the stub now carries the default variant from
+  `nodes.json`.
+
+- **A surface-attach node points away from what it is bolted to — one rule,
+  every part.** The editor sets a node's direction along the wall's outward
+  normal; what differs between parts is where the mesh sits about its node,
+  which is the game's business and never ours. Read off the parts the reader
+  re-placed by hand in probe 2 (a Twitch and a Shrimp, #467); the TT-38K,
+  which our first file had faced inward and which looked right by eye, is
+  faced the same way now and is the one to check next (its rounded cap
+  belongs on the booster's side). No list of exceptions: a part that seems to
+  need one is a probe, not a table entry. And the game does not always trust
+  `rot` for a surface part: probe 3's Thumpers, written facing inward on
+  their TT-38Ks, came back from a plain load-and-save turned a half turn to
+  face away — while probe 1's Thuds on a tank came back as written. Whatever
+  the game re-derives, it re-derives to the same rule.
+
+- **A radial engine's origin is on the wall, and the radial engines turn to
+  clear the boosters.** The Twitch's attach node is at its origin, so its
+  `pos` is the wall point and the bell the model draws hangs outboard of it —
+  placed at the bell's centre it stood 17 cm off the tank. The boosters keep
+  the 0° and 180° planes, the ones a pilot turns in; `radialPhase` finds the
+  phase of the engine ring (72 steps in one) that puts every engine furthest
+  from the nearest booster, and the drawing and the craft both use it. Only
+  where no phase clears them does the booster ring stand outboard of the
+  engines, as it always did: pushed out regardless, probe 2's Shrimps hung
+  half a metre off the tank on a TT-38K a quarter of that thick, and
+  collided with the Twitches in the VAB. The drag-cube standoff
+  (`geometry.json`, 0.218 m for the TT-38K) runs about 4 cm past the far
+  face the game snaps a booster to (its collider, not its cube); left as is.
+
+- **The craft stands on the VAB floor.** The editor's origin is the floor,
+  and a craft hung from its root at the editor's spawn height (y = 15) ran
+  seven metres under it on probe 3, the Thumpers' tops just showing. The
+  adapter shifts the whole craft so its lowest stack node stands
+  `FLOOR_CLEAR` (1.5 m, a bell's length) above y = 0; a tall rocket may top
+  the hangar, which is the game's ceiling and not ours.
+
+- **Open until the game answers (#467):** whether a bare
+  `PART` body with no stubs launches (`01-stacka-bare`); an engine plate's
+  `bottom01…` nodes (probe 4); decoupler orientation; and what a `link` to
+  the first part means in the game's own files (one 1.12.5 file has the
+  last part `link` the first, which our reader takes as "the first part has
+  a parent" — the game either re-roots to the first PART on load or reads
+  `link` as an edge; our writer writes root first with links downward, as
+  the game's 0.13 files are, and `craft:conformance` reports the other form
+  as a note).

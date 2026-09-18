@@ -1,4 +1,5 @@
 import {
+  BOOSTER_HOLD,
   PAYLOAD_ASPECT,
   boosterRing,
   clusterSpan,
@@ -7,6 +8,7 @@ import {
   payloadDiaOf,
   ringPositions,
   stageGeom,
+  standoffOf,
   tankStackLen,
   tankRun,
   widthOf,
@@ -113,10 +115,54 @@ const turn = (x: number, z: number, th: number) => [
   x * Math.sin(th) + z * Math.cos(th),
 ];
 
+/* Where a stage's radial engines start round the column: half a step from
+   zero where the stage has no boosters, so the two rings interleave when
+   they are equal in number — and where it has boosters, whichever phase in
+   one step of the engine ring puts every engine furthest from the nearest
+   booster, the boosters keeping the 0° and 180° planes a pilot turns in.
+   Null where no phase clears them and the ring has to stand outboard. The
+   drawing and the craft both read it. #467 */
+export function radialPhase(
+  sol: Solution,
+  g: ReturnType<typeof stageGeom>,
+): { phase: number; clear: boolean } {
+  const half = Math.PI / Math.max(1, g.perEng);
+  const b = sol.boosters;
+  if (!b || !g.radial || g.engineH <= 0) return { phase: half, clear: true };
+  const hold = Math.max(g.td, g.pack ? g.pack.w : 0);
+  const bd = widthOf(b.part, diaOf(b.part));
+  const rB = hold / 2 + standoffOf(BOOSTER_HOLD) + bd / 2;
+  const rE = hold / 2 + g.ed / 2;
+  const nearest = (ph: number) => {
+    let least = Infinity;
+    for (let i = 0; i < b.n; i++)
+      for (let j = 0; j < g.perEng; j++) {
+        const da = ph + (j / g.perEng - i / b.n) * 2 * Math.PI;
+        const d2 = rB * rB + rE * rE - 2 * rB * rE * Math.cos(da);
+        least = Math.min(least, Math.sqrt(Math.max(0, d2)));
+      }
+    return least;
+  };
+  const steps = 72;
+  let best = half,
+    bestD = -1;
+  for (let k = 0; k < steps; k++) {
+    const ph = ((k / steps) * 2 * Math.PI) / g.perEng;
+    const d = nearest(ph);
+    if (d > bestD + 1e-9) {
+      bestD = d;
+      best = ph;
+    }
+  }
+  return bestD >= (bd + g.ed) / 2
+    ? { phase: best, clear: true }
+    : { phase: half, clear: false };
+}
+
 /* Where a stage's ring of boosters stands: how wide each is (`bd`), how long
    (`bh`), where its foot is (`foot`), the ring's radius (`br`), the length of
-   a liquid column's engine (`eh`), and the width of what the ring is bolted
-   to (`hold`). Shared by the drawing below and by the craft adapter
+   a liquid column's engine (`eh`), the width of what the ring is bolted to
+   (`hold`). Shared by the drawing below and by the craft adapter
    (core/craft.ts), so the file and the picture put a booster in one place.
    #464 */
 export function boosterLayout(
@@ -235,7 +281,15 @@ export function boosterLayout(
      whatever the booster actually runs alongside between its foot and the
      tanks — not every section the walk passed, since a booster raised clear
      of the engines has nothing to clear there. */
-  let ring = hold / 2 + (g.radial ? g.ed : 0);
+  /* A ring of boosters shares the wall with a ring of radial engines where
+     the engines can be turned to clear it (`radialPhase`); the boosters keep
+     the 0° and 180° planes. Only where no phase clears them does the ring
+     stand outboard of the engines. Pushed out whenever there were radial
+     engines, the SRBs of probe 2 hung half a metre off the tank with a
+     TT-38K a quarter of that thick between (#467); `stageSize` had charged
+     the wall radius all along. */
+  let ring = hold / 2;
+  if (g.radial && g.engineH > 0 && !radialPhase(sol, g).clear) ring += g.ed;
   let top = tankBase;
   for (let k = sections.length - 1; k >= 0 && top > foot + 1e-9; k--) {
     if (sections[k].h <= 0) continue;
@@ -397,7 +451,7 @@ function stageParts(
     const r = g.ed / 2;
     for (const [cx, cz, th] of columns)
       for (let j = 0; j < g.perEng; j++) {
-        const a = ((j + 0.5) / g.perEng) * 2 * Math.PI + th;
+        const a = radialPhase(sol, g).phase + (j / g.perEng) * 2 * Math.PI + th;
         push({
           role: "engine",
           part: sol.engine,
