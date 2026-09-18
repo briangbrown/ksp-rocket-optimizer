@@ -26,7 +26,12 @@
     "perf:config": "vite build --ssr perf/config.ts --outDir perf/.out --logLevel error && node perf/.out/config.js",
     "perf:map": "vite build --sourcemap hidden --logLevel error && echo 'map written to dist/assets/'",
     "perf:device": "npm run perf:profile && npm run perf:map && node perf/profile.mjs perf/.prof perf/traces --map dist/assets",
-    "perf:heap": "npm run perf:build && node --heap-prof --heap-prof-dir=perf/.prof perf/.out/run.js grid"
+    "perf:heap": "npm run perf:build && node --heap-prof --heap-prof-dir=perf/.prof perf/.out/run.js grid",
+    "craft:build": "vite build --ssr tools/craft-tools.ts --outDir tools/.out --logLevel error",
+    "craft:probes": "npm run craft:build && node tools/.out/craft-tools.js probes",
+    "craft:diff": "npm run craft:build && node tools/.out/craft-tools.js diff",
+    "craft:log": "npm run craft:build && node tools/.out/craft-tools.js log",
+    "craft:conformance": "npm run craft:build && node tools/.out/craft-tools.js conformance"
   },
   "dependencies": {
     "lucide-react": "^1.42.0",

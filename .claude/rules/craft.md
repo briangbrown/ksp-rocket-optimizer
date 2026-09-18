@@ -101,9 +101,22 @@ delivered plan to a `Craft`, and the only module allowed to import
   `billOfCraft` equal to `billOfPlan`. A new construct in the solver wants a
   fixture link here before it is delivered.
 
+- **The game is asked through `tools/craft-tools.ts`, not by hand.**
+  `npm run craft:probes` writes the ladder, `craft:diff` reads the game's
+  saved copy against ours, `craft:log` reads `KSP.log`, `craft:conformance`
+  runs the reader over a folder of the game's files; `tools/README.md` has
+  the protocol. A question about what the game accepts gets a probe on the
+  ladder, and its answer replaces the line below that asked it.
+
 - **Open until the game answers (#467):** whether a bare `PART` body with
   `MODULE { name = X }` stubs launches; the `srfN` long form carries a collider
   name we do not have, so the writer emits the two-field form
   `srfAttach,<token>`; whether a ReStock variant needs `ModulePartVariants`
-  state named to draw the ReStock model. Each is a probe in the ladder; the
+  state named to draw the ReStock model. And what a `link` is to the game: in one 1.12.5 file the last part
+  `link`s the first, which our reader takes as "the first part has a parent"
+  and `checkCraft` as "not the root" — the game either re-roots to the first
+  PART on load or reads `link` as an edge rather than a child; our writer
+  writes root first with links downward, which the game's own 0.13 files
+  are, and `craft:conformance` reports the other form as a note, not a
+  failure. Each is a probe in the ladder; the
   answer replaces this line.
