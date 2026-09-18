@@ -5,6 +5,15 @@ on:
     branches: [main]
   pull_request:
 
+# A pull request that is pushed to again has no use for the first run's answer,
+# and the jobs still queued for it hold runners the second run wants. The
+# superseded run is cancelled. A run on main never is: its result is what the
+# branch's history is read against, and cancelling one would leave a commit
+# with no answer at all.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # Whether a pull request touches anything but lessons. `build` is the check
   # main requires, so it cannot be path-filtered away: a required check that
@@ -45,7 +54,17 @@ jobs:
             echo "docs-only=false" >> "$GITHUB_OUTPUT"
           fi
 
-  build:
+  # Everything that is not the suite. Seconds each, and they used to run in
+  # front of `npm test` in the same job, which meant the first test started
+  # eleven seconds after the runner did. They are their own job now and the
+  # shards below start at the same moment.
+  #
+  # The fail-fast argument the old ordering carried is intact. It was never
+  # about the suite waiting: it was that lint and typecheck answer in seconds
+  # what the suite answers in minutes or not at all, and they still do —
+  # earlier, in fact, since nothing is queued behind anything. What is gone is
+  # only the waiting. `build` below fails on whatever this job fails on.
+  checks:
     needs: changes
     runs-on: ubuntu-latest
     permissions:
@@ -63,9 +82,8 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        # The visual job below is the only one that needs a browser, and
-        # downloading Chrome on every job would cost this one a minute for
-        # nothing.
+        # No job here needs a browser — the visual job downloads its own — and
+        # downloading Chrome would cost this one a minute for nothing.
         env:
           PUPPETEER_SKIP_DOWNLOAD: "true"
 
@@ -77,12 +95,12 @@ jobs:
       - name: Format
         run: npm run format:check
 
-      # Before the tests: no-undef finds in a second what the suite can only
-      # find if its grid happens to reach the branch. esbuild resolves no
-      # cross-scope names, so the build is no help at all here. And
-      # exhaustive-deps, over src/ui, finds the hook whose dependency list
-      # leaves out something it reads — which no test saw until a share link
-      # described a different rocket from the one on screen. #431
+      # no-undef finds in a second what the suite can only find if its grid
+      # happens to reach the branch. esbuild resolves no cross-scope names, so
+      # the build is no help at all here. And exhaustive-deps, over src/ui,
+      # finds the hook whose dependency list leaves out something it reads —
+      # which no test saw until a share link described a different rocket from
+      # the one on screen. #431
       - name: Lint
         if: needs.changes.outputs.docs-only != 'true'
         run: npm run lint
@@ -97,22 +115,111 @@ jobs:
         if: needs.changes.outputs.docs-only != 'true'
         run: npm run typecheck
 
-      # Runs before the build: a moved design, a blank render or a part drawn
-      # outside the shape the solver sized it at is the failure worth seeing
-      # first, and the build passing says nothing about any of them.
-      - name: Design snapshot, render sweep, model checks and mission sweep
-        if: needs.changes.outputs.docs-only != 'true'
-        run: npm test
-
       - name: Build
         if: needs.changes.outputs.docs-only != 'true'
         run: npm run build
 
-  # Separate from `build` on purpose. The main suite is already a couple of
-  # minutes and test/model.test.js carries a note about a worker running out of
-  # memory when the mission models were built twice; a browser in that run
-  # invites it back. three.js splits its own screenshot tests out for the same
-  # reason. #73
+  # The suite, split across runners.
+  #
+  # `npm test` is around seven minutes on one runner and about eighteen minutes
+  # of CPU, so it is not waiting on anything — it is four vCPUs short. Hosted
+  # runners are free on a public repository, so the shards below are three of
+  # them instead of one.
+  #
+  # Three, and not more, because vitest gives a whole file to one worker and
+  # never splits it. The suite's longest file is test/resolve-wiring.test.tsx
+  # at about three minutes, and that is the floor however many runners this
+  # matrix has; a fourth shard was measured to move nothing. See
+  # .claude/rules/verification.md for the rest of the arithmetic, and for the
+  # reason a shard's share is not its share of the time.
+  test:
+    needs: changes
+    if: needs.changes.outputs.docs-only != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      # Every shard reports. A solver change moves designs in more than one
+      # file at a time, and cancelling the other two would hide how far it
+      # reached — which is the first thing worth knowing about such a change.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "true"
+
+      # The denominator is `strategy.job-total` rather than a second literal 3,
+      # so the matrix above is the one place the count is written. A shard that
+      # disagrees with the total silently runs the wrong quarter of the suite
+      # and passes.
+      - name: Design snapshot, render sweep, model checks and mission sweep
+        run: npm test -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
+  # The check main requires, and the only job here whose name is load-bearing.
+  #
+  # It used to do the work. It cannot any more: a required check split into a
+  # matrix is renamed by GitHub to `build (1)`, `build (2)`, `build (3)`, and
+  # the rule on the branch would sit waiting for a `build` that never reports
+  # again — the same trap the `changes` job above is written around. So the
+  # work moved to `checks` and `test`, and what is left under this name is the
+  # job that reports on them.
+  #
+  # `if: always()` for that reason too: a skipped or failed dependency must
+  # still produce a `build` answer, never an absent one.
+  build:
+    needs: [changes, checks, test]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Did every job pass?
+        run: |
+          set -eu
+          failed=
+          # `skipped` is a pass. A lessons-only pull request skips the suite by
+          # design, and `test` reports the whole matrix as skipped when it does.
+          for result in \
+            "changes:${{ needs.changes.result }}" \
+            "checks:${{ needs.checks.result }}" \
+            "test:${{ needs.test.result }}"; do
+            echo "${result%%:*}: ${result#*:}"
+            case "${result#*:}" in
+              success | skipped) ;;
+              *) failed=1 ;;
+            esac
+          done
+          [ -z "$failed" ] || exit 1
+
+  # Separate from `build` on purpose. The main suite is minutes long and
+  # test/model.test.js carries a note about a worker running out of memory when
+  # the mission models were built twice; a browser in that run invites it back.
+  # three.js splits its own screenshot tests out for the same reason. #73
+  #
+  # Two shards, and for a different reason from the three above. This suite
+  # drives one browser and one page in file order — `maxWorkers: 1`, because two
+  # Chromes under software rendering cost more in launches than they save — so
+  # its wall clock is the *sum* of its files where the main suite's is its
+  # longest. That sum is 275s: render 139, transfer 57, layout 51, stops 27.
+  # Across runners it splits render+stops against transfer+layout, 166s against
+  # 109s. A third shard does not improve on that — render and stops stay
+  # together, still 166s — and a fourth would separate them for 139s, which is
+  # inside what `build` above takes anyway and would shorten this workflow by
+  # nothing. Two.
   visual:
     name: Visual
     needs: changes
@@ -120,6 +227,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
 
     steps:
       - name: Checkout repository
@@ -151,15 +262,33 @@ jobs:
       # screenshot of each screen beside the numbers it measured, for a
       # person to look at. Never compared. #129
       - name: Render the build view in a real browser
-        run: npm run test:visual
+        run: npm run test:visual -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
+      # Only visual/layout.test.ts writes to visual/.out, so exactly one shard
+      # has anything to keep and the artefact goes on being called `layout`.
+      # Both shards uploading would collide on that name — which is the right
+      # failure to have, since it would mean a second file had started writing
+      # screenshots and this arrangement needed reading again.
+      - name: Did this shard draw anything?
+        id: shots
+        if: always()
+        run: |
+          set -eu
+          if [ -n "$(ls -A visual/.out 2>/dev/null)" ]; then
+            echo "any=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "any=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Keep the screenshots
-        if: always()
+        if: always() && steps.shots.outputs.any == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: layout
           path: visual/.out
           # A dot-directory, like perf/.out; the action skips hidden paths
-          # unless told otherwise and reports "no files found".
+          # unless told otherwise and reports "no files found". `error` still
+          # means what it always meant: the step above has established there are
+          # files, so nothing found here is that trap and not an empty shard.
           include-hidden-files: true
           if-no-files-found: error
