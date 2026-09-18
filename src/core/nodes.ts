@@ -46,5 +46,13 @@ const nodesOf = (title: string): PartNodes | undefined =>
 const commandParts = (): Array<[string, PartNodes]> =>
   Object.entries(TABLES[artName()]).filter(([, e]) => e.command);
 
-export { commandParts, nodesOf };
+/* The title a config name belongs to, in the live art — the way back from
+   a craft's `part =` to the part tables. */
+const titleOf = (name: string): string | undefined => {
+  const t = TABLES[artName()];
+  for (const [title, e] of Object.entries(t)) if (e.name === name) return title;
+  return undefined;
+};
+
+export { commandParts, nodesOf, titleOf };
 export type { Node, PartNodes };

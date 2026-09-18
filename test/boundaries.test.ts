@@ -173,7 +173,9 @@ describe("the craft boundary", () => {
   });
 
   it("lets only the adapter import src/craft", () => {
-    const allowed = new Set(["src/core/craft.ts"]);
+    /* The adapter, and the bill that reads a craft back for the round-trip
+       test (#465) — the reverse direction, kept as small. */
+    const allowed = new Set(["src/core/craft.ts", "src/core/bill.ts"]);
     const bad: Array<string> = [];
     for (const path of [
       ...files("src/core"),
