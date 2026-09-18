@@ -189,7 +189,13 @@ function writeCraft(craft: Craft): string {
       ["attRot0", "0,0,0,1"],
       ["mir", "1,1,1"],
       ["symMethod", "Radial"],
-      ["autostrutMode", "Off"],
+      /* Autostrut to the grandparent on every part, the way a builder braces
+         a tall stack: the game applies the field on load whether or not
+         Advanced Tweakables is on (it saved it back untouched on probes 1–6),
+         Grandparent holds a stack of many short tanks without the joint
+         changes Heaviest makes at staging, and rigid attachment is left off
+         because it makes a joint brittle rather than stiff. #467 */
+      ["autostrutMode", p.parent ? "Grandparent" : "Off"],
       ["rigidAttachment", bool(false)],
       ["istg", String(ign ?? (p.parent ? p.stage.drop : -1))],
       ["resPri", "0"],

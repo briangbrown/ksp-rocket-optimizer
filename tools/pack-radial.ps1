@@ -64,8 +64,12 @@ foreach ($f in $files) {
 # ReStock one is named by a `model =` line in the patch that repoints it, so
 # both are followed: every .mu next to a config with an anchored decoupler or
 # the cubic strut in it, and every .mu a matched config names.
-$holders = @($files | Where-Object {
-  Select-String -Path $_ -Pattern 'ModuleAnchoredDecoupler|strutCube' -Quiet })
+# Only the four holders the model places (and the TT-14): matched by config
+# name, and by the model path a ReStock patch names for them. Every .mu next
+# to every matched config was 30 MB of boosters and engines (#467).
+$holderNames = 'name\s*=\s*(radialDecoupler|radialDecoupler2|radialDecoupler1-2|strutCube|restock-decoupler-radial-tiny-1)\s*$'
+$holderModels = 'decoupler-radial|radialDecoupler|strutCube|restock-strut'
+$holders = @($files | Where-Object { Select-String -Path $_ -Pattern $holderNames -Quiet })
 $meshes = @()
 foreach ($h in $holders) {
   $meshes += @(Get-ChildItem (Split-Path $h) -File -Filter *.mu -ErrorAction SilentlyContinue |
@@ -74,7 +78,9 @@ foreach ($h in $holders) {
 foreach ($f in $files) {
   foreach ($m in (Select-String -Path $f -Pattern '^\s*model\s*=\s*(\S+)' -AllMatches)) {
     foreach ($g in $m.Matches) {
-      $mu = Join-Path $gd ($g.Groups[1].Value + ".mu")
+      $p = $g.Groups[1].Value
+      if ($p -notmatch $holderModels) { continue }
+      $mu = Join-Path $gd ($p + ".mu")
       if (Test-Path $mu) { $meshes += (Get-Item $mu).FullName }
     }
   }

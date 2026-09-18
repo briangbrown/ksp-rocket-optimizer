@@ -52,7 +52,20 @@ async function probes(outdir: string) {
   const want: Array<[string, Array<Try>, (r: Res) => boolean]> = [
     ["01-stack", [{ name: "Low orbit-pay3.5" }], () => true], // tanks, one engine, two stages
     ["02-boosters", [{ name: "Low orbit-pay0.8" }], () => true], // radial engines, SRBs on TT-38Ks
-    ["03-cluster", [{ name: "Mun-pay3.5" }], () => true], // a cluster on a coupler, a rejoin
+    [
+      "03-cluster",
+      /* A cluster on a coupler with SRBs beside it; ReStock's roster solves
+         the 3.5 t Mun mission without them. */
+      [
+        { name: "Mun-pay3.5" },
+        { name: "Mun-pay12" },
+        { name: "Duna-pay12" },
+        { name: "Low orbit-pay12" },
+        { name: "Mun-pay0.8" },
+      ],
+      (r: Res) =>
+        r.stages.some((s) => s.sol?.boosters && !s.sol.boosters.part.column),
+    ],
     ["04-columns", [{ name: "Tylo-pay0.8" }], () => true], // parallel columns on struts, a packed ring
     [
       "05-asparagus",

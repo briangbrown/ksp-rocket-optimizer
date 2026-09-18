@@ -193,6 +193,16 @@ delivered plan to a `Craft`, and the only module allowed to import
   its own attach node, its middle, where the game snaps it, so its second is
   a quarter-length away and no more — the most spread the game allows.
 
+- **Every part but the root autostruts to its grandparent; rigid attachment
+  stays off.** The game reads `autostrutMode` and `rigidAttachment` off the
+  craft on load whether or not Advanced Tweakables is on (it saved probes
+  1–6 back with them untouched), so the writer sets what a builder would:
+  Grandparent holds a stack of many short tanks against the bending and the
+  pad wobble Brian saw on tall thin rockets, without the joint changes
+  Heaviest makes at staging; rigid attachment makes a joint brittle rather
+  than stiff. Launch clamps are the other half of the pad problem and are
+  not written yet (#467).
+
 - **Every decoupler is staged, plates included.** The game gave probe 3's
   second TT-38Ks and probe 5's engine plates icons in their drop stage; the
   writer stages them there (`holdStage`, and `{ignite: drop, drop}` for a
