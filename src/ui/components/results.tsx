@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Scissors, Settings } from "lucide-react";
+import { Download, Scissors, Settings } from "lucide-react";
 import { bodyLabel, fmt, hms } from "../format.js";
 import { SPACE } from "../tokens.js";
 import type { Theme } from "../tokens.js";
@@ -11,6 +11,7 @@ import {
   Choice,
   Disclosure,
   ICON,
+  IconButton,
   STROKE,
   Section,
 } from "./primitives.jsx";
@@ -58,6 +59,9 @@ type ResultsProps = {
   onHalve?: () => void;
   splitBy: Map<number, number>;
   onSetSplit: (key: number, k: number) => void;
+  /* Hand the reader the rocket as a .craft file for the VAB. Absent where
+     the page cannot make one. #466 */
+  onCraft?: () => void;
   geom: { h: number; w: number; ar: number };
   maxAspect: number;
   ascent: Ascent | null;
@@ -270,17 +274,43 @@ function Results(p: ResultsProps) {
         open={buildOpen}
         onToggle={() => setBuildOpen(!buildOpen)}
         busy={p.first}
+        /* The download button's 44 hangs into the card's padding, as the
+           brief's share button does. */
+        asideReach={p.onCraft ? 12 : 0}
         aside={
           buildOpen && !p.first ? (
-            <Choice
-              label="Show"
-              value={tab}
-              onChange={setTab}
-              options={[
-                { value: "stages", label: "By stage" },
-                { value: "order", label: "Build order" },
-              ]}
-            />
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: SPACE.sm,
+              }}
+            >
+              <Choice
+                label="Show"
+                value={tab}
+                onChange={setTab}
+                options={[
+                  { value: "stages", label: "By stage" },
+                  { value: "order", label: "Build order" },
+                ]}
+              />
+              {/* The rocket as a .craft for the VAB: the file the parts
+                  list describes, so a reader builds nothing by hand. Off
+                  while a stage has no design — there is no rocket to write.
+                  On a wrapper with the button's overhang, as the share
+                  button is, so the header line is no taller for it. #466 */}
+              {p.onCraft && (
+                <span style={{ display: "inline-flex", margin: "-10px 0" }}>
+                  <IconButton
+                    icon={Download}
+                    label="Download the .craft file"
+                    onClick={p.onCraft}
+                    disabled={!p.ok}
+                  />
+                </span>
+              )}
+            </span>
           ) : undefined
         }
       >

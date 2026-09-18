@@ -13,6 +13,7 @@ import { nodesOf, commandParts } from "./nodes.js";
 import type { PlanInput, PlanStage } from "./plan.js";
 import type { Solution } from "./solution.js";
 import type { Tank } from "./catalogue.js";
+import { writeCraft } from "../craft/index.js";
 import type {
   Craft,
   CraftPart,
@@ -1019,4 +1020,15 @@ function craftOf(
   };
 }
 
-export { craftOf };
+/* The file itself, for the application: the one door into `src/craft/` is
+   this module, so the writer is reached through it rather than imported by
+   the UI (test/boundaries.test.ts). Throws a CraftError on a craft the game
+   would not load. */
+const craftFile = (
+  stages: ReadonlyArray<PlanStage>,
+  input: Pick<PlanInput, "payload" | "payloadDia" | "expansions">,
+  name: string,
+  destination: string,
+): string => writeCraft(craftOf(stages, input, name, destination));
+
+export { craftFile, craftOf };

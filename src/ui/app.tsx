@@ -27,6 +27,8 @@ import { JumpBar } from "./components/jump.jsx";
 import { Solving, Veil } from "./components/solving.jsx";
 import { parseConfig } from "./config.js";
 import { canLink, fromLink, toLink } from "./link.js";
+import { craftFileName, saveText } from "./download.js";
+import { craftFile } from "../core/craft.js";
 import { STATE_LABEL, bodyLabel, briefLine, craftName, fmt } from "./format.js";
 import { STYLES } from "./styles.js";
 import { loadRoster, saveRoster } from "./storage.js";
@@ -633,6 +635,47 @@ export default function RocketWorks() {
     url.hash = await toLink(configText);
     return url.href;
   };
+  /* The rocket as a .craft file (#466): the adapter's craft, written, saved
+     — or put on the clipboard where the browser will not save a file — and
+     a note saying where it goes, what to add and what it needs installed.
+     Written on the click, from the stages on screen, so it is never a
+     stale rocket; a craft the writer refuses is said, not saved. */
+  const downloadCraft = async () => {
+    const filename = craftFileName(craft.name);
+    const where = "Put it in saves/<your save>/Ships/VAB/.";
+    const add = `Add your ${fmt(payload, 1)} t payload on the top node — a probe core stands in for it.`;
+    const needs = expansions?.rs
+      ? ` Needs ReStock and ReStock+${expansions.mh ? " and Making History" : ""} installed.`
+      : expansions?.mh
+        ? " Needs Making History installed."
+        : "";
+    try {
+      const text = craftFile(
+        stages,
+        { payload, payloadDia, expansions },
+        craft.name,
+        bodyLabel(to.body),
+      );
+      if (saveText(filename, text)) {
+        setNote({
+          severity: "good",
+          title: `Saved ${filename}. ${where} ${add}${needs}`,
+        });
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      setNote({
+        severity: "good",
+        title: `Copied the craft file's text — save it as ${filename}. ${where} ${add}${needs}`,
+      });
+    } catch (e) {
+      setNote({
+        severity: "bad",
+        title: `Could not write the craft file: ${e instanceof Error ? e.message : String(e)}`,
+      });
+    }
+  };
+
   /* The phone's share sheet where there is one; the clipboard where not. A
      clipboard that refuses is not the end of it — the address bar holds the
      same link — and the callout says where to find it. */
@@ -1002,6 +1045,7 @@ export default function RocketWorks() {
             onHalve={tryHalf}
             splitBy={splitBy}
             onSetSplit={setSplit}
+            onCraft={downloadCraft}
             geom={geom}
             maxAspect={maxAspect}
             ascent={ascent}

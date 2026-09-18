@@ -402,3 +402,14 @@ control shows and what it committed.
   jsdom takes no finer pass at all (no canvas to paint it on), so
   `test/plot-client.test.ts` drives the client with a fake worker and the
   visual suite waits on `data-fine="done"`. #213
+
+- **A file leaves the page through `download.ts`, and jsdom cannot take
+  one.** `saveText` is a blob, an anchor with `download` and a click — the
+  one way a page saves a file without a server — and it returns false where
+  `URL.createObjectURL` is missing (jsdom; embedded views that block
+  downloads), so the caller puts the text on the clipboard and the note
+  says so. The .craft button (#466) writes the file on the click from the
+  stages on screen, never from a memo, so it is never a stale rocket; its
+  test stands `saveText` in with `vi.mock` and compares the bytes to the
+  adapter's. The button hangs into the build section's header padding by
+  `asideReach`, as the brief's share button does.
