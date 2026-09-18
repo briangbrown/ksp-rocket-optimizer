@@ -443,6 +443,7 @@ const RADIAL_DECOUPLER_FUNDS = TT38K.cost;
    so both stay with the core as the plan charges them. Chosen down the
    ladder where a size is not researched or is ruled out, to the TT-38K. */
 const HOLDERS = [
+  "TT-14 Radial Decoupler",
   "TT-38K Radial Decoupler",
   "TT-70 Radial Decoupler",
   "Hydraulic Detachment Manifold",
@@ -451,17 +452,26 @@ const HOLDERS = [
   if (!h) throw new Error(`structure.json has lost the ${n}`);
   return h;
 });
-const HOLD_DIA = [1.3, 2.6, Infinity];
+/* The widest booster each rung takes, by the diameter its decoupler meets:
+   the TT-14 (ReStock+) the 0.625 m class, the TT-38K 1.25, the TT-70 1.875
+   and 2.5, the manifold the rest. */
+const HOLD_DIA = [0.7, 1.3, 2.6, Infinity];
 const LONG_BOOSTER = 6;
+/* The stock TT-38K is the floor: what every roster has from Stability, and
+   what a booster gets when nothing on its rung is researched or offered. */
+const HOLD_FLOOR = 1;
 const holderFor = (
   bd: number,
   bh: number,
   unlocked: Roster,
   excluded: Excluded,
+  expansions: Expansions | null | undefined = null,
 ): Hold => {
   const ok = (h: StructPart) =>
-    unlocked.has(h.t) && !(excluded && excluded.has(h.n));
-  let pick = HOLDERS[0];
+    unlocked.has(h.t) &&
+    !(excluded && excluded.has(h.n)) &&
+    offered(h, expansions);
+  let pick = HOLDERS[HOLD_FLOOR];
   for (let k = HOLD_DIA.findIndex((d) => bd <= d); k >= 0; k--)
     if (ok(HOLDERS[k])) {
       pick = HOLDERS[k];

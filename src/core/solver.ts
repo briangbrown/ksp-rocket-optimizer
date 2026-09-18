@@ -1467,6 +1467,7 @@ function boostedAscent({
             boosterLength(b, bd),
             unlocked,
             excluded,
+            expansions,
           );
           if (
             !boostersFit(

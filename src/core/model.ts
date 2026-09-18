@@ -13,7 +13,7 @@ import {
   widthOf,
 } from "./geometry.js";
 import { attachHalf } from "./nodes.js";
-import { diaOf, isRadial } from "./parts.js";
+import { diaOf } from "./parts.js";
 import type { Coupler, Engine, Shroud, Tank } from "./catalogue.js";
 import type { BoosterPart, DecouplerFit, Solution } from "./solution.js";
 
@@ -188,70 +188,24 @@ export function boosterLayout(
      placement is wrong without it, not because a test went red. */
 
   const hold = Math.max(g.td, g.pack ? g.pack.w : 0);
-  /* Its foot goes as low as the stage still reaches out to meet it.
-
-     A booster bolts to whatever is beside it, and below the tanks a stage
-     may keep its width or lose it. Three Mammoths on an EP-50 plate are as
-     wide as the Kerbodyne tanks above them, so a Clydesdale runs right down
-     past them and its nozzle lines up with theirs. A 0.29 m engine under a
-     1.25 m tank does not, and a booster standing on the base beside it hangs
-     against nothing — which is what #86 was.
-
-     So walk down from the tanks through the adapters, the coupler and the
-     engines, and stop at the first section too narrow to touch. That is one
-     rule for both, and it takes in the fuelled engines as well without
-     naming them: a Twin-Boar carries 32 t of propellant and is 2.75 m across
-     against a 2.5 m stack, so it is wide enough on its own terms. */
-  /* What the engine occupies, which is not what it measures.
-
-     `g.ed` is the engine's measured face, off its drag cube, and that is the
-     right width to draw it at. It is the wrong width to ask whether a
-     booster can stand beside it: an Ant mounts on a 0.625 m node and measures
-     0.37 m across the bells, so comparing the measurement against the tank it
-     hangs under says there is nothing there to bolt to, and the walk below
-     stops at the tanks with the boosters left hanging partway up the stack.
-
-     A stack engine occupies its node — that is what a node is, and a booster
-     beside one runs past it with a small gap, which is what the game shows.
-     A radial engine occupies only what it measures, because it is bolted to
-     the side of something rather than sitting under it. That is the
-     distinction, and it is `isRadial` rather than a tolerance: it keeps the
-     0.29 m Twitch under a 1.25 m tank that #86 was about. #109 */
-  const engineHold = isRadial(sol.engine)
-    ? g.ed
-    : Math.max(g.ed, diaOf(sol.engine));
+  /* Its foot goes to the stage's base: the bottom of what is under the tanks,
+     engine, coupler and adapters, so its nozzle lines up with the core
+     engine's, which is how the game's rockets are built and what probes 3
+     and 5 asked for (#467). Until then a walk stopped at the first section
+     too narrow to bolt to (#86, #109) — a 1.875 m engine plate under a 2.5 m
+     tank held probe 5's columns at the tank base with a wide Vector cluster
+     below them. Since #438 the holder meets the booster's middle on the
+     tank, so nothing hangs from what is beside its foot; the walk's other
+     question, how far out the ring stands, is `draw` below. */
   const sections = [
     /* Below the tanks a radial engine is only its bell, off to the side:
-       nothing on the axis to stand a booster against. */
-    {
-      h: g.engine,
-      reach: g.radial ? 0 : clusterSpan(g.perEng, engineHold) / 2,
-      draw: g.radial ? 0 : clusterSpan(g.perEng, g.ed) / 2,
-    },
-    {
-      h: g.coupler,
-      reach: sol.coupler ? sol.coupler.top / 2 : 0,
-      draw: sol.coupler ? sol.coupler.top / 2 : 0,
-    },
-    ...g.adapters.map((a2) => ({ h: a2.h, reach: a2.w / 2, draw: a2.w / 2 })),
+       nothing on the axis for the ring to clear. */
+    { h: g.engine, draw: g.radial ? 0 : clusterSpan(g.perEng, g.ed) / 2 },
+    { h: g.coupler, draw: sol.coupler ? sol.coupler.top / 2 : 0 },
+    ...g.adapters.map((a2) => ({ h: a2.h, draw: a2.w / 2 })),
   ];
-  /* Two questions, two widths. `reach` is what a section occupies, which
-     decides how far down the booster goes; `draw` is the shape that is
-     actually there, which decides how far out it stands. They differ on a
-     stack engine, where the node is the occupancy and the bells are the
-     shape, and taking the node for both would push the ring off a tank it is
-     bolted to to clear something nothing draws.
-
-     The tanks are the stand-off on nearly every stage. A section below them
-     can still be drawn wider: a Mammoth measures 3.98 m across the bells
-     under a 3.75 m stack, so a ring held at the tank's radius and run down
-     past the engine sat 0.117 m inside it. */
-  let foot = tankBase;
-  for (let k = sections.length - 1; k >= 0; k--) {
-    if (sections[k].h <= 0) continue;
-    if (sections[k].reach < hold / 2) break;
-    foot -= sections[k].h;
-  }
+  const base = tankBase - sections.reduce((t, x) => t + Math.max(0, x.h), 0);
+  let foot = base;
   /* Its real length, uncapped. It was truncated to the run it is bolted to,
      which is a part drawn at a size it is not — and it never needed to be:
      every booster the mission grid picks is shorter than the tanks it hangs
@@ -325,7 +279,7 @@ export function boosterLayout(
   /* A column's engine, where it has one. `nEng` is what the pools write to
      say so: a drop tank is tankage with nothing under it. */
   const eh = col && (b.part.nEng ?? 1) ? engineLen(b.part) : 0;
-  return { bd, bh, half, foot, br, eh, hold };
+  return { bd, bh, half, base, foot, br, eh, hold };
 }
 
 /* One stage's worth of shapes, standing on `base`, and how tall it came out. */

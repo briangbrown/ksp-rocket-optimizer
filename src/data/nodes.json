@@ -5835,6 +5835,29 @@
         "ShipEffectsCollisions"
       ]
     },
+    "TT-14 Radial Decoupler": {
+      "name": "restock-decoupler-radial-tiny-1",
+      "nodes": {},
+      "attach": {
+        "p": [0, 0, 0],
+        "d": [1, 0, 0],
+        "s": 1
+      },
+      "rules": [0, 1, 0, 1, 0],
+      "resources": {},
+      "mass": 0.0125,
+      "tech": "stability",
+      "command": false,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "RSE_Coupler",
+        "ShipEffectsCollisions"
+      ],
+      "via": "restock"
+    },
     "TT-38K Radial Decoupler": {
       "name": "radialDecoupler",
       "nodes": {},
@@ -12445,6 +12468,28 @@
         "ModuleToggleCrossfeed",
         "ModuleTestSubject",
         "ModulePartVariants",
+        "RSE_Coupler",
+        "ShipEffectsCollisions"
+      ]
+    },
+    "TT-14 Radial Decoupler": {
+      "name": "restock-decoupler-radial-tiny-1",
+      "nodes": {},
+      "attach": {
+        "p": [0, 0, 0],
+        "d": [1, 0, 0],
+        "s": 1
+      },
+      "rules": [0, 1, 0, 1, 0],
+      "resources": {},
+      "mass": 0.0125,
+      "tech": "stability",
+      "command": false,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
         "RSE_Coupler",
         "ShipEffectsCollisions"
       ]

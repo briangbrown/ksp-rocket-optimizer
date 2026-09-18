@@ -660,9 +660,11 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
   step, not to the pad. #463
 
 - **What holds a booster on is chosen for the booster.** `holderFor` in
-  `parts.ts`: the TT-38K on a 1.25 m booster, the TT-70 on 1.875 and 2.5,
-  the Hydraulic Detachment Manifold wider than that, down the ladder to what
-  is researched; and two of them on a booster longer than `LONG_BOOSTER`
+  `parts.ts`: the TT-14 (ReStock+, gated on `expansions.rs` through
+  `offered`) on the 0.625 m class, the TT-38K on 1.25, the TT-70 on 1.875
+  and 2.5, the Hydraulic Detachment Manifold wider than that, down the
+  ladder to what is researched and offered, and never below the stock TT-38K
+  (`HOLD_FLOOR`); and two of them on a booster longer than `LONG_BOOSTER`
   (6 m), the second never firing, so both stay with the core as the plan
   charges them. The `Boosters` record carries the `hold`, and mass, funds,
   part count, the ring's standoff (`boostersFit`, `boosterRing`, `stageSize`)
@@ -679,7 +681,11 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
   column is measured at its lowest tank, the one the holder is on. Its width
   for `boostersFit` and `stageSize` is `boosterWidth` — the widest tank or
   the engine — not `widthOf` on the part, which read the core engine's size
-  class and put a 3.75 m drop tank a metre into the core (#467).
+  class and put a 3.75 m drop tank a metre into the core (#467). The design
+  grid passes `expansions: null`, which `offered` reads as everything, so
+  the TT-14 is on the table there and moved 12 of 81 designs when it
+  arrived — four now hold Mites or Shrimps by it, the rest moved with the
+  candidate walk; the mission sweep is stock and did not see it.
 
 - **A tank nothing can stand on is not in the pool.** `poolsFor` drops any
   tank `topless` (`core/nodes.ts`) names — no top stack node in `nodes.json`:

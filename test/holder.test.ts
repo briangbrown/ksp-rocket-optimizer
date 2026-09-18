@@ -1,17 +1,27 @@
 import { describe, it, expect } from "vitest";
 import { HOLDERS, LONG_BOOSTER, holderFor } from "../src/core/parts.js";
 
-/* What holds a booster on is chosen for the booster: the TT-38K on a 1.25 m
-   one, the TT-70 on 1.875 and 2.5, the manifold wider than that, and two of
-   them on a booster longer than LONG_BOOSTER. Down the ladder where a size is
-   not researched or ruled out. #467 */
+/* What holds a booster on is chosen for the booster: the TT-14 on a 0.625 m
+   one where ReStock+ is on, the TT-38K on 1.25, the TT-70 on 1.875 and 2.5,
+   the manifold wider than that, and two of them on a booster longer than
+   LONG_BOOSTER. Down the ladder where a size is not researched or ruled
+   out, and never below the stock TT-38K without ReStock+. #467 */
 
 const all = new Set(HOLDERS.map((h) => h.t));
 const none = new Set<string>();
+const RS = { mh: false, rs: true };
+const STOCK = { mh: false, rs: false };
 
 describe("holderFor", () => {
   it("picks the decoupler for the booster's width", () => {
-    expect(holderFor(1.25, 4, all, none).n).toBe("TT-38K Radial Decoupler");
+    expect(holderFor(0.625, 4, all, none, RS).n).toBe("TT-14 Radial Decoupler");
+    expect(holderFor(0.625, 4, all, none, STOCK).n).toBe(
+      "TT-38K Radial Decoupler",
+    );
+    expect(holderFor(1.25, 4, all, none, RS).n).toBe("TT-38K Radial Decoupler");
+    expect(holderFor(1.25, 4, all, none, STOCK).n).toBe(
+      "TT-38K Radial Decoupler",
+    );
     expect(holderFor(1.875, 4, all, none).n).toBe("TT-70 Radial Decoupler");
     expect(holderFor(2.5, 4, all, none).n).toBe("TT-70 Radial Decoupler");
     expect(holderFor(3.75, 4, all, none).n).toBe(
@@ -37,6 +47,17 @@ describe("holderFor", () => {
       holderFor(3.75, 4, all, new Set(["Hydraulic Detachment Manifold"])).n,
     ).toBe("TT-70 Radial Decoupler");
     expect(holderFor(1.25, 4, none, none).n).toBe("TT-38K Radial Decoupler");
+    expect(holderFor(0.625, 4, none, none, RS).n).toBe(
+      "TT-38K Radial Decoupler",
+    );
+  });
+
+  it("charges the TT-14 as the table lists it", () => {
+    expect(holderFor(0.625, 4, all, none, RS)).toMatchObject({
+      m: 0.0125,
+      cost: 250,
+      t: "Stability",
+    });
   });
 
   it("charges the part the table lists", () => {

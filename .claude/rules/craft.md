@@ -155,8 +155,10 @@ delivered plan to a `Craft`, and the only module allowed to import
   the solid. What is left is the cube itself: the drag-cube standoff
   (`geometry.json`, 0.218 m for the ReStock TT-38K) runs about 3 cm past the
   face the game snaps a booster to — the collider, which only the `.mu`
-  carries — so a hand-placed Shrimp reads 1.123 m out where ours is 1.156.
-  Open (#467); the tools have no collider reader yet.
+  carries — so a hand-placed Shrimp reads 1.123 m out where ours is 1.156,
+  and probe 5's Thoroughbreds stood about 0.25 m off their TT-70s (cube
+  0.69 m). `tools/pack-radial.ps1` collects the holders' `.mu` files since
+  #467; a collider reader for `radial-standoff.mjs` is the open piece.
 
 - **A liquid column is as wide as its widest tank, not its engine's size
   class.** A synthesised column carries the core engine's `sz` for
@@ -167,6 +169,42 @@ delivered plan to a `Craft`, and the only module allowed to import
   `boostersFit`, `stageSize`, the layout and the drawing read; the column's
   engine is still drawn at its own width. The attach radius of a column is
   its lowest tank's, the one the holder is on (`tankRun(...)[0]`).
+
+- **A booster's foot is at the stage base, and in the craft on the core
+  engine's bottom node.** `boosterLayout` puts the foot at the bottom of
+  what is under the tanks — engine, coupler, adapters — so the nozzles line
+  up with the core's, as the game's rockets are built. A walk that stopped
+  at the first section too narrow to bolt to (#86, #109) held probe 5's
+  columns at the tank base over a 1.875 m plate with a wide Vector cluster
+  below; since #438 the holder meets the booster's middle on the tank, so
+  nothing hangs from what is beside the foot. The model stacks by drag cubes
+  and the craft by nodes, and an engine's bottom node is not its cube's
+  bottom — the Skipper's is 0.16 m below it — so the craft puts the foot on
+  the stage's bottom node (`core.bottom`) where the layout's foot is at the
+  base; a foot raised off the base is a distance from the tank base, the
+  same in both frames. A radial-engine stage keeps the model's foot.
+
+- **A column hangs from its lowest tank; its holders sit at its middle and
+  its far quarter.** `stackTanks(…, up)` builds the column's chain holding
+  upward, so the lowest tank is its root and the holder is at that tank's
+  attach node — held by its top tank, probe 5's decouplers sat at the top of
+  the column and the second above it. The second holder goes to the quarter
+  of the tank run farther from the first. An SRB's first holder has to be at
+  its own attach node, its middle, where the game snaps it, so its second is
+  a quarter-length away and no more — the most spread the game allows.
+
+- **Every decoupler is staged, plates included.** The game gave probe 3's
+  second TT-38Ks and probe 5's engine plates icons in their drop stage; the
+  writer stages them there (`holdStage`, and `{ignite: drop, drop}` for a
+  plate) rather than leaving `sqor` at −1, or the round trip disagrees.
+
+- **Struts stand at the quarter points of the column's run, all with one
+  roll.** `join{k}a` on the core at a quarter up the column's tanks, `join{k}b`
+  on the column at a quarter down, clamped to the core's tanks; 0.4 m apart
+  at the middle they braced nothing. `faceWith` for a vertical direction is
+  the quarter turn onto x̂ then the turn about y to the azimuth — the
+  shortest arc rolled the off-axis struts by their azimuth and probe 5's
+  stood on a corner.
 
 - **A booster tops out at the tank top where the stage above would meet
   it.** The stage above stands on the top tank, and where its base reaches

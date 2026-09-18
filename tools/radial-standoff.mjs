@@ -35,6 +35,7 @@ const OUT = join(HERE, "..", "src", "data", "geometry.json");
    Nothing else is measured: the table is what the model reads, and a part
    the model never places needs no standoff. */
 const PARTS = {
+  "restock-decoupler-radial-tiny-1": "TT-14 Radial Decoupler",
   radialDecoupler: "TT-38K Radial Decoupler",
   radialDecoupler2: "TT-70 Radial Decoupler",
   "radialDecoupler1-2": "Hydraulic Detachment Manifold",
@@ -168,8 +169,12 @@ function main() {
     for (const [id, name] of Object.entries(PARTS)) {
       const cube = cubes.get(id);
       if (!cube) {
-        console.error(`${f}: no cube for ${id} (${name})`);
-        process.exit(1);
+        /* A part the install this database came from does not have — the
+           TT-14 is ReStock+'s and a stock database has no cube for it. It
+           is left out of that art's table, where `standoffOf` reads zero,
+           and the solver never offers it there (#467). */
+        console.error(`${f}: no cube for ${id} (${name}); left out`);
+        continue;
       }
       table[name] = Number(standoff(nodes.get(id), cube).toFixed(4));
     }

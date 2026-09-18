@@ -529,6 +529,7 @@
       "TS-12 Stack Separator": 0.16,
       "TS-25 Stack Separator": 0.32,
       "TS-37 Stack Separator": 0.48,
+      "TT-14 Radial Decoupler": 0.8147,
       "TT-38K Radial Decoupler": 1.264,
       "TT-70 Radial Decoupler": 1.686,
       "TVR-1180C Mk1 Stack Tri-Coupler": 1.057,
@@ -701,6 +702,7 @@
       "TS-12 Stack Separator": 1.217,
       "TS-25 Stack Separator": 4.87,
       "TS-37 Stack Separator": 11,
+      "TT-14 Radial Decoupler": 0.07071,
       "TT-38K Radial Decoupler": 0.06808,
       "TT-70 Radial Decoupler": 0.1536,
       "TVR-1180C Mk1 Stack Tri-Coupler": 4.242,
@@ -713,6 +715,7 @@
       "UR-2 'Caravel' Liquid Fuel Engine": 2.218
     },
     "STANDOFF": {
+      "TT-14 Radial Decoupler": 0.243,
       "TT-38K Radial Decoupler": 0.218,
       "TT-70 Radial Decoupler": 0.6895,
       "Hydraulic Detachment Manifold": 0.4914,
@@ -845,6 +848,7 @@
       "T-1 Toroidal Aerospike \"Dart\" Liquid Fuel Engine": -1,
       "TCK-2 'Castor' Solid Rocket Booster": 1,
       "THK \"Pollux\" Solid Fuel Booster": 1,
+      "TT-14 Radial Decoupler": -1,
       "TT-38K Radial Decoupler": -1,
       "TT-70 Radial Decoupler": -1,
       "UR-1 'Galleon' Liquid Fuel Engine": -1,

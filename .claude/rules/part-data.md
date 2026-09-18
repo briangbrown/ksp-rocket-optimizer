@@ -58,7 +58,11 @@ size_z)`. A cylinder fills its own bounding box, so honest cubes read 0.29
   (#467). The three refused cubes take the stock art's side. The table also
   covers the Cubic Octagonal Strut (−1: its attach node is its bottom face),
   which is not a part the solver picks but one the craft bolts a ring
-  together with; the tool adds it to the titles it measures by name.
+  together with; the tool adds it to the titles it measures by name. A
+  ReStock+-only part — the TT-14 — has no cube in a stock database:
+  `radial-standoff.mjs` leaves it out of that art's table and says so,
+  rather than failing the run, and `standoffOf` reads zero there, where the
+  solver never offers it.
 
 - **There are two sets of measurements, and which one is live is solve-scoped.**
   ReStock replaces the models of parts that already exist, so a part is a

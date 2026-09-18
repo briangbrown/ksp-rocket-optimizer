@@ -116,6 +116,10 @@ type StructPart = {
   d: number | null;
   t: string;
   drogue?: boolean;
+  /* Which expansion brings it, as parts.json flags its parts: the TT-14 is
+     ReStock+'s. */
+  rs?: number;
+  mh?: number;
 };
 
 type StructKind = "decoupler" | "parachute" | "heatshield" | "leg";
