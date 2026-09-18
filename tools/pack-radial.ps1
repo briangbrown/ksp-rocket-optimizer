@@ -1,6 +1,8 @@
 # pack-radial.ps1 — the parts that hold something on the side of a stack, and
-# the parts that get held there, from a KSP install, for #422 and #438. No
-# meshes, no textures.
+# the parts that get held there, from a KSP install, for #422 and #438 — and,
+# since #467, the holders' own .mu models: the face the game snaps a booster
+# to is the collider, which only the mesh carries, and the drag cube
+# overstates it (3 cm on a TT-38K, about 25 cm on a TT-70). No textures.
 #
 #   powershell -ExecutionPolicy Bypass -File .\pack-radial.ps1
 #   powershell -ExecutionPolicy Bypass -File .\pack-radial.ps1 -Root "D:\Steam\steamapps\common\Kerbal Space Program"
@@ -57,6 +59,40 @@ foreach ($f in $files) {
   New-Item (Split-Path $dest) -ItemType Directory -Force | Out-Null
   Copy-Item $f $dest
 }
+
+# The holders' meshes. A stock part's model sits beside its config; a
+# ReStock one is named by a `model =` line in the patch that repoints it, so
+# both are followed: every .mu next to a config with an anchored decoupler or
+# the cubic strut in it, and every .mu a matched config names.
+# Only the four holders the model places (and the TT-14): matched by config
+# name, and by the model path a ReStock patch names for them. Every .mu next
+# to every matched config was 30 MB of boosters and engines (#467).
+$holderNames = 'name\s*=\s*(radialDecoupler|radialDecoupler2|radialDecoupler1-2|strutCube|restock-decoupler-radial-tiny-1)\s*$'
+$holderModels = 'decoupler-radial|radialDecoupler|strutCube|cubic-strut'
+$holders = @($files | Where-Object { Select-String -Path $_ -Pattern $holderNames -Quiet })
+$meshes = @()
+foreach ($h in $holders) {
+  $meshes += @(Get-ChildItem (Split-Path $h) -File -Filter *.mu -ErrorAction SilentlyContinue |
+    Select-Object -ExpandProperty FullName)
+}
+foreach ($f in $files) {
+  foreach ($m in (Select-String -Path $f -Pattern '^\s*model\s*=\s*(\S+)' -AllMatches)) {
+    foreach ($g in $m.Matches) {
+      $p = $g.Groups[1].Value
+      if ($p -notmatch $holderModels) { continue }
+      $mu = Join-Path $gd ($p + ".mu")
+      if (Test-Path $mu) { $meshes += (Get-Item $mu).FullName }
+    }
+  }
+}
+$meshes = @($meshes | Sort-Object -Unique)
+foreach ($f in $meshes) {
+  $rel  = $f.Substring($gd.Length).TrimStart('\', '/')
+  $dest = Join-Path $stage $rel
+  New-Item (Split-Path $dest) -ItemType Directory -Force | Out-Null
+  Copy-Item $f $dest
+}
+"  {0,-28} {1}" -f 'holder meshes (.mu)', $meshes.Count
 
 # PartDatabase.cfg sits beside GameData, not inside it, and carries every
 # part's drag cube — the bounding box the game measured off the model. A

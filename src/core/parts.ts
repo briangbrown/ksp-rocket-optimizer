@@ -1,6 +1,7 @@
 import { NONE, expBits, offered } from "./constants.js";
 import couplersData from "../data/couplers.json";
 import structureData from "../data/structure.json";
+import type { Hold } from "./solution.js";
 import type { Excluded, Expansions, Roster } from "./constants.js";
 import type { Leg } from "./orbits.js";
 import type {
@@ -92,6 +93,14 @@ const isAdapter = (p: PartBase) => stackDias(p).length > 1;
    tanks are not modelled as side-mounted loads, so for now they are simply not
    available as a stage's tankage. */
 const isRadialOnly = (p: PartBase) => stackDias(p).length === 0;
+
+/* A lifting body: the Mk2 and Mk3 fuselages, spaceplane parts whose
+   cross-section is an oval — a Mk2 is 2.5 m across and 1.5 tall — and whose
+   lift the ascent model does not have. Every radial rule here treats a tank
+   as a cylinder (packing, holders, columns, the ring radius, the width drag
+   is charged on), and probe 9 packed a ring of Mk2s round a Mk2 core with
+   the decouplers half a metre off its narrow sides. Not in the pools (#467). */
+const isLifting = (p: PartBase) => p.sz.some((z) => z === "Mk2" || z === "Mk3");
 
 /* An engine may sit under a stack its own width or wider — that is what adapters
    and engine plates are for, and it is how a Vector cluster ends up beneath a 5 m
@@ -432,6 +441,59 @@ if (!TT38K) throw new Error("structure.json has lost the TT-38K");
 const RADIAL_DECOUPLER = TT38K.m;
 const RADIAL_DECOUPLER_FUNDS = TT38K.cost;
 
+/* The three radial decouplers, smallest first, and the widest booster each
+   is for: the TT-38K on 1.25 m boosters, the TT-70 on 1.875 and 2.5, the
+   Hydraulic Detachment Manifold on anything wider. One TT-38K held every
+   booster whatever its size — a Thoroughbred on a Kerbodyne tank by a part
+   two thirds of a metre wide, which the VAB showed for what it was (#467).
+   A booster longer than `LONG_BOOSTER` takes two, one near each end, as a
+   builder would use a second decoupler or a strut; the second never fires,
+   so both stay with the core as the plan charges them. Chosen down the
+   ladder where a size is not researched or is ruled out, to the TT-38K. */
+const HOLDERS = [
+  "TT-14 Radial Decoupler",
+  "TT-38K Radial Decoupler",
+  "TT-70 Radial Decoupler",
+  "Hydraulic Detachment Manifold",
+].map((n) => {
+  const h = structureData.decoupler.find((x) => x.n === n);
+  if (!h) throw new Error(`structure.json has lost the ${n}`);
+  return h;
+});
+/* The widest booster each rung takes, by the diameter its decoupler meets:
+   the TT-14 (ReStock+) the 0.625 m class, the TT-38K 1.25, the TT-70 1.875
+   and 2.5, the manifold the rest. */
+const HOLD_DIA = [0.7, 1.3, 2.6, Infinity];
+const LONG_BOOSTER = 6;
+/* The stock TT-38K is the floor: what every roster has from Stability, and
+   what a booster gets when nothing on its rung is researched or offered. */
+const HOLD_FLOOR = 1;
+const holderFor = (
+  bd: number,
+  bh: number,
+  unlocked: Roster,
+  excluded: Excluded,
+  expansions: Expansions | null | undefined = null,
+): Hold => {
+  const ok = (h: StructPart) =>
+    unlocked.has(h.t) &&
+    !(excluded && excluded.has(h.n)) &&
+    offered(h, expansions);
+  let pick = HOLDERS[HOLD_FLOOR];
+  for (let k = HOLD_DIA.findIndex((d) => bd <= d); k >= 0; k--)
+    if (ok(HOLDERS[k])) {
+      pick = HOLDERS[k];
+      break;
+    }
+  return {
+    n: pick.n,
+    m: pick.m,
+    cost: pick.cost,
+    t: pick.t,
+    count: bh >= LONG_BOOSTER ? 2 : 1,
+  };
+};
+
 /* Radial stacks burn with the core and are never dropped on their own, so what
    holds them on does not have to separate — it only has to be structure. The
    lightest thing in the game that surface-attaches and offers a stack node is the
@@ -465,8 +527,11 @@ const radialJoin = (unlocked: Roster, excluded: Excluded) =>
 export {
   COUPLERS,
   PLATE_SHROUD,
+  HOLDERS,
+  LONG_BOOSTER,
   RADIAL_DECOUPLER,
   RADIAL_DECOUPLER_FUNDS,
+  holderFor,
   RADIAL_JOIN,
   RADIAL_JOIN_FALLBACK,
   STRUCT,
@@ -481,6 +546,7 @@ export {
   isAdapter,
   isRadial,
   isRadialOnly,
+  isLifting,
   maxCluster,
   missionHardware,
   pickStruct,

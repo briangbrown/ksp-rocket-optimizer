@@ -146,6 +146,45 @@ describe("the build model", () => {
     expect(bad.slice(0, 8), `${bad.length} overlapping pairs`).toEqual([]);
   }, 300_000);
 
+  it("stands a booster no higher than the tanks it hangs beside", async () => {
+    /* The stage above stands on the top tank, and a booster reaching past it
+       reaches into that stage's engines — probe 3's Kickbacks did, by 0.15 m
+       (#467). `boosterLayout` lowers the foot until the top is level with the
+       tank top, as far as the holder still meets the booster's middle; past
+       that the holder wins and the booster pokes up. */
+    const bad = [];
+    for (const { name, parts } of MODELS) {
+      const stages = new Set(parts.map((p) => p.stage ?? 0));
+      for (const s of stages) {
+        const ring = parts.filter((p) => p.stage === s && p.ring !== undefined);
+        const tanks = parts.filter(
+          (p) => p.stage === s && p.ring === undefined && p.role === "tank",
+        );
+        if (!ring.length || !tanks.length) continue;
+        /* Only where the stage above reaches out over the ring's inner face;
+           one that stands inside the ring is passed by, as the game allows. */
+        const reach = Math.max(
+          0,
+          ...parts
+            .filter((p) => p.stage === s + 1 && p.ring === undefined)
+            .map((p) => Math.hypot(p.x, p.z) + p.r),
+        );
+        const inner = Math.min(...ring.map((p) => Math.hypot(p.x, p.z) - p.r));
+        if (reach <= inner + EPS) continue;
+        const top = Math.max(...ring.map((p) => p.y + p.h));
+        const foot = Math.min(...ring.map((p) => p.y));
+        const tankTop = Math.max(...tanks.map((p) => p.y + p.h));
+        const tankBase = Math.min(...tanks.map((p) => p.y));
+        const allowed = Math.max(tankTop, tankBase + (top - foot) / 2);
+        if (top > allowed + EPS)
+          bad.push(
+            `${name} stage ${s}: booster top ${top.toFixed(3)} over ${allowed.toFixed(3)}`,
+          );
+      }
+    }
+    expect(bad).toEqual([]);
+  }, 300_000);
+
   it("stays inside the width the solver sized the stage at", async () => {
     /* stageSize is what the slenderness limit and the drag model use. If the
        shapes reach further than it says, the design was judged on a rocket
@@ -284,26 +323,43 @@ describe("the build model", () => {
        booster flush through it. #422 */
     const bad = [];
     let checked = 0;
-    const hold = standoffOf("TT-38K Radial Decoupler");
-    for (const { name, parts } of MODELS) {
-      for (const b of parts.filter((p) => p.ring !== undefined)) {
+    for (const { name, parts, live } of MODELS) {
+      /* By ring: a column is several parts, one holder, at the ring's
+         middle — a solid's attach node is at mid-height, and a column is held
+         at its lowest tank's. Its foot may hang past the engine's base, as the
+         game's do, once the top is capped at the tank top (#467). */
+      const rings = new Map<number, Array<(typeof parts)[number]>>();
+      for (const p of parts)
+        if (p.ring !== undefined)
+          rings.set(p.ring, [...(rings.get(p.ring) ?? []), p]);
+      for (const ring of rings.values()) {
         checked++;
+        const b = ring[0];
+        const foot = Math.min(...ring.map((p) => p.y));
+        const top = Math.max(...ring.map((p) => p.y + p.h));
+        const mid = (foot + top) / 2;
+        /* Through the decoupler its stage chose for it: the TT-70's arm is
+           three times the TT-38K's. */
+        const hold = standoffOf(
+          live[b.stage ?? 0]?.sol.boosters?.hold.n ?? "TT-38K Radial Decoupler",
+        );
         /* How far in the booster's near side reaches, less the decoupler it
            is bolted through, and how far out the stack does at the height
-           its foot is at. */
-        const inner = Math.hypot(b.x, b.z) - b.r - hold;
+           it is bolted at. */
+        const inner =
+          Math.hypot(b.x, b.z) - Math.max(...ring.map((p) => p.r)) - hold;
         const widest = Math.max(
           0,
           ...parts
             .filter(
-              (p) => !p.ring && p.y <= b.y + EPS && p.y + p.h >= b.y + EPS,
+              (p) => !p.ring && p.y <= mid + EPS && p.y + p.h >= mid + EPS,
             )
             .map((p) => Math.hypot(p.x, p.z) + p.r),
         );
         const gap = inner > 0 ? (inner - widest) / inner : 0;
         if (gap > CLEAR)
           bad.push(
-            `${name}: a ring part stands ${(gap * 100).toFixed(0)}% clear of anything at y=${b.y.toFixed(2)}`,
+            `${name}: a ring stands ${(gap * 100).toFixed(0)}% clear of anything at y=${mid.toFixed(2)}`,
           );
       }
     }
@@ -514,6 +570,13 @@ const STRAPPED: Solution = {
     n: 4,
     burn: 60,
     dv: 500,
+    hold: {
+      n: "TT-38K Radial Decoupler",
+      m: 0.025,
+      cost: 600,
+      t: "Stability",
+      count: 1,
+    },
     sepMass: 100,
     twrSep: 1.2,
   },

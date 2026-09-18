@@ -161,3 +161,37 @@ describe("the nodes table", () => {
     ).toBe(2);
   });
 });
+
+describe("topless", () => {
+  /* The nose-cone tanks have no top node and the game will not stack under
+     them; the pool leaves them out (core/tanks.ts). #467 */
+  it("names the tanks nothing can stand on, and no others", async () => {
+    const { topless } = await import("../src/core/nodes.js");
+    expect(topless("FL-C1000 Fuel Tank")).toBe(true);
+    expect(topless("Kerbodyne S3-3600 Nosecone")).toBe(true);
+    expect(topless("FL-T400 Fuel Tank")).toBe(false);
+    expect(topless("Rockomax Jumbo-64 Fuel Tank")).toBe(false);
+    expect(topless("no such part")).toBe(false);
+  });
+});
+
+describe("variantNodes", () => {
+  /* A plate's shroud length moves its bottom node; the craft hangs the stage
+     below from the variant it is written in (core/craft.ts). #467 */
+  it("carries every engine plate's bottom node by shroud variant", () => {
+    for (const art of ["stock", "restock"] as const) {
+      const table = nodes[art] as unknown as Record<
+        string,
+        Entry & { variantNodes?: Record<string, Record<string, Node>> }
+      >;
+      for (const title of Object.keys(table).filter((t) =>
+        / Engine Plate$/.test(t),
+      )) {
+        const vn = table[title].variantNodes;
+        expect(vn, `${art} ${title}`).toBeDefined();
+        expect(vn!.Short.bottom.p[1]).toBeLessThan(0);
+        expect(vn!.Long.bottom.p[1]).toBeLessThan(vn!.Short.bottom.p[1]);
+      }
+    }
+  });
+});

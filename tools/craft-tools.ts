@@ -43,42 +43,94 @@ const cmd = argv[0];
    question about the minimum body the game launches (#462). */
 async function probes(outdir: string) {
   mkdirSync(outdir, { recursive: true });
-  const want: Array<[string, string]> = [
-    ["01-stack", "Low orbit-pay3.5"], // tanks, one engine, two stages
-    ["02-boosters", "Low orbit-pay0.8"], // radial engines, SRBs on TT-38Ks
-    ["03-cluster", "Mun-pay3.5"], // a cluster on a coupler, a rejoin
-    ["04-columns", "Tylo-pay0.8"], // parallel columns on struts, a packed ring
-    ["05-asparagus", "Minmus-pay20-asparagus-mass"], // a drop-tank ring
-    ["06-cut", "Eeloo-pay2.5-cut"], // a cut mission, many stages
+  /* Each rung names the sweep missions that may stand for it, tried in
+     order; the first whose plan has what the rung is for is written. The
+     asparagus rung wants a liquid drop-tank ring, and in ReStock's art the
+     mass objective solves without one. */
+  type Res = NonNullable<Awaited<ReturnType<typeof planMission>>>;
+  type Try = { name: string; payload?: number };
+  const want: Array<[string, Array<Try>, (r: Res) => boolean]> = [
+    ["01-stack", [{ name: "Low orbit-pay3.5" }], () => true], // tanks, one engine, two stages
+    ["02-boosters", [{ name: "Low orbit-pay0.8" }], () => true], // radial engines, SRBs on TT-38Ks
+    [
+      "03-cluster",
+      /* A cluster on a coupler with SRBs beside it; ReStock's roster solves
+         the 3.5 t Mun mission without them. */
+      [
+        { name: "Mun-pay3.5" },
+        { name: "Mun-pay12" },
+        { name: "Duna-pay12" },
+        { name: "Low orbit-pay12" },
+        { name: "Mun-pay0.8" },
+      ],
+      (r: Res) =>
+        r.stages.some((s) => s.sol?.boosters && !s.sol.boosters.part.column),
+    ],
+    ["04-columns", [{ name: "Tylo-pay0.8" }], () => true], // parallel columns on struts, a packed ring
+    [
+      "05-asparagus",
+      /* The sweep's three at 20 t, then the mass one heavier: the ring is
+         where the gain lives once the side stacks are large. */
+      [
+        { name: "Minmus-pay20-asparagus-mass" },
+        { name: "Minmus-pay20-asparagus-cost" },
+        { name: "Minmus-pay20-asparagus-parts" },
+        { name: "Minmus-pay20-asparagus-mass", payload: 40 },
+        { name: "Minmus-pay20-asparagus-mass", payload: 60 },
+      ],
+      (r: Res) => r.stages.some((s) => s.sol?.boosters?.part.column), // a drop-tank ring
+    ],
+    ["06-cut", [{ name: "Eeloo-pay2.5-cut" }], () => true], // a cut mission, many stages
   ];
   const cases = sweepCases();
   const index: Array<string> = [];
-  for (const [rung, name] of want) {
-    const c = cases.find((x) => x.name === name);
-    if (!c) {
-      console.error(`no sweep case ${name}`);
-      continue;
-    }
-    const res = await planMission(c.input, {
-      onYield: () => Promise.resolve(),
-    });
-    if (!res || !res.stages.some((s) => s.sol)) {
-      console.error(`${name}: nothing solved`);
-      continue;
-    }
-    const craft = craftOf(res.stages, c.input, `Probe ${rung}`, name);
-    const file = join(outdir, `${rung}.craft`);
-    writeFileSync(file, writeCraft(craft));
-    index.push(`${rung}.craft  ${craft.parts.length} parts  ${name}`);
-    if (rung === "01-stack") {
-      const bare: Craft = {
-        ...craft,
-        name: `Probe ${rung}a bare`,
-        parts: craft.parts.map((p): CraftPart => ({ ...p, modules: [] })),
+  for (const [rung, names, fits] of want) {
+    let made = false;
+    for (const { name, payload } of names) {
+      const c = cases.find((x) => x.name === name);
+      if (!c) {
+        console.error(`no sweep case ${name}`);
+        continue;
+      }
+      /* In ReStock's art: the probes are checked in an install that has it,
+         and the holders' standoffs and the parts' heights are its. The sweep
+         solves the same missions in stock's, and a TT-38K is 19 mm thinner
+         here (#467). */
+      const input = {
+        ...c.input,
+        payload: payload ?? c.input.payload,
+        expansions: { mh: c.input.expansions?.mh ?? false, rs: true },
       };
-      writeFileSync(join(outdir, `${rung}a-bare.craft`), writeCraft(bare));
-      index.push(`${rung}a-bare.craft  the same with no MODULE stubs`);
+      const res = await planMission(input, {
+        onYield: () => Promise.resolve(),
+      });
+      if (!res || !res.stages.some((s) => s.sol)) {
+        console.error(`${name}: nothing solved`);
+        continue;
+      }
+      if (!fits(res)) {
+        console.error(`${name}: not what ${rung} is for; trying the next`);
+        continue;
+      }
+      made = true;
+      const craft = craftOf(res.stages, input, `Probe ${rung}`, name);
+      const file = join(outdir, `${rung}.craft`);
+      writeFileSync(file, writeCraft(craft));
+      index.push(
+        `${rung}.craft  ${craft.parts.length} parts  ${name}${payload ? ` at ${payload} t` : ""}`,
+      );
+      if (rung === "01-stack") {
+        const bare: Craft = {
+          ...craft,
+          name: `Probe ${rung}a bare`,
+          parts: craft.parts.map((p): CraftPart => ({ ...p, modules: [] })),
+        };
+        writeFileSync(join(outdir, `${rung}a-bare.craft`), writeCraft(bare));
+        index.push(`${rung}a-bare.craft  the same with no MODULE stubs`);
+      }
+      break;
     }
+    if (!made) console.error(`${rung}: no mission stood for it`);
   }
   writeFileSync(
     join(outdir, "README.txt"),

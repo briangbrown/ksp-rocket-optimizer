@@ -70,6 +70,11 @@ function wanted() {
     };
     walkJson(JSON.parse(readFileSync(join(DATA, f), "utf8")));
   }
+  /* Not a part the solver picks, but one the craft bolts a ring of stacks
+     together with (STACK_JOIN in geometry.ts), and its attach node points
+     down its own axis — which way it lies when bolted to a wall is SIDE's
+     to say, the same as a decoupler's (#467). */
+  titles.add("Cubic Octagonal Strut");
   return titles;
 }
 
@@ -88,7 +93,15 @@ function partsFrom(text) {
     const hidden =
       /^\s*TechHidden\s*=\s*[Tt]rue/m.test(body) ||
       /^\s*category\s*=\s*none/m.test(body);
-    out.push({ id, title, hidden });
+    /* The surface-attach node, where the part has one: position and
+       direction in its own frame. */
+    const na = body.match(/^\s*node_attach\s*=\s*([^\r\n]+)/m);
+    const nv = na ? na[1].split(",").map((x) => Number(x.trim())) : [];
+    const attach =
+      nv.length >= 6 && nv.every((x) => Number.isFinite(x))
+        ? { p: nv.slice(0, 3), d: nv.slice(3, 6) }
+        : null;
+    out.push({ id, title, hidden, attach });
   }
   return out;
 }
@@ -110,12 +123,35 @@ function cubesFrom(text) {
     if (v.length < 24) continue;
     out.set(id, {
       yp: v[6],
+      centre: v.slice(18, 21),
       size: v.slice(21, 24),
       restock: /^ReStock/.test(m[1]),
     });
   }
   return out;
 }
+
+/* Which side of its surface-attach point a part's body lies on, along the
+   node's direction: +1 where the box's centre is out along `d` from the
+   attach point, −1 where it is behind it. The parent is always on the other
+   side of the attach point from the body, so this is which way the part
+   faces when bolted on — the game's rule, read off the part rather than
+   assumed: the Thud's and the SRBs' bodies lie along `d` and they face away
+   from what holds them; the radial decouplers' and a tank's lie behind and
+   face toward it. The configs disagree among themselves about which way `d`
+   points, and this is what settles it. #467 */
+const sideOf = (parts, id, cube) => {
+  const p = (parts ?? []).find(
+    (x) => x.id === id || x.id.replace(/_/g, ".") === id,
+  );
+  if (!p || !p.attach) return null;
+  const { p: at, d } = p.attach;
+  const s =
+    (cube.centre[0] - at[0]) * d[0] +
+    (cube.centre[1] - at[1]) * d[1] +
+    (cube.centre[2] - at[2]) * d[2];
+  return Math.abs(s) < 1e-4 ? null : s > 0 ? 1 : -1;
+};
 
 /* The fill factor: how much of the footprint the box claims the +Y face
    covers. */
@@ -183,7 +219,7 @@ function main() {
       console.error(`${f}: a second ${art} database; the first is used`);
       continue;
     }
-    const table = { PART_H: {}, PART_A: {} };
+    const table = { PART_H: {}, PART_A: {}, SIDE: {} };
     let n = 0;
     for (const title of titles) {
       const ids = (byTitle.get(title) ?? []).map((p) => p.id);
@@ -202,6 +238,8 @@ function main() {
       }
       table.PART_H[title] = sig4(cube.size[1]);
       table.PART_A[title] = sig4(cube.yp);
+      const side = sideOf(byTitle.get(title), id, cube);
+      if (side !== null) table.SIDE[title] = side;
     }
     measured[art] = { f, table, n };
   }
@@ -223,6 +261,8 @@ function main() {
       measured[other].table.PART_H[r.title];
     measured[r.art].table.PART_A[r.title] =
       measured[other].table.PART_A[r.title];
+    if (measured[other].table.SIDE[r.title] !== undefined)
+      measured[r.art].table.SIDE[r.title] = measured[other].table.SIDE[r.title];
     console.log(`${line}\n  → the ${other} cube`);
   }
 
@@ -236,6 +276,7 @@ function main() {
     next[art] ??= {};
     next[art].PART_H = sorted(table.PART_H);
     next[art].PART_A = sorted(table.PART_A);
+    next[art].SIDE = sorted(table.SIDE);
     const missing = [...titles].filter((t) => table.PART_H[t] === undefined);
     console.log(
       `${art.padEnd(8)} from ${f}: ${n} parts measured; no cube for ${missing.length}: ${missing.join(", ")}`,
@@ -247,7 +288,7 @@ function main() {
     const before = JSON.parse(readFileSync(OUT, "utf8"));
     const diffs = [];
     for (const art of Object.keys(measured))
-      for (const k of ["PART_H", "PART_A"]) {
+      for (const k of ["PART_H", "PART_A", "SIDE"]) {
         const a = before[art]?.[k] ?? {};
         const b = next[art][k];
         for (const t of new Set([...Object.keys(a), ...Object.keys(b)]))

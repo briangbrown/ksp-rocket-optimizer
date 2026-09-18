@@ -159,6 +159,12 @@ function partOf(cfg) {
             variants: children(variants, "VARIANT")
               .map((v) => value(v, "name"))
               .filter(Boolean),
+            /* Where a variant moves a stack node — an engine plate's
+               `bottom` goes down with the length of its shroud, 1.25 m on
+               Short to 5 on Long — the moved nodes by variant, so a craft
+               written in a variant hangs the stage below from where that
+               variant's node is (#467). Left out where no variant moves one. */
+            ...variantNodesOf(variants),
           }
         : {}),
       resources,
@@ -168,6 +174,24 @@ function partOf(cfg) {
       modules,
     },
   };
+}
+
+/* A ModulePartVariants block's node overrides: `{ variantName: { nodeId:
+   node } }` for every VARIANT with a NODES child that moves a stack node. */
+function variantNodesOf(variants) {
+  const out = {};
+  for (const v of children(variants, "VARIANT")) {
+    const name = value(v, "name");
+    const moved = {};
+    for (const ns of children(v, "NODES"))
+      for (const [k, val] of ns.values ?? [])
+        if (k.startsWith("node_stack_")) {
+          const n = nodeOf(val);
+          if (n) moved[k.slice("node_stack_".length)] = n;
+        }
+    if (name && Object.keys(moved).length) out[name] = moved;
+  }
+  return Object.keys(out).length ? { variantNodes: out } : {};
 }
 
 /* Every part in a cache, by title, the visible one first. */

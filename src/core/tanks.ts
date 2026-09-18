@@ -1,5 +1,6 @@
 import { NONE, expBits } from "./constants.js";
 import { heightOf } from "./geometry.js";
+import { topless } from "./nodes.js";
 import {
   compatible,
   couplerFor,
@@ -8,6 +9,7 @@ import {
   isAdapter,
   isRadial,
   isRadialOnly,
+  isLifting,
   radialJoin,
   shroudFor,
   sizeMatch,
@@ -40,6 +42,10 @@ type Pool = {
   k: number;
   dia: number;
   biggest: number;
+  /* Lifting bodies — the Mk2 and Mk3 fuselages, ovals with lift: fine in a
+     stack, never packed round a column, never a column or a drop tank, and
+     nothing radial bolts to one (`isLifting`, #467). */
+  lifting: boolean;
 };
 
 /* Everything that can change what a stage has to be built from. Passed as one
@@ -359,11 +365,12 @@ function poolsFor(engine: Engine, tanks: ReadonlyArray<Tank>) {
       compatible(engine, t) &&
       sizeMatch(engine, t) &&
       !isAdapter(t) &&
-      !isRadialOnly(t),
+      !isRadialOnly(t) &&
+      !topless(t.n),
   );
   const groups = new Map<string, Array<Tank>>();
   pool.forEach((t: Tank) => {
-    const key = diaOf(t) + "|" + t.k;
+    const key = diaOf(t) + "|" + t.k + (isLifting(t) ? "|lifting" : "");
     let g = groups.get(key);
     if (!g) groups.set(key, (g = []));
     g.push(t);
@@ -375,6 +382,7 @@ function poolsFor(engine: Engine, tanks: ReadonlyArray<Tank>) {
       k: usable[0].k,
       dia: diaOf(usable[0]),
       biggest: usable[0].prop,
+      lifting: isLifting(usable[0]),
       /* No `adapt` here. It used to compute adapterChain(engine dia -> tank dia)
          for every pool group of every engine, memoise it, and never read it —
          `grep -rn '\.adapt\b' src/` finds nothing. Dead work on the solve

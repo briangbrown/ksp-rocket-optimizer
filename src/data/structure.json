@@ -64,6 +64,14 @@
       "t": "Advanced Construction"
     },
     {
+      "n": "TT-14 Radial Decoupler",
+      "m": 0.0125,
+      "cost": 250,
+      "d": null,
+      "t": "Stability",
+      "rs": 1
+    },
+    {
       "n": "TT-38K Radial Decoupler",
       "m": 0.025,
       "cost": 600,

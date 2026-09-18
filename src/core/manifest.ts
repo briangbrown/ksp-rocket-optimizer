@@ -1,5 +1,4 @@
 import { PACK_BRACE, PACK_JOIN } from "./geometry.js";
-import { RADIAL_DECOUPLER, RADIAL_DECOUPLER_FUNDS } from "./parts.js";
 import { DECOUPLER_FUNDS } from "./performance.js";
 import type { Coupler, Engine, Shroud, Tank } from "./catalogue.js";
 import type {
@@ -29,7 +28,7 @@ type Role =
   | "power";
 
 /* Whatever the row is about. Null where the row is a charge with no part behind
-   it — the fallback decoupler, and the one every radial booster hangs on. */
+   it — the fallback decoupler. */
 type RowPart =
   | Tank
   | Engine
@@ -199,12 +198,14 @@ export function eachRow(sol: Solution | null | undefined, add: AddRow) {
       b.part.cost,
       (b.part.fuelM || 0) - colProp,
     );
+    /* The holder its stage chose for it, and as many as a long booster
+       takes (#467). */
     add(
       "booster-decoupler",
-      null,
-      b.n,
-      RADIAL_DECOUPLER,
-      RADIAL_DECOUPLER_FUNDS,
+      { n: b.hold.n, m: b.hold.m, cost: b.hold.cost },
+      b.n * b.hold.count,
+      b.hold.m,
+      b.hold.cost,
     );
     if (b.part.column)
       for (const x of b.part.column.list)

@@ -32,6 +32,14 @@ size_z)`. A cylinder fills its own bounding box, so honest cubes read 0.29
   `tools/README.md` is the procedure. Do not edit `PART_H` or `PART_A` by
   hand: regenerate. #316
 
+- **parts.json is one table, and ReStock rebalances the Oscar-B.** 8.1 + 9.9
+  units and 11 kg dry in ReStock against stock's 18 + 22 and 25 kg, so with
+  ReStock on a ring of Oscar-Bs holds less than half the propellant the plan
+  gives it; `test/nodes.test.ts` names the disagreement so a second one
+  fails. Flipping the table to ReStock's numbers breaks the stock art the
+  same way round (the mission sweep caught it, #467); a per-art resource is
+  #468.
+
 - **A part's nodes are not its box, and a stacked craft's boxes overlap.**
   `src/data/nodes.json` (`tools/part-nodes.mjs`, from `ModuleManager.ConfigCache`)
   carries each part's stack nodes; `geometry.json` carries its drag cube. A
@@ -41,7 +49,32 @@ size_z)`. A cylinder fills its own bounding box, so honest cubes read 0.29
   never by `PART_H`, and do not expect stacked boxes to touch (#461, for
   #464). Regenerate the file rather than edit it; `--check` compares it as
   data because prettier lays it out. ReStock moves the nodes of five parts,
-  which is why it has two tables like the geometry. #461
+  which is why it has two tables like the geometry. #461 A variant that
+  moves a stack node — every engine plate's shroud length moves `bottom`,
+  and ReStock's shrouded engine variants move theirs — is under
+  `variantNodes`, by variant then node id; a craft written in a variant
+  places by those (#467). A part with no
+  `top` node in it cannot have anything stacked on it — the nose-cone tanks
+  — and `topless` in `core/nodes.ts` reads that as buildability, not as a
+  choice.
+
+- **Which way a radial part faces is in its drag cube, not a rule.**
+  `SIDE` in `geometry.json` (`tools/part-geometry.mjs`) is which side of its
+  surface-attach point a part's body lies on along the attach direction: +1
+  out along it, −1 behind. The parent is on the other side, so a +1 part
+  faces away from what holds it (the Thud, the Twitch, every SRB) and a −1
+  part toward it (the three radial decouplers, a tank, the Twin-Boar). The
+  configs disagree among themselves about which way `node_attach` points —
+  the game handles it because it never reads the direction as a rule — and
+  a list of exceptions was wrong twice before this was read off the cube
+  (#467). The three refused cubes take the stock art's side. The table also
+  covers the Cubic Octagonal Strut (−1: its attach node is its bottom face),
+  which is not a part the solver picks but one the craft bolts a ring
+  together with; the tool adds it to the titles it measures by name. A
+  ReStock+-only part — the TT-14 — has no cube in a stock database:
+  `radial-standoff.mjs` leaves it out of that art's table and says so,
+  rather than failing the run, and `standoffOf` reads zero there, where the
+  solver never offers it.
 
 - **There are two sets of measurements, and which one is live is solve-scoped.**
   ReStock replaces the models of parts that already exist, so a part is a

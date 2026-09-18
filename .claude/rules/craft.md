@@ -121,19 +121,18 @@ delivered plan to a `Craft`, and the only module allowed to import
   only on the pad: the stub now carries the default variant from
   `nodes.json`.
 
-- **A surface-attach node points away from what it is bolted to — one rule,
-  every part.** The editor sets a node's direction along the wall's outward
-  normal; what differs between parts is where the mesh sits about its node,
-  which is the game's business and never ours. Read off the parts the reader
-  re-placed by hand in probe 2 (a Twitch and a Shrimp, #467); the TT-38K,
-  which our first file had faced inward and which looked right by eye, is
-  faced the same way now and is the one to check next (its rounded cap
-  belongs on the booster's side). No list of exceptions: a part that seems to
-  need one is a probe, not a table entry. And the game does not always trust
-  `rot` for a surface part: probe 3's Thumpers, written facing inward on
-  their TT-38Ks, came back from a plain load-and-save turned a half turn to
-  face away — while probe 1's Thuds on a tank came back as written. Whatever
-  the game re-derives, it re-derives to the same rule.
+- **Which way a part faces when bolted on is read off its drag cube.** Its
+  body is on one side of its attach point and the parent on the other, and
+  `SIDE` in `geometry.json` says which (`.claude/rules/part-data.md`): the
+  Thud, the Twitch and the SRBs face away from the axis with their attach
+  direction, the radial decouplers and a tank toward it. `facing` in
+  `core/craft.ts` reads it. Two guesses came before: one rule for every part
+  (the Thud's way) stood the TT-38Ks a half turn round in probe 2; a list of
+  exceptions was the thing the reader would not have. The game itself turned
+  probe 3's Thumpers to face away from a plain load-and-save, and left probe
+  1's Thuds on a tank as written, so it re-derives a surface part's facing on
+  a decoupler and trusts the file on a tank; either way the cube's side is
+  what it arrives at.
 
 - **A radial engine's origin is on the wall, and the radial engines turn to
   clear the boosters.** The Twitch's attach node is at its origin, so its
@@ -145,9 +144,151 @@ delivered plan to a `Craft`, and the only module allowed to import
   where no phase clears them does the booster ring stand outboard of the
   engines, as it always did: pushed out regardless, probe 2's Shrimps hung
   half a metre off the tank on a TT-38K a quarter of that thick, and
-  collided with the Twitches in the VAB. The drag-cube standoff
-  (`geometry.json`, 0.218 m for the TT-38K) runs about 4 cm past the far
-  face the game snaps a booster to (its collider, not its cube); left as is.
+  collided with the Twitches in the VAB.
+
+- **A booster stands off the wall by its holder and its attach node's
+  radius, not half its cube.** `attachHalf` in `core/nodes.ts`: the cube is
+  the whole part, fins and nozzle, and a Kickback is 1.6 m over its fins
+  where the decoupler meets a 1.27 m casing — drawn and placed at the cube
+  it stood 0.12 m off its TT-70s in probe 3 and 0.25 m into the tank in the
+  model. The same number sizes the holder (`holderFor`, solver.md) and draws
+  the solid. What is left is the cube itself: the drag-cube standoff
+  (`geometry.json`, 0.218 m for the ReStock TT-38K) runs about 3 cm past the
+  face the game snaps a booster to — the collider, which only the `.mu`
+  carries. `STANDOFF` is measured off the collider now: `radial-standoff.mjs`
+  reads the holders' `.mu` files (`tools/mu.mjs`, shared with the engine
+  meshes; `pack-radial.ps1` packs them) and takes the far face of every
+  collider along the attach direction, the cube standing in only where no
+  model was given. ReStock TT-38K 0.184 m against a hand-placed 0.1855;
+  TT-70 0.568 where the cube said 0.69 — probe 5's Thoroughbreds; Manifold
+  0.164 against 0.49. The ReStock cubic strut's model
+  (`restock-cubic-strut.mu`) was not in the first pack and still reads its
+  cube.
+
+- **A liquid column is as wide as its widest tank, not its engine's size
+  class.** A synthesised column carries the core engine's `sz` for
+  compatibility, and measured as a part (`widthOf`) that is 1.25 m under a
+  Vector on a 3.75 m S3 drop tank: the ring stood the tank a metre into the
+  core in probe 5 and the VAB showed the two intersecting. `boosterWidth` in
+  `geometry.ts` — the widest tank, or the engine where it is wider — is what
+  `boostersFit`, `stageSize`, the layout and the drawing read; the column's
+  engine is still drawn at its own width. The attach radius of a column is
+  its lowest tank's, the one the holder is on (`tankRun(...)[0]`).
+
+- **A ring stands its decoupler's thickness off the wall it is bolted to,
+  and its bare face against the bells it clears.** `boosterRing(n, bd, wall,
+standoff, half, clear)` is the largest of three radii: the wall plus the
+  holder's standoff plus the attach radius; the widest thing the booster runs
+  alongside below the tanks (`clear`, an engine cluster wider than the tank)
+  plus the attach radius, with no decoupler between; and the ring's room for
+  itself. `boostersFit` and `stageSize` read the same rule. Charging the
+  standoff from the bells too held probe 9's columns 0.24 m off the TT-70s
+  meant to hold them (#467).
+
+- **A booster's foot is at the stage base, and in the craft on the core
+  engines' nozzle plane.** The lowest bottom node of the stage's engines
+  (`Column.nozzleY`), not the stage's bottom node — on a plated stage that is
+  the shroud's foot below the bells, and mapped there probe 9's columns hung
+  0.9 m under the core's Vectors with their TT-70s off the bottom edge of the
+  Jumbo-64. `boosterLayout` puts the foot at the bottom of
+  what is under the tanks — engine, coupler, adapters — so the nozzles line
+  up with the core's, as the game's rockets are built. A walk that stopped
+  at the first section too narrow to bolt to (#86, #109) held probe 5's
+  columns at the tank base over a 1.875 m plate with a wide Vector cluster
+  below; since #438 the holder meets the booster's middle on the tank, so
+  nothing hangs from what is beside the foot. The model stacks by drag cubes
+  and the craft by nodes, and an engine's bottom node is not its cube's
+  bottom — the Skipper's is 0.16 m below it — so the craft puts the foot on
+  the core engines' nozzle plane where the layout's foot is at the base; a
+  foot raised off the base is a distance from the tank base, the same in
+  both frames. A radial-engine stage keeps the model's foot.
+
+- **A column hangs from its lowest tank; its holders sit at its middle and
+  its far quarter.** `stackTanks(…, up)` builds the column's chain holding
+  upward, so the lowest tank is its root and the holder is at that tank's
+  attach node — held by its top tank, probe 5's decouplers sat at the top of
+  the column and the second above it. The second holder goes to the quarter
+  of the tank run farther from the first. An SRB's first holder has to be at
+  its own attach node, its middle, where the game snaps it, so its second is
+  a quarter-length away and no more — the most spread the game allows.
+
+- **Every part but the root autostruts to its grandparent; rigid attachment
+  stays off.** The game reads `autostrutMode` and `rigidAttachment` off the
+  craft on load whether or not Advanced Tweakables is on (it saved probes
+  1–6 back with them untouched), so the writer sets what a builder would:
+  Grandparent holds a stack of many short tanks against the bending and the
+  pad wobble Brian saw on tall thin rockets, without the joint changes
+  Heaviest makes at staging; rigid attachment makes a joint brittle rather
+  than stiff. Launch clamps are the other half of the pad problem and are
+  not written yet (#467).
+
+- **An engine plate is written in the plan's shroud variant, hangs the
+  stage below from that variant's bottom node, and fires with its
+  engines.** `sol.shroud.v` is one of the plate's variants (Short …
+  Long); each moves the `bottom` node by the shroud's length — 1.25 m down
+  on Short, 5 on Long — and `nodes.json` carries the moved nodes as
+  `variantNodes` (`tools/part-nodes.mjs`). Written in the default (Long)
+  with the default node, probe 7's plates showed the wrong shroud and their
+  lower stages hung from the wrong height; Brian's fix set Medium-Short and
+  hung the tank from the shroud's foot. The plate's `ModuleDecouple` is on
+  its bottom node, so it is staged with the engines above it, not with the
+  stage it leaves in. Its engine nodes are made at run time, a set per
+  count named `N<count>_<k>`, all on the plate's origin plane (y = 0 in the
+  part): the engines hang from there, and the shroud reaches down past their
+  bells to the variant's `bottom` node, which is the stage's foot and what
+  the stage below hangs from. Placed the other way round — the node at the
+  engines' tops — probe 8's Terriers hung from the shroud's foot and the tank
+  below hung from a Terrier. The writer names the nodes as the game does; the
+  game keeps the engines where they are written and lists its own N nodes
+  empty. The
+  boosted stage path (`boostedAscent`) now takes `plateAbove` too, so a
+  launch stage under a plate no longer buys the TD decoupler the plate makes
+  redundant (solver.md).
+
+- **Every decoupler is staged, plates included.** The game gave probe 3's
+  second TT-38Ks and probe 5's engine plates icons in their drop stage; the
+  writer stages them there (`holdStage`, and `{ignite: drop, drop}` for a
+  plate) rather than leaving `sqor` at −1, or the round trip disagrees.
+
+- **Struts stand at the quarter points of the column's run, all with one
+  roll.** `join{k}a` on the core at a quarter up the column's tanks, `join{k}b`
+  on the column at a quarter down, clamped to the core's tanks; 0.4 m apart
+  at the middle they braced nothing. `faceWith` for a vertical direction is
+  the quarter turn onto x̂ then the turn about y to the azimuth — the
+  shortest arc rolled the off-axis struts by their azimuth and probe 5's
+  stood on a corner.
+
+- **A booster tops out at the tank top where the stage above would meet
+  it.** The stage above stands on the top tank, and where its base reaches
+  out past the ring's inner face — a three-stack cluster over a 2.5 m core —
+  a booster past the tank top is in its engines: probe 3's Kickbacks were
+  0.15 m up the Terriers' bells. `boosterLayout(sol, g, tankBase, above)`
+  lowers the foot until the top is level with the tank top, as far as the
+  holder still meets the middle, and the model and the craft both pass the
+  next stage in. A stage narrow enough to stand inside the ring is passed
+  by, as the game allows, and the foot stays where the walk put it; the
+  model test holds both halves.
+
+- **A part whose attach direction is down its own axis is laid on its
+  side.** The cubic strut's `node_attach` is its bottom face, pointing down;
+  bolted to a wall the game stands it face-on, axis horizontal, and probe 4's
+  stood upright with their nodes vertical. `faceWith` turns a horizontal
+  direction about y as before, and a vertical one by the quarter turn about
+  d × target; `SIDE` covers the strut (−1, body behind its attach point) so
+  its bottom is the face on the wall and its top node points at what it
+  joins.
+
+- **A tank with no top node is not in the pool.** The FL-C1000 and the
+  S3-3600 Nosecone have the nose built on, and the game will not stack under
+  a part with no node there; every tank a run here has is under something.
+  `topless` in `core/nodes.ts` reads it off `nodes.json`, `poolsFor` leaves
+  them out. The round-trip suite found it when a design change put an S3-7200
+  on an FL-C1000 (#467).
+
+- **The probes are written in ReStock's art.** `craft:probes` solves the
+  sweep's missions with `rs: true`, since they are checked in an install that
+  has it, and a TT-38K is 19 mm thinner there than in stock. The sweep itself
+  stays in stock.
 
 - **The craft stands on the VAB floor.** The editor's origin is the floor,
   and a craft hung from its root at the editor's spawn height (y = 15) ran

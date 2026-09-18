@@ -246,6 +246,99 @@
         "Boattail-White",
         "Boattail-Orange"
       ],
+      "variantNodes": {
+        "Short": {
+          "bottom": {
+            "p": [0, -0.625, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Medium-Short": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Medium": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Medium-Long": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Long": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Short-Orange": {
+          "bottom": {
+            "p": [0, -0.625, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Medium-Short-Orange": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Medium-Orange": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Medium-Long-Orange": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Long-Orange": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Boattail-Dark": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Boattail-White": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Boattail-Orange": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        }
+      },
       "resources": {},
       "mass": 0.062,
       "tech": "generalConstruction",
@@ -291,6 +384,92 @@
         "Boattail-White",
         "Boattail-Orange"
       ],
+      "variantNodes": {
+        "Short": {
+          "bottom": {
+            "p": [0, -0.625, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Short": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Long": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Long": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Short-Orange": {
+          "bottom": {
+            "p": [0, -0.625, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Short-Orange": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Orange": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Long-Orange": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Long-Orange": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Boattail-White": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Boattail-Orange": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 0.14,
       "tech": "advConstruction",
@@ -338,6 +517,106 @@
         "Boattail-Orange",
         "Boattail-Metal"
       ],
+      "variantNodes": {
+        "Short": {
+          "bottom": {
+            "p": [0, -0.625, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Short": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Long": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Long": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Short-Metal": {
+          "bottom": {
+            "p": [0, -0.625, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Short-Metal": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Metal": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Long-Metal": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Long-Metal": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Boattail-Dark": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Boattail-White": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Boattail-Orange": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Boattail-Metal": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 0.25,
       "tech": "specializedConstruction",
@@ -383,6 +662,92 @@
         "Boattail-White",
         "Boattail-Orange"
       ],
+      "variantNodes": {
+        "Short": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Medium-Short": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Medium": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Medium-Long": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Long": {
+          "bottom": {
+            "p": [0, -5, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Short-Orange": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Medium-Short-Orange": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Medium-Orange": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Medium-Long-Orange": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Long-Orange": {
+          "bottom": {
+            "p": [0, -5, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Boattail-White": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Boattail-Orange": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        }
+      },
       "resources": {},
       "mass": 0.58,
       "tech": "composites",
@@ -428,6 +793,92 @@
         "Boattail-White",
         "Boattail-Orange"
       ],
+      "variantNodes": {
+        "Short": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Medium-Short": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Medium": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Medium-Long": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Long": {
+          "bottom": {
+            "p": [0, -5, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Short-Orange": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Medium-Short-Orange": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Medium-Orange": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Medium-Long-Orange": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Long-Orange": {
+          "bottom": {
+            "p": [0, -5, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Boattail-White": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Boattail-Orange": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        }
+      },
       "resources": {},
       "mass": 1,
       "tech": "metaMaterials",
@@ -1663,6 +2114,29 @@
       "rules": [1, 1, 1, 0, 0],
       "variant": "Size2",
       "variants": ["Size2", "Boattail", "Compact"],
+      "variantNodes": {
+        "Size2": {
+          "top": {
+            "p": [0, 0.598, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        },
+        "Boattail": {
+          "top": {
+            "p": [0, 0.598, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        },
+        "Compact": {
+          "top": {
+            "p": [0, 0.51, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 3.5,
       "tech": "veryHeavyRocketry",
@@ -1707,6 +2181,22 @@
       "rules": [1, 1, 1, 0, 0],
       "variant": "Size3",
       "variants": ["Size3", "Compact"],
+      "variantNodes": {
+        "Size3": {
+          "top": {
+            "p": [0, 0.753, 0],
+            "d": [0, 1, 0],
+            "s": 3
+          }
+        },
+        "Compact": {
+          "top": {
+            "p": [0, 0.558, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 5.25,
       "tech": "veryHeavyRocketry",
@@ -1815,6 +2305,118 @@
         "MidAlt",
         "BareAlt"
       ],
+      "variantNodes": {
+        "25Ring": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Full": {
+          "bottom": {
+            "p": [0, -2.95, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "375Boat": {
+          "top": {
+            "p": [0, 0.177279, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.54, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Mid": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "top": {
+            "p": [0, 0, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "25RingAlt": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "FullAlt": {
+          "bottom": {
+            "p": [0, -2.95, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "375BoatAlt": {
+          "top": {
+            "p": [0, 0.177279, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.54, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "MidAlt": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "BareAlt": {
+          "top": {
+            "p": [0, 0, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 5,
       "tech": "veryHeavyRocketry",
@@ -2637,6 +3239,29 @@
       "rules": [1, 0, 1, 0, 0],
       "variant": "Shroud",
       "variants": ["Shroud", "TrussMount", "Bare"],
+      "variantNodes": {
+        "Shroud": {
+          "bottom": {
+            "p": [0, -0.81781, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "TrussMount": {
+          "bottom": {
+            "p": [0, -0.8, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Bare": {
+          "bottom": {
+            "p": [0, -0.8, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        }
+      },
       "resources": {},
       "mass": 0.5,
       "tech": "advRocketry",
@@ -2708,6 +3333,36 @@
       "rules": [1, 1, 1, 0, 0],
       "variant": "Size2",
       "variants": ["Size2", "Compact", "Size2_Alternate", "Compact_Alternate"],
+      "variantNodes": {
+        "Size2": {
+          "top": {
+            "p": [0, 2.4118, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        },
+        "Compact": {
+          "top": {
+            "p": [0, 1.982, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        },
+        "Size2_Alternate": {
+          "top": {
+            "p": [0, 2.4118, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        },
+        "Compact_Alternate": {
+          "top": {
+            "p": [0, 1.982, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 12,
       "tech": "nuclearPropulsion",
@@ -2887,6 +3542,57 @@
         "Bare",
         "BareAlt"
       ],
+      "variantNodes": {
+        "Cap": {
+          "bottom": {
+            "p": [0, -1.635, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5BoatAlt": {
+          "bottom": {
+            "p": [0, -1.635, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5BoatAlt2": {
+          "bottom": {
+            "p": [0, -1.635, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1": {
+          "bottom": {
+            "p": [0, -1.66, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1Alt": {
+          "bottom": {
+            "p": [0, -1.66, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "bottom": {
+            "p": [0, -1.66, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "BareAlt": {
+          "bottom": {
+            "p": [0, -1.66, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 1,
       "tech": "heavierRocketry",
@@ -2942,6 +3648,64 @@
         "Compact",
         "CompactAlt"
       ],
+      "variantNodes": {
+        "TankButt": {
+          "bottom": {
+            "p": [0, -1.307, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "TankButtAlt": {
+          "bottom": {
+            "p": [0, -1.307, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "18Boattail": {
+          "bottom": {
+            "p": [0, -1.307, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "18BoattailAlt": {
+          "bottom": {
+            "p": [0, -1.307, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "TrussMount": {
+          "bottom": {
+            "p": [0, -1.732, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "TrussMountAlt": {
+          "bottom": {
+            "p": [0, -1.732, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Compact": {
+          "bottom": {
+            "p": [0, -1.732, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "CompactAlt": {
+          "bottom": {
+            "p": [0, -1.732, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 2,
       "tech": "heavyRocketry",
@@ -4560,6 +5324,104 @@
         "Size1_Alternate",
         "Bare_Alternate"
       ],
+      "variantNodes": {
+        "Shroud": {
+          "top": {
+            "p": [0, 1.80521, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.46, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Shroud_Alternate": {
+          "top": {
+            "p": [0, 1.80521, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.46, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5_Alternate": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1_Alternate": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare_Alternate": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 1.6,
       "tech": "heavierRocketry",
@@ -4601,6 +5463,20 @@
       "rules": [1, 0, 1, 0, 0],
       "variant": "Full",
       "variants": ["Shroud", "TrussMount", "Bare"],
+      "variantNodes": {
+        "Bare": {
+          "top": {
+            "p": [0, 0.583, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.362, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 3,
       "tech": "heavyRocketry",
@@ -4645,6 +5521,64 @@
         "Size1p5_Alternate",
         "Bare_Alternate"
       ],
+      "variantNodes": {
+        "Shroud": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size2": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Shroud_Alternate": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size2_Alternate": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5_Alternate": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare_Alternate": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 3.3,
       "tech": "veryHeavyRocketry",
@@ -4686,6 +5620,22 @@
       "rules": [1, 0, 1, 0, 0],
       "variant": "TwoBell",
       "variants": ["DoubleBell", "SingleBell"],
+      "variantNodes": {
+        "DoubleBell": {
+          "bottom": {
+            "p": [0, -1.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "SingleBell": {
+          "bottom": {
+            "p": [0, -2.67668, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 1.75,
       "tech": "heavyRocketry",
@@ -4724,6 +5674,20 @@
       "rules": [1, 0, 1, 0, 0],
       "variant": "Full",
       "variants": ["Full", "Mid", "Bare"],
+      "variantNodes": {
+        "Bare": {
+          "top": {
+            "p": [0, 0.533, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.945, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 6,
       "tech": "heavierRocketry",
@@ -4806,6 +5770,78 @@
         "ShroudBig_Alternate",
         "Size1p5Bare_Alternate"
       ],
+      "variantNodes": {
+        "Bare": {
+          "bottom": {
+            "p": [0, -1.125, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudSmall": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Size1Bare": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudBig": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5Bare": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Bare_Alternate": {
+          "bottom": {
+            "p": [0, -1.125, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudSmall_Alternate": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Size1Bare_Alternate": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudBig_Alternate": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5Bare_Alternate": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        }
+      },
       "resources": {},
       "mass": 1.25,
       "tech": "heavierRocketry",
@@ -4858,6 +5894,78 @@
         "ShroudBig_Alternate",
         "Bare_Alternate"
       ],
+      "variantNodes": {
+        "Size1Bare": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudSmall": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Size1p5Bare": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudBig": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "bottom": {
+            "p": [0, -1.125, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Size1Bare_Alternate": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudSmall_Alternate": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Size1p5Bare_Alternate": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudBig_Alternate": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare_Alternate": {
+          "bottom": {
+            "p": [0, -1.125, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        }
+      },
       "resources": {},
       "mass": 1.25,
       "tech": "heavierRocketry",
@@ -5835,6 +6943,29 @@
         "ShipEffectsCollisions"
       ]
     },
+    "TT-14 Radial Decoupler": {
+      "name": "restock-decoupler-radial-tiny-1",
+      "nodes": {},
+      "attach": {
+        "p": [0, 0, 0],
+        "d": [1, 0, 0],
+        "s": 1
+      },
+      "rules": [0, 1, 0, 1, 0],
+      "resources": {},
+      "mass": 0.0125,
+      "tech": "stability",
+      "command": false,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "RSE_Coupler",
+        "ShipEffectsCollisions"
+      ],
+      "via": "restock"
+    },
     "TT-38K Radial Decoupler": {
       "name": "radialDecoupler",
       "nodes": {},
@@ -6102,6 +7233,118 @@
         "25RingAlt",
         "BareAlt"
       ],
+      "variantNodes": {
+        "Mid": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Full": {
+          "bottom": {
+            "p": [0, -2.95, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "375Boat": {
+          "top": {
+            "p": [0, 0.177279, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.54, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "25Ring": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "top": {
+            "p": [0, 0, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "MidAlt": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "FullAlt": {
+          "bottom": {
+            "p": [0, -2.95, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "375BoatAlt": {
+          "top": {
+            "p": [0, 0.177279, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.54, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "25RingAlt": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "BareAlt": {
+          "top": {
+            "p": [0, 0, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 5,
       "tech": "veryHeavyRocketry",
@@ -6150,6 +7393,64 @@
         "Size1p5_Alternate",
         "Bare_Alternate"
       ],
+      "variantNodes": {
+        "Shroud": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size2": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Shroud_Alternate": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size2_Alternate": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5_Alternate": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare_Alternate": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 0.8,
       "tech": "veryHeavyRocketry",
@@ -6203,6 +7504,104 @@
         "Size1_Alternate",
         "Bare_Alternate"
       ],
+      "variantNodes": {
+        "Size1p5": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Shroud": {
+          "top": {
+            "p": [0, 1.80521, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.46, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5_Alternate": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Shroud_Alternate": {
+          "top": {
+            "p": [0, 1.80521, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.46, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1_Alternate": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare_Alternate": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 2,
       "tech": "heavierRocketry",
@@ -6684,6 +8083,99 @@
         "Boattail-White",
         "Boattail-Orange"
       ],
+      "variantNodes": {
+        "Short": {
+          "bottom": {
+            "p": [0, -0.625, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Medium-Short": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Medium": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Medium-Long": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Long": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Short-Orange": {
+          "bottom": {
+            "p": [0, -0.625, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Medium-Short-Orange": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Medium-Orange": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Medium-Long-Orange": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Long-Orange": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Boattail-Dark": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Boattail-White": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Boattail-Orange": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        }
+      },
       "resources": {},
       "mass": 0.062,
       "tech": "generalConstruction",
@@ -6728,6 +8220,92 @@
         "Boattail-White",
         "Boattail-Orange"
       ],
+      "variantNodes": {
+        "Short": {
+          "bottom": {
+            "p": [0, -0.625, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Short": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Long": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Long": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Short-Orange": {
+          "bottom": {
+            "p": [0, -0.625, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Short-Orange": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Orange": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Long-Orange": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Long-Orange": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Boattail-White": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Boattail-Orange": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 0.14,
       "tech": "advConstruction",
@@ -6774,6 +8352,106 @@
         "Boattail-Orange",
         "Boattail-Metal"
       ],
+      "variantNodes": {
+        "Short": {
+          "bottom": {
+            "p": [0, -0.625, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Short": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Long": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Long": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Short-Metal": {
+          "bottom": {
+            "p": [0, -0.625, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Short-Metal": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Metal": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Medium-Long-Metal": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Long-Metal": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Boattail-Dark": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Boattail-White": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Boattail-Orange": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Boattail-Metal": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 0.25,
       "tech": "specializedConstruction",
@@ -6818,6 +8496,92 @@
         "Boattail-White",
         "Boattail-Orange"
       ],
+      "variantNodes": {
+        "Short": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Medium-Short": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Medium": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Medium-Long": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Long": {
+          "bottom": {
+            "p": [0, -5, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Short-Orange": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Medium-Short-Orange": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Medium-Orange": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Medium-Long-Orange": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Long-Orange": {
+          "bottom": {
+            "p": [0, -5, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Boattail-White": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        },
+        "Boattail-Orange": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 3
+          }
+        }
+      },
       "resources": {},
       "mass": 0.58,
       "tech": "composites",
@@ -6862,6 +8626,92 @@
         "Boattail-White",
         "Boattail-Orange"
       ],
+      "variantNodes": {
+        "Short": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Medium-Short": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Medium": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Medium-Long": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Long": {
+          "bottom": {
+            "p": [0, -5, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Short-Orange": {
+          "bottom": {
+            "p": [0, -1.25, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Medium-Short-Orange": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Medium-Orange": {
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Medium-Long-Orange": {
+          "bottom": {
+            "p": [0, -3.75, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Long-Orange": {
+          "bottom": {
+            "p": [0, -5, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Boattail-White": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        },
+        "Boattail-Orange": {
+          "bottom": {
+            "p": [0, -1.875, 0],
+            "d": [0, -1, 0],
+            "s": 4
+          }
+        }
+      },
       "resources": {},
       "mass": 1,
       "tech": "metaMaterials",
@@ -8099,6 +9949,29 @@
       "rules": [1, 1, 1, 0, 0],
       "variant": "Size2",
       "variants": ["Size2", "Boattail", "Compact"],
+      "variantNodes": {
+        "Size2": {
+          "top": {
+            "p": [0, 0.598, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        },
+        "Boattail": {
+          "top": {
+            "p": [0, 0.598, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        },
+        "Compact": {
+          "top": {
+            "p": [0, 0.51, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 3.5,
       "tech": "veryHeavyRocketry",
@@ -8142,6 +10015,22 @@
       "rules": [1, 1, 1, 0, 0],
       "variant": "Size3",
       "variants": ["Size3", "Compact"],
+      "variantNodes": {
+        "Size3": {
+          "top": {
+            "p": [0, 0.753, 0],
+            "d": [0, 1, 0],
+            "s": 3
+          }
+        },
+        "Compact": {
+          "top": {
+            "p": [0, 0.558, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 5.25,
       "tech": "veryHeavyRocketry",
@@ -8248,6 +10137,118 @@
         "MidAlt",
         "BareAlt"
       ],
+      "variantNodes": {
+        "25Ring": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Full": {
+          "bottom": {
+            "p": [0, -2.95, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "375Boat": {
+          "top": {
+            "p": [0, 0.177279, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.54, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Mid": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "top": {
+            "p": [0, 0, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "25RingAlt": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "FullAlt": {
+          "bottom": {
+            "p": [0, -2.95, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "375BoatAlt": {
+          "top": {
+            "p": [0, 0.177279, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.54, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "MidAlt": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "BareAlt": {
+          "top": {
+            "p": [0, 0, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 5,
       "tech": "veryHeavyRocketry",
@@ -8291,6 +10292,22 @@
       "rules": [1, 1, 1, 0, 0],
       "variant": "Size3",
       "variants": ["Size3", "Compact"],
+      "variantNodes": {
+        "Size3": {
+          "top": {
+            "p": [0, 1.487975, 0],
+            "d": [0, 1, 0],
+            "s": 3
+          }
+        },
+        "Compact": {
+          "top": {
+            "p": [0, 0.443, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 9,
       "tech": "veryHeavyRocketry",
@@ -9172,6 +11189,36 @@
       "rules": [1, 1, 1, 0, 0],
       "variant": "Size2",
       "variants": ["Size2", "Compact", "Size2_Alternate", "Compact_Alternate"],
+      "variantNodes": {
+        "Size2": {
+          "top": {
+            "p": [0, 2.4118, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        },
+        "Compact": {
+          "top": {
+            "p": [0, 1.982, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        },
+        "Size2_Alternate": {
+          "top": {
+            "p": [0, 2.4118, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        },
+        "Compact_Alternate": {
+          "top": {
+            "p": [0, 1.982, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 12,
       "tech": "nuclearPropulsion",
@@ -9377,6 +11424,57 @@
         "Bare",
         "BareAlt"
       ],
+      "variantNodes": {
+        "Cap": {
+          "bottom": {
+            "p": [0, -1.635, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5BoatAlt": {
+          "bottom": {
+            "p": [0, -1.635, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5BoatAlt2": {
+          "bottom": {
+            "p": [0, -1.635, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1": {
+          "bottom": {
+            "p": [0, -1.66, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1Alt": {
+          "bottom": {
+            "p": [0, -1.66, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "bottom": {
+            "p": [0, -1.66, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "BareAlt": {
+          "bottom": {
+            "p": [0, -1.66, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 1,
       "tech": "heavierRocketry",
@@ -9431,6 +11529,64 @@
         "Compact",
         "CompactAlt"
       ],
+      "variantNodes": {
+        "TankButt": {
+          "bottom": {
+            "p": [0, -1.307, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "TankButtAlt": {
+          "bottom": {
+            "p": [0, -1.307, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "18Boattail": {
+          "bottom": {
+            "p": [0, -1.307, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "18BoattailAlt": {
+          "bottom": {
+            "p": [0, -1.307, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "TrussMount": {
+          "bottom": {
+            "p": [0, -1.732, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "TrussMountAlt": {
+          "bottom": {
+            "p": [0, -1.732, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Compact": {
+          "bottom": {
+            "p": [0, -1.732, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "CompactAlt": {
+          "bottom": {
+            "p": [0, -1.732, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 2,
       "tech": "heavyRocketry",
@@ -11082,6 +13238,104 @@
         "Size1_Alternate",
         "Bare_Alternate"
       ],
+      "variantNodes": {
+        "Shroud": {
+          "top": {
+            "p": [0, 1.80521, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.46, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Shroud_Alternate": {
+          "top": {
+            "p": [0, 1.80521, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.46, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5_Alternate": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1_Alternate": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare_Alternate": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 1.6,
       "tech": "heavierRocketry",
@@ -11135,6 +13389,32 @@
         "SmallAlt",
         "BareAlt"
       ],
+      "variantNodes": {
+        "Bare": {
+          "top": {
+            "p": [0, 0.583, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.362, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "BareAlt": {
+          "top": {
+            "p": [0, 0.583, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.362, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 3,
       "tech": "heavyRocketry",
@@ -11183,6 +13463,64 @@
         "Size1p5_Alternate",
         "Bare_Alternate"
       ],
+      "variantNodes": {
+        "Shroud": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size2": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Shroud_Alternate": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size2_Alternate": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5_Alternate": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare_Alternate": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 3.3,
       "tech": "veryHeavyRocketry",
@@ -11236,6 +13574,104 @@
         "SingleBell-Compact",
         "SingleBell-Compact-Alt"
       ],
+      "variantNodes": {
+        "TwoBell": {
+          "top": {
+            "p": [0, 0, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Compact": {
+          "top": {
+            "p": [0, 0, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "TwoBell_Alternate": {
+          "top": {
+            "p": [0, 0, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Compact_Alternate": {
+          "top": {
+            "p": [0, 0, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "SingleBell": {
+          "top": {
+            "p": [0, 0, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.67668, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "SingleBell-Alt": {
+          "top": {
+            "p": [0, 0, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.67668, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "SingleBell-Compact": {
+          "top": {
+            "p": [0, -0.678, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.67668, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "SingleBell-Compact-Alt": {
+          "top": {
+            "p": [0, -0.678, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.67668, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 1.75,
       "tech": "heavyRocketry",
@@ -11290,6 +13726,32 @@
         "SmallAlt",
         "BareAlt"
       ],
+      "variantNodes": {
+        "Bare": {
+          "top": {
+            "p": [0, 0.533, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.945, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "BareAlt": {
+          "top": {
+            "p": [0, 0.533, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.945, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 6,
       "tech": "heavierRocketry",
@@ -11374,6 +13836,78 @@
         "ShroudBig_Alternate",
         "Size1p5Bare_Alternate"
       ],
+      "variantNodes": {
+        "Bare": {
+          "bottom": {
+            "p": [0, -1.125, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudSmall": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Size1Bare": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudBig": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5Bare": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Bare_Alternate": {
+          "bottom": {
+            "p": [0, -1.125, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudSmall_Alternate": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Size1Bare_Alternate": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudBig_Alternate": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5Bare_Alternate": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        }
+      },
       "resources": {},
       "mass": 1.25,
       "tech": "heavierRocketry",
@@ -11425,6 +13959,78 @@
         "ShroudBig_Alternate",
         "Bare_Alternate"
       ],
+      "variantNodes": {
+        "Size1Bare": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudSmall": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Size1p5Bare": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudBig": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "bottom": {
+            "p": [0, -1.125, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Size1Bare_Alternate": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudSmall_Alternate": {
+          "bottom": {
+            "p": [0, -1.292, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "Size1p5Bare_Alternate": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        },
+        "ShroudBig_Alternate": {
+          "bottom": {
+            "p": [0, -1.3, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare_Alternate": {
+          "bottom": {
+            "p": [0, -1.125, 0],
+            "d": [0, -1, 0],
+            "s": 1
+          }
+        }
+      },
       "resources": {},
       "mass": 1.25,
       "tech": "heavierRocketry",
@@ -11854,6 +14460,36 @@
       "rules": [1, 1, 1, 1, 0],
       "variant": "Size1",
       "variants": ["Size1", "Size2", "Boattail", "Compact"],
+      "variantNodes": {
+        "Size1": {
+          "top": {
+            "p": [0, 0, 0],
+            "d": [0, 1, 0],
+            "s": 1
+          }
+        },
+        "Size2": {
+          "top": {
+            "p": [0, 0.634, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        },
+        "Boattail": {
+          "top": {
+            "p": [0, 0.634, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          }
+        },
+        "Compact": {
+          "top": {
+            "p": [0, 0.422, 0],
+            "d": [0, 1, 0],
+            "s": 1
+          }
+        }
+      },
       "resources": {},
       "mass": 4,
       "tech": "veryHeavyRocketry",
@@ -12449,6 +15085,28 @@
         "ShipEffectsCollisions"
       ]
     },
+    "TT-14 Radial Decoupler": {
+      "name": "restock-decoupler-radial-tiny-1",
+      "nodes": {},
+      "attach": {
+        "p": [0, 0, 0],
+        "d": [1, 0, 0],
+        "s": 1
+      },
+      "rules": [0, 1, 0, 1, 0],
+      "resources": {},
+      "mass": 0.0125,
+      "tech": "stability",
+      "command": false,
+      "modules": [
+        "ModuleAnchoredDecoupler",
+        "ModuleToggleCrossfeed",
+        "ModuleTestSubject",
+        "ModuleCargoPart",
+        "RSE_Coupler",
+        "ShipEffectsCollisions"
+      ]
+    },
     "TT-38K Radial Decoupler": {
       "name": "radialDecoupler",
       "nodes": {},
@@ -12716,6 +15374,118 @@
         "25RingAlt",
         "BareAlt"
       ],
+      "variantNodes": {
+        "Mid": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Full": {
+          "bottom": {
+            "p": [0, -2.95, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "375Boat": {
+          "top": {
+            "p": [0, 0.177279, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.54, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "25Ring": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "top": {
+            "p": [0, 0, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "MidAlt": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "FullAlt": {
+          "bottom": {
+            "p": [0, -2.95, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "375BoatAlt": {
+          "top": {
+            "p": [0, 0.177279, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.54, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "25RingAlt": {
+          "top": {
+            "p": [0, 0.2, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "BareAlt": {
+          "top": {
+            "p": [0, 0, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -2.5, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 5,
       "tech": "veryHeavyRocketry",
@@ -12763,6 +15533,64 @@
         "Size1p5_Alternate",
         "Bare_Alternate"
       ],
+      "variantNodes": {
+        "Shroud": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size2": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Shroud_Alternate": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size2_Alternate": {
+          "bottom": {
+            "p": [0, -1.715, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5_Alternate": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare_Alternate": {
+          "bottom": {
+            "p": [0, -2.14, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 0.8,
       "tech": "veryHeavyRocketry",
@@ -12815,6 +15643,104 @@
         "Size1_Alternate",
         "Bare_Alternate"
       ],
+      "variantNodes": {
+        "Size1p5": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Shroud": {
+          "top": {
+            "p": [0, 1.80521, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.46, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1p5_Alternate": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Shroud_Alternate": {
+          "top": {
+            "p": [0, 1.80521, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.46, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Size1_Alternate": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        },
+        "Bare_Alternate": {
+          "top": {
+            "p": [0, 1.08738, 0],
+            "d": [0, 1, 0],
+            "s": 2
+          },
+          "bottom": {
+            "p": [0, -1.413, 0],
+            "d": [0, -1, 0],
+            "s": 2
+          }
+        }
+      },
       "resources": {},
       "mass": 2,
       "tech": "heavierRocketry",

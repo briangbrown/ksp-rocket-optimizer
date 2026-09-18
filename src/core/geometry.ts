@@ -1,8 +1,14 @@
 import geometryData from "../data/geometry.json";
-import { diaOf, isRadial } from "./parts.js";
+import { diaOf, isLifting, isRadial } from "./parts.js";
 import type { PartBase, Tank } from "./catalogue.js";
 import type { Expansions } from "./constants.js";
-import type { Pack, Solution, TankLine, TankSet } from "./solution.js";
+import type {
+  Pack,
+  Solution,
+  TankLine,
+  TankSet,
+  BoosterPart,
+} from "./solution.js";
 
 /* ---------------------- vehicle -> simulator ---------------------- */
 /* Stock propellant is 5 kg per 5 litres, so one tonne of it is exactly one cubic
@@ -79,19 +85,70 @@ const stackRing = (S: number, columnWidth: number, standoff = 0) => {
    this is false there is no ring to draw — the booster cannot float and cannot
    share space with its neighbour — so the count is refused where it is chosen
    rather than drawn around. #423 */
-/* Bolted on through its decoupler, so a booster's near face stands the
-   decoupler's thickness off the core — 0.24 m on a TT-38K — before its own
-   half-width is added. #422 */
-const boostersFit = (n: number, bd: number, coreHalf: number) =>
-  n < 3 ||
-  2 * (coreHalf + standoffOf(BOOSTER_HOLD) + bd / 2) * Math.sin(Math.PI / n) >=
-    bd - 1e-9;
-
-const boosterRing = (n: number, bd: number, coreHalf: number) =>
+/* Where a ring of boosters stands: the largest of three radii. Bolted on
+   through its decoupler, a booster's near face stands the decoupler's
+   thickness off the wall it is bolted to — 0.18 m on a TT-38K, 0.57 on a
+   TT-70 — before its own half-width; it clears whatever it runs alongside
+   below that wall, an engine cluster wider than the tank, with no decoupler
+   between them (`clear`, the widest such half-width); and the ring has room
+   for itself (#423). The standoff was charged from the bells too, which held
+   probe 9's columns 0.24 m off the TT-70s that were meant to hold them
+   (#467). `half` is how far the booster's axis stands from the face it is
+   bolted by: half its width, or its attach node's radius where a caller
+   knows it. #422 */
+const boosterRing = (
+  n: number,
+  bd: number,
+  wall: number,
+  standoff = standoffOf(BOOSTER_HOLD),
+  half = bd / 2,
+  clear = 0,
+) =>
   Math.max(
-    coreHalf + standoffOf(BOOSTER_HOLD) + bd / 2,
+    wall + standoff + half,
+    clear + half,
     n >= 3 ? bd / (2 * Math.sin(Math.PI / n)) : 0,
   );
+
+/* Whether `n` boosters fit round a stage at all: at the ring's radius,
+   neighbours `2 R sin(pi / n)` apart have to be a booster apart. */
+const boostersFit = (
+  n: number,
+  bd: number,
+  wall: number,
+  standoff = standoffOf(BOOSTER_HOLD),
+  half = bd / 2,
+  clear = 0,
+) =>
+  n < 3 ||
+  2 * boosterRing(n, bd, wall, standoff, half, clear) * Math.sin(Math.PI / n) >=
+    bd - 1e-9;
+
+/* How wide a booster is: the measured part, or for a synthesised column the
+   widest of its tanks and its engine where it has one. A column carries its
+   core engine's size class (`sz`, for compatibility), and measured as a part
+   that is 1.25 m under a Vector on a 3.75 m S3 drop tank — so the ring was
+   set for a third of the column's width and probe 5's drop tanks stood a
+   metre into the core (#467). */
+const boosterWidth = (p: BoosterPart) =>
+  p.column
+    ? Math.max(
+        ...p.column.list.map((x) => diaOf(x.t)),
+        (p.nEng ?? 1) ? widthOf(p, diaOf(p)) : 0,
+      )
+    : widthOf(p, diaOf(p));
+
+/* How long a booster is: its tanks plus its engine where it has one — a drop
+   tank has none — or the measured part, or a cylinder of its fuel's volume
+   where nothing was measured. */
+const boosterLength = (p: BoosterPart, bd: number) => {
+  if (p.column)
+    return tankStackLen(p.column) + ((p.nEng ?? 1) ? engineLen(p) : 0);
+  const measured = heightOf(p, 0);
+  if (measured > 0) return measured;
+  const vol = (p.fuelM || 0) / 1.15 || 1;
+  return Math.max(bd, vol / ((Math.PI / 4) * bd * bd));
+};
 
 const ENGINE_LEN: Record<string, number> = {
   0: 0.9,
@@ -145,6 +202,14 @@ type ArtTables = {
      A TT-38K is 0.24 m thick in stock and 0.22 in ReStock; a cubic strut
      0.26. #422 */
   STANDOFF: Readonly<Record<string, number>>;
+  /* Which side of its surface-attach point a part's body lies on, along its
+     attach direction: +1 out along it, −1 behind it. The parent is on the
+     other side, so this is which way the part faces when bolted on — the
+     Thud and the SRBs face away from what holds them, the radial decouplers
+     and a tank face toward it. Read off the drag cube by
+     tools/part-geometry.mjs; the configs disagree among themselves about
+     which way the direction points. #467 */
+  SIDE: Readonly<Record<string, number>>;
 };
 const ART: Readonly<Record<"stock" | "restock", ArtTables>> = geometryData;
 
@@ -174,6 +239,10 @@ const PART_A = (n: string) => art.PART_A[n];
 /* The standoff of a holder, by the name structure.json knows it by, and zero
    for a part the table has no measurement of. */
 const standoffOf = (n: string) => art.STANDOFF[n] ?? 0;
+/* Which side a part's body is on from its attach point: +1 along the attach
+   direction, −1 behind it; +1 for a part the cube never described, which is
+   the commoner case. */
+const sideOf = (n: string) => art.SIDE[n] ?? 1;
 /* What holds a booster on: the TT-38K, one per booster, which is what
    parts.ts charges for it. And what joins a radial stack to the core, and a
    packed tank to the centre one: the cubic strut, and the TT-38K again. */
@@ -384,6 +453,9 @@ function packFor(
     null,
   );
   if (!run || run.c < 3) return null;
+  /* An oval does not pack: a ring of Mk2 fuselages round a Mk2 core put
+     probe 9's decouplers half a metre off its narrow sides (#467). */
+  if (isLifting(run.t)) return null;
   /* The bottom stage sets the frontal area itself, so widening it is not free —
      there is nothing below to hide behind. That only matters where there is air:
      a group lifting off from Minmus or the Mun pays no drag at all, and refusing
@@ -567,8 +639,23 @@ function stageSize(sol: Solution) {
       if (!sol.boosters) return core;
       /* Across the ring and one booster, which is wider than the core plus two
          boosters as soon as the ring has to open up to clear itself. */
-      const bd = widthOf(sol.boosters.part, diaOf(sol.boosters.part));
-      return 2 * boosterRing(sol.boosters.n, bd, core / 2) + bd;
+      const bd = boosterWidth(sol.boosters.part);
+      /* Bolted to the tanks — or the ring of stacks — and clearing the
+         engine cluster where it is wider, as boosterLayout stands them. */
+      const wall =
+        S > 1 ? core / 2 : Math.max(td, sol.packed ? sol.packed.width : 0) / 2;
+      return (
+        2 *
+          boosterRing(
+            sol.boosters.n,
+            bd,
+            wall,
+            standoffOf(sol.boosters.hold.n),
+            bd / 2,
+            span / 2,
+          ) +
+        bd
+      );
     })(),
     /* Width without the boosters. They are gone by about 18 km, so a stack that
        looks stout on the pad can be a pencil for the rest of the ascent — which
@@ -594,6 +681,7 @@ export {
   PACK_SYM,
   PART_A,
   PART_H,
+  sideOf,
   standoffOf,
   useArt,
   SPAN,
@@ -604,6 +692,8 @@ export {
   heightOf,
   packFor,
   packShapes,
+  boosterLength,
+  boosterWidth,
   boosterRing,
   boostersFit,
   ringPositions,

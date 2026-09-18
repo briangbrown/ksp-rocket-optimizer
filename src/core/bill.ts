@@ -1,5 +1,5 @@
 import { DATA } from "./catalogue.js";
-import { COUPLERS, STRUCT } from "./parts.js";
+import { COUPLERS, HOLDERS, STRUCT } from "./parts.js";
 import { BOOSTER_HOLD, STACK_JOIN, tankRun } from "./geometry.js";
 import { titleOf } from "./nodes.js";
 import type { Craft, CraftPart } from "../craft/index.js";
@@ -27,7 +27,7 @@ type StageBill = {
   propellant: number;
   /* The ring of boosters, where there is one: how many, and which parts
      each is made of. */
-  ring: { count: number; titles: Array<string> } | null;
+  ring: { count: number; holders: number; titles: Array<string> } | null;
 };
 
 type Bill = Array<StageBill>;
@@ -77,7 +77,11 @@ function billOfPlan(stages: ReadonlyArray<PlanStage>): Bill {
             ...tankRun(col).map((t) => t.t.n),
           ]
         : [b.part.n];
-      ring = { count: b.n, titles: [...new Set(titles)].sort() };
+      ring = {
+        count: b.n,
+        holders: b.n * b.hold.count,
+        titles: [...new Set(titles)].sort(),
+      };
       ringProp = b.n * (b.part.m - b.part.dry);
     }
     out.push({
@@ -100,11 +104,12 @@ function billOfPlan(stages: ReadonlyArray<PlanStage>): Bill {
 }
 
 /* ---------------------------------------------------------------- craft */
+const HOLDER_TITLES = new Set(HOLDERS.map((h) => h.n));
 const ENGINES = new Set(DATA.engines.map((e) => e.n));
 const TANKS = new Set(DATA.tanks.map((t) => t.n));
 const COUPLER_TITLES = new Set(COUPLERS.map((c) => c.n));
 const DECOUPLERS = new Set(
-  STRUCT.decoupler.map((d) => d.n).filter((n) => n !== BOOSTER_HOLD),
+  STRUCT.decoupler.map((d) => d.n).filter((n) => !HOLDER_TITLES.has(n)),
 );
 
 function billOfCraft(craft: Craft): Bill {
@@ -132,10 +137,14 @@ function billOfCraft(craft: Craft): Bill {
     const ps = groups.get(d)!;
     const title = (p: CraftPart) => titleOf(p.name) ?? p.name;
     if (isRing(ps)) {
-      const holders = ps.filter((p) => title(p) === BOOSTER_HOLD);
-      const bodies = ps.filter((p) => title(p) !== BOOSTER_HOLD);
+      const holders = ps.filter((p) => HOLDER_TITLES.has(title(p)));
+      const bodies = ps.filter((p) => !HOLDER_TITLES.has(title(p)));
+      /* A booster is a holder with something on it; a long booster's second
+         holder holds nothing. */
+      const held = new Set(bodies.map((p) => p.parent?.id));
       pendingRing = {
-        count: holders.length,
+        count: holders.filter((h) => held.has(h.id)).length,
+        holders: holders.length,
         titles: [...new Set(bodies.map(title))].sort(),
       };
       continue;

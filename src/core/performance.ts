@@ -1,7 +1,6 @@
 import curvesData from "../data/curves.json";
 import { evalCurve, synthCurve } from "./atmosphere.js";
 import { G0 } from "./constants.js";
-import { RADIAL_DECOUPLER_FUNDS } from "./parts.js";
 import type { Curve } from "./atmosphere.js";
 import type { Tank } from "./catalogue.js";
 import type { Solution } from "./solution.js";
@@ -281,7 +280,7 @@ function stageCost(c: Solution) {
       c.boosters.n *
       (c.boosters.part.cost +
         (c.boosters.part.column ? c.boosters.part.column.funds || 0 : 0) +
-        RADIAL_DECOUPLER_FUNDS);
+        c.boosters.hold.cost * c.boosters.hold.count);
   /* The power plant, priced in `sizePlant` with the fuel a cell burns and
      the tank it rides in. #415 */
   if (c.plant) f += c.plant.cost;
@@ -308,7 +307,7 @@ const stageParts = (c: Solution) =>
      the same way #93 did for cost. #97 */
   (c.boosters
     ? c.boosters.n *
-      (1 +
+      (c.boosters.hold.count +
         (c.boosters.part.nEng ?? 1) +
         (c.boosters.part.column ? c.boosters.part.column.count : 0))
     : 0) +

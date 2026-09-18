@@ -40,10 +40,14 @@ before changing the thing it names.
 - **A radially attached part stands off by the thickness of what holds it.**
   A booster on a TT-38K, a tank in a packed ring, a radial stack on its
   cubic struts: each stands its holder's standoff proud of what it is bolted
-  to — `STANDOFF` in geometry.json, per art, from the holder's `node_attach`
-  and drag cube by `tools/radial-standoff.mjs`; 0.22–0.24 m for the TT-38K,
-  0.26 for the strut. `boosterRing`, `boostersFit` and `stackRing` carry it,
-  so the sizing and the drawing agree, and `standoffOf` is the one place it
+  to — `STANDOFF` in geometry.json, per art, from the holder's collider (its
+  `.mu`, or the drag cube where none was given) and its `node_attach`, by
+  `tools/radial-standoff.mjs`; 0.17–0.18 m for the TT-38K, 0.24–0.26 for the
+  strut. `boosterRing`, `boostersFit` and `stackRing` carry it,
+  so the sizing and the drawing agree — the standoff from the wall the
+  booster is bolted to, and the bare attach radius against a wider engine
+  cluster below it (`clear`), never the standoff from the bells (#467) — and
+  `standoffOf` is the one place it
   is read. The model placed every one of them flush, understating a stage's
   width by twice the standoff, which the slenderness limit and the drag area
   both read: the Eeloo cut mission's seven-Terrier packed ring had been sized
@@ -658,3 +662,58 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
   air can carry a ring even when it is not the first — `mounts` in the solver —
   so a ring belongs to the bottom live stage until its own boosters-away
   step, not to the pad. #463
+
+- **What holds a booster on is chosen for the booster.** `holderFor` in
+  `parts.ts`: the TT-14 (ReStock+, gated on `expansions.rs` through
+  `offered`) on the 0.625 m class, the TT-38K on 1.25, the TT-70 on 1.875
+  and 2.5, the Hydraulic Detachment Manifold wider than that, down the
+  ladder to what is researched and offered, and never below the stock TT-38K
+  (`HOLD_FLOOR`); and two of them on a booster longer than `LONG_BOOSTER`
+  (6 m), the second never firing, so both stay with the core as the plan
+  charges them. The `Boosters` record carries the `hold`, and mass, funds,
+  part count, the ring's standoff (`boostersFit`, `boosterRing`, `stageSize`)
+  and the drawing all read it. One TT-38K held every booster before — a
+  Thoroughbred on a Kerbodyne tank by a part two thirds of a metre wide
+  (#467) — and choosing for the booster moved 45 of 81 grid designs and 7 of
+  18 missions: the TT-70's arm is 0.69 m against the TT-38K's 0.22, so wide
+  rings open up or stop fitting, and a second holder is another 600–770
+  funds and a part on every long booster, which the cost and parts
+  objectives feel. The width the ladder reads is what the holder meets — the
+  attach node's diameter, `2 · attachHalf` (`core/nodes.ts`) — not the drag
+  cube's: a Kickback is 1.6 m over its fins and 1.27 m where the TT-38K takes
+  it, and sized by the cube it went on a TT-70 it never needed. A liquid
+  column is measured at its lowest tank, the one the holder is on. Its width
+  for `boostersFit` and `stageSize` is `boosterWidth` — the widest tank or
+  the engine — not `widthOf` on the part, which read the core engine's size
+  class and put a 3.75 m drop tank a metre into the core (#467). The design
+  grid passes `expansions: null`, which `offered` reads as everything, so
+  the TT-14 is on the table there and moved 12 of 81 designs when it
+  arrived — four now hold Mites or Shrimps by it, the rest moved with the
+  candidate walk; the mission sweep is stock and did not see it.
+
+- **`boostedAscent` takes `plateAbove` like `solveStage`.** It was
+  hard-wired false, so a launch stage with boosters under a stage that ends
+  in an engine plate bought its own TD decoupler for a joint the plate's
+  `ModuleDecouple` already makes — probe 7's Duna stage carried a TD-37
+  under an EP-37 (#467). Same flag, same meaning: the joint is charged once.
+
+- **A lifting body stacks but never takes a radial role.** `isLifting` in
+  `parts.ts` names the Mk2 and Mk3 fuselages, whose `sz` is a profile rather
+  than a diameter: their cross-section is an oval, and every radial rule
+  treats a tank as a cylinder — probe 9 packed a ring of Mk2s round a Mk2
+  core with the TT-38Ks half a metre off its narrow sides. `poolsFor` keeps
+  them in groups of their own, flagged `lifting`; `packFor` refuses to pack
+  one, `boostedAscent` skips them as cores (so no boosters, columns or drop
+  tanks hang off one, and none is a column), and a radial engine never takes
+  one. Dropping them from the pool altogether was tried and moved Tylo 3.5 t
+  off its cut and the asparagus fixture off its drop tanks (#467); their lift
+  is still not in the ascent model, which is an open question rather than a
+  rule.
+
+- **A tank nothing can stand on is not in the pool.** `poolsFor` drops any
+  tank `topless` (`core/nodes.ts`) names — no top stack node in `nodes.json`:
+  the FL-C1000 and the S3-3600 Nosecone, with the nose built on. Every tank a
+  run has is under a tank, a decoupler or the payload, and the game will not
+  stack under a part with no node there; an S3-7200 on an FL-C1000 was what
+  the round-trip suite caught (#467). That is the game's rule read off its
+  own files, not a preference.

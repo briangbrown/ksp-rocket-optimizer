@@ -3,6 +3,7 @@ import {
   STACK_JOIN,
   clusterSpan,
   ringPositions,
+  sideOf,
   stageGeom,
   tankRun,
 } from "./geometry.js";
@@ -72,20 +73,47 @@ const rotate = (q: Quat, v: Vec3): Vec => {
    the axis: the game sets the node anti-parallel to the wall it meets, so
    the part's face is toward the wall when its node points away from it.
    Pointed inward, probe 1's Thuds stood bells-out (#467). */
-const faceWith = (d: Vec3, target: Vec3): Quat =>
-  aboutY(Math.atan2(target[0], target[2]) - Math.atan2(d[0], d[2]));
+/* a then b: the product b·a, so rotate(mul(b, a), v) = rotate(b, rotate(a, v)). */
+const mul = (b: Quat, a: Quat): Quat => [
+  b[3] * a[0] + b[0] * a[3] + b[1] * a[2] - b[2] * a[1],
+  b[3] * a[1] - b[0] * a[2] + b[1] * a[3] + b[2] * a[0],
+  b[3] * a[2] + b[0] * a[1] - b[1] * a[0] + b[2] * a[3],
+  b[3] * a[3] - b[0] * a[0] - b[1] * a[1] - b[2] * a[2],
+];
+const faceWith = (d: Vec3, target: Vec3): Quat => {
+  const az = Math.atan2(target[0], target[2]);
+  if (Math.hypot(d[0], d[2]) > 1e-6) return aboutY(az - Math.atan2(d[0], d[2]));
+  /* A direction down the part's own axis — the cubic strut's attach node is
+     its bottom face — is laid along x̂ by the quarter turn about d × x̂, and
+     that is then turned about y to the target's azimuth. Two steps rather
+     than the one shortest arc so every strut on a ring carries the same
+     roll about its own axis: the shortest arc rolled the ones off the x axis
+     by their azimuth, and probe 5's four off-axis struts stood on a corner
+     (#467). Placed upright, probe 4's stood their nodes vertical against a
+     wall they should have met face-on. */
+  const [ax, ay, azz] = [
+    d[1] * 0 - d[2] * 0,
+    d[2] * 1 - d[0] * 0,
+    d[0] * 0 - d[1] * 1,
+  ];
+  const s = Math.SQRT1_2 / Math.hypot(ax, ay, azz);
+  return mul(aboutY(az - Math.PI / 2), [ax * s, ay * s, azz * s, Math.SQRT1_2]);
+};
 
 const mm = (x: number) => Math.round(x * 1000) / 1000 || 0;
 /* How high the lowest stack node stands above the VAB floor: room for the
    bell below it. The Mammoth's hangs 1.2 m past its bottom node. */
 const FLOOR_CLEAR = 1.5;
 
-/* A surface-attach node points away from what it is bolted to: the editor
-   sets the node's direction along the wall's outward normal, one rule for
-   every part, read off the parts the reader re-placed by hand in probe 2
-   (a Twitch and a Shrimp, #467). What differs between parts is where the
-   mesh sits about its node, which the game handles and we never see. */
-const facing = (_title: string, outward: Vec3): Vec3 => outward;
+/* Which way a part faces when bolted on. Its body is on one side of its
+   attach point and the parent on the other, and the drag cube says which
+   (`sideOf`, from the install): a body out along the attach direction — the
+   Thud's, an SRB's — faces away from the axis with its direction; a body
+   behind it — a radial decoupler's, a tank's — faces toward. Read off the
+   part, not listed: the configs disagree about which way the direction
+   points, and probes 1 to 3 met both kinds (#467). */
+const facing = (title: string, outward: Vec3): Vec3 =>
+  sideOf(title) < 0 ? [-outward[0], 0, -outward[2]] : outward;
 /* Rotations to seven places: a unit quaternion to within 1e-6, and no more
    digits than the file carries, so a read-back is the same numbers. */
 const q7 = (q: Quat): Quat =>
@@ -169,7 +197,7 @@ class Builder {
     pos: Vec,
     rot: Quat,
     stage: { ignite: number | null; drop: number },
-    over: { full?: boolean; entry?: PartNodes } = {},
+    over: { full?: boolean; entry?: PartNodes; variant?: string } = {},
   ): Built {
     const info = over.entry ?? this.info(title);
     const id = this.id(path);
@@ -194,7 +222,7 @@ class Builder {
       symmetry: [],
       modules: info.modules,
       variant: info.modules.includes("ModulePartVariants")
-        ? (info.variant ?? null)
+        ? (over.variant ?? info.variant ?? null)
         : null,
       attach: null,
       resources,
@@ -316,17 +344,27 @@ function stackTanks(
   x: number,
   z: number,
   stage: CraftPart["stage"],
+  /* Which way the chain holds: each tank holding the one below, as a stack
+     hangs from its root at the top; or the one below holding it, for a
+     column that hangs from its lowest tank. */
+  up = false,
 ): Array<Built> {
   let below = under,
     belowNode = underNode;
   const out: Array<Built> = [];
   tanks.forEach((tk, k) => {
     const info = b.info(tk.t.n);
-    const y = Builder.yFor(info, "bottom", below.world[belowNode].p[1], I);
+    const on = below.world[belowNode];
+    if (!on)
+      throw new Error(
+        `${path}: ${tk.t.n} stacks on the ${belowNode} node of ${below.part.id}, which has ${Object.keys(below.world).join(", ") || "none"}`,
+      );
+    const y = Builder.yFor(info, "bottom", on.p[1], I);
     const t = b.place(`${path}/tank${k + 1}`, tk.t.n, [x, y, z], I, stage, {
       entry: info,
     });
-    b.stack(t, "bottom", below, belowNode);
+    if (up) b.stack(below, belowNode, t, "bottom");
+    else b.stack(t, "bottom", below, belowNode);
     below = t;
     belowNode = "top";
     out.push(t);
@@ -365,8 +403,9 @@ function holdOn(
   a: number,
   y: number,
   stage: CraftPart["stage"],
+  title: string = BOOSTER_HOLD,
 ): Built {
-  const info = b.info(BOOSTER_HOLD);
+  const info = b.info(title);
   const u: Vec3 = [Math.cos(a), 0, Math.sin(a)];
   /* Faced outward: a surface node's direction is the outward normal at the
      part's own face, and the game sets it anti-parallel to the wall's —
@@ -377,14 +416,14 @@ function holdOn(
     d: [1, 0, 0] as Vec3,
     s: 1,
   };
-  const rot = faceWith(at.d, facing(BOOSTER_HOLD, outward));
+  const rot = faceWith(at.d, facing(title, outward));
   /* Its attach point on the wall; the part's origin is that point less the
      attach offset, turned. */
   const ap = rotate(rot, at.p);
   const wallP: Vec = [cx + u[0] * wallR, y, cz + u[2] * wallR];
   const h = b.place(
     path,
-    BOOSTER_HOLD,
+    title,
     [wallP[0] - ap[0], y - ap[1], wallP[2] - ap[2]],
     rot,
     stage,
@@ -417,10 +456,7 @@ function boltOn(
     d: [1, 0, 0] as Vec3,
     s: 1,
   };
-  const rot =
-    Math.hypot(at.d[0], at.d[2]) > 1e-6
-      ? faceWith(at.d, facing(title, outward))
-      : I;
+  const rot = faceWith(at.d, facing(title, outward));
   const ap = rotate(rot, at.p);
   /* The part's origin: the attach point sits at `point`, and where the
      caller wants the origin's own height set (`attachY`), the point's y is
@@ -445,6 +481,10 @@ function boltOn(
 type Column = {
   bottom: Built;
   bottomNode: string;
+  /* The lowest bottom node of the stage's engines — the nozzle plane a
+     booster's foot lines up with — or null on a radial-engine stage, which
+     has none on the axis. */
+  nozzleY: number | null;
   topTank: Built;
   tankBaseY: number;
   tankTopY: number;
@@ -468,6 +508,7 @@ function buildColumn(
 ): Column {
   const e = sol.engine;
   const radial = g.radial;
+  let nozzleY: number | null = null;
   let bottom: Built | null = null,
     bottomNode = "";
   let below: Built | null = null,
@@ -478,18 +519,35 @@ function buildColumn(
     if (sol.coupler && g.perEng > 1) {
       /* Engines under a coupler's output nodes; the rejoin, where the stage
          has one, is the same coupler upside down beneath them. */
-      const cInfo = b.info(sol.coupler.n);
+      /* A plate in the length the plan chose for its shroud (`sol.shroud.v`,
+         one of the part's variants), and its `bottom` node where that variant
+         puts it — 1.25 m down on Short, 5 on Long — so the stage below hangs
+         from the shroud's foot. Written in the default variant (Long) with the
+         default node, probe 7's plates showed the wrong shroud and their
+         lower stages hung from a node the variant had moved (#467). */
+      const cBase = b.info(sol.coupler.n);
+      const variant =
+        sol.coupler.plate && sol.shroud && cBase.variantNodes?.[sol.shroud.v]
+          ? sol.shroud.v
+          : null;
+      const cInfo: PartNodes = variant
+        ? {
+            ...cBase,
+            nodes: { ...cBase.nodes, ...cBase.variantNodes![variant] },
+          }
+        : cBase;
       let outs = outputs(cInfo);
-      /* An engine plate makes its engine nodes at run time (ModuleDynamicNodes),
-         so the config carries only `top` and `bottom`. Its engines stand where
-         the model's cluster rule puts them, on nodes named as the game names
-         the plate's, `bottom01…`; whether the game takes them as written is
-         probe 4 of #467. */
+      /* An engine plate makes its engine nodes at run time (ModuleDynamicNodes,
+         a set per engine count named `N<count>_<k>`), so the config carries
+         only `top` and `bottom`. Its engines stand where the model's cluster
+         rule puts them, on nodes named as the game names them; the game keeps
+         the engines where they are written and lists its own N nodes empty
+         (probes 5–7). */
       const plate = !!sol.coupler.plate && outs.length < g.perEng;
       if (plate)
         outs = Array.from(
           { length: g.perEng },
-          (_, k) => `bottom${String(k + 1).padStart(2, "0")}`,
+          (_, k) => `N${g.perEng}_${k + 1}`,
         );
       if (outs.length < g.perEng)
         throw new Error(
@@ -517,25 +575,33 @@ function buildColumn(
         y = Math.max(...outputs(rInfo).map((o) => rejoin!.world[o].p[1]));
       }
       const engineTop = y + eSpan;
-      const cy = Builder.yFor(cInfo, plate ? "bottom" : outs[0], engineTop, I);
+      /* A plate's engines hang from its origin plane — the game's N nodes sit
+         at y = 0 in the part — and its shroud reaches down past their bells
+         to the variant's `bottom` node, which is the stage's foot and what the
+         stage below hangs from. Placed with that node at the engines' tops,
+         probe 8's Terriers hung from the shroud's foot and the tank below hung
+         from a Terrier; Brian's fix put the engines at the plate and the tank
+         at the node (#467). */
+      const cy = plate
+        ? Builder.yFor(cInfo, "bottom", y, I)
+        : Builder.yFor(cInfo, outs[0], engineTop, I);
+      /* A plate has a decoupler in it, on its bottom node: it fires with the
+         engines above it and lets the stage below go — the game stages it
+         (probe 5 came back with its plates given icons), and Brian's fixed
+         probe 7 put each plate in its engines' stage. */
       const coupler = b.place(
         `${path}/coupler`,
         sol.coupler.n,
         [cx, cy, cz],
         I,
-        stage,
-        { entry: cInfo },
+        plate ? { ignite: engineStage.ignite, drop: stage.drop } : stage,
+        { entry: cInfo, variant: variant ?? undefined },
       );
       if (plate) {
         const spread = (clusterSpan(g.perEng, g.ed) - g.ed) / 2;
-        const bottom = cInfo.nodes.bottom ?? {
-          p: [0, 0, 0] as Vec3,
-          d: [0, -1, 0] as Vec3,
-          s: 1,
-        };
         const made: Array<StackNode> = [];
         ringPositions(g.perEng).forEach(([ux, uz], k) => {
-          const p: Vec3 = [mm(ux * spread), bottom.p[1], mm(uz * spread)];
+          const p: Vec3 = [mm(ux * spread), 0, mm(uz * spread)];
           coupler.world[outs[k]] = {
             p: [cx + p[0], cy + p[1], cz + p[2]],
             d: [0, -1, 0],
@@ -568,8 +634,12 @@ function buildColumn(
         engines.push(eng);
       });
       if (engines.length > 1) b.symmetry(engines);
+      nozzleY = Math.min(
+        ...engines.map((en) => en.world.bottom?.p[1] ?? Infinity),
+      );
+      if (!Number.isFinite(nozzleY)) nozzleY = null;
       if (!bottom) {
-        bottom = engines[0];
+        bottom = plate ? coupler : engines[0];
         bottomNode = "bottom";
       }
       below = coupler;
@@ -585,6 +655,7 @@ function buildColumn(
       });
       bottom = eng;
       bottomNode = eInfo.nodes.bottom ? "bottom" : "top";
+      nozzleY = eng.world.bottom?.p[1] ?? null;
       below = eng;
       belowNode = "top";
     }
@@ -685,6 +756,7 @@ function buildColumn(
   return {
     bottom: bottom!,
     bottomNode,
+    nozzleY,
     topTank,
     tankBaseY,
     tankTopY: topTank.world.top?.p[1] ?? tankBaseY,
@@ -737,18 +809,26 @@ function craftOf(
     /* The stage below hangs from this stage's bottom node. */
     if (belowTop)
       b.stack(core.bottom, core.bottomNode, belowTop.part, belowTop.node);
-    /* Ring columns are struts on the core's top tank, two each. */
+    /* Ring columns are struts on the core's tank run, two each, a quarter
+       of the way in from either end of the column's run — the spread a
+       builder gives them; 0.4 m apart at the middle they held nothing
+       against a lean (probe 5, #467). Clamped to the core's own tanks, which
+       is what they are bolted to. */
     for (let k = 1; k < built.length; k++) {
       const col = built[k];
       const [cx, cz] = columns[k];
       const a = Math.atan2(cz, cx);
-      const yj = (col.tankBaseY + col.tankTopY) / 2;
+      const quarter = (col.tankTopY - col.tankBaseY) / 4;
+      const onCore = (y: number) =>
+        Math.min(core.tankTopY, Math.max(core.tankBaseY, y));
+      const yLo = onCore(col.tankBaseY + quarter);
+      const yHi = onCore(col.tankTopY - quarter);
       const s1 = boltOn(
         b,
         `s${i}/join${k}a`,
         STACK_JOIN,
-        tankAt(core.tanks, yj),
-        [Math.cos(a) * core.tankR, yj, Math.sin(a) * core.tankR],
+        tankAt(core.tanks, yLo),
+        [Math.cos(a) * core.tankR, yLo, Math.sin(a) * core.tankR],
         0,
         0,
         stage,
@@ -760,8 +840,8 @@ function craftOf(
         b,
         `s${i}/join${k}b`,
         STACK_JOIN,
-        tankAt(col.tanks, yj + 0.4),
-        [cx - Math.cos(a) * col.tankR, yj + 0.4, cz - Math.sin(a) * col.tankR],
+        tankAt(col.tanks, yHi),
+        [cx - Math.cos(a) * col.tankR, yHi, cz - Math.sin(a) * col.tankR],
         cx,
         cz,
         stage,
@@ -843,10 +923,30 @@ function craftOf(
        attach node asks for. */
     if (sol.boosters) {
       const bs = sol.boosters;
-      const lay = boosterLayout(sol, g, core.tankBaseY);
+      /* The next stage up, for how far its base reaches out over the ring. */
+      const above = solved.find((s) => s.i > i)?.sol ?? null;
+      const lay = boosterLayout(sol, g, core.tankBaseY, above);
+      /* The layout's heights are the model's, stacked by drag cubes; the
+         craft stacks by nodes, and an engine's bottom node is not its cube's
+         bottom — the Skipper's is 0.16 m below it, so a Thumper stood on the
+         cube base hung that far past the bell (probe 3, #467). Where the
+         booster reaches the stage base its foot goes on the core engines'
+         nozzle plane instead — their lowest bottom node, not the stage's
+         bottom node, which on a plated stage is the shroud's foot below the
+         bells: put there, probe 9's columns hung 0.9 m under the core's
+         Vectors and their TT-70s hung off the bottom edge of the Jumbo-64
+         (#467). A foot raised off the base is a distance from the tank base,
+         the same in both frames. A radial-engine stage has no engine on the
+         axis and keeps the model's foot. */
+      const nodeBase = core.nozzleY ?? undefined;
+      const footY =
+        !g.radial && nodeBase !== undefined && lay.foot <= lay.base + 1e-6
+          ? nodeBase + (lay.foot - lay.base)
+          : lay.foot;
       const bStage = { ignite: st.boosterIgnite(i), drop: st.boosterDrop(i) };
       const holdStage = { ignite: st.boosterDrop(i), drop: st.boosterDrop(i) };
       const holds: Array<Built> = [];
+      const seconds: Array<Built> = [];
       const bodies: Array<Built> = [];
       for (let k = 0; k < bs.n; k++) {
         const a = (k / bs.n) * 2 * Math.PI;
@@ -858,8 +958,8 @@ function craftOf(
              own attach node's height. */
           const info = b.info(bs.part.n);
           const by = info.nodes.bottom
-            ? Builder.yFor(info, "bottom", lay.foot, I)
-            : lay.foot;
+            ? Builder.yFor(info, "bottom", footY, I)
+            : footY;
           const at = info.attach ?? {
             p: [0, 0, 0] as Vec3,
             d: [0, 0, 1] as Vec3,
@@ -888,17 +988,44 @@ function craftOf(
             a,
             attachY,
             holdStage,
+            bs.hold.n,
           );
           b.surface(hold, body);
           holds.push(hold);
           bodies.push(body);
+          /* A long booster's second holder a quarter of its length from the
+             first — which has to sit at the booster's own attach node, its
+             middle, where the game snaps it — on the core tank beside it,
+             holding nothing. It fires with the first: the game stages every
+             decoupler, and probe 3 came back with it in the drop stage
+             (#467). */
+          if (bs.hold.count > 1) {
+            const y2 =
+              attachY + lay.bh / 4 <= core.tankTopY
+                ? attachY + lay.bh / 4
+                : attachY - lay.bh / 4;
+            seconds.push(
+              holdOn(
+                b,
+                `s${i}/boost${k}/hold2`,
+                tankAt(core.tanks, y2),
+                lay.hold / 2,
+                0,
+                0,
+                a,
+                y2,
+                holdStage,
+                bs.hold.n,
+              ),
+            );
+          }
           continue;
         }
         /* A liquid column or drop tank: an engine where it has one, then
            its tanks, held at the lowest tank's middle. */
         let under: Built | null = null,
           underNode = "";
-        let yy = lay.foot;
+        let yy = footY;
         if (lay.eh > 0) {
           const eInfo = b.info(bs.part.n);
           const ey = eInfo.nodes.bottom
@@ -937,26 +1064,30 @@ function craftOf(
           x,
           z,
           bStage,
+          true,
         );
         const top = above.length ? above[above.length - 1] : first;
-        const at = top.info.attach ?? {
+        const at = first.info.attach ?? {
           p: [g.td / 2, 0, 0] as Vec3,
           d: [1, 0, 0] as Vec3,
           s: 1,
         };
-        /* Turn the whole column so its tanks' attach nodes point outward and their faces meet the hold —
-           their nodes are on the axis, so nothing moves — and hold it by its
-           top tank, the root of its chain, at that tank's attach height. */
+        /* Turn the whole column so its tanks' attach nodes point outward and
+           their faces meet the hold — their nodes are on the axis, so nothing
+           moves — and hold it by its lowest tank, the root of its chain (the
+           run was stacked holding upward), at that tank's attach height. Held
+           by its top tank, probe 5's decouplers sat at the top of the column
+           and its second holder above it (#467). */
         const rot = faceWith(
           at.d,
-          facing(top.info.name, [Math.cos(a), 0, Math.sin(a)]),
+          facing(first.info.name, [Math.cos(a), 0, Math.sin(a)]),
         );
         for (const part of [under, first, ...above])
           if (part) {
             part.part = { ...part.part, rot: q7(rot) };
             b.byId.set(part.part.id, part);
           }
-        const attachY = top.part.pos[1] + at.p[1];
+        const attachY = first.part.pos[1] + at.p[1];
         const hold = holdOn(
           b,
           `s${i}/boost${k}/hold`,
@@ -967,14 +1098,44 @@ function craftOf(
           a,
           attachY,
           holdStage,
+          bs.hold.n,
         );
-        b.surface(hold, top);
+        b.surface(hold, first);
         holds.push(hold);
-        bodies.push(top);
+        bodies.push(first);
+        /* A long column's second holder at the quarter of its tank run
+           farther from the first — a quarter in from either end is where a
+           builder puts the pair (#467) — on the core tank beside it, holding
+           nothing. It fires with the first: the game stages every decoupler,
+           and probe 5 came back with it in the drop stage. */
+        if (bs.hold.count > 1) {
+          const runBase = first.world.bottom?.p[1] ?? yy;
+          const runTop = top.world.top?.p[1] ?? runBase;
+          const q1 = runBase + (runTop - runBase) / 4;
+          const q3 = runTop - (runTop - runBase) / 4;
+          const far =
+            Math.abs(q3 - attachY) >= Math.abs(q1 - attachY) ? q3 : q1;
+          const y2 = Math.min(core.tankTopY, Math.max(core.tankBaseY, far));
+          seconds.push(
+            holdOn(
+              b,
+              `s${i}/boost${k}/hold2`,
+              tankAt(core.tanks, y2),
+              lay.hold / 2,
+              0,
+              0,
+              a,
+              y2,
+              holdStage,
+              bs.hold.n,
+            ),
+          );
+        }
       }
       if (holds.length > 1) {
         b.symmetry(holds);
         b.symmetry(bodies);
+        if (seconds.length > 1) b.symmetry(seconds);
       }
     }
     /* The decoupler at the top of the stage, on the axis; none where the
