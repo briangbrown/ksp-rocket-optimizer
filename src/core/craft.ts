@@ -570,7 +570,16 @@ function buildColumn(
         y = Math.max(...outputs(rInfo).map((o) => rejoin!.world[o].p[1]));
       }
       const engineTop = y + eSpan;
-      const cy = Builder.yFor(cInfo, plate ? "bottom" : outs[0], engineTop, I);
+      /* A plate's engines hang from its origin plane — the game's N nodes sit
+         at y = 0 in the part — and its shroud reaches down past their bells
+         to the variant's `bottom` node, which is the stage's foot and what the
+         stage below hangs from. Placed with that node at the engines' tops,
+         probe 8's Terriers hung from the shroud's foot and the tank below hung
+         from a Terrier; Brian's fix put the engines at the plate and the tank
+         at the node (#467). */
+      const cy = plate
+        ? Builder.yFor(cInfo, "bottom", y, I)
+        : Builder.yFor(cInfo, outs[0], engineTop, I);
       /* A plate has a decoupler in it, on its bottom node: it fires with the
          engines above it and lets the stage below go — the game stages it
          (probe 5 came back with its plates given icons), and Brian's fixed
@@ -585,14 +594,9 @@ function buildColumn(
       );
       if (plate) {
         const spread = (clusterSpan(g.perEng, g.ed) - g.ed) / 2;
-        const bottom = cInfo.nodes.bottom ?? {
-          p: [0, 0, 0] as Vec3,
-          d: [0, -1, 0] as Vec3,
-          s: 1,
-        };
         const made: Array<StackNode> = [];
         ringPositions(g.perEng).forEach(([ux, uz], k) => {
-          const p: Vec3 = [mm(ux * spread), bottom.p[1], mm(uz * spread)];
+          const p: Vec3 = [mm(ux * spread), 0, mm(uz * spread)];
           coupler.world[outs[k]] = {
             p: [cx + p[0], cy + p[1], cz + p[2]],
             d: [0, -1, 0],
@@ -626,7 +630,7 @@ function buildColumn(
       });
       if (engines.length > 1) b.symmetry(engines);
       if (!bottom) {
-        bottom = engines[0];
+        bottom = plate ? coupler : engines[0];
         bottomNode = "bottom";
       }
       below = coupler;

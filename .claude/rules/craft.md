@@ -219,8 +219,14 @@ delivered plan to a `Craft`, and the only module allowed to import
   hung the tank from the shroud's foot. The plate's `ModuleDecouple` is on
   its bottom node, so it is staged with the engines above it, not with the
   stage it leaves in. Its engine nodes are made at run time, a set per
-  count named `N<count>_<k>`; the writer names them so, the game keeps the
-  engines where they are written and lists its own N nodes empty. The
+  count named `N<count>_<k>`, all on the plate's origin plane (y = 0 in the
+  part): the engines hang from there, and the shroud reaches down past their
+  bells to the variant's `bottom` node, which is the stage's foot and what
+  the stage below hangs from. Placed the other way round — the node at the
+  engines' tops — probe 8's Terriers hung from the shroud's foot and the tank
+  below hung from a Terrier. The writer names the nodes as the game does; the
+  game keeps the engines where they are written and lists its own N nodes
+  empty. The
   boosted stage path (`boostedAscent`) now takes `plateAbove` too, so a
   launch stage under a plate no longer buys the TD decoupler the plate makes
   redundant (solver.md).
