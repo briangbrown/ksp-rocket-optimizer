@@ -6,7 +6,7 @@ import {
   stageGeom,
   tankRun,
 } from "./geometry.js";
-import { boosterLayout, columnsOf } from "./model.js";
+import { boosterLayout, columnsOf, radialPhase } from "./model.js";
 import { stagingOf } from "./staging.js";
 import { DATA } from "./catalogue.js";
 import { nodesOf, commandParts } from "./nodes.js";
@@ -76,19 +76,16 @@ const faceWith = (d: Vec3, target: Vec3): Quat =>
   aboutY(Math.atan2(target[0], target[2]) - Math.atan2(d[0], d[2]));
 
 const mm = (x: number) => Math.round(x * 1000) / 1000 || 0;
+/* How high the lowest stack node stands above the VAB floor: room for the
+   bell below it. The Mammoth's hangs 1.2 m past its bottom node. */
+const FLOOR_CLEAR = 1.5;
 
-/* Which way a part's surface-attach node points is the config's, not a
-   rule: the Thud's and the Twitch's point away from what they are bolted
-   to, the TT-38K's toward it — probes 1 and 2 (#467), and the engine-mesh
-   tool met the same disagreement between the Puff and the Thud. Away is the
-   default; the parts known to be the other way are named. */
-const TOWARD = new Set([
-  "TT-38K Radial Decoupler",
-  "TT-70 Radial Decoupler",
-  "Hydraulic Detachment Manifold",
-]);
-const facing = (title: string, outward: Vec3): Vec3 =>
-  TOWARD.has(title) ? [-outward[0], 0, -outward[2]] : outward;
+/* A surface-attach node points away from what it is bolted to: the editor
+   sets the node's direction along the wall's outward normal, one rule for
+   every part, read off the parts the reader re-placed by hand in probe 2
+   (a Twitch and a Shrimp, #467). What differs between parts is where the
+   mesh sits about its node, which the game handles and we never see. */
+const facing = (_title: string, outward: Vec3): Vec3 => outward;
 /* Rotations to seven places: a unit quaternion to within 1e-6, and no more
    digits than the file carries, so a read-back is the same numbers. */
 const q7 = (q: Quat): Quat =>
@@ -667,7 +664,7 @@ function buildColumn(
     const R = Math.max(g.td, g.pack ? g.pack.w : 0) / 2;
     const group: Array<Built> = [];
     for (let j = 0; j < g.perEng; j++) {
-      const a = ((j + 0.5) / g.perEng) * 2 * Math.PI + th;
+      const a = radialPhase(sol, g).phase + (j / g.perEng) * 2 * Math.PI + th;
       /* Its attach node is at its origin, on the wall — the model's shape,
          a bell of radius r outboard of it, is what hangs off that point.
          Placed at the bell's centre the Twitches of probe 2 stood 17 cm off
@@ -852,7 +849,7 @@ function craftOf(
       const holds: Array<Built> = [];
       const bodies: Array<Built> = [];
       for (let k = 0; k < bs.n; k++) {
-        const a = lay.phase + (k / bs.n) * 2 * Math.PI;
+        const a = (k / bs.n) * 2 * Math.PI;
         const x = Math.cos(a) * lay.br,
           z = Math.sin(a) * lay.br;
         const col = bs.part.column;
@@ -1035,8 +1032,17 @@ function craftOf(
     a.id === root.part.id ? -1 : c.id === root.part.id ? 1 : 0,
   );
 
-  /* Shift so the root sits where the editor puts a fresh one. */
-  const shift = 15 - root.part.pos[1];
+  /* Stand it on the floor. The editor's origin is the VAB floor, and a
+     craft hung from a root at the editor's spawn height ran seven metres
+     under it on probe 3, the Thumpers' tops just showing (#467). The lowest
+     stack node goes a bell's length above y = 0, since an engine hangs past
+     its bottom node by up to about that. */
+  let lowest = Infinity;
+  for (const p of b.parts)
+    for (const w of Object.values(p.world)) lowest = Math.min(lowest, w.p[1]);
+  const shift = Number.isFinite(lowest)
+    ? FLOOR_CLEAR - lowest
+    : 15 - root.part.pos[1];
   const shifted = parts.map((p) => ({
     ...p,
     pos: pos3(p.pos[0], p.pos[1] + shift, p.pos[2]),

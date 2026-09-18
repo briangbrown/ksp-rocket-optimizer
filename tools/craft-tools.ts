@@ -123,10 +123,13 @@ function diff(oursPath: string, savedPath: string) {
     const d = Math.hypot(...p.pos.map((v, i) => v - q.pos[i]));
     if (d > 1e-3)
       out.push(`${k}: moved ${(d * 1000).toFixed(0)} mm (${p.pos} → ${q.pos})`);
-    const rq = Math.hypot(
-      ...p.rot.map((v, i) => Math.abs(v) - Math.abs(q.rot[i])),
-    );
-    if (rq > 1e-3) out.push(`${k}: turned (${p.rot} → ${q.rot})`);
+    /* Two quaternions are the same turn when their dot is ±1; comparing
+       components by size hid a half turn, where only signs change. */
+    const dot = Math.abs(p.rot.reduce((a, v, i) => a + v * q.rot[i], 0));
+    if (Math.abs(dot - 1) > 1e-6)
+      out.push(
+        `${k}: turned ${((2 * Math.acos(Math.min(1, dot)) * 180) / Math.PI).toFixed(0)}° (${p.rot} → ${q.rot})`,
+      );
     if ((p.parent?.id ?? null) !== (q.parent?.id ?? null))
       out.push(`${k}: parent ${p.parent?.id} → ${q.parent?.id}`);
     if (p.stage.ignite !== q.stage.ignite || p.stage.drop !== q.stage.drop)
