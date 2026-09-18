@@ -1,3 +1,4 @@
+import { stagingOf } from "./staging.js";
 import type { PlanStage } from "./plan.js";
 import type { ChainCandidate, GroupResult } from "./solver.js";
 
@@ -83,6 +84,22 @@ export function missionSignature(
     );
     lines.push(`    ${JSON.stringify(canon(s.sol))}`);
   });
+  /* The order it comes apart in, as the craft file will number it (#463):
+     one entry an event — KSP's stage number, then what lights (+) and what
+     lets go (−) as stage:role. */
+  const st = stagingOf(stages);
+  lines.push(
+    `  staging: launch=${st.launch} ` +
+      st.events
+        .map(
+          (e) =>
+            `${e.stage}[${[
+              ...e.ignite.map((r) => `+${r.stage}:${r.role}`),
+              ...e.decouple.map((r) => `-${r.stage}:${r.role}`),
+            ].join(",")}]`,
+        )
+        .join(" "),
+  );
   return lines.join("\n") + "\n";
 }
 
