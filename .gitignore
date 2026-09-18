@@ -153,6 +153,7 @@ build/
 
 # perf harness: build output, profiles, machine-local baselines
 perf/.out
+tools/.out
 perf/.prof
 perf/baselines/local.json
 

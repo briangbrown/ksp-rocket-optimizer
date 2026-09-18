@@ -295,6 +295,48 @@ then append the three lines. Nothing regenerates the file on its own: the
 links are evidence of what the app wrote on the day, which is what the test
 wants to hold.
 
+## The craft writer against the game — `tools/craft-tools.ts`
+
+Nothing in CI can tell whether KSP loads, launches and stages what the
+writer produces (#460, #467); one short session in the VAB per round can,
+and everything around it is a script. `tools/craft-tools.ts` is built through
+vite as `perf/run.ts` is and run under node, by four scripts:
+
+    npm run craft:probes -- <outdir>
+    npm run craft:diff -- ours.craft saved.craft
+    npm run craft:log -- KSP.log
+    npm run craft:conformance -- <dir>
+
+**The probe ladder.** `craft:probes` writes six crafts from plans the mission
+sweep already delivers, each adding a construct — a plain stack; radial
+engines and SRBs on TT-38Ks; a cluster on a coupler with a rejoin; parallel
+columns on struts and a packed ring; a drop-tank ring; a cut mission of six
+stages — through the same adapter and writer the app uses, so a probe that
+loads is the app's file loading. The first rung is written twice, with the
+`MODULE` stubs the writer emits and with none (`01-stack` and `01-stacka-bare`),
+which is the open question about the least body the game launches. A
+`README.txt` in the folder repeats the protocol.
+
+**The protocol, per craft, about a minute each.** Copy the folder's files into
+`saves/<your save>/Ships/VAB/`. In the VAB: open it — is it whole, and is the
+engineer's report's part count ours? — press **Ctrl+S** so the game saves it
+back, then launch and space through the stages. Note loaded / launched /
+staged / fell apart. Then run `tools/pack-craft.ps1` from the KSP root and
+upload the zip: it carries the saved crafts and `KSP.log`.
+
+**What the scripts then read.** `craft:diff` reads ours and the game's saved
+copy as `Craft`s and lists every part the game dropped, moved (to the
+millimetre), turned, re-parented or re-staged, and every header field, PART
+field and block the game writes that we do not — the writer's to-do list; it
+exits 1 where the game changed anything, 0 where it took the geometry as
+written. `craft:log` prints the lines of `KSP.log` that say a craft did not
+load clean — a part not found, an exception under `ShipConstruct` or
+`EditorLogic`, a joint that broke — by the craft being loaded. `craft:conformance`
+runs `readCraft` over every `.craft` under a folder (the game's own
+`Ships/VAB`, a save's) and says which it cannot read or reads as a craft
+`checkCraft` refuses. The saved copies become the reader's fixtures once they
+are ours, and every answer goes into `.claude/rules/craft.md`.
+
 ## The icon — `public/favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`
 
 The nut (#206): a hex nut framing a rocket in Kerbin's teal, drawn once as
