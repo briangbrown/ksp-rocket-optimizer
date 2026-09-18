@@ -142,6 +142,18 @@ A green build still says nothing about a solver change that these cannot see.
 `.claude/rules/verification.md` records what each check reaches and what it
 does not.
 
+## Loading it in KSP
+
+The build section's download button writes the delivered rocket as a
+`.craft` file. Drop it in `saves/<your save>/Ships/VAB/` and it opens in the
+VAB as the rocket the tool priced: the same parts, stacked and clustered as
+the plan view draws them, staged as the flight card says. A probe core
+stands in for your payload — add it on the top node — and a rocket built
+with ReStock or ReStock+ parts needs those installed, since KSP drops a part
+it does not know without a word. The file is the plan, to the part: an
+engine holds what the part table says it carries, tanks are full, and the
+same design writes the same file every time.
+
 ## Running it
 
     npm install
