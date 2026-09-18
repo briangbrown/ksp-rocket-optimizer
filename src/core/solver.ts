@@ -13,15 +13,18 @@ import {
   stageSize,
   widthOf,
   useArt,
+  boosterLength,
+  boosterWidth,
+  standoffOf,
 } from "./geometry.js";
 import {
-  RADIAL_DECOUPLER,
   couplerFor,
   decouplerFor,
   diaOf,
   isRadial,
   maxCluster,
   shroudFor,
+  holderFor,
 } from "./parts.js";
 import {
   STAGE_PRESSURE,
@@ -39,6 +42,7 @@ import {
   stageParts,
 } from "./performance.js";
 import { fitStructure, pickTanksMemo, poolsFor } from "./tanks.js";
+import { attachHalf } from "./nodes.js";
 import type { Excluded, Expansions, Regime, Roster } from "./constants.js";
 import type { Engine, Tank } from "./catalogue.js";
 import type { Objective } from "./performance.js";
@@ -1454,11 +1458,22 @@ function boostedAscent({
              built. The core's span is the same max of tank and cluster the
              geometry takes; boosters never run with parallel columns, so there
              is no ring of stacks to widen it. #423 */
+          const bd = boosterWidth(b);
+          /* Held by what the decoupler meets, the casing at the attach node,
+             not the cube's width: a Kickback is 1.6 m over its fins and
+             1.27 m where the TT-38K takes it (#467). */
+          const holder = holderFor(
+            2 * attachHalf(b, bd),
+            boosterLength(b, bd),
+            unlocked,
+            excluded,
+          );
           if (
             !boostersFit(
               nb,
-              widthOf(b, diaOf(b)),
+              bd,
               Math.max(grp.dia, clusterSpan(nc, widthOf(c, diaOf(c)))) / 2,
+              standoffOf(holder.n),
             )
           )
             continue;
@@ -1494,7 +1509,7 @@ function boostedAscent({
           if (!fit) continue;
           const { adapt, dec, shroud } = fit;
           const fixed =
-            payload + extra + nc * c.m + nb * RADIAL_DECOUPLER + fit.dry;
+            payload + extra + nc * c.m + nb * holder.m * holder.count + fit.dry;
 
           const coreBurnA = mdotC * tB; // core propellant spent under boost
 
@@ -1640,6 +1655,7 @@ function boostedAscent({
               boosters: {
                 part: b,
                 n: nb,
+                hold: holder,
                 burn: tB,
                 dv: dvA,
                 sepMass: mA,

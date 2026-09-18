@@ -89,9 +89,15 @@ type BoosterPart = {
 
 /* A booster pool as a stage carries it: how many, what they are, how long they
    burn and what the vehicle weighs when they go. */
+/* What holds a booster on and lets it go, chosen for the booster's size
+   (`holderFor` in parts.ts): which radial decoupler, and how many of them a
+   long booster takes. */
+type Hold = { n: string; m: number; cost: number; t: string; count: number };
+
 type Boosters = {
   part: BoosterPart;
   n: number;
+  hold: Hold;
   burn: number;
   dv: number;
   sepMass: number;
@@ -184,6 +190,7 @@ type Solution = {
 };
 
 export type {
+  Hold,
   AdapterChain,
   BoosterPart,
   Boosters,

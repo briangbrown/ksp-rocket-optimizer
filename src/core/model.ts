@@ -1,26 +1,21 @@
 import {
-  BOOSTER_HOLD,
   PAYLOAD_ASPECT,
+  boosterLength,
   boosterRing,
+  boosterWidth,
   clusterSpan,
   engineLen,
-  heightOf,
   payloadDiaOf,
   ringPositions,
   stageGeom,
   standoffOf,
-  tankStackLen,
   tankRun,
   widthOf,
 } from "./geometry.js";
+import { attachHalf } from "./nodes.js";
 import { diaOf, isRadial } from "./parts.js";
 import type { Coupler, Engine, Shroud, Tank } from "./catalogue.js";
-import type {
-  BoosterPart,
-  Boosters,
-  DecouplerFit,
-  Solution,
-} from "./solution.js";
+import type { BoosterPart, DecouplerFit, Solution } from "./solution.js";
 
 /* One shape. A cylinder standing on the stack axis or on a ring around it:
    where its base sits, how wide, how tall, and what it is.
@@ -130,8 +125,8 @@ export function radialPhase(
   const b = sol.boosters;
   if (!b || !g.radial || g.engineH <= 0) return { phase: half, clear: true };
   const hold = Math.max(g.td, g.pack ? g.pack.w : 0);
-  const bd = widthOf(b.part, diaOf(b.part));
-  const rB = hold / 2 + standoffOf(BOOSTER_HOLD) + bd / 2;
+  const bd = boosterWidth(b.part);
+  const rB = hold / 2 + standoffOf(b.hold.n) + attachHalf(b.part, bd);
   const rE = hold / 2 + g.ed / 2;
   const nearest = (ph: number) => {
     let least = Infinity;
@@ -169,11 +164,12 @@ export function boosterLayout(
   sol: Solution,
   g: ReturnType<typeof stageGeom>,
   tankBase: number,
+  above: Solution | null = null,
 ) {
   const b = sol.boosters!;
   /* The same width stageSize charges for it, so the shapes cannot reach
      further than the stage was sized at. */
-  const bd = widthOf(b.part, diaOf(b.part));
+  const bd = boosterWidth(b.part);
   /* Against the outermost tank, because that is what it is bolted to. For a
      plain run that is the core's own diameter; where the run is a packed ring
      the outer tanks reach `packed.width / 2` and the booster has to clear
@@ -260,7 +256,7 @@ export function boosterLayout(
      which is a part drawn at a size it is not — and it never needed to be:
      every booster the mission grid picks is shorter than the tanks it hangs
      from, so the cap only ever hid how wrong the length underneath it was. */
-  const bh = boosterLength(b, bd);
+  const bh = boosterLength(b.part, bd);
   /* The walk says how far down the foot *may* go; this says how far it can
      go and still be held. The game holds a radially attached part by its
      surface-attach node, and on a solid booster that node is at mid-height,
@@ -299,14 +295,37 @@ export function boosterLayout(
   /* Outside whatever it is bolted to, and far enough out that the ring
      clears itself — `boosterRing` keeps both, and `stageSize` charges the
      stage for the same radius. #420 */
-  const br = boosterRing(b.n, bd, g.S > 1 ? g.ringR : ring);
+  const half = attachHalf(b.part, bd);
+  const br = boosterRing(
+    b.n,
+    bd,
+    g.S > 1 ? g.ringR : ring,
+    standoffOf(b.hold.n),
+    half,
+  );
+  /* And no higher than the tanks it hangs beside, where the stage above
+     would meet it: that stage stands on the top tank, and where it reaches
+     out past the ring's inner face — a cluster wider than this stage's core —
+     a booster reaching past the tank top reaches into its engines. Probe 3's
+     Kickbacks topped out 0.15 m up the Terriers' bells of the three-stack
+     stage above (#467). So the foot goes down until the top is level with
+     the tank top, as far as the holder still meets the middle; a booster
+     longer than twice the tank run keeps the holder and pokes up, which is
+     the solver's to refuse. A stage above narrow enough to stand inside the
+     ring is passed by, as the game allows, and the foot stays where the
+     walk put it. */
+  const reach = above ? stageGeom(above).span / 2 : 0;
+  if (reach > br - half) {
+    foot = Math.min(foot, tankBase + g.tank - bh);
+    foot = Math.max(foot, tankBase - bh / 2);
+  }
   const col = b.part.column;
   /* Numbered across the model, so two stages carrying boosters at the same
      angle are still two rings. */
   /* A column's engine, where it has one. `nEng` is what the pools write to
      say so: a drop tank is tankage with nothing under it. */
   const eh = col && (b.part.nEng ?? 1) ? engineLen(b.part) : 0;
-  return { bd, bh, foot, br, eh, hold };
+  return { bd, bh, half, foot, br, eh, hold };
 }
 
 /* One stage's worth of shapes, standing on `base`, and how tall it came out. */
@@ -317,6 +336,7 @@ function stageParts(
   /* Held on an object rather than as a local the caller reassigns, because the
      compiler cannot follow an assignment made inside the walk. */
   ringNo: { n: number },
+  above: Solution | null = null,
 ) {
   const g = stageGeom(sol);
   const S = g.S;
@@ -493,7 +513,12 @@ function stageParts(
      twenty-five metres of empty space. #86 */
   if (sol.boosters) {
     const b = sol.boosters;
-    const { bd, bh, foot, br, eh } = boosterLayout(sol, g, tankBase);
+    const { bd, bh, half, foot, br, eh } = boosterLayout(
+      sol,
+      g,
+      tankBase,
+      above,
+    );
     const col = b.part.column;
     for (let i = 0; i < b.n; i++) {
       const a = (i / b.n) * 2 * Math.PI;
@@ -513,6 +538,9 @@ function stageParts(
          in the tank colour and the engine in the engine colour, like the parts
          on the axis, rather than a featureless cylinder in a colour of its
          own. #123 */
+      /* A solid is drawn at its casing, which is what the attach node
+         measures — `bd` is the cube, fins and all, and a Kickback drawn at
+         its fins' 1.6 m stood 0.25 m into the tank it is held against. */
       if (!col) {
         push({
           role: "booster",
@@ -521,12 +549,13 @@ function stageParts(
           x,
           z,
           y: foot,
-          r: bd / 2,
+          r: half,
           h: bh,
         });
         continue;
       }
       let y = foot;
+      /* The engine at its own width — `bd` is the column's, its widest tank. */
       if (eh > 0) {
         push({
           role: "engine",
@@ -535,7 +564,7 @@ function stageParts(
           x,
           z,
           y,
-          r: bd / 2,
+          r: widthOf(b.part, diaOf(b.part)) / 2,
           h: eh,
         });
         y += eh;
@@ -576,18 +605,6 @@ function stageParts(
    fuel is 7.5 kg per 5 litre unit, so 1.5 t per cubic metre; the grain alone
    left the small boosters far too stubby, so it adds a nozzle and closure
    allowance that scales with bore. */
-function boosterLength(b: Boosters, bd: number) {
-  const p = b.part;
-  /* Its tanks, plus its engine where it has one. A drop tank has none, and was
-     drawn with a whole engine's length of nothing under it — the same part it
-     was charged for in #97, in the drawing. */
-  if (p.column)
-    return tankStackLen(p.column) + ((p.nEng ?? 1) ? engineLen(p) : 0);
-  const measured = heightOf(p, 0);
-  if (measured > 0) return measured;
-  const vol = (p.fuelM || 0) / 1.15 || 1;
-  return Math.max(bd, vol / ((Math.PI / 4) * bd * bd));
-}
 
 /* The whole vehicle: the stages still attached, bottom first, with the payload
    on top. `stages` is what the build view calls `live` — already sliced to the
@@ -607,11 +624,11 @@ export function modelOf(
   let stage = 0;
   const push = (p: ModelPart) => parts.push({ ...p, stage });
   let y = 0;
-  for (const st of stages) {
-    if (!st.sol) continue;
-    y += stageParts(st.sol, y, push, ringNo);
+  const solved = stages.map((st) => st.sol ?? null).filter((s) => s !== null);
+  solved.forEach((sol, k) => {
+    y += stageParts(sol, y, push, ringNo, solved[k + 1] ?? null);
     stage++;
-  }
+  });
   const payD = payloadDiaOf(payload, payloadDia);
   if (payD > 0)
     parts.push({

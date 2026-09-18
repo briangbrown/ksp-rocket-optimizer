@@ -1,5 +1,6 @@
 import { NONE, expBits } from "./constants.js";
 import { heightOf } from "./geometry.js";
+import { topless } from "./nodes.js";
 import {
   compatible,
   couplerFor,
@@ -359,7 +360,8 @@ function poolsFor(engine: Engine, tanks: ReadonlyArray<Tank>) {
       compatible(engine, t) &&
       sizeMatch(engine, t) &&
       !isAdapter(t) &&
-      !isRadialOnly(t),
+      !isRadialOnly(t) &&
+      !topless(t.n),
   );
   const groups = new Map<string, Array<Tank>>();
   pool.forEach((t: Tank) => {

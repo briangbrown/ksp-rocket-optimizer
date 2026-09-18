@@ -658,3 +658,33 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
   air can carry a ring even when it is not the first — `mounts` in the solver —
   so a ring belongs to the bottom live stage until its own boosters-away
   step, not to the pad. #463
+
+- **What holds a booster on is chosen for the booster.** `holderFor` in
+  `parts.ts`: the TT-38K on a 1.25 m booster, the TT-70 on 1.875 and 2.5,
+  the Hydraulic Detachment Manifold wider than that, down the ladder to what
+  is researched; and two of them on a booster longer than `LONG_BOOSTER`
+  (6 m), the second never firing, so both stay with the core as the plan
+  charges them. The `Boosters` record carries the `hold`, and mass, funds,
+  part count, the ring's standoff (`boostersFit`, `boosterRing`, `stageSize`)
+  and the drawing all read it. One TT-38K held every booster before — a
+  Thoroughbred on a Kerbodyne tank by a part two thirds of a metre wide
+  (#467) — and choosing for the booster moved 45 of 81 grid designs and 7 of
+  18 missions: the TT-70's arm is 0.69 m against the TT-38K's 0.22, so wide
+  rings open up or stop fitting, and a second holder is another 600–770
+  funds and a part on every long booster, which the cost and parts
+  objectives feel. The width the ladder reads is what the holder meets — the
+  attach node's diameter, `2 · attachHalf` (`core/nodes.ts`) — not the drag
+  cube's: a Kickback is 1.6 m over its fins and 1.27 m where the TT-38K takes
+  it, and sized by the cube it went on a TT-70 it never needed. A liquid
+  column is measured at its lowest tank, the one the holder is on. Its width
+  for `boostersFit` and `stageSize` is `boosterWidth` — the widest tank or
+  the engine — not `widthOf` on the part, which read the core engine's size
+  class and put a 3.75 m drop tank a metre into the core (#467).
+
+- **A tank nothing can stand on is not in the pool.** `poolsFor` drops any
+  tank `topless` (`core/nodes.ts`) names — no top stack node in `nodes.json`:
+  the FL-C1000 and the S3-3600 Nosecone, with the nose built on. Every tank a
+  run has is under a tank, a decoupler or the payload, and the game will not
+  stack under a part with no node there; an S3-7200 on an FL-C1000 was what
+  the round-trip suite caught (#467). That is the game's rule read off its
+  own files, not a preference.

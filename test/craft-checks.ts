@@ -247,7 +247,13 @@ export function craftChecks(
 
   /* Masses, per stage, grouped by the stage each part leaves in. */
   const root = craft.parts[0];
-  const holdName = nodesOf("TT-38K Radial Decoupler")?.name;
+  const holdNames = new Set(
+    [
+      "TT-38K Radial Decoupler",
+      "TT-70 Radial Decoupler",
+      "Hydraulic Detachment Manifold",
+    ].map((t) => nodesOf(t)?.name),
+  );
   const groups = new Map<number, Array<CraftPart>>();
   for (const p of craft.parts) {
     if (p === root) continue;
@@ -272,7 +278,7 @@ export function craftChecks(
     const sol = st.sol!;
     const ring = groups.get(ringDrop.get(i) ?? -1) ?? [];
     /* The ring's holders are the stage's, in the plan's accounting. */
-    const holds = ring.filter((p) => p.name === holdName);
+    const holds = ring.filter((p) => holdNames.has(p.name));
     const core = [...(groups.get(cores[i]) ?? []), ...holds];
     const dry = sum(core, dryOf);
     const prop = sum(core, propOf);
@@ -296,7 +302,7 @@ export function craftChecks(
         `mass: stage ${i} holds ${prop.toFixed(3)} t of propellant, the plan ${wantProp.toFixed(3)}`,
       );
     if (sol.boosters) {
-      const bodies = ring.filter((p) => p.name !== holdName);
+      const bodies = ring.filter((p) => !holdNames.has(p.name));
       const wet = sum(bodies, (p) => dryOf(p) + propOf(p));
       const want = sol.boosters.n * sol.boosters.part.m;
       if (Math.abs(wet - want) > Math.max(0.1, 0.03 * want))

@@ -1,6 +1,7 @@
 import { NONE, expBits, offered } from "./constants.js";
 import couplersData from "../data/couplers.json";
 import structureData from "../data/structure.json";
+import type { Hold } from "./solution.js";
 import type { Excluded, Expansions, Roster } from "./constants.js";
 import type { Leg } from "./orbits.js";
 import type {
@@ -432,6 +433,49 @@ if (!TT38K) throw new Error("structure.json has lost the TT-38K");
 const RADIAL_DECOUPLER = TT38K.m;
 const RADIAL_DECOUPLER_FUNDS = TT38K.cost;
 
+/* The three radial decouplers, smallest first, and the widest booster each
+   is for: the TT-38K on 1.25 m boosters, the TT-70 on 1.875 and 2.5, the
+   Hydraulic Detachment Manifold on anything wider. One TT-38K held every
+   booster whatever its size — a Thoroughbred on a Kerbodyne tank by a part
+   two thirds of a metre wide, which the VAB showed for what it was (#467).
+   A booster longer than `LONG_BOOSTER` takes two, one near each end, as a
+   builder would use a second decoupler or a strut; the second never fires,
+   so both stay with the core as the plan charges them. Chosen down the
+   ladder where a size is not researched or is ruled out, to the TT-38K. */
+const HOLDERS = [
+  "TT-38K Radial Decoupler",
+  "TT-70 Radial Decoupler",
+  "Hydraulic Detachment Manifold",
+].map((n) => {
+  const h = structureData.decoupler.find((x) => x.n === n);
+  if (!h) throw new Error(`structure.json has lost the ${n}`);
+  return h;
+});
+const HOLD_DIA = [1.3, 2.6, Infinity];
+const LONG_BOOSTER = 6;
+const holderFor = (
+  bd: number,
+  bh: number,
+  unlocked: Roster,
+  excluded: Excluded,
+): Hold => {
+  const ok = (h: StructPart) =>
+    unlocked.has(h.t) && !(excluded && excluded.has(h.n));
+  let pick = HOLDERS[0];
+  for (let k = HOLD_DIA.findIndex((d) => bd <= d); k >= 0; k--)
+    if (ok(HOLDERS[k])) {
+      pick = HOLDERS[k];
+      break;
+    }
+  return {
+    n: pick.n,
+    m: pick.m,
+    cost: pick.cost,
+    t: pick.t,
+    count: bh >= LONG_BOOSTER ? 2 : 1,
+  };
+};
+
 /* Radial stacks burn with the core and are never dropped on their own, so what
    holds them on does not have to separate — it only has to be structure. The
    lightest thing in the game that surface-attaches and offers a stack node is the
@@ -465,8 +509,11 @@ const radialJoin = (unlocked: Roster, excluded: Excluded) =>
 export {
   COUPLERS,
   PLATE_SHROUD,
+  HOLDERS,
+  LONG_BOOSTER,
   RADIAL_DECOUPLER,
   RADIAL_DECOUPLER_FUNDS,
+  holderFor,
   RADIAL_JOIN,
   RADIAL_JOIN_FALLBACK,
   STRUCT,

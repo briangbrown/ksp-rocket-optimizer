@@ -161,3 +161,16 @@ describe("the nodes table", () => {
     ).toBe(2);
   });
 });
+
+describe("topless", () => {
+  /* The nose-cone tanks have no top node and the game will not stack under
+     them; the pool leaves them out (core/tanks.ts). #467 */
+  it("names the tanks nothing can stand on, and no others", async () => {
+    const { topless } = await import("../src/core/nodes.js");
+    expect(topless("FL-C1000 Fuel Tank")).toBe(true);
+    expect(topless("Kerbodyne S3-3600 Nosecone")).toBe(true);
+    expect(topless("FL-T400 Fuel Tank")).toBe(false);
+    expect(topless("Rockomax Jumbo-64 Fuel Tank")).toBe(false);
+    expect(topless("no such part")).toBe(false);
+  });
+});

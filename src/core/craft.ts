@@ -3,6 +3,7 @@ import {
   STACK_JOIN,
   clusterSpan,
   ringPositions,
+  sideOf,
   stageGeom,
   tankRun,
 } from "./geometry.js";
@@ -72,20 +73,38 @@ const rotate = (q: Quat, v: Vec3): Vec => {
    the axis: the game sets the node anti-parallel to the wall it meets, so
    the part's face is toward the wall when its node points away from it.
    Pointed inward, probe 1's Thuds stood bells-out (#467). */
-const faceWith = (d: Vec3, target: Vec3): Quat =>
-  aboutY(Math.atan2(target[0], target[2]) - Math.atan2(d[0], d[2]));
+const faceWith = (d: Vec3, target: Vec3): Quat => {
+  if (Math.hypot(d[0], d[2]) > 1e-6)
+    return aboutY(Math.atan2(target[0], target[2]) - Math.atan2(d[0], d[2]));
+  /* A direction down the part's own axis — the cubic strut's attach node is
+     its bottom face — is laid along the horizontal target by the quarter turn
+     about the horizontal axis perpendicular to both: d × target, which for a
+     vertical d is already a unit vector. Placed upright, probe 4's struts
+     stood their nodes vertical against a wall they should have met face-on
+     (#467). */
+  const [ax, ay, az] = [
+    d[1] * target[2] - d[2] * target[1],
+    d[2] * target[0] - d[0] * target[2],
+    d[0] * target[1] - d[1] * target[0],
+  ];
+  const s = Math.SQRT1_2 / Math.hypot(ax, ay, az);
+  return [ax * s, ay * s, az * s, Math.SQRT1_2];
+};
 
 const mm = (x: number) => Math.round(x * 1000) / 1000 || 0;
 /* How high the lowest stack node stands above the VAB floor: room for the
    bell below it. The Mammoth's hangs 1.2 m past its bottom node. */
 const FLOOR_CLEAR = 1.5;
 
-/* A surface-attach node points away from what it is bolted to: the editor
-   sets the node's direction along the wall's outward normal, one rule for
-   every part, read off the parts the reader re-placed by hand in probe 2
-   (a Twitch and a Shrimp, #467). What differs between parts is where the
-   mesh sits about its node, which the game handles and we never see. */
-const facing = (_title: string, outward: Vec3): Vec3 => outward;
+/* Which way a part faces when bolted on. Its body is on one side of its
+   attach point and the parent on the other, and the drag cube says which
+   (`sideOf`, from the install): a body out along the attach direction — the
+   Thud's, an SRB's — faces away from the axis with its direction; a body
+   behind it — a radial decoupler's, a tank's — faces toward. Read off the
+   part, not listed: the configs disagree about which way the direction
+   points, and probes 1 to 3 met both kinds (#467). */
+const facing = (title: string, outward: Vec3): Vec3 =>
+  sideOf(title) < 0 ? [-outward[0], 0, -outward[2]] : outward;
 /* Rotations to seven places: a unit quaternion to within 1e-6, and no more
    digits than the file carries, so a read-back is the same numbers. */
 const q7 = (q: Quat): Quat =>
@@ -322,7 +341,12 @@ function stackTanks(
   const out: Array<Built> = [];
   tanks.forEach((tk, k) => {
     const info = b.info(tk.t.n);
-    const y = Builder.yFor(info, "bottom", below.world[belowNode].p[1], I);
+    const on = below.world[belowNode];
+    if (!on)
+      throw new Error(
+        `${path}: ${tk.t.n} stacks on the ${belowNode} node of ${below.part.id}, which has ${Object.keys(below.world).join(", ") || "none"}`,
+      );
+    const y = Builder.yFor(info, "bottom", on.p[1], I);
     const t = b.place(`${path}/tank${k + 1}`, tk.t.n, [x, y, z], I, stage, {
       entry: info,
     });
@@ -365,8 +389,9 @@ function holdOn(
   a: number,
   y: number,
   stage: CraftPart["stage"],
+  title: string = BOOSTER_HOLD,
 ): Built {
-  const info = b.info(BOOSTER_HOLD);
+  const info = b.info(title);
   const u: Vec3 = [Math.cos(a), 0, Math.sin(a)];
   /* Faced outward: a surface node's direction is the outward normal at the
      part's own face, and the game sets it anti-parallel to the wall's —
@@ -377,14 +402,14 @@ function holdOn(
     d: [1, 0, 0] as Vec3,
     s: 1,
   };
-  const rot = faceWith(at.d, facing(BOOSTER_HOLD, outward));
+  const rot = faceWith(at.d, facing(title, outward));
   /* Its attach point on the wall; the part's origin is that point less the
      attach offset, turned. */
   const ap = rotate(rot, at.p);
   const wallP: Vec = [cx + u[0] * wallR, y, cz + u[2] * wallR];
   const h = b.place(
     path,
-    BOOSTER_HOLD,
+    title,
     [wallP[0] - ap[0], y - ap[1], wallP[2] - ap[2]],
     rot,
     stage,
@@ -417,10 +442,7 @@ function boltOn(
     d: [1, 0, 0] as Vec3,
     s: 1,
   };
-  const rot =
-    Math.hypot(at.d[0], at.d[2]) > 1e-6
-      ? faceWith(at.d, facing(title, outward))
-      : I;
+  const rot = faceWith(at.d, facing(title, outward));
   const ap = rotate(rot, at.p);
   /* The part's origin: the attach point sits at `point`, and where the
      caller wants the origin's own height set (`attachY`), the point's y is
@@ -843,10 +865,13 @@ function craftOf(
        attach node asks for. */
     if (sol.boosters) {
       const bs = sol.boosters;
-      const lay = boosterLayout(sol, g, core.tankBaseY);
+      /* The next stage up, for how far its base reaches out over the ring. */
+      const above = solved.find((s) => s.i > i)?.sol ?? null;
+      const lay = boosterLayout(sol, g, core.tankBaseY, above);
       const bStage = { ignite: st.boosterIgnite(i), drop: st.boosterDrop(i) };
       const holdStage = { ignite: st.boosterDrop(i), drop: st.boosterDrop(i) };
       const holds: Array<Built> = [];
+      const seconds: Array<Built> = [];
       const bodies: Array<Built> = [];
       for (let k = 0; k < bs.n; k++) {
         const a = (k / bs.n) * 2 * Math.PI;
@@ -888,10 +913,35 @@ function craftOf(
             a,
             attachY,
             holdStage,
+            bs.hold.n,
           );
           b.surface(hold, body);
           holds.push(hold);
           bodies.push(body);
+          /* A long booster's second holder, near its other end: on the core
+             tank beside it, holding nothing and never firing — structure, as a
+             builder's strut would be — so it stays with the core as the plan
+             charges it. */
+          if (bs.hold.count > 1) {
+            const y2 =
+              attachY + lay.bh / 4 <= core.tankTopY
+                ? attachY + lay.bh / 4
+                : attachY - lay.bh / 4;
+            seconds.push(
+              holdOn(
+                b,
+                `s${i}/boost${k}/hold2`,
+                tankAt(core.tanks, y2),
+                lay.hold / 2,
+                0,
+                0,
+                a,
+                y2,
+                { ignite: null, drop: holdStage.drop },
+                bs.hold.n,
+              ),
+            );
+          }
           continue;
         }
         /* A liquid column or drop tank: an engine where it has one, then
@@ -967,14 +1017,40 @@ function craftOf(
           a,
           attachY,
           holdStage,
+          bs.hold.n,
         );
         b.surface(hold, top);
         holds.push(hold);
         bodies.push(top);
+        /* A long booster's second holder, near its other end: on the core
+           tank beside it, holding nothing and never firing — structure, as a
+           builder's strut would be — so it stays with the core as the plan
+           charges it. */
+        if (bs.hold.count > 1) {
+          const y2 =
+            attachY + lay.bh / 4 <= core.tankTopY
+              ? attachY + lay.bh / 4
+              : attachY - lay.bh / 4;
+          seconds.push(
+            holdOn(
+              b,
+              `s${i}/boost${k}/hold2`,
+              tankAt(core.tanks, y2),
+              lay.hold / 2,
+              0,
+              0,
+              a,
+              y2,
+              { ignite: null, drop: holdStage.drop },
+              bs.hold.n,
+            ),
+          );
+        }
       }
       if (holds.length > 1) {
         b.symmetry(holds);
         b.symmetry(bodies);
+        if (seconds.length > 1) b.symmetry(seconds);
       }
     }
     /* The decoupler at the top of the stage, on the axis; none where the
