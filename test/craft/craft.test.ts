@@ -63,7 +63,13 @@ describe("writeCraft", () => {
   it("marks a surface-attached part and names what it is bolted to", () => {
     const dec = block(text, "radialDecoupler_9");
     expect(dec).toContain("\tattm = 1");
-    expect(dec).toContain("\tsrfN = srfAttach,fuelTank_5");
+    expect(dec).toContain(
+      "\tsrfN = srfAttach,fuelTank_5,,0.01|0|0,1|0|0,0.01|0|0",
+    );
+    /* A part with no attach node of its own names what holds it and no more. */
+    expect(block(text, "solidBooster.v2_7")).toContain(
+      "\tsrfN = srfAttach,radialDecoupler_9",
+    );
     expect(dec).toContain("\tsym = radialDecoupler_10");
     expect(dec.filter((l) => l.startsWith("\tattN"))).toHaveLength(0);
     expect(block(text, "fuelTank_5")).toContain("\tattm = 0");
@@ -78,10 +84,18 @@ describe("writeCraft", () => {
     expect(booster).toContain("\tistg = 2");
     expect(booster).toContain("\tdstg = 1");
     expect(booster).toContain("\tsidx = 1"); // the second thing firing in stage 2
-    const tank = block(text, "fuelTank_2");
-    expect(tank).toContain("\tistg = -1");
+    /* A part with no icon carries its stage's number as istg and its
+       separation as sepI, as the game writes them back; sqor is what says
+       it is not staged. The root alone is −1 throughout. */
+    const tank = block(text, "fuelTank_5");
+    expect(tank).toContain("\tistg = 0");
     expect(tank).toContain("\tsidx = -1");
     expect(tank).toContain("\tsqor = -1");
+    expect(tank).toContain("\tsepI = 0");
+    expect(booster).toContain("\tsepI = 1");
+    const root = block(text, "probeStackSmall_1");
+    expect(root).toContain("\tistg = -1");
+    expect(root).toContain("\tsepI = -1");
   });
 
   it("writes resources full, and module stubs in order", () => {
@@ -98,6 +112,13 @@ describe("writeCraft", () => {
     const eng = block(text, "liquidEngine3.v2_3");
     expect(eng.filter((l) => l === "\tMODULE")).toHaveLength(3);
     expect(eng).toContain("\t\tname = ModuleGimbal");
+    /* The variant a part shows goes into its ModulePartVariants stub. */
+    const t2 = block(text, "fuelTank_2");
+    expect(t2).toContain("\t\tname = ModulePartVariants");
+    expect(t2).toContain("\t\tselectedVariant = BlackAndWhite");
+    expect(
+      block(text, "fuelTank_5").some((l) => l.includes("selectedVariant")),
+    ).toBe(false);
     for (const n of ["EVENTS", "ACTIONS", "PARTDATA"])
       expect(eng).toContain(`\t${n}`);
   });
@@ -236,7 +257,9 @@ describe("readCraft", () => {
     ]);
     expect(tank.parent).toEqual({ id: "4294515788", via: "stack" });
     expect(batt.parent).toEqual({ id: "4294515788", via: "surface" });
+    expect(batt.attach).toEqual({ p: [0, -0.1, 0], d: [0, -1, 0] });
     expect(batt.stage).toEqual({ ignite: null, drop: 0 });
+    expect(core.variant).toBeNull();
   });
 
   it("survives a round trip through the writer as data", () => {

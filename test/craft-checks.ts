@@ -142,9 +142,26 @@ export function craftChecks(
       const ap = rotate(p.rot, at);
       const close = (x: number, z: number) =>
         Math.abs(x - shape.x) < 2e-3 && Math.abs(z - shape.z) < 2e-3;
-      return (
-        close(p.pos[0], p.pos[2]) || close(p.pos[0] + ap[0], p.pos[2] + ap[2])
-      );
+      if (
+        close(p.pos[0], p.pos[2]) ||
+        close(p.pos[0] + ap[0], p.pos[2] + ap[2])
+      )
+        return true;
+      /* A radial engine's origin is on the wall and the bell the model
+         draws hangs outboard of it: same azimuth, the shape's centre within
+         a bell's width further out. */
+      if (shape.role === "engine" && p.parent?.via === "surface") {
+        const az = (x: number, z: number) => Math.atan2(z, x);
+        const dAz = Math.abs(az(shape.x, shape.z) - az(p.pos[0], p.pos[2]));
+        const dr =
+          Math.hypot(shape.x, shape.z) - Math.hypot(p.pos[0], p.pos[2]);
+        return (
+          Math.min(dAz, 2 * Math.PI - dAz) < 0.01 &&
+          dr > -1e-3 &&
+          dr < 2 * shape.r + 1e-3
+        );
+      }
+      return false;
     });
     if (!near)
       unplaced.push(`${title} at ${shape.x.toFixed(3)},${shape.z.toFixed(3)}`);

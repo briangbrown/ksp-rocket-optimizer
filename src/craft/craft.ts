@@ -29,14 +29,24 @@ import type { ConfigNode } from "./node.js";
                                direction in the part's own frame and their
                                originals, `|`-separated. The pre-1.9 short
                                form `attN = top, <token>` is read too
-     srfN = srfAttach,<token>  the part is bolted to that part's surface
+     srfN = srfAttach,<token>,<collider>,<p>,<d>,<p0>
+                               the part is bolted to that part's surface, by
+                               its own attach node at p facing d; the
+                               collider is left empty, as the game leaves it
+                               on a craft it re-saves. The two-field form is
+                               read too
      attm = 0 | 1              stack- or surface-attached
-     istg, dstg                the stage the part activates in (−1 where it
-                               has no icon) and the stage it leaves in (0
-                               where it stays to the end). The launch stage
-                               is the highest number
-     sidx, sqor, sepI          the part's index within its stage, its stage
-                               again, and a separation index; −1 where unstaged
+     istg, dstg                the stage the part activates in and the stage
+                               it leaves in (0 where it stays to the end); a
+                               part with no icon of its own carries its
+                               stage's number as istg, the game's own way,
+                               and the root −1. The launch stage is the
+                               highest number
+     sidx, sqor, sepI          the part's index within its stage and its stage
+                               again, −1 where it has no icon — sqor is what
+                               tells a staged part from one merely in a
+                               stage; and the separation index, which is
+                               dstg for every part but the root
      sym = <token>             one per other member of the symmetry group
      RESOURCE { … }            what the part holds
      MODULE { name = … }       each PartModule's saved state, in prefab order;
@@ -77,8 +87,17 @@ type CraftPart = {
   /* The other members of this part's symmetry group, by id. */
   symmetry: ReadonlyArray<string>;
   /* PartModule names in prefab order, written as `MODULE { name = … }`
-     stubs. Empty is allowed; whether the game then launches is #467's. */
+     stubs; the game loads and launches on those (#467, probe 1). */
   modules: ReadonlyArray<string>;
+  /* The variant a `ModulePartVariants` part shows, written into its stub as
+     `selectedVariant`. Null where the part has none. Without it a ReStock
+     engine, whose variants are whole meshes, draws nothing in the VAB
+     (#467, probe 1). */
+  variant: string | null;
+  /* The part's own surface-attach node, for the long `srfN` form the game
+     writes: position and direction in the part's frame. Null where not
+     bolted on by one. */
+  attach: { p: Vec3; d: Vec3 } | null;
   resources: ReadonlyArray<Resource>;
 };
 
@@ -172,12 +191,12 @@ function writeCraft(craft: Craft): string {
       ["symMethod", "Radial"],
       ["autostrutMode", "Off"],
       ["rigidAttachment", bool(false)],
-      ["istg", String(ign ?? -1)],
+      ["istg", String(ign ?? (p.parent ? p.stage.drop : -1))],
       ["resPri", "0"],
       ["dstg", String(p.stage.drop)],
       ["sidx", String(idx)],
       ["sqor", String(ign ?? -1)],
-      ["sepI", "-1"],
+      ["sepI", String(p.parent ? p.stage.drop : -1)],
       ["attm", p.parent?.via === "surface" ? "1" : "0"],
       ["sameVesselCollision", bool(false)],
       ["modCost", "0"],
@@ -191,13 +210,30 @@ function writeCraft(craft: Craft): string {
       v.push(["attN", `${n.id},${on}_${pd}_${pd}`]);
     }
     if (p.parent?.via === "surface")
-      v.push(["srfN", `srfAttach,${token(byId.get(p.parent.id)!)}`]);
+      /* The long form where the part's own node is known, the two-field
+         form where it is not — the game fills the rest in when it saves. */
+      v.push([
+        "srfN",
+        p.attach
+          ? `srfAttach,${token(byId.get(p.parent.id)!)},,${list(p.attach.p, "|")},${list(p.attach.d, "|")},${list(p.attach.p, "|")}`
+          : `srfAttach,${token(byId.get(p.parent.id)!)}`,
+      ]);
     for (const s of p.symmetry) v.push(["sym", token(byId.get(s)!)]);
     const part: ConfigNode = { name: "PART", values: v, nodes: [] };
     for (const n of ["EVENTS", "ACTIONS", "PARTDATA"])
       part.nodes.push({ name: n, values: [], nodes: [] });
     for (const m of p.modules)
-      part.nodes.push({ name: "MODULE", values: [["name", m]], nodes: [] });
+      part.nodes.push({
+        name: "MODULE",
+        values:
+          m === "ModulePartVariants" && p.variant !== null
+            ? [
+                ["name", m],
+                ["selectedVariant", p.variant],
+              ]
+            : [["name", m]],
+        nodes: [],
+      });
     for (const r of p.resources)
       part.nodes.push({
         name: "RESOURCE",
@@ -256,8 +292,18 @@ function readCraft(text: string): Craft {
     const rotV = valueOf(b, "rot");
     const istg = Number(valueOf(b, "istg") ?? -1);
     const dstg = Number(valueOf(b, "dstg") ?? 0);
-    if (!Number.isInteger(istg) || !Number.isInteger(dstg))
-      throw new CraftError(`${tok}: istg/dstg are not integers`);
+    const sqorV = valueOf(b, "sqor");
+    const sqor = sqorV === undefined ? null : Number(sqorV);
+    if (
+      !Number.isInteger(istg) ||
+      !Number.isInteger(dstg) ||
+      (sqor !== null && !Number.isInteger(sqor))
+    )
+      throw new CraftError(`${tok}: istg/dstg/sqor are not integers`);
+    /* Staged where the game says so: sqor is the stage of a part with an
+       icon and −1 otherwise, while istg carries the stage's number even for
+       a part merely in it. The first versions wrote no sqor. */
+    const staged = sqor === null ? istg >= 0 : sqor >= 0;
     const nodes: Array<StackNode> = [];
     for (const a of valuesOf(b, "attN")) {
       const c = a.indexOf(",");
@@ -288,11 +334,18 @@ function readCraft(text: string): Craft {
     }
     const srfV = valueOf(b, "srfN");
     let srf: string | null = null;
+    let attach: CraftPart["attach"] = null;
     if (srfV !== undefined) {
       const f = srfV.split(",").map((s) => s.trim());
       if (f.length < 2)
         throw new CraftError(`${tok}: srfN "${srfV}" names no part`);
       srf = split(f[1], "srfN").id;
+      /* The long form: collider, position, direction, original position. */
+      if (f.length >= 5)
+        attach = {
+          p: vec3(nums(f[3], 3, "srfN position", "|")),
+          d: vec3(nums(f[4], 3, "srfN direction", "|")),
+        };
     }
     const resources: Array<Resource> = childrenOf(b, "RESOURCE").flatMap(
       (r) => {
@@ -321,12 +374,18 @@ function readCraft(text: string): Craft {
             : (nums(rotV, 4, `${tok} rot`) as unknown as Quat),
         parent: null,
         nodes,
-        stage: { ignite: istg < 0 ? null : istg, drop: dstg },
+        stage: { ignite: staged ? istg : null, drop: dstg },
         symmetry: valuesOf(b, "sym").map((s) => split(s, "sym").id),
         modules: childrenOf(b, "MODULE").flatMap((m) => {
           const mn = valueOf(m, "name");
           return mn === undefined ? [] : [mn];
         }),
+        variant:
+          childrenOf(b, "MODULE")
+            .filter((m) => valueOf(m, "name") === "ModulePartVariants")
+            .map((m) => valueOf(m, "selectedVariant"))
+            .find((v) => v !== undefined) ?? null,
+        attach,
         resources,
       },
       links: valuesOf(b, "link").map((l) => split(l, "link").id),

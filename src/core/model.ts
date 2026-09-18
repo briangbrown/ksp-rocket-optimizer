@@ -1,4 +1,5 @@
 import {
+  BOOSTER_HOLD,
   PAYLOAD_ASPECT,
   boosterRing,
   clusterSpan,
@@ -7,6 +8,7 @@ import {
   payloadDiaOf,
   ringPositions,
   stageGeom,
+  standoffOf,
   tankStackLen,
   tankRun,
   widthOf,
@@ -115,8 +117,8 @@ const turn = (x: number, z: number, th: number) => [
 
 /* Where a stage's ring of boosters stands: how wide each is (`bd`), how long
    (`bh`), where its foot is (`foot`), the ring's radius (`br`), the length of
-   a liquid column's engine (`eh`), and the width of what the ring is bolted
-   to (`hold`). Shared by the drawing below and by the craft adapter
+   a liquid column's engine (`eh`), the width of what the ring is bolted to
+   (`hold`), and the azimuth the ring starts at (`phase`). Shared by the drawing below and by the craft adapter
    (core/craft.ts), so the file and the picture put a booster in one place.
    #464 */
 export function boosterLayout(
@@ -235,7 +237,44 @@ export function boosterLayout(
      whatever the booster actually runs alongside between its foot and the
      tanks — not every section the walk passed, since a booster raised clear
      of the engines has nothing to clear there. */
-  let ring = hold / 2 + (g.radial ? g.ed : 0);
+  /* A ring of boosters and a ring of radial engines share the wall where
+     they can be turned to interleave: the engines sit half a step round
+     from zero, and the boosters' ring is turned to whatever phase puts each
+     booster furthest from the nearest engine. Only where no phase clears
+     them does the ring stand outboard of the engines. Pushed out whenever
+     there were radial engines, the SRBs of probe 2 hung half a metre off the
+     tank with a TT-38K a quarter of that thick between (#467); `stageSize`
+     had charged the wall radius all along. */
+  let ring = hold / 2;
+  let phase = 0;
+  if (g.radial && g.engineH > 0) {
+    const rB = hold / 2 + standoffOf(BOOSTER_HOLD) + bd / 2;
+    const rE = hold / 2 + g.ed / 2;
+    const nearest = (ph: number) => {
+      let least = Infinity;
+      for (let i = 0; i < b.n; i++)
+        for (let j = 0; j < g.perEng; j++) {
+          const da = ph + (i / b.n - (j + 0.5) / g.perEng) * 2 * Math.PI;
+          const d2 = rB * rB + rE * rE - 2 * rB * rE * Math.cos(da);
+          least = Math.min(least, Math.sqrt(Math.max(0, d2)));
+        }
+      return least;
+    };
+    /* The ring repeats every 2π/n, so the phases to try lie in one step. */
+    const steps = 72;
+    let best = 0,
+      bestD = -1;
+    for (let k = 0; k < steps; k++) {
+      const ph = ((k / steps) * 2 * Math.PI) / b.n;
+      const d = nearest(ph);
+      if (d > bestD + 1e-9) {
+        bestD = d;
+        best = ph;
+      }
+    }
+    if (bestD >= (bd + g.ed) / 2) phase = best;
+    else ring += g.ed;
+  }
   let top = tankBase;
   for (let k = sections.length - 1; k >= 0 && top > foot + 1e-9; k--) {
     if (sections[k].h <= 0) continue;
@@ -252,7 +291,7 @@ export function boosterLayout(
   /* A column's engine, where it has one. `nEng` is what the pools write to
      say so: a drop tank is tankage with nothing under it. */
   const eh = col && (b.part.nEng ?? 1) ? engineLen(b.part) : 0;
-  return { bd, bh, foot, br, eh, hold };
+  return { bd, bh, foot, br, eh, hold, phase };
 }
 
 /* One stage's worth of shapes, standing on `base`, and how tall it came out. */
@@ -439,10 +478,10 @@ function stageParts(
      twenty-five metres of empty space. #86 */
   if (sol.boosters) {
     const b = sol.boosters;
-    const { bd, bh, foot, br, eh } = boosterLayout(sol, g, tankBase);
+    const { bd, bh, foot, br, eh, phase } = boosterLayout(sol, g, tankBase);
     const col = b.part.column;
     for (let i = 0; i < b.n; i++) {
-      const a = (i / b.n) * 2 * Math.PI;
+      const a = phase + (i / b.n) * 2 * Math.PI;
       const x = Math.cos(a) * br;
       const z = Math.sin(a) * br;
       const ring = ++ringNo.n;
