@@ -124,7 +124,11 @@ the nodes, and reconciles per stage with the plan's masses; the signature of
 each craft (part, position, rotation, parent, stage numbers, resources) goes to
 `test/__snapshots__/crafts.txt`. A diff there is the craft moving, and is
 re-blessed as deliberately as `missions.txt`; a problem list is a bug in the
-adapter, named by mission and stage.
+adapter, named by mission and stage. `test/craft-roundtrip.test.tsx` (#465)
+goes the whole way from a share link: it mounts the app on each link in
+`test/fixtures/links.txt`, intercepts the input and plan the app made, and
+holds the craft's read-back equal and its bill (`core/bill.ts`) equal to the
+plan's, stage by stage — six links, six solves, a few minutes.
 
 What it finds is decided by `visual/measure.ts`, which runs inside the page:
 a target is a form control or anything with a pointer cursor whose parent has

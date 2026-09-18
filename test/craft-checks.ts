@@ -266,7 +266,8 @@ export function craftChecks(
       sol.prop -
       (sol.boosters
         ? sol.boosters.n * (sol.boosters.part.m - sol.boosters.part.dry)
-        : 0);
+        : 0) +
+      (sol.tanks ? sol.n * sol.engine.fuelM : 0);
     if (Number.isNaN(dry))
       problems.push(`mass: stage ${i} has a part with no mass in nodes.json`);
     else if (Math.abs(dry - wantDry) > Math.max(0.03, 0.03 * wantDry))

@@ -78,6 +78,29 @@ delivered plan to a `Craft`, and the only module allowed to import
   tanks at all — its fuel is the engine's. Reconcile against those, not
   against `tanks.prop`.
 
+- **A part holds what the plan flies it with, not what its config says.**
+  Tanks full, as the solver sizes them; an engine the table's `fuelM` — a
+  solid's whole charge, the Twin-Boar's 32 t, nothing for an engine the table
+  has dry — however much the install's config puts in it. The ReStock+ Pug
+  carries 0.2 t in its config that the table does not know (#468); the craft
+  empties it, so the file is the plan. `bill.ts` counts a fuelled engine's
+  `fuelM` into the stage's propellant where `prop` does not (a tank stage's
+  `prop` is the tanks' and adapters'; a solid stage's is `n × fuelM`).
+
+- **An engine plate has no engine nodes in its config.** They are made at
+  run time (`ModuleDynamicNodes`), so `nodes.json` carries `top` and `bottom`
+  only; the adapter stands the engines where the model's cluster rule puts
+  them, on nodes named `bottom01…` as the game names the plate's, rounded to
+  the millimetre so they read back as written. Whether the game takes them
+  is probe 4 of #467.
+
+- **The round trip is the acceptance test.** `test/craft-roundtrip.test.tsx`
+  mounts the app on each link in `test/fixtures/links.txt`, takes the
+  `PlanInput` and plan the app actually made, and holds
+  `readCraft(writeCraft(craftOf(...)))` equal to the craft and
+  `billOfCraft` equal to `billOfPlan`. A new construct in the solver wants a
+  fixture link here before it is delivered.
+
 - **Open until the game answers (#467):** whether a bare `PART` body with
   `MODULE { name = X }` stubs launches; the `srfN` long form carries a collider
   name we do not have, so the writer emits the two-field form

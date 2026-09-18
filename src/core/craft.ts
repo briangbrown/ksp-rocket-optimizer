@@ -1,6 +1,14 @@
-import { BOOSTER_HOLD, STACK_JOIN, stageGeom, tankRun } from "./geometry.js";
+import {
+  BOOSTER_HOLD,
+  STACK_JOIN,
+  clusterSpan,
+  ringPositions,
+  stageGeom,
+  tankRun,
+} from "./geometry.js";
 import { boosterLayout, columnsOf } from "./model.js";
 import { stagingOf } from "./staging.js";
+import { DATA } from "./catalogue.js";
 import { nodesOf, commandParts } from "./nodes.js";
 import type { PlanInput, PlanStage } from "./plan.js";
 import type { Solution } from "./solution.js";
@@ -61,12 +69,45 @@ const rotate = (q: Quat, v: Vec3): Vec => {
 const faceWith = (d: Vec3, target: Vec3): Quat =>
   aboutY(Math.atan2(target[0], target[2]) - Math.atan2(d[0], d[2]));
 
-const mm = (x: number) => Math.round(x * 1000) / 1000;
+const mm = (x: number) => Math.round(x * 1000) / 1000 || 0;
 /* Rotations to seven places: a unit quaternion to within 1e-6, and no more
    digits than the file carries, so a read-back is the same numbers. */
 const q7 = (q: Quat): Quat =>
   q.map((v) => Math.round(v * 1e7) / 1e7 || 0) as unknown as Quat;
 const pos3 = (x: number, y: number, z: number): Vec3 => [mm(x), mm(y), mm(z)];
+
+/* Tonnes a unit, the game's densities, for filling an engine to what the
+   plan flies it with. */
+const UNIT: Record<string, number> = {
+  LiquidFuel: 0.005,
+  Oxidizer: 0.005,
+  SolidFuel: 0.0075,
+  MonoPropellant: 0.004,
+  XenonGas: 0.0001,
+};
+const ENGINE_FUEL = new Map(DATA.engines.map((e) => [e.n, e.fuelM]));
+
+/* What a part holds when it is placed: a tank full, as the solver sizes it;
+   an engine what the part table says it carries (`fuelM`) — a solid's whole
+   charge, the Twin-Boar's 32 t, and nothing where the table has nothing,
+   however much the install's config puts in it. The plan is flown on the
+   table, and the craft is the plan. #468 is the table against the install. */
+const holdings = (title: string, info: PartNodes) => {
+  const fuelM = ENGINE_FUEL.get(title);
+  const entries = Object.entries(info.resources);
+  if (fuelM === undefined)
+    return entries.map(([name, max]) => ({ name, amount: max, max }));
+  const total = entries.reduce(
+    (a, [name, max]) => a + max * (UNIT[name] ?? 0),
+    0,
+  );
+  const scale = total > 0 ? Math.min(1, fuelM / total) : 0;
+  return entries.map(([name, max]) => ({
+    name,
+    amount: UNIT[name] ? Math.round(max * scale * 1000) / 1000 : max,
+    max,
+  }));
+};
 
 /* ------------------------------------------------------------- the parts */
 /* Stable, distinct 32-bit ids from a part's place in the tree, so the same
@@ -125,14 +166,7 @@ class Builder {
       };
       nodes.push({ id: nid, p: n.p, d: n.d, to: null });
     }
-    const resources =
-      over.full === false
-        ? []
-        : Object.entries(info.resources).map(([name, max]) => ({
-            name,
-            amount: max,
-            max,
-          }));
+    const resources = over.full === false ? [] : holdings(title, info);
     const part: CraftPart = {
       id,
       name: info.name,
@@ -415,7 +449,18 @@ function buildColumn(
       /* Engines under a coupler's output nodes; the rejoin, where the stage
          has one, is the same coupler upside down beneath them. */
       const cInfo = b.info(sol.coupler.n);
-      const outs = outputs(cInfo);
+      let outs = outputs(cInfo);
+      /* An engine plate makes its engine nodes at run time (ModuleDynamicNodes),
+         so the config carries only `top` and `bottom`. Its engines stand where
+         the model's cluster rule puts them, on nodes named as the game names
+         the plate's, `bottom01…`; whether the game takes them as written is
+         probe 4 of #467. */
+      const plate = !!sol.coupler.plate && outs.length < g.perEng;
+      if (plate)
+        outs = Array.from(
+          { length: g.perEng },
+          (_, k) => `bottom${String(k + 1).padStart(2, "0")}`,
+        );
       if (outs.length < g.perEng)
         throw new Error(
           `${sol.coupler.n} has ${outs.length} outputs for ${g.perEng} engines`,
@@ -442,7 +487,7 @@ function buildColumn(
         y = Math.max(...outputs(rInfo).map((o) => rejoin!.world[o].p[1]));
       }
       const engineTop = y + eSpan;
-      const cy = Builder.yFor(cInfo, outs[0], engineTop, I);
+      const cy = Builder.yFor(cInfo, plate ? "bottom" : outs[0], engineTop, I);
       const coupler = b.place(
         `${path}/coupler`,
         sol.coupler.n,
@@ -451,6 +496,28 @@ function buildColumn(
         stage,
         { entry: cInfo },
       );
+      if (plate) {
+        const spread = (clusterSpan(g.perEng, g.ed) - g.ed) / 2;
+        const bottom = cInfo.nodes.bottom ?? {
+          p: [0, 0, 0] as Vec3,
+          d: [0, -1, 0] as Vec3,
+          s: 1,
+        };
+        const made: Array<StackNode> = [];
+        ringPositions(g.perEng).forEach(([ux, uz], k) => {
+          const p: Vec3 = [mm(ux * spread), bottom.p[1], mm(uz * spread)];
+          coupler.world[outs[k]] = {
+            p: [cx + p[0], cy + p[1], cz + p[2]],
+            d: [0, -1, 0],
+          };
+          made.push({ id: outs[k], p, d: [0, -1, 0], to: null });
+        });
+        coupler.part = {
+          ...coupler.part,
+          nodes: [...coupler.part.nodes, ...made],
+        };
+        b.byId.set(coupler.part.id, coupler);
+      }
       const engines: Array<Built> = [];
       outs.slice(0, g.perEng).forEach((o, k) => {
         const w = coupler.world[o].p;

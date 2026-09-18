@@ -276,6 +276,25 @@ found ReStock moves the nodes of five parts (the Mammoth, the TVR-200, two heat
 shields, the Mk16), and that ReStock+ rebalances the Oscar-B against what
 `parts.json` says (#468).
 
+## The fixture links — `test/fixtures/links.txt`
+
+Share links the app itself wrote, for the craft round trip
+(`test/craft-roundtrip.test.tsx`, #465): each is mounted as a reader would
+open it, solved, written as a `.craft`, read back and billed against the
+plan. The file holds `# name`, the configuration string, then the link, so a
+codec change shows as a diff.
+
+To add one, write the configuration the way `config()` in `test/link.test.ts`
+does and run `toLink` on it from a one-off vitest file in Node (Node has
+`CompressionStream`; jsdom does not):
+
+    import { toLink } from "../src/ui/link.js";
+    console.log(await toLink(text));
+
+then append the three lines. Nothing regenerates the file on its own: the
+links are evidence of what the app wrote on the day, which is what the test
+wants to hold.
+
 ## The icon — `public/favicon.svg`, `favicon-32.png`, `apple-touch-icon.png`
 
 The nut (#206): a hex nut framing a rocket in Kerbin's teal, drawn once as
