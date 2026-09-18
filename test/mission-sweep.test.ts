@@ -3,6 +3,7 @@ import { planMission } from "../src/core/plan.js";
 import { offered } from "../src/core/constants.js";
 import type { Expansions } from "../src/core/constants.js";
 import { sweepCases } from "./grid.js";
+import { craftChecks } from "./craft-checks.js";
 import { missionSignature } from "../src/core/signature.js";
 import { stageGeom } from "../src/core/geometry.js";
 import { stageCost, stageParts } from "../src/core/performance.js";
@@ -119,6 +120,8 @@ describe("mission sweep", () => {
     const overlaps = [];
     const offRoster: Array<string> = [];
     const misbilled: Array<string> = [];
+    const craftBad: Array<string> = [];
+    const crafts: Array<string> = [];
     let dropTanks = 0;
     for (const c of sweepCases()) {
       const res = await planMission(c.input, {
@@ -126,6 +129,11 @@ describe("mission sweep", () => {
       });
       out.push(missionSignature(c.name, res && res.stages));
       if (res) {
+        /* The delivered rocket as a .craft: valid, round-tripping, agreeing
+           with the drawing, and reconciling with the plan's masses. #464 */
+        const ck = craftChecks(c.name, res.stages, c.input);
+        craftBad.push(...ck.problems.map((x) => `${c.name}: ${x}`));
+        crafts.push(ck.signature);
         overlaps.push(...intersecting(res.stages).map((x) => `${c.name} ${x}`));
         offRoster.push(
           ...partsOutside(
@@ -176,8 +184,12 @@ describe("mission sweep", () => {
     expect(overlaps).toEqual([]);
     expect(offRoster).toEqual([]);
     expect(misbilled).toEqual([]);
+    expect(craftBad).toEqual([]);
     await expect(out.join("\n")).toMatchFileSnapshot(
       "./__snapshots__/missions.txt",
+    );
+    await expect(crafts.join("\n")).toMatchFileSnapshot(
+      "./__snapshots__/crafts.txt",
     );
   }, 300_000);
 });

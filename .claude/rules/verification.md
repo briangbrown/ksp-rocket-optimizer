@@ -115,6 +115,17 @@ theme can break on its own. Headless Chrome answers `light` to
 `visual/browser.ts` pins dark before `goto` — a page opened without that
 measures one theme and samples the other's palette. #131
 
+The mission sweep also writes every delivery as a `.craft` and holds it
+(#464): `test/craft-checks.ts` runs `craftOf` on each plan the sweep solves —
+no second solve — and asserts the craft passes `checkCraft`, round-trips
+through `writeCraft`/`readCraft`, has a part at every drawn part's x, z, stands
+no taller than the drawing and no shorter than it less the boxes' overhang of
+the nodes, and reconciles per stage with the plan's masses; the signature of
+each craft (part, position, rotation, parent, stage numbers, resources) goes to
+`test/__snapshots__/crafts.txt`. A diff there is the craft moving, and is
+re-blessed as deliberately as `missions.txt`; a problem list is a bug in the
+adapter, named by mission and stage.
+
 What it finds is decided by `visual/measure.ts`, which runs inside the page:
 a target is a form control or anything with a pointer cursor whose parent has
 none, which is how a `div` with an `onClick` is counted; a target is sized by
