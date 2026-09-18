@@ -481,6 +481,10 @@ function boltOn(
 type Column = {
   bottom: Built;
   bottomNode: string;
+  /* The lowest bottom node of the stage's engines — the nozzle plane a
+     booster's foot lines up with — or null on a radial-engine stage, which
+     has none on the axis. */
+  nozzleY: number | null;
   topTank: Built;
   tankBaseY: number;
   tankTopY: number;
@@ -504,6 +508,7 @@ function buildColumn(
 ): Column {
   const e = sol.engine;
   const radial = g.radial;
+  let nozzleY: number | null = null;
   let bottom: Built | null = null,
     bottomNode = "";
   let below: Built | null = null,
@@ -629,6 +634,10 @@ function buildColumn(
         engines.push(eng);
       });
       if (engines.length > 1) b.symmetry(engines);
+      nozzleY = Math.min(
+        ...engines.map((en) => en.world.bottom?.p[1] ?? Infinity),
+      );
+      if (!Number.isFinite(nozzleY)) nozzleY = null;
       if (!bottom) {
         bottom = plate ? coupler : engines[0];
         bottomNode = "bottom";
@@ -646,6 +655,7 @@ function buildColumn(
       });
       bottom = eng;
       bottomNode = eInfo.nodes.bottom ? "bottom" : "top";
+      nozzleY = eng.world.bottom?.p[1] ?? null;
       below = eng;
       belowNode = "top";
     }
@@ -746,6 +756,7 @@ function buildColumn(
   return {
     bottom: bottom!,
     bottomNode,
+    nozzleY,
     topTank,
     tankBaseY,
     tankTopY: topTank.world.top?.p[1] ?? tankBaseY,
@@ -919,11 +930,15 @@ function craftOf(
          craft stacks by nodes, and an engine's bottom node is not its cube's
          bottom — the Skipper's is 0.16 m below it, so a Thumper stood on the
          cube base hung that far past the bell (probe 3, #467). Where the
-         booster reaches the stage base its foot goes on the stage's bottom
-         node instead, the core engine's; a foot raised off the base is a
-         distance from the tank base, the same in both. A radial-engine stage
-         has no engine on the axis and keeps the model's foot. */
-      const nodeBase = core.bottom.world[core.bottomNode]?.p[1];
+         booster reaches the stage base its foot goes on the core engines'
+         nozzle plane instead — their lowest bottom node, not the stage's
+         bottom node, which on a plated stage is the shroud's foot below the
+         bells: put there, probe 9's columns hung 0.9 m under the core's
+         Vectors and their TT-70s hung off the bottom edge of the Jumbo-64
+         (#467). A foot raised off the base is a distance from the tank base,
+         the same in both frames. A radial-engine stage has no engine on the
+         axis and keeps the model's foot. */
+      const nodeBase = core.nozzleY ?? undefined;
       const footY =
         !g.radial && nodeBase !== undefined && lay.foot <= lay.base + 1e-6
           ? nodeBase + (lay.foot - lay.base)

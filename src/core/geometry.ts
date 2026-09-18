@@ -85,31 +85,44 @@ const stackRing = (S: number, columnWidth: number, standoff = 0) => {
    this is false there is no ring to draw — the booster cannot float and cannot
    share space with its neighbour — so the count is refused where it is chosen
    rather than drawn around. #423 */
-/* Bolted on through its decoupler, so a booster's near face stands the
-   decoupler's thickness off the core — 0.24 m on a TT-38K — before its own
-   half-width is added. #422 */
-const boostersFit = (
-  n: number,
-  bd: number,
-  coreHalf: number,
-  standoff = standoffOf(BOOSTER_HOLD),
-) =>
-  n < 3 ||
-  2 * (coreHalf + standoff + bd / 2) * Math.sin(Math.PI / n) >= bd - 1e-9;
-
+/* Where a ring of boosters stands: the largest of three radii. Bolted on
+   through its decoupler, a booster's near face stands the decoupler's
+   thickness off the wall it is bolted to — 0.18 m on a TT-38K, 0.57 on a
+   TT-70 — before its own half-width; it clears whatever it runs alongside
+   below that wall, an engine cluster wider than the tank, with no decoupler
+   between them (`clear`, the widest such half-width); and the ring has room
+   for itself (#423). The standoff was charged from the bells too, which held
+   probe 9's columns 0.24 m off the TT-70s that were meant to hold them
+   (#467). `half` is how far the booster's axis stands from the face it is
+   bolted by: half its width, or its attach node's radius where a caller
+   knows it. #422 */
 const boosterRing = (
   n: number,
   bd: number,
-  coreHalf: number,
+  wall: number,
   standoff = standoffOf(BOOSTER_HOLD),
-  /* How far the booster's axis stands from the face it is bolted by: half
-     its width, or its attach node's radius where a caller knows it. */
   half = bd / 2,
+  clear = 0,
 ) =>
   Math.max(
-    coreHalf + standoff + half,
+    wall + standoff + half,
+    clear + half,
     n >= 3 ? bd / (2 * Math.sin(Math.PI / n)) : 0,
   );
+
+/* Whether `n` boosters fit round a stage at all: at the ring's radius,
+   neighbours `2 R sin(pi / n)` apart have to be a booster apart. */
+const boostersFit = (
+  n: number,
+  bd: number,
+  wall: number,
+  standoff = standoffOf(BOOSTER_HOLD),
+  half = bd / 2,
+  clear = 0,
+) =>
+  n < 3 ||
+  2 * boosterRing(n, bd, wall, standoff, half, clear) * Math.sin(Math.PI / n) >=
+    bd - 1e-9;
 
 /* How wide a booster is: the measured part, or for a synthesised column the
    widest of its tanks and its engine where it has one. A column carries its
@@ -624,13 +637,19 @@ function stageSize(sol: Solution) {
       /* Across the ring and one booster, which is wider than the core plus two
          boosters as soon as the ring has to open up to clear itself. */
       const bd = boosterWidth(sol.boosters.part);
+      /* Bolted to the tanks — or the ring of stacks — and clearing the
+         engine cluster where it is wider, as boosterLayout stands them. */
+      const wall =
+        S > 1 ? core / 2 : Math.max(td, sol.packed ? sol.packed.width : 0) / 2;
       return (
         2 *
           boosterRing(
             sol.boosters.n,
             bd,
-            core / 2,
+            wall,
             standoffOf(sol.boosters.hold.n),
+            bd / 2,
+            span / 2,
           ) +
         bd
       );

@@ -175,8 +175,22 @@ delivered plan to a `Craft`, and the only module allowed to import
   engine is still drawn at its own width. The attach radius of a column is
   its lowest tank's, the one the holder is on (`tankRun(...)[0]`).
 
+- **A ring stands its decoupler's thickness off the wall it is bolted to,
+  and its bare face against the bells it clears.** `boosterRing(n, bd, wall,
+standoff, half, clear)` is the largest of three radii: the wall plus the
+  holder's standoff plus the attach radius; the widest thing the booster runs
+  alongside below the tanks (`clear`, an engine cluster wider than the tank)
+  plus the attach radius, with no decoupler between; and the ring's room for
+  itself. `boostersFit` and `stageSize` read the same rule. Charging the
+  standoff from the bells too held probe 9's columns 0.24 m off the TT-70s
+  meant to hold them (#467).
+
 - **A booster's foot is at the stage base, and in the craft on the core
-  engine's bottom node.** `boosterLayout` puts the foot at the bottom of
+  engines' nozzle plane.** The lowest bottom node of the stage's engines
+  (`Column.nozzleY`), not the stage's bottom node — on a plated stage that is
+  the shroud's foot below the bells, and mapped there probe 9's columns hung
+  0.9 m under the core's Vectors with their TT-70s off the bottom edge of the
+  Jumbo-64. `boosterLayout` puts the foot at the bottom of
   what is under the tanks — engine, coupler, adapters — so the nozzles line
   up with the core's, as the game's rockets are built. A walk that stopped
   at the first section too narrow to bolt to (#86, #109) held probe 5's
@@ -185,9 +199,9 @@ delivered plan to a `Craft`, and the only module allowed to import
   nothing hangs from what is beside the foot. The model stacks by drag cubes
   and the craft by nodes, and an engine's bottom node is not its cube's
   bottom — the Skipper's is 0.16 m below it — so the craft puts the foot on
-  the stage's bottom node (`core.bottom`) where the layout's foot is at the
-  base; a foot raised off the base is a distance from the tank base, the
-  same in both frames. A radial-engine stage keeps the model's foot.
+  the core engines' nozzle plane where the layout's foot is at the base; a
+  foot raised off the base is a distance from the tank base, the same in
+  both frames. A radial-engine stage keeps the model's foot.
 
 - **A column hangs from its lowest tank; its holders sit at its middle and
   its far quarter.** `stackTanks(…, up)` builds the column's chain holding

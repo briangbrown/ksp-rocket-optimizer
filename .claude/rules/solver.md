@@ -44,7 +44,10 @@ before changing the thing it names.
   `.mu`, or the drag cube where none was given) and its `node_attach`, by
   `tools/radial-standoff.mjs`; 0.17–0.18 m for the TT-38K, 0.24–0.26 for the
   strut. `boosterRing`, `boostersFit` and `stackRing` carry it,
-  so the sizing and the drawing agree, and `standoffOf` is the one place it
+  so the sizing and the drawing agree — the standoff from the wall the
+  booster is bolted to, and the bare attach radius against a wider engine
+  cluster below it (`clear`), never the standoff from the bells (#467) — and
+  `standoffOf` is the one place it
   is read. The model placed every one of them flush, understating a stage's
   width by twice the standoff, which the slenderness limit and the drag area
   both read: the Eeloo cut mission's seven-Terrier packed ring had been sized

@@ -1478,8 +1478,10 @@ function boostedAscent({
             !boostersFit(
               nb,
               bd,
-              Math.max(grp.dia, clusterSpan(nc, widthOf(c, diaOf(c)))) / 2,
+              grp.dia / 2,
               standoffOf(holder.n),
+              attachHalf(b, bd),
+              clusterSpan(nc, widthOf(c, diaOf(c))) / 2,
             )
           )
             continue;

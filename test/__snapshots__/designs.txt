@@ -211,7 +211,7 @@
     {"adapters":"null","boosters":"null","burn":"23.6950","cost":"600.0000","coupler":"null","decoupler":"TD-12 Decoupler","dry":"3.3050","dv":"1075.8174","engine":"RT-10 \"Hammer\" Solid Fuel Booster","isp":"178.0000","joiner":"null","n":"1.0000","parts":"2.0000","perStack":"null","prop":"2.8130","rejoin":"null","score":"9777.0000","shroud":"null","stacks":"1.0000","tanks":"null","total":"6.1180","twr":"3.2988","twrBurnout":"6.1065","wet":"6.1180"}
   stage 1: want=2520.0000 payloadIn=0.8000
     {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"219.7440","cost":"945.0000","coupler":"null","decoupler":"TS-06 Stack Separator","dry":"1.1150","dv":"2550.3012","engine":"48-7S \"Spark\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"1.0000","parts":"9.0000","perStack":{"count":"7.0000","dryMass":"0.1750","list":[{"c":"7.0000","t":"Oscar-B Fuel Tank"}],"prop":"1.4000"},"prop":"1.4000","rejoin":"null","score":"4717.5000","shroud":"null","stacks":"1.0000","tanks":{"count":"7.0000","dryMass":"0.1750","list":[{"c":"7.0000","t":"Oscar-B Fuel Tank"}],"prop":"1.4000"},"total":"2.5150","twr":"0.8096","twrBurnout":"1.8262","wet":"2.5150"}
-  candidate k=1 score=3175.0000 ar=9.3799 slim=true
+  candidate k=1 score=3870.0000 ar=4.4312 slim=true
   candidate k=2 score=1545.0000 ar=5.5946 slim=true
   candidate k=3 score=2280.0000 ar=6.7384 slim=true
 
@@ -384,7 +384,15 @@
   candidate k=3 score=94910.0000 ar=11.0957 slim=true
 
 ## tier5-pay3.5-dv9000-parts
-  NO SOLUTION
+  total=409.5300 k=3 score=52.0000
+  ar=10.9710 slim=true
+  stage 0: want=3600.0000 payloadIn=53.0700
+    {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"asparagus":false,"boosters":{"burn":"154.4977","dv":"3491.1409","hold":"TT-70 Radial Decoupler","n":"8.0000","part":"RE-I5 \"Skipper\" Liquid Fuel Engine","sepMass":"121.5300","twrSep":"0.8850"},"burn":"173.8099","cost":"114000.0000","coupler":"null","decoupler":"TD-25 Decoupler","dropTank":false,"dry":"61.5300","dv":"3672.1373","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"293.0000","n":"1.0000","parts":"45.0000","prop":"292.0000","score":"65.4765","shroud":"null","tanks":{"count":"3.0000","dryMass":"4.5000","list":[{"c":"2.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-8 Fuel Tank"}],"prop":"36.0000"},"total":"409.5300","twr":"1.2745","twrBurnout":"0.9425","wet":"409.5300"}
+  stage 1: want=1800.0000 payloadIn=22.9100
+    {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"115.8733","cost":"10150.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"29.0700","dv":"1887.7881","engine":"RE-I5 \"Skipper\" Liquid Fuel Engine","isp":"320.0000","joiner":"null","n":"1.0000","parts":"4.0000","perStack":{"count":"2.0000","dryMass":"3.0000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"}],"prop":"24.0000"},"prop":"24.0000","rejoin":"null","score":"6.6535","shroud":"null","stacks":"1.0000","tanks":{"count":"2.0000","dryMass":"3.0000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"},{"c":"1.0000","t":"Rockomax X200-16 Fuel Tank"}],"prop":"24.0000"},"total":"53.0700","twr":"1.2478","twrBurnout":"2.2779","wet":"53.0700"}
+  stage 2: want=3600.0000 payloadIn=3.5000
+    {"adapters":{"cost":"0.0000","dry":"0.0000","parts":[],"prop":"0.0000"},"boosters":"null","burn":"202.6556","cost":"4400.0000","coupler":"null","decoupler":"TD-25 Decoupler","dry":"6.9100","dv":"3645.0742","engine":"LV-T30 \"Reliant\" Liquid Fuel Engine","isp":"310.0000","joiner":"null","n":"1.0000","parts":"3.0000","perStack":{"count":"1.0000","dryMass":"2.0000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"}],"prop":"16.0000"},"prop":"16.0000","rejoin":"null","score":"4.1455","shroud":"null","stacks":"1.0000","tanks":{"count":"1.0000","dryMass":"2.0000","list":[{"c":"1.0000","t":"Rockomax X200-32 Fuel Tank"}],"prop":"16.0000"},"total":"22.9100","twr":"1.0683","twrBurnout":"3.5420","wet":"22.9100"}
+  candidate k=3 score=52.0000 ar=10.9710 slim=true
 
 ## tier5-pay12-dv3600-mass
   total=65.4610 k=2 score=65.4610

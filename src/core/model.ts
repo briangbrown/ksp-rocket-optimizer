@@ -226,36 +226,36 @@ export function boosterLayout(
      level with the tank base. #86 and #109 are about how far down the foot
      may go; this is the other half of the same joint. #438 */
   foot = Math.max(foot, tankBase - bh / 2);
-  /* Outboard of the radial engines, where the column has them: they take
-     the wall first, and the ring stands against them. Then out past
-     whatever the booster actually runs alongside between its foot and the
-     tanks — not every section the walk passed, since a booster raised clear
-     of the engines has nothing to clear there. */
-  /* A ring of boosters shares the wall with a ring of radial engines where
-     the engines can be turned to clear it (`radialPhase`); the boosters keep
-     the 0° and 180° planes. Only where no phase clears them does the ring
-     stand outboard of the engines. Pushed out whenever there were radial
-     engines, the SRBs of probe 2 hung half a metre off the tank with a
-     TT-38K a quarter of that thick between (#467); `stageSize` had charged
-     the wall radius all along. */
-  let ring = hold / 2;
-  if (g.radial && g.engineH > 0 && !radialPhase(sol, g).clear) ring += g.ed;
+  /* What the booster runs alongside below the tanks, and has to clear with
+     no decoupler between: the widest section between its foot and the tank
+     base — a cluster of bells wider than the tank — and, where the stage's
+     engines are radial and no phase of their ring clears the boosters
+     (`radialPhase`), the bells on the wall itself. The boosters keep the 0°
+     and 180° planes a pilot turns in; only where no phase clears them does
+     the ring stand outboard of the engines. Pushed out regardless, probe 2's
+     Shrimps hung half a metre off the tank on a TT-38K a quarter of that
+     thick, and collided with the Twitches in the VAB (#467). */
+  let clear = 0;
+  if (g.radial && g.engineH > 0 && !radialPhase(sol, g).clear)
+    clear = hold / 2 + g.ed;
   let top = tankBase;
   for (let k = sections.length - 1; k >= 0 && top > foot + 1e-9; k--) {
     if (sections[k].h <= 0) continue;
-    if (sections[k].draw > ring) ring = sections[k].draw;
+    if (sections[k].draw > clear) clear = sections[k].draw;
     top -= sections[k].h;
   }
-  /* Outside whatever it is bolted to, and far enough out that the ring
-     clears itself — `boosterRing` keeps both, and `stageSize` charges the
+  /* Its decoupler's thickness off the wall it is bolted to, its bare face
+     against whatever it clears, and far enough out that the ring clears
+     itself — `boosterRing` keeps all three, and `stageSize` charges the
      stage for the same radius. #420 */
   const half = attachHalf(b.part, bd);
   const br = boosterRing(
     b.n,
     bd,
-    g.S > 1 ? g.ringR : ring,
+    g.S > 1 ? g.ringR : hold / 2,
     standoffOf(b.hold.n),
     half,
+    clear,
   );
   /* And no higher than the tanks it hangs beside, where the stage above
      would meet it: that stage stands on the top tank, and where it reaches
