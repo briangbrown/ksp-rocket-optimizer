@@ -15,9 +15,9 @@ import ShardSequencer from "./sequencer.js";
    The files come off disk rather than out of the table, so a test file added
    without regenerating the durations is still covered by all of this. */
 
-/* The same set `vitest.config.js` collects — every `.test.ts` or `.test.tsx`
-   under `test/`, at any depth — walked here rather than globbed, so this depends
-   on nothing but node. If that `include` ever changes, this walk has to change
+/* The same sets the two configs collect — every `.test.ts` or `.test.tsx` under
+   a directory, at any depth — walked here rather than globbed, so this depends
+   on nothing but node. If either `include` ever changes, this walk has to change
    with it, and the first assertion below is what notices. */
 function walk(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true })
@@ -34,6 +34,13 @@ function walk(dir: string): string[] {
 const FILES = walk("test").sort();
 
 const pieces = FILES.map((path) => ({ path }));
+
+/* The visual suite is packed from the same table and sharded the same way, and
+   its own invariant is the same one: every file on exactly one runner. It is
+   held separately because it is a separate vitest run with its own shard count,
+   and because one worker rather than four changes what a shard's wall clock
+   is — the sum of its files, not its longest. */
+const VISUAL = walk("visual").sort();
 
 describe("the CI shard plan", () => {
   it("has files to plan, collected the way vitest collects them", () => {
@@ -119,6 +126,40 @@ describe("the CI shard plan", () => {
         ).toBeLessThanOrEqual(ideal * (4 / 3) + 1);
       }
     }
+  });
+
+  for (const count of [1, 2, 3, 4]) {
+    it(`runs every visual file exactly once across ${count} shard(s)`, () => {
+      const bins = planShards(
+        VISUAL.map((path) => ({ path })),
+        count,
+      );
+      expect(bins).toHaveLength(count);
+      expect(
+        bins
+          .flat()
+          .map((p) => p.path)
+          .sort(),
+      ).toEqual(VISUAL);
+    });
+  }
+
+  /* One worker, so a visual shard costs the sum of what is on it. The floor is
+     the longest file — `visual/render.test.ts`, which shares one page across
+     all of its tests and is not the clean split `resolve-wiring` would be — and
+     what packing can fix is everything above that. */
+  it("packs the visual suite down to its longest file", () => {
+    const bins = planShards(
+      VISUAL.map((path) => ({ path })),
+      2,
+    ).map((b) => b.map((p) => p.path));
+    const worst = Math.max(
+      ...bins.map((b) => b.reduce((s, p) => s + priceOf(p), 0)),
+    );
+    expect(
+      worst,
+      `the heaviest visual shard carries ${worst.toFixed(0)}s`,
+    ).toBeLessThanOrEqual(floorOf(VISUAL, 1) * (4 / 3) + 1);
   });
 
   /* A heavy entry that no longer names a file is the one kind of staleness worth

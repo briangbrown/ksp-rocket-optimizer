@@ -215,16 +215,19 @@ jobs:
   # the mission models were built twice; a browser in that run invites it back.
   # three.js splits its own screenshot tests out for the same reason. #73
   #
-  # Two shards, and for a different reason from the three above. This suite
-  # drives one browser and one page in file order — `maxWorkers: 1`, because two
-  # Chromes under software rendering cost more in launches than they save — so
-  # its wall clock is the *sum* of its files where the main suite's is its
-  # longest. That sum is 275s: render 139, transfer 57, layout 51, stops 27.
-  # Across runners it splits render+stops against transfer+layout, 166s against
-  # 109s. A third shard does not improve on that — render and stops stay
-  # together, still 166s — and a fourth would separate them for 139s, which is
-  # inside what `build` above takes anyway and would shorten this workflow by
-  # nothing. Two.
+  # Three shards, and for a different reason from the three above. This suite
+  # drives one browser and one page per file, one file at a time —
+  # `maxWorkers: 1`, because two Chromes under software rendering cost more in
+  # launches than they save — so a shard's wall clock is the *sum* of what is on
+  # it where the main suite's is its longest. An uneven split here is paid in
+  # full.
+  #
+  # 322.8s in four files: render 151.5, layout 69.6, transfer 61.8, stops 39.9.
+  # render is the floor on its own and does not divide — sixteen tests sharing
+  # one page, several reading what the one before left. Three shards reach that
+  # floor (render, layout, transfer+stops); two cannot, since the other three
+  # together are 171.3s, which is what the hash split already cost. Which file
+  # lands where is test/sequencer.ts, as above.
   visual:
     name: Visual
     needs: changes
@@ -235,7 +238,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
 
     steps:
       - name: Checkout repository
