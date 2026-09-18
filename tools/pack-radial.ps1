@@ -68,7 +68,7 @@ foreach ($f in $files) {
 # name, and by the model path a ReStock patch names for them. Every .mu next
 # to every matched config was 30 MB of boosters and engines (#467).
 $holderNames = 'name\s*=\s*(radialDecoupler|radialDecoupler2|radialDecoupler1-2|strutCube|restock-decoupler-radial-tiny-1)\s*$'
-$holderModels = 'decoupler-radial|radialDecoupler|strutCube|restock-strut'
+$holderModels = 'decoupler-radial|radialDecoupler|strutCube|cubic-strut'
 $holders = @($files | Where-Object { Select-String -Path $_ -Pattern $holderNames -Quiet })
 $meshes = @()
 foreach ($h in $holders) {

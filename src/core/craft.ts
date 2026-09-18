@@ -197,7 +197,7 @@ class Builder {
     pos: Vec,
     rot: Quat,
     stage: { ignite: number | null; drop: number },
-    over: { full?: boolean; entry?: PartNodes } = {},
+    over: { full?: boolean; entry?: PartNodes; variant?: string } = {},
   ): Built {
     const info = over.entry ?? this.info(title);
     const id = this.id(path);
@@ -222,7 +222,7 @@ class Builder {
       symmetry: [],
       modules: info.modules,
       variant: info.modules.includes("ModulePartVariants")
-        ? (info.variant ?? null)
+        ? (over.variant ?? info.variant ?? null)
         : null,
       attach: null,
       resources,
@@ -514,18 +514,35 @@ function buildColumn(
     if (sol.coupler && g.perEng > 1) {
       /* Engines under a coupler's output nodes; the rejoin, where the stage
          has one, is the same coupler upside down beneath them. */
-      const cInfo = b.info(sol.coupler.n);
+      /* A plate in the length the plan chose for its shroud (`sol.shroud.v`,
+         one of the part's variants), and its `bottom` node where that variant
+         puts it — 1.25 m down on Short, 5 on Long — so the stage below hangs
+         from the shroud's foot. Written in the default variant (Long) with the
+         default node, probe 7's plates showed the wrong shroud and their
+         lower stages hung from a node the variant had moved (#467). */
+      const cBase = b.info(sol.coupler.n);
+      const variant =
+        sol.coupler.plate && sol.shroud && cBase.variantNodes?.[sol.shroud.v]
+          ? sol.shroud.v
+          : null;
+      const cInfo: PartNodes = variant
+        ? {
+            ...cBase,
+            nodes: { ...cBase.nodes, ...cBase.variantNodes![variant] },
+          }
+        : cBase;
       let outs = outputs(cInfo);
-      /* An engine plate makes its engine nodes at run time (ModuleDynamicNodes),
-         so the config carries only `top` and `bottom`. Its engines stand where
-         the model's cluster rule puts them, on nodes named as the game names
-         the plate's, `bottom01…`; whether the game takes them as written is
-         probe 4 of #467. */
+      /* An engine plate makes its engine nodes at run time (ModuleDynamicNodes,
+         a set per engine count named `N<count>_<k>`), so the config carries
+         only `top` and `bottom`. Its engines stand where the model's cluster
+         rule puts them, on nodes named as the game names them; the game keeps
+         the engines where they are written and lists its own N nodes empty
+         (probes 5–7). */
       const plate = !!sol.coupler.plate && outs.length < g.perEng;
       if (plate)
         outs = Array.from(
           { length: g.perEng },
-          (_, k) => `bottom${String(k + 1).padStart(2, "0")}`,
+          (_, k) => `N${g.perEng}_${k + 1}`,
         );
       if (outs.length < g.perEng)
         throw new Error(
@@ -554,15 +571,17 @@ function buildColumn(
       }
       const engineTop = y + eSpan;
       const cy = Builder.yFor(cInfo, plate ? "bottom" : outs[0], engineTop, I);
-      /* A plate has a decoupler in it and the game stages it (probe 5 came
-         back with its plates in their stage), in the stage that drops it. */
+      /* A plate has a decoupler in it, on its bottom node: it fires with the
+         engines above it and lets the stage below go — the game stages it
+         (probe 5 came back with its plates given icons), and Brian's fixed
+         probe 7 put each plate in its engines' stage. */
       const coupler = b.place(
         `${path}/coupler`,
         sol.coupler.n,
         [cx, cy, cz],
         I,
-        plate ? { ignite: stage.drop, drop: stage.drop } : stage,
-        { entry: cInfo },
+        plate ? { ignite: engineStage.ignite, drop: stage.drop } : stage,
+        { entry: cInfo, variant: variant ?? undefined },
       );
       if (plate) {
         const spread = (clusterSpan(g.perEng, g.ed) - g.ed) / 2;

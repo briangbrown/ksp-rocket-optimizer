@@ -22,6 +22,9 @@ type PartNodes = {
   rules: ReadonlyArray<number> | null;
   variant?: string | null;
   variants?: ReadonlyArray<string>;
+  /* Stack nodes a variant moves, by variant then node id: an engine plate's
+     `bottom` goes down with its shroud's length. */
+  variantNodes?: Readonly<Record<string, Readonly<Record<string, Node>>>>;
   resources: Readonly<Record<string, number>>;
   mass: number;
   tech: string | null;

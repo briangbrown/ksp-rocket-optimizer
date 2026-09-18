@@ -41,7 +41,11 @@ size_z)`. A cylinder fills its own bounding box, so honest cubes read 0.29
   never by `PART_H`, and do not expect stacked boxes to touch (#461, for
   #464). Regenerate the file rather than edit it; `--check` compares it as
   data because prettier lays it out. ReStock moves the nodes of five parts,
-  which is why it has two tables like the geometry. #461 A part with no
+  which is why it has two tables like the geometry. #461 A variant that
+  moves a stack node — every engine plate's shroud length moves `bottom`,
+  and ReStock's shrouded engine variants move theirs — is under
+  `variantNodes`, by variant then node id; a craft written in a variant
+  places by those (#467). A part with no
   `top` node in it cannot have anything stacked on it — the nose-cone tanks
   — and `topless` in `core/nodes.ts` reads that as buildability, not as a
   choice.

@@ -171,11 +171,15 @@ decoupler and `geometry.json` has no entry for them.
 
 2. Here, with the zip unpacked:
 
-       node tools/radial-standoff.mjs path/to/PartDatabase.cfg path/to/unpacked
+       node tools/radial-standoff.mjs path/to/PartDatabase.cfg path/to/ModuleManager.ConfigCache path/to/unpacked
 
    It writes `STANDOFF` into each art's table in `src/data/geometry.json` and
-   prints what it found; with `--check` it compares instead and exits 1 on a
-   difference. Hand it every `PartDatabase.cfg` you have — stock and ReStock
+   prints what it found and how — off the holder's collider where its `.mu`
+   is among the files (the unpacked zip carries the four holders' models and
+   the TT-14's), off the drag cube where not; with `--check` it compares
+   instead and exits 1 on a difference. The collider is the face the game
+   snaps a booster to and the cube overstates it, by 3 cm on the TT-38K and
+   12 on the TT-70. Hand it every `PartDatabase.cfg` you have — stock and ReStock
    measure the same part differently, and a database is matched to its art by
    the heights the table already carries — and anything with the part configs
    in it. The first run used a `ModuleManager.ConfigCache` from the install

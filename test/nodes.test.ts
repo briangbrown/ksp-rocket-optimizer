@@ -174,3 +174,24 @@ describe("topless", () => {
     expect(topless("no such part")).toBe(false);
   });
 });
+
+describe("variantNodes", () => {
+  /* A plate's shroud length moves its bottom node; the craft hangs the stage
+     below from the variant it is written in (core/craft.ts). #467 */
+  it("carries every engine plate's bottom node by shroud variant", () => {
+    for (const art of ["stock", "restock"] as const) {
+      const table = nodes[art] as unknown as Record<
+        string,
+        Entry & { variantNodes?: Record<string, Record<string, Node>> }
+      >;
+      for (const title of Object.keys(table).filter((t) =>
+        / Engine Plate$/.test(t),
+      )) {
+        const vn = table[title].variantNodes;
+        expect(vn, `${art} ${title}`).toBeDefined();
+        expect(vn!.Short.bottom.p[1]).toBeLessThan(0);
+        expect(vn!.Long.bottom.p[1]).toBeLessThan(vn!.Short.bottom.p[1]);
+      }
+    }
+  });
+});

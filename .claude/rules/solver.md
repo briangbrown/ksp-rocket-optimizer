@@ -40,9 +40,10 @@ before changing the thing it names.
 - **A radially attached part stands off by the thickness of what holds it.**
   A booster on a TT-38K, a tank in a packed ring, a radial stack on its
   cubic struts: each stands its holder's standoff proud of what it is bolted
-  to — `STANDOFF` in geometry.json, per art, from the holder's `node_attach`
-  and drag cube by `tools/radial-standoff.mjs`; 0.22–0.24 m for the TT-38K,
-  0.26 for the strut. `boosterRing`, `boostersFit` and `stackRing` carry it,
+  to — `STANDOFF` in geometry.json, per art, from the holder's collider (its
+  `.mu`, or the drag cube where none was given) and its `node_attach`, by
+  `tools/radial-standoff.mjs`; 0.17–0.18 m for the TT-38K, 0.24–0.26 for the
+  strut. `boosterRing`, `boostersFit` and `stackRing` carry it,
   so the sizing and the drawing agree, and `standoffOf` is the one place it
   is read. The model placed every one of them flush, understating a stage's
   width by twice the standoff, which the slenderness limit and the drag area
@@ -686,6 +687,12 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
   the TT-14 is on the table there and moved 12 of 81 designs when it
   arrived — four now hold Mites or Shrimps by it, the rest moved with the
   candidate walk; the mission sweep is stock and did not see it.
+
+- **`boostedAscent` takes `plateAbove` like `solveStage`.** It was
+  hard-wired false, so a launch stage with boosters under a stage that ends
+  in an engine plate bought its own TD decoupler for a joint the plate's
+  `ModuleDecouple` already makes — probe 7's Duna stage carried a TD-37
+  under an EP-37 (#467). Same flag, same meaning: the joint is charged once.
 
 - **A tank nothing can stand on is not in the pool.** `poolsFor` drops any
   tank `topless` (`core/nodes.ts`) names — no top stack node in `nodes.json`:

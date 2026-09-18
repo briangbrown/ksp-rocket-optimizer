@@ -155,10 +155,15 @@ delivered plan to a `Craft`, and the only module allowed to import
   the solid. What is left is the cube itself: the drag-cube standoff
   (`geometry.json`, 0.218 m for the ReStock TT-38K) runs about 3 cm past the
   face the game snaps a booster to — the collider, which only the `.mu`
-  carries — so a hand-placed Shrimp reads 1.123 m out where ours is 1.156,
-  and probe 5's Thoroughbreds stood about 0.25 m off their TT-70s (cube
-  0.69 m). `tools/pack-radial.ps1` collects the holders' `.mu` files since
-  #467; a collider reader for `radial-standoff.mjs` is the open piece.
+  carries. `STANDOFF` is measured off the collider now: `radial-standoff.mjs`
+  reads the holders' `.mu` files (`tools/mu.mjs`, shared with the engine
+  meshes; `pack-radial.ps1` packs them) and takes the far face of every
+  collider along the attach direction, the cube standing in only where no
+  model was given. ReStock TT-38K 0.184 m against a hand-placed 0.1855;
+  TT-70 0.568 where the cube said 0.69 — probe 5's Thoroughbreds; Manifold
+  0.164 against 0.49. The ReStock cubic strut's model
+  (`restock-cubic-strut.mu`) was not in the first pack and still reads its
+  cube.
 
 - **A liquid column is as wide as its widest tank, not its engine's size
   class.** A synthesised column carries the core engine's `sz` for
@@ -202,6 +207,23 @@ delivered plan to a `Craft`, and the only module allowed to import
   Heaviest makes at staging; rigid attachment makes a joint brittle rather
   than stiff. Launch clamps are the other half of the pad problem and are
   not written yet (#467).
+
+- **An engine plate is written in the plan's shroud variant, hangs the
+  stage below from that variant's bottom node, and fires with its
+  engines.** `sol.shroud.v` is one of the plate's variants (Short …
+  Long); each moves the `bottom` node by the shroud's length — 1.25 m down
+  on Short, 5 on Long — and `nodes.json` carries the moved nodes as
+  `variantNodes` (`tools/part-nodes.mjs`). Written in the default (Long)
+  with the default node, probe 7's plates showed the wrong shroud and their
+  lower stages hung from the wrong height; Brian's fix set Medium-Short and
+  hung the tank from the shroud's foot. The plate's `ModuleDecouple` is on
+  its bottom node, so it is staged with the engines above it, not with the
+  stage it leaves in. Its engine nodes are made at run time, a set per
+  count named `N<count>_<k>`; the writer names them so, the game keeps the
+  engines where they are written and lists its own N nodes empty. The
+  boosted stage path (`boostedAscent`) now takes `plateAbove` too, so a
+  launch stage under a plate no longer buys the TD decoupler the plate makes
+  redundant (solver.md).
 
 - **Every decoupler is staged, plates included.** The game gave probe 3's
   second TT-38Ks and probe 5's engine plates icons in their drop stage; the

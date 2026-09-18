@@ -98,6 +98,10 @@ type StageOpt = {
 };
 
 type BoostOpt = {
+  /* Whether the stage above ends in an engine plate, whose own decoupler
+     makes the joint — the same flag solveStage takes; hard-wired false here,
+     a boosted stage under a plate bought a TD-37 it did not need (#467). */
+  plateAbove?: boolean;
   dv: number;
   payload: number;
   engines: ReadonlyArray<Engine>;
@@ -1250,6 +1254,7 @@ function boostedAscent({
   noPlate = false,
   expansions = null,
   asparagus = false,
+  plateAbove = false,
 }: BoostOpt): Solution | null {
   let best: Solution | null = null;
 
@@ -1504,7 +1509,7 @@ function boostedAscent({
             excluded,
             noPlate,
             expansions,
-            plateAbove: false,
+            plateAbove,
             hasStageBelow: false,
           });
           if (!fit) continue;
@@ -2280,6 +2285,7 @@ function solveUnit(
                 noLiquid: variant === 1,
                 noPlate: variant === 2,
                 expansions,
+                plateAbove,
                 asparagus,
               });
               if (bs && (!s || bs.score < s.score)) s = bs;

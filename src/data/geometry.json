@@ -263,10 +263,10 @@
       "TVR-400L Stack Quad-Adapter": 5.901
     },
     "STANDOFF": {
-      "TT-38K Radial Decoupler": 0.237,
-      "TT-70 Radial Decoupler": 0.6884,
-      "Hydraulic Detachment Manifold": 0.252,
-      "Cubic Octagonal Strut": 0.2607
+      "TT-38K Radial Decoupler": 0.1713,
+      "TT-70 Radial Decoupler": 0.5869,
+      "Hydraulic Detachment Manifold": 0.1631,
+      "Cubic Octagonal Strut": 0.2357
     },
     "SIDE": {
       "2.5m to Mk2 Adapter": -1,
@@ -715,10 +715,10 @@
       "UR-2 'Caravel' Liquid Fuel Engine": 2.218
     },
     "STANDOFF": {
-      "TT-14 Radial Decoupler": 0.243,
-      "TT-38K Radial Decoupler": 0.218,
-      "TT-70 Radial Decoupler": 0.6895,
-      "Hydraulic Detachment Manifold": 0.4914,
+      "TT-14 Radial Decoupler": 0.1873,
+      "TT-38K Radial Decoupler": 0.1843,
+      "TT-70 Radial Decoupler": 0.5681,
+      "Hydraulic Detachment Manifold": 0.164,
       "Cubic Octagonal Strut": 0.2616
     },
     "SIDE": {
