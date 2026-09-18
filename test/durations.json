@@ -74,5 +74,9 @@
   "test/staging.test.ts": 0,
   "test/three-view.test.ts": 0.1,
   "test/transfer-card.test.tsx": 34.1,
-  "test/transfer.test.ts": 3.3
+  "test/transfer.test.ts": 3.3,
+  "visual/layout.test.ts": 69.6,
+  "visual/render.test.ts": 151.5,
+  "visual/stops.test.ts": 39.9,
+  "visual/transfer.test.ts": 61.8
 }

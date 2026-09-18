@@ -260,13 +260,24 @@ no cache to read, which on a fresh runner is always, and bytes say nothing about
 runtime — the longest file in this suite is a middling one on disk. A long file
 started last holds its shard open long after the rest have finished.
 
-The visual suite is split two ways for the opposite reason. It runs one browser
-and one page in file order, so its wall clock is the _sum_ of its files, not its
-longest: 275 seconds of render 139, transfer 57, layout 51, stops 27. Vitest's
-assignment puts render and stops on one runner and transfer and layout on the
-other, 166 against 109. A third shard does not improve on it — render and stops
-stay together — and a fourth separates them for 139, which is inside what the
-main suite's shards take anyway and shortens the workflow by nothing.
+The visual suite is split two ways for the opposite reason, and packed by the
+same table. It runs one browser and one page per file, one file at a time, so a
+shard's wall clock is the _sum_ of what is on it rather than its longest — an
+uneven split there is paid in full, where the main suite's is absorbed by three
+idle workers.
+
+That is what made the hash split expensive here. It put render and stops on one
+runner and transfer and layout on the other, which CI measured at 171 seconds
+against 124. Priced properly the suite is 322.8s — render 151.5, layout 69.6,
+transfer 61.8, stops 39.9 — and render is the floor on its own: it shares one
+page across all sixteen of its tests, several of which read what the one before
+left, so it is not the clean division `resolve-wiring` would be.
+
+Three shards reach that floor — render, layout, transfer with stops. Two do not,
+and this is worth knowing before anyone trims the matrix: the other three files
+together come to 171.3s, which is exactly what the hash split already cost, so
+two shards would buy the packing and none of its benefit. A fourth cannot go
+under render.
 
 Only `visual/layout.test.ts` writes to `visual/.out`, so exactly one of those
 two shards has an artefact to upload and it keeps the name `layout`. The
