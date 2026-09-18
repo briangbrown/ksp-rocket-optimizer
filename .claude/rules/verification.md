@@ -20,8 +20,11 @@ other 16 are legitimately unbuildable at that tech level — one of them since
 because six is all that fit. It is the check that matters here, because the
 characteristic failure in this codebase is silent — a refactor believed to be
 behaviour-preserving once altered 31 of 72 designs without erroring. It is also
-what makes the suite cost what it does; the other checks run alongside it rather
-than after it.
+not what makes the suite cost what it does, though this file said it was until
+the numbers were taken for the CI shards: it is 84 seconds of the suite's
+eighteen minutes of CPU, fifth behind `resolve-wiring`, `mission-sweep`,
+`render-sweep` and `manifest`. The other checks run alongside it rather than
+after it.
 
 **The render sweep** mounts the app in jsdom and drives it across every
 destination, objective and profile. It asserts three things: no `NaN`,
@@ -190,6 +193,26 @@ segments, which none of the other plain missions are. Cuts are how a user says
 "this part flies on its own hardware", and until #102 they were also the only way to
 reach a whole branch of the slenderness constraint — so a change to it was
 invisible to every baseline here.
+
+**How the suite is split across CI runners**, and why the obvious reading of it
+is wrong. `npm test` runs as three shards, `--shard=i/3`, one runner each.
+
+The count is not a dial. vitest hands a whole file to one worker and never
+splits it, so the floor is the suite's longest file rather than its total:
+`test/resolve-wiring.test.tsx`, about three minutes against eighteen minutes of
+CPU for the whole suite. Two shards, three, four and eight were all measured to
+finish in the same three minutes. Three is there so the heavy files —
+`resolve-wiring`, `mission-sweep`, `render-sweep`, `manifest`, then
+`design-snapshot` — do not stack up behind one runner's four vCPUs; a fourth
+runner buys nothing, and the way to make the suite faster is to break up that
+one file, not to add shards.
+
+And a shard is not a third of the work. `--shard` sorts the files by the SHA-1
+of their path and cuts that list into equal _counts_, so which shard a file
+lands in is arbitrary and is reshuffled whenever a test file is added or
+removed. One shard currently holds three of the five heavy files and 594 of the
+1082 seconds. Read the slowest shard, never the spread, and do not tune the
+count against today's assignment — it will not survive the next new test file.
 
     test/grid.ts                          the configuration grid and its axes
     test/setup.ts                         every test starts with an empty roster and a plain address
