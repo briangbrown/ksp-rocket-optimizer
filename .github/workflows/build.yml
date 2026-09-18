@@ -129,9 +129,14 @@ jobs:
   # Three, and not more, because vitest gives a whole file to one worker and
   # never splits it. The suite's longest file is test/resolve-wiring.test.tsx
   # at about three minutes, and that is the floor however many runners this
-  # matrix has; a fourth shard was measured to move nothing. See
-  # .claude/rules/verification.md for the rest of the arithmetic, and for the
-  # reason a shard's share is not its share of the time.
+  # matrix has; a fourth shard was measured to move nothing. Three is headroom
+  # as the suite grows rather than speed.
+  #
+  # Which files each shard gets is test/sequencer.ts, not vitest's own rule —
+  # that one splits by the hash of the path into equal counts, which put all
+  # three of the heaviest files on one runner the first time this ran. See
+  # .claude/rules/verification.md for the arithmetic and for what the table it
+  # packs by can and cannot get wrong.
   test:
     needs: changes
     if: needs.changes.outputs.docs-only != 'true'
