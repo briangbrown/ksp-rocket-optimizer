@@ -32,6 +32,14 @@ size_z)`. A cylinder fills its own bounding box, so honest cubes read 0.29
   `tools/README.md` is the procedure. Do not edit `PART_H` or `PART_A` by
   hand: regenerate. #316
 
+- **parts.json is one table, and ReStock rebalances the Oscar-B.** 8.1 + 9.9
+  units and 11 kg dry in ReStock against stock's 18 + 22 and 25 kg, so with
+  ReStock on a ring of Oscar-Bs holds less than half the propellant the plan
+  gives it; `test/nodes.test.ts` names the disagreement so a second one
+  fails. Flipping the table to ReStock's numbers breaks the stock art the
+  same way round (the mission sweep caught it, #467); a per-art resource is
+  #468.
+
 - **A part's nodes are not its box, and a stacked craft's boxes overlap.**
   `src/data/nodes.json` (`tools/part-nodes.mjs`, from `ModuleManager.ConfigCache`)
   carries each part's stack nodes; `geometry.json` carries its drag cube. A

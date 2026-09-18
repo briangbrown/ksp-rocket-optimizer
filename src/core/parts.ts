@@ -94,6 +94,14 @@ const isAdapter = (p: PartBase) => stackDias(p).length > 1;
    available as a stage's tankage. */
 const isRadialOnly = (p: PartBase) => stackDias(p).length === 0;
 
+/* A lifting body: the Mk2 and Mk3 fuselages, spaceplane parts whose
+   cross-section is an oval — a Mk2 is 2.5 m across and 1.5 tall — and whose
+   lift the ascent model does not have. Every radial rule here treats a tank
+   as a cylinder (packing, holders, columns, the ring radius, the width drag
+   is charged on), and probe 9 packed a ring of Mk2s round a Mk2 core with
+   the decouplers half a metre off its narrow sides. Not in the pools (#467). */
+const isLifting = (p: PartBase) => p.sz.some((z) => z === "Mk2" || z === "Mk3");
+
 /* An engine may sit under a stack its own width or wider — that is what adapters
    and engine plates are for, and it is how a Vector cluster ends up beneath a 5 m
    Kerbodyne tank. It may not feed off a stack narrower than itself. Radial
@@ -538,6 +546,7 @@ export {
   isAdapter,
   isRadial,
   isRadialOnly,
+  isLifting,
   maxCluster,
   missionHardware,
   pickStruct,

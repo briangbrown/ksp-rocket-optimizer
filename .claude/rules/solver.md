@@ -697,6 +697,19 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
   `ModuleDecouple` already makes — probe 7's Duna stage carried a TD-37
   under an EP-37 (#467). Same flag, same meaning: the joint is charged once.
 
+- **A lifting body stacks but never takes a radial role.** `isLifting` in
+  `parts.ts` names the Mk2 and Mk3 fuselages, whose `sz` is a profile rather
+  than a diameter: their cross-section is an oval, and every radial rule
+  treats a tank as a cylinder — probe 9 packed a ring of Mk2s round a Mk2
+  core with the TT-38Ks half a metre off its narrow sides. `poolsFor` keeps
+  them in groups of their own, flagged `lifting`; `packFor` refuses to pack
+  one, `boostedAscent` skips them as cores (so no boosters, columns or drop
+  tanks hang off one, and none is a column), and a radial engine never takes
+  one. Dropping them from the pool altogether was tried and moved Tylo 3.5 t
+  off its cut and the asparagus fixture off its drop tanks (#467); their lift
+  is still not in the ascent model, which is an open question rather than a
+  rule.
+
 - **A tank nothing can stand on is not in the pool.** `poolsFor` drops any
   tank `topless` (`core/nodes.ts`) names — no top stack node in `nodes.json`:
   the FL-C1000 and the S3-3600 Nosecone, with the nose built on. Every tank a

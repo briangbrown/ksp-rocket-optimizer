@@ -1,5 +1,5 @@
 import geometryData from "../data/geometry.json";
-import { diaOf, isRadial } from "./parts.js";
+import { diaOf, isLifting, isRadial } from "./parts.js";
 import type { PartBase, Tank } from "./catalogue.js";
 import type { Expansions } from "./constants.js";
 import type {
@@ -453,6 +453,9 @@ function packFor(
     null,
   );
   if (!run || run.c < 3) return null;
+  /* An oval does not pack: a ring of Mk2 fuselages round a Mk2 core put
+     probe 9's decouplers half a metre off its narrow sides (#467). */
+  if (isLifting(run.t)) return null;
   /* The bottom stage sets the frontal area itself, so widening it is not free —
      there is nothing below to hide behind. That only matters where there is air:
      a group lifting off from Minmus or the Mun pays no drag at all, and refusing

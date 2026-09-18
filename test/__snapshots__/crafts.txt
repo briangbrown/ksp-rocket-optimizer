@@ -99,22 +99,21 @@
   Decoupler.1 @0.000,23.618,0.000 r0.0000,0.0000,0.0000,1.0000 stack:probeStackSmall istg=0 dstg=0 sym=0
 
 ## Mun-pay12
-  parts=15
-  probeStackSmall @0.000,36.671,0.000 r0.0000,0.0000,0.0000,1.0000 root istg=-1 dstg=0 sym=0 ElectricCharge=15
-  liquidEngineMainsail.v2 @0.000,3.457,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk3FuselageLFO.100 istg=3 dstg=1 sym=0
-  mk3FuselageLFO.100 @0.000,9.471,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk3FuselageLFO.100 istg=-1 dstg=1 sym=0 LiquidFuel=4500 Oxidizer=5500
-  mk3FuselageLFO.100 @0.000,19.471,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk3FuselageLFO.50 istg=-1 dstg=1 sym=0 LiquidFuel=4500 Oxidizer=5500
-  mk3FuselageLFO.50 @0.000,26.971,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Decoupler.3 istg=-1 dstg=1 sym=0 LiquidFuel=2250 Oxidizer=2750
+  parts=14
+  probeStackSmall @0.000,22.958,0.000 r0.0000,0.0000,0.0000,1.0000 root istg=-1 dstg=0 sym=0 ElectricCharge=15
+  liquidEngineMainsail.v2 @0.000,3.457,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Size3LargeTank istg=3 dstg=1 sym=0
+  Size3LargeTank @0.000,8.211,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Size3LargeTank istg=-1 dstg=1 sym=0 LiquidFuel=6480 Oxidizer=7920
+  Size3LargeTank @0.000,15.691,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Decoupler.3 istg=-1 dstg=1 sym=0 LiquidFuel=6480 Oxidizer=7920
   Clydesdale @3.712,12.983,0.000 r0.0000,0.7071,0.0000,0.7071 surface:radialDecoupler2 istg=3 dstg=2 sym=1 SolidFuel=16400
-  radialDecoupler2 @1.845,12.983,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:mk3FuselageLFO.100 istg=2 dstg=2 sym=1
-  radialDecoupler2 @1.845,18.560,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:mk3FuselageLFO.100 istg=2 dstg=2 sym=1
+  radialDecoupler2 @1.845,12.983,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:Size3LargeTank istg=2 dstg=2 sym=1
+  radialDecoupler2 @1.845,18.560,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:Size3LargeTank istg=2 dstg=2 sym=1
   Clydesdale @-3.712,12.983,0.000 r0.0000,-0.7071,0.0000,0.7071 surface:radialDecoupler2 istg=3 dstg=2 sym=1 SolidFuel=16400
-  radialDecoupler2 @-1.845,12.983,0.000 r0.0000,0.0000,0.0000,1.0000 surface:mk3FuselageLFO.100 istg=2 dstg=2 sym=1
-  radialDecoupler2 @-1.845,18.560,0.000 r0.0000,0.0000,0.0000,1.0000 surface:mk3FuselageLFO.100 istg=2 dstg=2 sym=1
-  Decoupler.3 @0.000,29.621,0.000 r0.0000,0.0000,0.0000,1.0000 stack:liquidEngine2-2.v2 istg=1 dstg=1 sym=0
-  liquidEngine2-2.v2 @0.000,31.271,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk3FuselageLFO.50 istg=1 dstg=0 sym=0
-  mk3FuselageLFO.50 @0.000,33.771,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Decoupler.3 istg=-1 dstg=0 sym=0 LiquidFuel=2250 Oxidizer=2750
-  Decoupler.3 @0.000,36.421,0.000 r0.0000,0.0000,0.0000,1.0000 stack:probeStackSmall istg=0 dstg=0 sym=0
+  radialDecoupler2 @-1.845,12.983,0.000 r0.0000,0.0000,0.0000,1.0000 surface:Size3LargeTank istg=2 dstg=2 sym=1
+  radialDecoupler2 @-1.845,18.560,0.000 r0.0000,0.0000,0.0000,1.0000 surface:Size3LargeTank istg=2 dstg=2 sym=1
+  Decoupler.3 @0.000,19.581,0.000 r0.0000,0.0000,0.0000,1.0000 stack:toroidalAerospike istg=1 dstg=1 sym=0
+  toroidalAerospike @0.000,20.631,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Size3SmallTank istg=1 dstg=0 sym=0
+  Size3SmallTank @0.000,21.598,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Decoupler.3 istg=-1 dstg=0 sym=0 LiquidFuel=1620 Oxidizer=1980
+  Decoupler.3 @0.000,22.708,0.000 r0.0000,0.0000,0.0000,1.0000 stack:probeStackSmall istg=0 dstg=0 sym=0
 
 ## Duna-pay0.8
   parts=20
@@ -584,75 +583,80 @@
   Decoupler.1 @0.000,45.506,0.000 r0.0000,0.0000,0.0000,1.0000 stack:probeStackSmall istg=0 dstg=0 sym=0
 
 ## Minmus-pay20-asparagus-mass
-  parts=50
-  probeStackSmall @0.000,35.904,0.000 r0.0000,0.0000,0.0000,1.0000 root istg=-1 dstg=0 sym=0 ElectricCharge=15
-  stackBiCoupler.v2 @0.000,3.438,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Rockomax64.BW istg=-1 dstg=3 sym=0
+  parts=36
+  probeStackSmall @0.000,37.024,0.000 r0.0000,0.0000,0.0000,1.0000 root istg=-1 dstg=0 sym=0 ElectricCharge=15
+  stackBiCoupler.v2 @0.000,3.438,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Size3LargeTank istg=-1 dstg=3 sym=0
   SSME @0.625,3.100,0.001 r0.0000,0.0000,0.0000,1.0000 stack:stackBiCoupler.v2 istg=5 dstg=3 sym=1
   SSME @-0.625,3.100,0.001 r0.0000,0.0000,0.0000,1.0000 stack:stackBiCoupler.v2 istg=5 dstg=3 sym=1
-  Rockomax64.BW @0.000,7.507,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Rockomax64.BW istg=-1 dstg=3 sym=0 LiquidFuel=2880 Oxidizer=3520
-  Rockomax64.BW @0.000,14.967,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Rockomax32.BW istg=-1 dstg=3 sym=0 LiquidFuel=2880 Oxidizer=3520
-  Rockomax32.BW @0.000,20.557,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Rockomax8BW istg=-1 dstg=3 sym=0 LiquidFuel=1440 Oxidizer=1760
-  Rockomax8BW @0.000,22.872,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Decoupler.2 istg=-1 dstg=3 sym=0 LiquidFuel=360 Oxidizer=440
-  SSME @3.087,3.100,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Rockomax32.BW istg=5 dstg=4 sym=0
-  Rockomax32.BW @3.087,4.960,0.000 r0.0000,0.0000,0.0000,1.0000 surface:radialDecoupler2 istg=5 dstg=4 sym=1 LiquidFuel=1440 Oxidizer=1760
-  radialDecoupler2 @1.220,4.960,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:Rockomax64.BW istg=4 dstg=4 sym=1
-  SSME @-3.087,3.100,0.000 r0.0000,-1.0000,0.0000,0.0000 stack:Rockomax32.BW istg=5 dstg=4 sym=0
-  Rockomax32.BW @-3.087,4.960,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:radialDecoupler2 istg=5 dstg=4 sym=1 LiquidFuel=1440 Oxidizer=1760
-  radialDecoupler2 @-1.220,4.960,0.000 r0.0000,0.0000,0.0000,1.0000 surface:Rockomax64.BW istg=4 dstg=4 sym=1
-  Decoupler.2 @0.000,23.427,0.000 r0.0000,0.0000,0.0000,1.0000 stack:SSME istg=3 dstg=3 sym=0
-  SSME @0.000,25.127,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Rockomax32.BW istg=3 dstg=1 sym=0
-  Rockomax32.BW @0.000,26.987,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Decoupler.2 istg=-1 dstg=1 sym=0 LiquidFuel=1440 Oxidizer=1760
-  Rockomax32.BW @3.087,25.387,0.000 r0.0000,0.0000,0.0000,1.0000 surface:radialDecoupler2 istg=3 dstg=2 sym=1 LiquidFuel=1440 Oxidizer=1760
-  Rockomax8BW @3.087,27.702,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Rockomax32.BW istg=3 dstg=2 sym=0 LiquidFuel=360 Oxidizer=440
-  radialDecoupler2 @1.220,25.387,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:Rockomax32.BW istg=2 dstg=2 sym=1
-  Rockomax32.BW @-3.087,25.387,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:radialDecoupler2 istg=3 dstg=2 sym=1 LiquidFuel=1440 Oxidizer=1760
-  Rockomax8BW @-3.087,27.702,0.000 r0.0000,-1.0000,0.0000,0.0000 stack:Rockomax32.BW istg=3 dstg=2 sym=0 LiquidFuel=360 Oxidizer=440
-  radialDecoupler2 @-1.220,25.387,0.000 r0.0000,0.0000,0.0000,1.0000 surface:Rockomax32.BW istg=2 dstg=2 sym=1
-  Decoupler.2 @0.000,28.947,0.000 r0.0000,0.0000,0.0000,1.0000 stack:adapterLargeSmallQuad istg=1 dstg=1 sym=0
-  adapterLargeSmallQuad @0.000,29.047,0.000 r0.0000,0.0000,1.0000,0.0000 stack:nuclearEngine istg=-1 dstg=0 sym=0
-  adapterLargeSmallQuad @0.000,33.729,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0
-  nuclearEngine @0.625,31.575,0.625 r0.0000,0.0000,0.0000,1.0000 stack:adapterLargeSmallQuad istg=1 dstg=0 sym=3
-  nuclearEngine @0.625,31.575,-0.625 r0.0000,0.0000,0.0000,1.0000 stack:adapterLargeSmallQuad istg=1 dstg=0 sym=3
-  nuclearEngine @-0.625,31.575,0.625 r0.0000,0.0000,0.0000,1.0000 stack:adapterLargeSmallQuad istg=1 dstg=0 sym=3
-  nuclearEngine @-0.625,31.575,-0.625 r0.0000,0.0000,0.0000,1.0000 stack:adapterLargeSmallQuad istg=1 dstg=0 sym=3
-  mk2FuselageShortLiquid @0.000,34.666,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Decoupler.2 istg=-1 dstg=0 sym=0 LiquidFuel=400
-  mk2FuselageShortLiquid @2.671,34.666,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:radialDecoupler istg=-1 dstg=0 sym=5 LiquidFuel=400
-  radialDecoupler @1.260,34.666,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0
-  strutCube @1.293,35.504,0.000 r0.0000,0.0000,0.7071,0.7071 surface:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0
-  mk2FuselageShortLiquid @1.336,34.666,2.313 r0.0000,-0.8660,0.0000,-0.5000 surface:radialDecoupler istg=-1 dstg=0 sym=5 LiquidFuel=400
-  radialDecoupler @0.630,34.666,1.091 r0.0000,-0.8660,0.0000,-0.5000 surface:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0
-  strutCube @0.646,35.504,1.119 r-0.3536,-0.3536,0.6124,0.6124 surface:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0
-  mk2FuselageShortLiquid @-1.336,34.666,2.313 r0.0000,0.5000,0.0000,0.8660 surface:radialDecoupler istg=-1 dstg=0 sym=5 LiquidFuel=400
-  radialDecoupler @-0.630,34.666,1.091 r0.0000,0.5000,0.0000,0.8660 surface:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0
-  strutCube @-0.646,35.504,1.119 r-0.6124,-0.6124,0.3536,0.3536 surface:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0
-  mk2FuselageShortLiquid @-2.671,34.666,0.000 r0.0000,0.0000,0.0000,1.0000 surface:radialDecoupler istg=-1 dstg=0 sym=5 LiquidFuel=400
-  radialDecoupler @-1.260,34.666,0.000 r0.0000,0.0000,0.0000,1.0000 surface:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0
-  strutCube @-1.293,35.504,0.000 r-0.7071,-0.7071,0.0000,0.0000 surface:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0
-  mk2FuselageShortLiquid @-1.336,34.666,-2.313 r0.0000,-0.5000,0.0000,0.8660 surface:radialDecoupler istg=-1 dstg=0 sym=5 LiquidFuel=400
-  radialDecoupler @-0.630,34.666,-1.091 r0.0000,-0.5000,0.0000,0.8660 surface:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0
-  strutCube @-0.646,35.504,-1.119 r-0.6124,-0.6124,-0.3536,-0.3536 surface:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0
-  mk2FuselageShortLiquid @1.336,34.666,-2.313 r0.0000,-0.8660,0.0000,0.5000 surface:radialDecoupler istg=-1 dstg=0 sym=5 LiquidFuel=400
-  radialDecoupler @0.630,34.666,-1.091 r0.0000,-0.8660,0.0000,0.5000 surface:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0
-  strutCube @0.646,35.504,-1.119 r0.3536,0.3536,0.6124,0.6124 surface:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0
-  Decoupler.2 @0.000,35.704,0.000 r0.0000,0.0000,0.0000,1.0000 stack:probeStackSmall istg=0 dstg=0 sym=0
+  Size3LargeTank @0.000,7.517,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Decoupler.3 istg=-1 dstg=3 sym=0 LiquidFuel=6480 Oxidizer=7920
+  SSME @3.928,3.418,0.000 r0.0000,0.7071,0.0000,0.7071 stack:Size3SmallTank istg=5 dstg=4 sym=0
+  Size3SmallTank @3.928,4.385,0.000 r0.0000,0.7071,0.0000,0.7071 surface:radialDecoupler1-2 istg=5 dstg=4 sym=1 LiquidFuel=1620 Oxidizer=1980
+  radialDecoupler1-2 @1.875,4.385,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:Size3LargeTank istg=4 dstg=4 sym=1
+  SSME @-3.928,3.418,0.000 r0.0000,-0.7071,0.0000,0.7071 stack:Size3SmallTank istg=5 dstg=4 sym=0
+  Size3SmallTank @-3.928,4.385,0.000 r0.0000,-0.7071,0.0000,0.7071 surface:radialDecoupler1-2 istg=5 dstg=4 sym=1 LiquidFuel=1620 Oxidizer=1980
+  radialDecoupler1-2 @-1.875,4.385,0.000 r0.0000,0.0000,0.0000,1.0000 surface:Size3LargeTank istg=4 dstg=4 sym=1
+  Decoupler.3 @0.000,11.407,0.000 r0.0000,0.0000,0.0000,1.0000 stack:SSME istg=3 dstg=3 sym=0
+  SSME @0.000,13.157,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Rockomax32.BW istg=3 dstg=1 sym=0
+  Rockomax32.BW @0.000,15.017,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Rockomax16.BW istg=-1 dstg=1 sym=0 LiquidFuel=1440 Oxidizer=1760
+  Rockomax16.BW @0.000,17.797,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Decoupler.2 istg=-1 dstg=1 sym=0 LiquidFuel=720 Oxidizer=880
+  Rockomax32.BW @3.087,13.417,0.000 r0.0000,0.0000,0.0000,1.0000 surface:radialDecoupler2 istg=3 dstg=2 sym=1 LiquidFuel=1440 Oxidizer=1760
+  Rockomax8BW @3.087,15.732,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Rockomax32.BW istg=3 dstg=2 sym=0 LiquidFuel=360 Oxidizer=440
+  radialDecoupler2 @1.220,13.417,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:Rockomax32.BW istg=2 dstg=2 sym=1
+  Rockomax32.BW @-3.087,13.417,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:radialDecoupler2 istg=3 dstg=2 sym=1 LiquidFuel=1440 Oxidizer=1760
+  Rockomax8BW @-3.087,15.732,0.000 r0.0000,-1.0000,0.0000,0.0000 stack:Rockomax32.BW istg=3 dstg=2 sym=0 LiquidFuel=360 Oxidizer=440
+  radialDecoupler2 @-1.220,13.417,0.000 r0.0000,0.0000,0.0000,1.0000 surface:Rockomax32.BW istg=2 dstg=2 sym=1
+  Decoupler.2 @0.000,18.817,0.000 r0.0000,0.0000,0.0000,1.0000 stack:adapterLargeSmallQuad istg=1 dstg=1 sym=0
+  adapterLargeSmallQuad @0.000,18.917,0.000 r0.0000,0.0000,1.0000,0.0000 stack:nuclearEngine istg=-1 dstg=0 sym=0
+  adapterLargeSmallQuad @0.000,23.599,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0
+  nuclearEngine @0.625,21.445,0.625 r0.0000,0.0000,0.0000,1.0000 stack:adapterLargeSmallQuad istg=1 dstg=0 sym=3
+  nuclearEngine @0.625,21.445,-0.625 r0.0000,0.0000,0.0000,1.0000 stack:adapterLargeSmallQuad istg=1 dstg=0 sym=3
+  nuclearEngine @-0.625,21.445,0.625 r0.0000,0.0000,0.0000,1.0000 stack:adapterLargeSmallQuad istg=1 dstg=0 sym=3
+  nuclearEngine @-0.625,21.445,-0.625 r0.0000,0.0000,0.0000,1.0000 stack:adapterLargeSmallQuad istg=1 dstg=0 sym=3
+  mk2FuselageShortLiquid @0.000,24.536,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0 LiquidFuel=400
+  mk2FuselageShortLiquid @0.000,26.411,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0 LiquidFuel=400
+  mk2FuselageShortLiquid @0.000,28.286,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0 LiquidFuel=400
+  mk2FuselageShortLiquid @0.000,30.161,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0 LiquidFuel=400
+  mk2FuselageShortLiquid @0.000,32.036,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0 LiquidFuel=400
+  mk2FuselageShortLiquid @0.000,33.911,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk2FuselageShortLiquid istg=-1 dstg=0 sym=0 LiquidFuel=400
+  mk2FuselageShortLiquid @0.000,35.786,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Decoupler.2 istg=-1 dstg=0 sym=0 LiquidFuel=400
+  Decoupler.2 @0.000,36.824,0.000 r0.0000,0.0000,0.0000,1.0000 stack:probeStackSmall istg=0 dstg=0 sym=0
 
 ## Minmus-pay20-asparagus-cost
-  parts=15
-  probeStackSmall @0.000,36.671,0.000 r0.0000,0.0000,0.0000,1.0000 root istg=-1 dstg=0 sym=0 ElectricCharge=15
-  liquidEngineMainsail.v2 @0.000,3.457,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk3FuselageLFO.100 istg=3 dstg=1 sym=0
-  mk3FuselageLFO.100 @0.000,9.471,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk3FuselageLFO.100 istg=-1 dstg=1 sym=0 LiquidFuel=4500 Oxidizer=5500
-  mk3FuselageLFO.100 @0.000,19.471,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk3FuselageLFO.50 istg=-1 dstg=1 sym=0 LiquidFuel=4500 Oxidizer=5500
-  mk3FuselageLFO.50 @0.000,26.971,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Decoupler.3 istg=-1 dstg=1 sym=0 LiquidFuel=2250 Oxidizer=2750
-  Clydesdale @3.712,12.983,0.000 r0.0000,0.7071,0.0000,0.7071 surface:radialDecoupler2 istg=3 dstg=2 sym=1 SolidFuel=16400
-  radialDecoupler2 @1.845,12.983,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:mk3FuselageLFO.100 istg=2 dstg=2 sym=1
-  radialDecoupler2 @1.845,18.560,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:mk3FuselageLFO.100 istg=2 dstg=2 sym=1
-  Clydesdale @-3.712,12.983,0.000 r0.0000,-0.7071,0.0000,0.7071 surface:radialDecoupler2 istg=3 dstg=2 sym=1 SolidFuel=16400
-  radialDecoupler2 @-1.845,12.983,0.000 r0.0000,0.0000,0.0000,1.0000 surface:mk3FuselageLFO.100 istg=2 dstg=2 sym=1
-  radialDecoupler2 @-1.845,18.560,0.000 r0.0000,0.0000,0.0000,1.0000 surface:mk3FuselageLFO.100 istg=2 dstg=2 sym=1
-  Decoupler.3 @0.000,29.621,0.000 r0.0000,0.0000,0.0000,1.0000 stack:liquidEngine2-2.v2 istg=1 dstg=1 sym=0
-  liquidEngine2-2.v2 @0.000,31.271,0.000 r0.0000,0.0000,0.0000,1.0000 stack:mk3FuselageLFO.50 istg=1 dstg=0 sym=0
-  mk3FuselageLFO.50 @0.000,33.771,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Decoupler.3 istg=-1 dstg=0 sym=0 LiquidFuel=2250 Oxidizer=2750
-  Decoupler.3 @0.000,36.421,0.000 r0.0000,0.0000,0.0000,1.0000 stack:probeStackSmall istg=0 dstg=0 sym=0
+  parts=34
+  probeStackSmall @0.000,29.240,0.000 r0.0000,0.0000,0.0000,1.0000 root istg=-1 dstg=0 sym=0 ElectricCharge=15
+  Size3EngineCluster @0.000,1.418,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Size3LargeTank istg=4 dstg=2 sym=0
+  Size3LargeTank @0.000,6.685,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Size3LargeTank istg=-1 dstg=2 sym=0 LiquidFuel=6480 Oxidizer=7920
+  Size3LargeTank @0.000,14.165,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Decoupler.3 istg=-1 dstg=2 sym=0 LiquidFuel=6480 Oxidizer=7920
+  solidBooster.v2 @2.671,3.062,0.000 r0.0000,0.7071,0.0000,0.7071 surface:radialDecoupler istg=4 dstg=3 sym=2 SolidFuel=375
+  radialDecoupler @1.885,3.062,0.000 r0.0000,-1.0000,0.0000,0.0000 surface:Size3LargeTank istg=3 dstg=3 sym=2
+  solidBooster.v2 @-1.336,3.062,2.313 r0.0000,-0.2588,0.0000,0.9659 surface:radialDecoupler istg=4 dstg=3 sym=2 SolidFuel=375
+  radialDecoupler @-0.942,3.062,1.632 r0.0000,0.5000,0.0000,0.8660 surface:Size3LargeTank istg=3 dstg=3 sym=2
+  solidBooster.v2 @-1.336,3.062,-2.313 r0.0000,-0.9659,0.0000,0.2588 surface:radialDecoupler istg=4 dstg=3 sym=2 SolidFuel=375
+  radialDecoupler @-0.943,3.062,-1.632 r0.0000,-0.5000,0.0000,0.8660 surface:Size3LargeTank istg=3 dstg=3 sym=2
+  Decoupler.3 @0.000,18.055,0.000 r0.0000,0.0000,0.0000,1.0000 stack:liquidEngine2-2.v2 istg=2 dstg=2 sym=0
+  liquidEngine2-2.v2 @0.000,19.705,0.000 r0.0000,0.0000,0.0000,1.0000 stack:adapterSize3-Mk3 istg=2 dstg=1 sym=0
+  adapterSize3-Mk3 @0.000,20.642,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Decoupler.3 istg=-1 dstg=1 sym=0 LiquidFuel=1125 Oxidizer=1375
+  liquidEngine2-2.v2 @3.986,19.705,0.000 r0.0000,0.0000,0.0000,1.0000 stack:adapterSize3-Mk3 istg=2 dstg=1 sym=0
+  adapterSize3-Mk3 @3.986,20.642,0.000 r0.0000,0.0000,0.0000,1.0000 surface:strutCube istg=-1 dstg=1 sym=0 LiquidFuel=1125 Oxidizer=1375
+  liquidEngine2-2.v2 @0.000,19.705,3.986 r0.0000,0.0000,0.0000,1.0000 stack:adapterSize3-Mk3 istg=2 dstg=1 sym=0
+  adapterSize3-Mk3 @0.000,20.642,3.986 r0.0000,0.0000,0.0000,1.0000 surface:strutCube istg=-1 dstg=1 sym=0 LiquidFuel=1125 Oxidizer=1375
+  liquidEngine2-2.v2 @-3.986,19.705,0.000 r0.0000,0.0000,0.0000,1.0000 stack:adapterSize3-Mk3 istg=2 dstg=1 sym=0
+  adapterSize3-Mk3 @-3.986,20.642,0.000 r0.0000,0.0000,0.0000,1.0000 surface:strutCube istg=-1 dstg=1 sym=0 LiquidFuel=1125 Oxidizer=1375
+  liquidEngine2-2.v2 @0.000,19.705,-3.986 r0.0000,0.0000,0.0000,1.0000 stack:adapterSize3-Mk3 istg=2 dstg=1 sym=0
+  adapterSize3-Mk3 @0.000,20.642,-3.986 r0.0000,0.0000,0.0000,1.0000 surface:strutCube istg=-1 dstg=1 sym=0 LiquidFuel=1125 Oxidizer=1375
+  strutCube @2.004,20.174,0.000 r-0.7071,-0.7071,0.0000,0.0000 surface:adapterSize3-Mk3 istg=-1 dstg=1 sym=0
+  strutCube @1.982,21.111,0.000 r0.0000,0.0000,0.7071,0.7071 surface:adapterSize3-Mk3 istg=-1 dstg=1 sym=0
+  strutCube @0.000,20.174,2.004 r-0.5000,-0.5000,-0.5000,-0.5000 surface:adapterSize3-Mk3 istg=-1 dstg=1 sym=0
+  strutCube @0.000,21.111,1.982 r-0.5000,-0.5000,0.5000,0.5000 surface:adapterSize3-Mk3 istg=-1 dstg=1 sym=0
+  strutCube @-2.004,20.174,0.000 r0.0000,0.0000,0.7071,0.7071 surface:adapterSize3-Mk3 istg=-1 dstg=1 sym=0
+  strutCube @-1.982,21.111,0.000 r-0.7071,-0.7071,0.0000,0.0000 surface:adapterSize3-Mk3 istg=-1 dstg=1 sym=0
+  strutCube @0.000,20.174,-2.004 r-0.5000,-0.5000,0.5000,0.5000 surface:adapterSize3-Mk3 istg=-1 dstg=1 sym=0
+  strutCube @0.000,21.111,-1.982 r-0.5000,-0.5000,-0.5000,-0.5000 surface:adapterSize3-Mk3 istg=-1 dstg=1 sym=0
+  Decoupler.3 @0.000,21.730,0.000 r0.0000,0.0000,0.0000,1.0000 stack:liquidEngine2-2.v2 istg=1 dstg=1 sym=0
+  liquidEngine2-2.v2 @0.000,23.380,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Rockomax32.BW istg=1 dstg=0 sym=0
+  Rockomax32.BW @0.000,25.240,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Rockomax16.BW istg=-1 dstg=0 sym=0 LiquidFuel=1440 Oxidizer=1760
+  Rockomax16.BW @0.000,28.020,0.000 r0.0000,0.0000,0.0000,1.0000 stack:Decoupler.2 istg=-1 dstg=0 sym=0 LiquidFuel=720 Oxidizer=880
+  Decoupler.2 @0.000,29.040,0.000 r0.0000,0.0000,0.0000,1.0000 stack:probeStackSmall istg=0 dstg=0 sym=0
 
 ## Minmus-pay20-asparagus-parts
   parts=15

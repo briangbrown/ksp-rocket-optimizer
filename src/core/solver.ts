@@ -828,6 +828,9 @@ function solveStage({
 
       for (const grp of groups) {
         // one per tank diameter
+        /* A radial engine bolts to the tank's wall, and an oval's wall is at
+           no one radius (#467). */
+        if (isRadial(e) && grp.lifting) continue;
         /* Parallel stacks. Nine tanks in a column is 30 m of rocket; the same
          propellant in three columns of three is a third of that and far easier to
          build. Each stack carries its own engines and its own tanks, all burning
@@ -1278,14 +1281,17 @@ function boostedAscent({
     if (needGimbal && pSurf > 0.02 && !(c.gim > 0)) continue;
 
     if (c.fuelM !== 0 || !c.f.includes("Ox")) continue;
+    /* Not a lifting body: a ring of boosters or columns bolts to the core's
+       wall, and an oval has no wall at one radius (#467). */
     for (const grp of poolsFor(c, tanks))
-      cores.push({
-        c,
-        k: grp.k,
-        usable: grp.usable,
-        grp,
-        cap: Math.min(4, maxCluster(c, unlocked, excluded)),
-      });
+      if (!grp.lifting)
+        cores.push({
+          c,
+          k: grp.k,
+          usable: grp.usable,
+          grp,
+          cap: Math.min(4, maxCluster(c, unlocked, excluded)),
+        });
   }
   if (!cores.length) return null;
 
