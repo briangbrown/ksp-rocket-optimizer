@@ -15,6 +15,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:bless": "vitest run -u",
+    "test:durations": "node tools/durations.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "perf:build": "vite build --ssr perf/run.ts --outDir perf/.out --logLevel error",
