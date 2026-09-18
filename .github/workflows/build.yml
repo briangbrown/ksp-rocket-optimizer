@@ -209,6 +209,17 @@ jobs:
   # test/model.test.js carries a note about a worker running out of memory when
   # the mission models were built twice; a browser in that run invites it back.
   # three.js splits its own screenshot tests out for the same reason. #73
+  #
+  # Two shards, and for a different reason from the three above. This suite
+  # drives one browser and one page in file order — `maxWorkers: 1`, because two
+  # Chromes under software rendering cost more in launches than they save — so
+  # its wall clock is the *sum* of its files where the main suite's is its
+  # longest. That sum is 275s: render 139, transfer 57, layout 51, stops 27.
+  # Across runners it splits render+stops against transfer+layout, 166s against
+  # 109s. A third shard does not improve on that — render and stops stay
+  # together, still 166s — and a fourth would separate them for 139s, which is
+  # inside what `build` above takes anyway and would shorten this workflow by
+  # nothing. Two.
   visual:
     name: Visual
     needs: changes
@@ -216,6 +227,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
 
     steps:
       - name: Checkout repository
@@ -247,15 +262,33 @@ jobs:
       # screenshot of each screen beside the numbers it measured, for a
       # person to look at. Never compared. #129
       - name: Render the build view in a real browser
-        run: npm run test:visual
+        run: npm run test:visual -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
+      # Only visual/layout.test.ts writes to visual/.out, so exactly one shard
+      # has anything to keep and the artefact goes on being called `layout`.
+      # Both shards uploading would collide on that name — which is the right
+      # failure to have, since it would mean a second file had started writing
+      # screenshots and this arrangement needed reading again.
+      - name: Did this shard draw anything?
+        id: shots
+        if: always()
+        run: |
+          set -eu
+          if [ -n "$(ls -A visual/.out 2>/dev/null)" ]; then
+            echo "any=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "any=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Keep the screenshots
-        if: always()
+        if: always() && steps.shots.outputs.any == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: layout
           path: visual/.out
           # A dot-directory, like perf/.out; the action skips hidden paths
-          # unless told otherwise and reports "no files found".
+          # unless told otherwise and reports "no files found". `error` still
+          # means what it always meant: the step above has established there are
+          # files, so nothing found here is that trap and not an empty shard.
           include-hidden-files: true
           if-no-files-found: error

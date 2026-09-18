@@ -214,6 +214,21 @@ removed. One shard currently holds three of the five heavy files and 594 of the
 1082 seconds. Read the slowest shard, never the spread, and do not tune the
 count against today's assignment — it will not survive the next new test file.
 
+The visual suite is split two ways for the opposite reason. It runs one browser
+and one page in file order, so its wall clock is the _sum_ of its files, not its
+longest: 275 seconds of render 139, transfer 57, layout 51, stops 27. Vitest's
+assignment puts render and stops on one runner and transfer and layout on the
+other, 166 against 109. A third shard does not improve on it — render and stops
+stay together — and a fourth separates them for 139, which is inside what the
+main suite's shards take anyway and shortens the workflow by nothing.
+
+Only `visual/layout.test.ts` writes to `visual/.out`, so exactly one of those
+two shards has an artefact to upload and it keeps the name `layout`. The
+workflow checks the directory before uploading rather than dropping
+`if-no-files-found: error`, which is there to catch the hidden-path trap and is
+worth keeping. If a second file ever starts writing screenshots, the two
+uploads collide on the name and the build says so — which is the point.
+
     test/grid.ts                          the configuration grid and its axes
     test/setup.ts                         every test starts with an empty roster and a plain address
     src/core/signature.ts                 reducing a design to stable text — the app compares it too, #138
