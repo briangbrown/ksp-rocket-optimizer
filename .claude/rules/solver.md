@@ -644,3 +644,17 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
   the stay is served, and a longer stay moves it by at least as much. It
   only ever showed on Gilly, because a circular moon's descent carries no
   date to look wrong. #223
+
+- **The staging order lives in `core/staging.ts`, and the drawing projects
+  it.** `stagingOf(stages)` is the one list of events — what fires, what lets
+  go, KSP's stage number for each — read by the build view's stepper
+  (`stagingSteps` is a map over it) and by the craft file's `istg`/`dstg`
+  (#460). A ring of boosters leaves in a stage of its own with nothing
+  lighting; a spent stage separates and the next lights in one stage, no
+  coast, as the Δv accounting assumes; an asparagus ring or a drop-tank pool
+  is one ring and one event, because the solver flies it to one burnout. The
+  mission sweep's signature carries the events, so a change here re-blesses
+  `missions.txt` deliberately. A stage that starts an ascent off a body with
+  air can carry a ring even when it is not the first — `mounts` in the solver —
+  so a ring belongs to the bottom live stage until its own boosters-away
+  step, not to the pad. #463

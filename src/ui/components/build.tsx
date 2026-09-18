@@ -13,6 +13,7 @@ import { Maximize, Minimize, Pause, Play } from "lucide-react";
 
 import { payloadDiaOf, stackGeometry } from "../../core/geometry.js";
 import { extentOf, modelOf } from "../../core/model.js";
+import { stagingOf } from "../../core/staging.js";
 import type { Extent } from "../views.js";
 import { stageCost, stageParts } from "../../core/performance.js";
 import { missionSignature } from "../../core/signature.js";
@@ -139,22 +140,18 @@ function frameClock(ms: number, step: (u: number) => void, done: () => void) {
   return () => cancelAnimationFrame(id);
 }
 
-export function stagingSteps(solved: ReadonlyArray<SolvedStage>) {
-  const steps: Array<Step> = [{ label: "On the pad", drop: 0, boost: true }];
-  if (solved.length && solved[0].sol.boosters)
-    steps.push({
-      label: "Boosters away · core burns on",
-      drop: 0,
-      boost: false,
-    });
-  solved.forEach((_, i) =>
-    steps.push({
-      label: i === solved.length - 1 ? "Payload alone" : `Stage ${i + 1} spent`,
-      drop: i + 1,
-      boost: false,
-    }),
-  );
-  return steps;
+export function stagingSteps(solved: ReadonlyArray<SolvedStage>): Array<Step> {
+  /* The order is the solver's (`stagingOf`, #463); the stepper is a
+     projection of it, one step per event, the pad first. With nothing
+     solved there are no events, and the stepper still stands on the pad. */
+  const steps = stagingOf(solved).events.map(({ label, drop, boost }) => ({
+    label,
+    drop,
+    boost,
+  }));
+  return steps.length
+    ? steps
+    : [{ label: "On the pad", drop: 0, boost: false }];
 }
 
 /* What a step draws: the whole vehicle, for every view. Boosters are filtered
@@ -177,7 +174,11 @@ export function stepModels(
 ) {
   const live = solved.slice(cur.drop);
   const payD = payloadDiaOf(payload, payloadDia);
-  const attached = (p: { ring?: number }) => cur.boost || p.ring === undefined;
+  /* A ring belongs to the bottom live stage until its boosters-away step;
+     a ring on a stage higher up — a lander that climbs off a body with air
+     can carry one — stays on until that stage is the bottom one. */
+  const attached = (p: { ring?: number; stage?: number }) =>
+    cur.boost || p.ring === undefined || (p.stage ?? 0) > 0;
   return { live, model: modelOf(live, payload, payD).filter(attached) };
 }
 
