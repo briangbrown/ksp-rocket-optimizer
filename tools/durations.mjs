@@ -28,26 +28,57 @@ import { join } from "node:path";
 const root = new URL("..", import.meta.url).pathname;
 const out = join(root, "test", "durations.json");
 const scratch = mkdtempSync(join(tmpdir(), "durations-"));
-const report = join(scratch, "durations.json");
+
+/* Both suites, because both are sharded and both are packed from this one
+   table. The visual one has to build the application and drive a real browser,
+   so it costs what it costs; a table that covered only `test/` would leave the
+   visual shards packing every file at the median, which is the hash split again
+   with extra steps. */
+const SUITES = [
+  { name: "the suite", args: [] },
+  {
+    name: "the visual suite",
+    args: ["--config", "vitest.visual.config.js"],
+  },
+];
 
 try {
   const before = JSON.parse(readFileSync(out, "utf8"));
+  const table = {};
 
-  console.log("running the suite, once, timing every file…");
-  execFileSync(
-    "npx",
-    ["vitest", "run", "--reporter=./tools/duration-reporter.ts"],
-    {
-      cwd: root,
-      stdio: ["ignore", "ignore", "inherit"],
-      env: { ...process.env, DURATIONS_OUT: report },
-    },
-  );
+  /* The visual suite drives the built application over http, so dist/ has to
+     exist before it runs — `npm run test:visual` builds first for the same
+     reason. A second or two, and the main suite does not care either way. */
+  console.log("building…");
+  execFileSync("npm", ["run", "build"], {
+    cwd: root,
+    stdio: ["ignore", "ignore", "inherit"],
+  });
 
-  const table = JSON.parse(readFileSync(report, "utf8"));
-  const names = Object.keys(table);
-  if (names.length === 0) throw new Error("the run reported no test files");
-  writeFileSync(out, `${JSON.stringify(table, null, 2)}\n`);
+  for (const [i, suite] of SUITES.entries()) {
+    const report = join(scratch, `${i}.json`);
+    console.log(`running ${suite.name}, once, timing every file…`);
+    execFileSync(
+      "npx",
+      [
+        "vitest",
+        "run",
+        ...suite.args,
+        "--reporter=./tools/duration-reporter.ts",
+      ],
+      {
+        cwd: root,
+        stdio: ["ignore", "ignore", "inherit"],
+        env: { ...process.env, DURATIONS_OUT: report },
+      },
+    );
+    Object.assign(table, JSON.parse(readFileSync(report, "utf8")));
+  }
+
+  const names = Object.keys(table).sort();
+  if (names.length === 0) throw new Error("the runs reported no test files");
+  const sorted = Object.fromEntries(names.map((n) => [n, table[n]]));
+  writeFileSync(out, `${JSON.stringify(sorted, null, 2)}\n`);
 
   const total = Object.values(table).reduce((a, b) => a + b, 0);
   const worst = Object.entries(table).sort(([, a], [, b]) => b - a);
