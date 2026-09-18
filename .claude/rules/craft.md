@@ -53,6 +53,31 @@ delivered plan to a `Craft`, and the only module allowed to import
   first problem rather than writing a file the VAB loads with a hole in it. A
   craft with problems is the adapter's bug.
 
+- **The adapter places from the model and stands by the nodes.** `craftOf`
+  in `core/craft.ts` takes x and z from the same `stageGeom`/`columnsOf`/
+  `boosterLayout` the drawing uses and y from a node walk, so the file and
+  the picture agree in plan and the game gets the heights it trusts. The
+  sweep holds four things on every delivery (`test/craft-checks.ts`): the
+  craft passes `checkCraft` and round-trips; every drawn part has a craft
+  part at its x, z (by attach point where it is bolted on; engines under a
+  coupler stand on the coupler's nodes instead); the height is bounded by the
+  drawing's, less the boxes' overhang of the nodes; and per stage the parts'
+  dry mass equals `sol.dry − payloadIn`, the propellant `sol.prop` less the
+  ring's, the ring `n × part.m`. A part left out or doubled fails here, named.
+
+- **A surface-held column hangs from its top tank.** The chain is built
+  bottom-up with each part holding the one below, so the top part is the
+  chain's root; a ring column, a packed tank or a booster column bolted on
+  by any other tank would leave its top tank parentless — twelve roots on
+  the first run. Every packed tank is its own part on its own TT-38K and
+  strut, which is what the plan bills (`cols = r × levels`).
+
+- **`sol.dry` carries the payload; `sol.prop` carries the ring's fuel.**
+  `dry` is the stage's structure plus everything above it (`payloadIn`);
+  `prop` includes the boosters' propellant, and a solid "engine" stage has no
+  tanks at all — its fuel is the engine's. Reconcile against those, not
+  against `tanks.prop`.
+
 - **Open until the game answers (#467):** whether a bare `PART` body with
   `MODULE { name = X }` stubs launches; the `srfN` long form carries a collider
   name we do not have, so the writer emits the two-field form

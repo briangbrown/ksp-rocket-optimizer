@@ -586,6 +586,8 @@ function stageSize(sol: Solution) {
    flight card. Key on the numbers that actually change the flight. */
 
 export {
+  BOOSTER_HOLD,
+  STACK_JOIN,
   ENGINE_LEN,
   PACK_BRACE,
   PACK_JOIN,
