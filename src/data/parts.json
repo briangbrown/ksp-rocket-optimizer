@@ -1539,7 +1539,16 @@
       "t": "Propulsion Systems",
       "prop": 0.2,
       "k": 0.125,
-      "cost": 70
+      "cost": 70,
+      "restock": {
+        "wet": 0.10125,
+        "dry": 0.01125,
+        "lf": 8.1,
+        "ox": 9.9,
+        "prop": 0.09,
+        "k": 0.125,
+        "cost": 18
+      }
     },
     {
       "n": "PB-X150 Xenon Container",

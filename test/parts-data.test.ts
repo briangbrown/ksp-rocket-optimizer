@@ -118,3 +118,66 @@ describe("the parts ReStock+ hides under Making History", () => {
       expect(offered(p, { mh: false, rs: false })).toBe(true);
   });
 });
+
+/* parts.json is stock's numbers with a `restock` block where ReStock
+   rebalances a part, and `tanksInArt` applies it by the rule `useArt` picks
+   the geometry tables with. nodes.json is read off each art's ConfigCache,
+   so the two agree on what a tank holds and weighs — the Oscar-B did not,
+   for one art or the other, until #468. */
+describe("a tank holds what the install says, in each art", () => {
+  const UNIT: Record<string, number> = {
+    LiquidFuel: 0.005,
+    Oxidizer: 0.005,
+    MonoPropellant: 0.004,
+    XenonGas: 0.0001,
+  };
+  it("propellant and dry mass, for every tank the pools can hold", async () => {
+    const { tanksInArt } = await import("../src/core/parts.js");
+    const { topless } = await import("../src/core/nodes.js");
+    const nodes = (await import("../src/data/nodes.json"))
+      .default as unknown as Record<
+      "stock" | "restock",
+      Record<string, { resources: Record<string, number>; mass: number }>
+    >;
+    const bad: Array<string> = [];
+    for (const [art, e] of [
+      ["stock", { mh: false, rs: false }],
+      ["restock", { mh: false, rs: true }],
+    ] as const)
+      for (const t of tanksInArt(DATA.tanks, e)) {
+        if (topless(t.n)) continue;
+        const entry = nodes[art][t.n];
+        if (!entry) continue;
+        const cap = Object.entries(entry.resources).reduce(
+          (a, [k, v]) => a + v * (UNIT[k] ?? 0),
+          0,
+        );
+        if (Math.abs(cap - t.prop) > 1e-3)
+          bad.push(
+            `${art} ${t.n}: prop ${t.prop} against ${cap.toFixed(4)} held`,
+          );
+        if (Math.abs(entry.mass - t.dry) > 1e-3)
+          bad.push(
+            `${art} ${t.n}: dry ${t.dry} against ${entry.mass} in the install`,
+          );
+      }
+    expect(bad).toEqual([]);
+  });
+  it("keeps a stock roster's identity and memoises the ReStock one", async () => {
+    const { tanksInArt } = await import("../src/core/parts.js");
+    const stock = tanksInArt(DATA.tanks, { mh: false, rs: false });
+    expect(stock).toBe(DATA.tanks);
+    const rs = tanksInArt(DATA.tanks, { mh: false, rs: true });
+    expect(rs).not.toBe(DATA.tanks);
+    expect(tanksInArt(DATA.tanks, null)).toBe(rs);
+    const oscar = rs.find((t) => t.n === "Oscar-B Fuel Tank")!;
+    expect(oscar).toMatchObject({
+      prop: 0.09,
+      dry: 0.01125,
+      lf: 8.1,
+      ox: 9.9,
+      cost: 18,
+    });
+    expect(DATA.tanks.find((t) => t.n === "Oscar-B Fuel Tank")!.prop).toBe(0.2);
+  });
+});

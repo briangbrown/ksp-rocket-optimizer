@@ -32,13 +32,17 @@ size_z)`. A cylinder fills its own bounding box, so honest cubes read 0.29
   `tools/README.md` is the procedure. Do not edit `PART_H` or `PART_A` by
   hand: regenerate. #316
 
-- **parts.json is one table, and ReStock rebalances the Oscar-B.** 8.1 + 9.9
-  units and 11 kg dry in ReStock against stock's 18 + 22 and 25 kg, so with
-  ReStock on a ring of Oscar-Bs holds less than half the propellant the plan
-  gives it; `test/nodes.test.ts` names the disagreement so a second one
-  fails. Flipping the table to ReStock's numbers breaks the stock art the
-  same way round (the mission sweep caught it, #467); a per-art resource is
-  #468.
+- **A tank ReStock rebalances carries its ReStock numbers under `restock`.**
+  parts.json rows are stock's; the Oscar-B is 8.1 + 9.9 units and 11 kg dry
+  in ReStock against stock's 18 + 22 and 25 kg, so with ReStock on a ring of
+  them held less than half the propellant the plan gave it. `tanksInArt`
+  (`parts.ts`) applies the block by the rule `useArt` picks the geometry
+  tables with, at both ways into the solver (`planMission`, `prepare`),
+  memoised on the roster array so the caches stay keyed on it; a stock
+  roster keeps its identity. Flipping the row itself broke the stock art the
+  same way round — the mission sweep, in stock, read 1.8 t held against 0.81
+  planned. `test/nodes.test.ts` and `test/parts-data.test.ts` hold both arts
+  to their caches (#468).
 
 - **A part's nodes are not its box, and a stacked craft's boxes overlap.**
   `src/data/nodes.json` (`tools/part-nodes.mjs`, from `ModuleManager.ConfigCache`)
