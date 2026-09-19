@@ -914,17 +914,23 @@ function craftOf(
       /* The column hangs from its top tank — the root of its own chain,
          since the chain was built with each part holding the one below. */
       b.surface(s1, col.topTank);
+      /* Crossed, core quarter to the column's other quarter: a strut the
+         length of the gap between two walls is 16 cm on a TT-70 and cannot be
+         seen, let alone hold a shear (probe 11, #483). */
       if (brace)
-        [yLo, yHi].forEach((y, q) =>
+        [
+          [yLo, yHi],
+          [yHi, yLo],
+        ].forEach(([y0, y1], q) =>
           braceBetween(
             b,
             `s${i}/join${k}/brace${q}`,
-            tankAt(core.tanks, y),
-            [Math.cos(a) * core.tankR, y, Math.sin(a) * core.tankR],
+            tankAt(core.tanks, y0),
+            [Math.cos(a) * core.tankR, y0, Math.sin(a) * core.tankR],
             0,
             0,
-            tankAt(col.tanks, y),
-            [cx - Math.cos(a) * col.tankR, y, cz - Math.sin(a) * col.tankR],
+            tankAt(col.tanks, y1),
+            [cx - Math.cos(a) * col.tankR, y1, cz - Math.sin(a) * col.tankR],
             stage,
           ),
         );
@@ -1032,10 +1038,19 @@ function craftOf(
          the same in both frames. A radial-engine stage has no engine on the
          axis and keeps the model's foot. */
       const nodeBase = core.nozzleY ?? undefined;
-      const footY =
-        !g.radial && nodeBase !== undefined && lay.foot <= lay.base + 1e-6
-          ? nodeBase + (lay.foot - lay.base)
-          : lay.foot;
+      /* The foot with nothing holding it, in node space; then the holder's
+         reach applied here, where the parts' nodes are known: the booster's
+         attach node — a solid's own, a column's lowest tank's — has to be on
+         the core's tanks. The model applies the same rule with drag-cube
+         lengths, and a Vector's bell hangs 0.75 m past its node, so probe
+         11's columns came out 0.4 m under the core's nozzles where Brian
+         wanted them level (#483). */
+      const footFree =
+        !g.radial && nodeBase !== undefined
+          ? nodeBase + (lay.footFree - lay.base)
+          : lay.footFree;
+      const heldAt = (rise: number) =>
+        Math.max(footFree, core.tankBaseY - rise);
       const bStage = { ignite: st.boosterIgnite(i), drop: st.boosterDrop(i) };
       const holdStage = { ignite: st.boosterDrop(i), drop: st.boosterDrop(i) };
       const holds: Array<Built> = [];
@@ -1050,6 +1065,10 @@ function craftOf(
           /* A solid: one part, its bottom node at the foot, held at its
              own attach node's height. */
           const info = b.info(bs.part.n);
+          const attachRise = info.attach
+            ? info.attach.p[1] - (info.nodes.bottom?.p[1] ?? 0)
+            : lay.bh / 2;
+          const footY = heldAt(attachRise);
           const by = info.nodes.bottom
             ? Builder.yFor(info, "bottom", footY, I)
             : footY;
@@ -1118,7 +1137,15 @@ function craftOf(
            its tanks, held at the lowest tank's middle. */
         let under: Built | null = null,
           underNode = "";
-        let yy = footY;
+        const run0 = tankRun(col);
+        const t0 = run0.length ? b.info(run0[0].t.n) : null;
+        const eInfo0 = lay.eh > 0 ? b.info(bs.part.n) : null;
+        const attachRise =
+          (eInfo0 && eInfo0.nodes.bottom && eInfo0.nodes.top
+            ? eInfo0.nodes.top.p[1] - eInfo0.nodes.bottom.p[1]
+            : lay.eh) +
+          (t0 ? (t0.attach?.p[1] ?? 0) - (t0.nodes.bottom?.p[1] ?? 0) : 0);
+        let yy = heldAt(attachRise);
         if (lay.eh > 0) {
           const eInfo = b.info(bs.part.n);
           const ey = eInfo.nodes.bottom
@@ -1229,20 +1256,27 @@ function craftOf(
         if (bs.brace) {
           const runBase = first.world.bottom?.p[1] ?? yy;
           const runTop = top.world.top?.p[1] ?? runBase;
-          [0.25, 0.75].forEach((f, q) => {
-            const yb = Math.min(
+          const onCore = (f: number) =>
+            Math.min(
               core.tankTopY,
               Math.max(core.tankBaseY, runBase + (runTop - runBase) * f),
             );
+          /* Crossed, as the ring columns' are. */
+          [
+            [0.25, 0.75],
+            [0.75, 0.25],
+          ].forEach(([f0, f1], q) => {
+            const y0 = onCore(f0);
+            const y1 = runBase + (runTop - runBase) * f1;
             braceBetween(
               b,
               `s${i}/boost${k}/brace${q}`,
-              tankAt(core.tanks, yb),
-              [Math.cos(a) * (lay.hold / 2), yb, Math.sin(a) * (lay.hold / 2)],
+              tankAt(core.tanks, y0),
+              [Math.cos(a) * (lay.hold / 2), y0, Math.sin(a) * (lay.hold / 2)],
               0,
               0,
-              tankAt([first, ...above], yb),
-              [x - Math.cos(a) * lay.half, yb, z - Math.sin(a) * lay.half],
+              tankAt([first, ...above], y1),
+              [x - Math.cos(a) * lay.half, y1, z - Math.sin(a) * lay.half],
               stage,
             );
           });

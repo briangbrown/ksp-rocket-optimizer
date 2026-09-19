@@ -9,9 +9,7 @@ import {
   packFor,
   stackGeometry,
   boostersFit,
-  clusterSpan,
   stageSize,
-  widthOf,
   useArt,
   boosterLength,
   boosterWidth,
@@ -1491,7 +1489,6 @@ function boostedAscent({
               grp.dia / 2,
               standoffOf(holder.n),
               attachHalf(b, bd),
-              clusterSpan(nc, widthOf(c, diaOf(c))) / 2,
             )
           )
             continue;

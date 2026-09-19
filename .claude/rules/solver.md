@@ -685,10 +685,12 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
 
 - **What holds a booster on is chosen for the booster.** `holderFor` in
   `parts.ts`: the TT-14 (ReStock+, gated on `expansions.rs` through
-  `offered`) on the 0.625 m class, the TT-38K on 1.25, the TT-70 on 1.875
-  and 2.5, the Hydraulic Detachment Manifold wider than that, down the
-  ladder to what is researched and offered, and never below the stock TT-38K
-  (`HOLD_FLOOR`); and two of them on a booster longer than `LONG_BOOSTER`
+  `offered`) on the 0.625 m class, the TT-38K on 1.25, the TT-70 on
+  everything wider, down the ladder to what is researched and offered, and
+  never below the stock TT-38K (`HOLD_FLOOR`). The Hydraulic Detachment
+  Manifold is no rung since #483: eight times the TT-70's mass for ejection
+  force a drop tank does not need, and a shorter reach — Brian asked why a
+  3.75 m drop tank was on one; and two of them on a booster longer than `LONG_BOOSTER`
   (6 m), the second never firing, so both stay with the core as the plan
   charges them. The `Boosters` record carries the `hold`, and mass, funds,
   part count, the ring's standoff (`boostersFit`, `boosterRing`, `stageSize`)

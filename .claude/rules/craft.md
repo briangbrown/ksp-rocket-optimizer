@@ -181,9 +181,29 @@ standoff, half, clear)` is the largest of three radii: the wall plus the
   holder's standoff plus the attach radius; the widest thing the booster runs
   alongside below the tanks (`clear`, an engine cluster wider than the tank)
   plus the attach radius, with no decoupler between; and the ring's room for
-  itself. `boostersFit` and `stageSize` read the same rule. Charging the
-  standoff from the bells too held probe 9's columns 0.24 m off the TT-70s
-  meant to hold them (#467).
+  itself. Charging the standoff from the bells too held probe 9's columns
+  0.24 m off the TT-70s meant to hold them (#467). A section too wide to
+  clear even at the holder's reach — an engine cluster wider than the tank
+  plus the decoupler — is not cleared by pushing the ring out: the foot stops
+  on top of it and the booster stands beside the tanks only, as a builder
+  mounts SRBs above a wide cluster. `boostersFit` judges a count at the
+  holder's reach, never at the ring's own self-clearing radius, which made
+  every count fit and gave Tylo 3.5 t eight boosters its TT-70s could not
+  reach (#483); `stageSize` is the ring or the bells, whichever is wider.
+
+- **The holder's reach is applied in node space.** `boosterLayout` hands
+  the craft `footFree` — the foot with nothing holding it, the base or the
+  cap — and the craft maps that to the core engines' nozzle plane, then
+  raises it until the booster's attach node (a solid's own, a column's
+  lowest tank's) is on the core's tanks, from the parts' nodes. The model
+  applies the same rule with drag-cube lengths, and a Vector's bell hangs
+  0.75 m past its node, so probe 11's columns came out 0.4 m under the
+  core's nozzles where Brian wanted them level (#483).
+
+- **Braces cross.** Each EAS-4 runs from a quarter of the core's run to the
+  column's other quarter: a strut the length of the gap between two walls
+  is 16 cm on a TT-70, cannot be seen and holds no shear — probe 11's were
+  written that way and Brian found none in the VAB.
 
 - **A booster's foot is at the stage base, and in the craft on the core
   engines' nozzle plane.** The lowest bottom node of the stage's engines

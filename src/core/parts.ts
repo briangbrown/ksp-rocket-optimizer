@@ -482,16 +482,17 @@ const HOLDERS = [
   "TT-14 Radial Decoupler",
   "TT-38K Radial Decoupler",
   "TT-70 Radial Decoupler",
-  "Hydraulic Detachment Manifold",
 ].map((n) => {
   const h = structureData.decoupler.find((x) => x.n === n);
   if (!h) throw new Error(`structure.json has lost the ${n}`);
   return h;
 });
 /* The widest booster each rung takes, by the diameter its decoupler meets:
-   the TT-14 (ReStock+) the 0.625 m class, the TT-38K 1.25, the TT-70 1.875
-   and 2.5, the manifold the rest. */
-const HOLD_DIA = [0.7, 1.3, 2.6, Infinity];
+   the TT-14 (ReStock+) the 0.625 m class, the TT-38K 1.25, the TT-70
+   everything wider. The Hydraulic Detachment Manifold is not a rung: eight
+   times the TT-70's mass for ejection force a drop tank does not need, and
+   a shorter reach — Brian asked why a 3.75 m drop tank was on one (#483). */
+const HOLD_DIA = [0.7, 1.3, Infinity];
 const LONG_BOOSTER = 6;
 /* The stock TT-38K is the floor: what every roster has from Stability, and
    what a booster gets when nothing on its rung is researched or offered. */
