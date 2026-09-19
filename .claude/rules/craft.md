@@ -200,6 +200,17 @@ standoff, half, clear)` is the largest of three radii: the wall plus the
   0.75 m past its node, so probe 11's columns came out 0.4 m under the
   core's nozzles where Brian wanted them level (#483).
 
+- **EAS-4s cross every stage joint of 1.25 m and up — four from 2.5 m,
+  two below.** From a stage's lowest tank, just
+  above its bottom rim, to the wall of what the stage below ends in — its
+  decoupler, or its top tank where a plate makes the joint — at the quarter
+  azimuths, off the boosters' planes. Brian's strutted probe 6 had four
+  across every joint and made an 80 km orbit with 9.8 km/s to spare; bare,
+  the same rocket was too flexy to fly (#483). They break at separation, as
+  the game's do. `Solution.interstage` is what the plan charged for them
+  (`fitStructure`, on every stage with a stage below), and the bill counts
+  them on both sides.
+
 - **Braces cross.** Each EAS-4 runs from a quarter of the core's run to the
   column's other quarter: a strut the length of the gap between two walls
   is 16 cm on a TT-70, cannot be seen and holds no shear — probe 11's were

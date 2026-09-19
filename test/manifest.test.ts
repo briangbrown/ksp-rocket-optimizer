@@ -107,14 +107,26 @@ describe("the stage manifest", () => {
 
    Solved through `planMission` rather than `solveGroup`, because the pools are
    assembled inside `boostedAscent` and the walk is what delivers one. */
+/* The asparagus fixture at the first payload whose plan carries a drop tank:
+   20 t took them until the braces of #483 priced a short column's struts and
+   the walk went elsewhere; heavier, the ring is where the gain lives. */
+async function withDropTanks(objective: "mass" | "cost") {
+  for (const payload of [20, 30, 40]) {
+    const res = await planMission(
+      { ...asparagusInput(objective), payload },
+      { onYield: () => Promise.resolve() },
+    );
+    if (res?.stages.some((s) => s.sol?.boosters?.part.dropTank)) return res;
+  }
+  return null;
+}
+
 describe("a stage with drop tanks", () => {
   it("prices and counts what it is built from", async () => {
     const bad: Array<string> = [];
     let dropTanks = 0;
     for (const objective of ["mass", "cost"] as const) {
-      const res = await planMission(asparagusInput(objective), {
-        onYield: () => Promise.resolve(),
-      });
+      const res = await withDropTanks(objective);
       if (!res) continue;
       res.stages.forEach((s, i) => {
         if (!s.sol) return;
@@ -138,9 +150,7 @@ describe("a stage with drop tanks", () => {
      to what is actually bolted on — the tanks and the decoupler holding them —
      so the parity check then forces the other. #97 */
   it("lists a drop tank as its tanks and a decoupler, and nothing else", async () => {
-    const res = await planMission(asparagusInput("mass"), {
-      onYield: () => Promise.resolve(),
-    });
+    const res = await withDropTanks("mass");
     const drops = (res?.stages ?? [])
       .map((s) => s.sol)
       .filter((sol) => sol?.boosters?.part.dropTank);

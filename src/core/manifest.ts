@@ -111,6 +111,14 @@ export function eachRow(sol: Solution | null | undefined, add: AddRow) {
   } else add("decoupler", null, 1, 0, DECOUPLER_FUNDS);
 
   if (sol.rejoin) add("rejoin", sol.rejoin, 1, sol.rejoin.m, sol.rejoin.cost);
+  if (sol.interstage)
+    add(
+      "brace",
+      sol.interstage,
+      sol.interstage.count,
+      sol.interstage.m,
+      sol.interstage.cost,
+    );
 
   /* Two per extra column, top and bottom. */
   if (sol.joiner && S > 1) {

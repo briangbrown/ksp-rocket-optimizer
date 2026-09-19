@@ -677,6 +677,16 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
   braced; a ring of stacks always is, its joint being a cubic strut. The signature gained the field, which is why
   every boostered design in the grid "moved" when it arrived.
 
+- **Every stage with a stage below pays for four interstage braces.**
+  `fitStructure` puts EAS-4s (`Solution.interstage`) on every stage that
+  has one below it, where General Construction is researched — four on a
+  2.5 m joint and wider, two on 1.25 and 1.875, none on smaller stacks,
+  whose joints are stiff for their mass (four everywhere put 15% on the Mun
+  mission's liftoff): a tall stack of short parts flexes at its decouplers, and
+  Brian's probe 6 flew only strutted that way (#483). `stageCost`,
+  `stageParts`, the manifest and the bill read the record; the craft writes
+  them across the joint.
+
 - **A booster more than twice its stage's length is refused.** Its attach
   node is at its middle, and the decoupler there has to be on this stage's
   tanks; longer, the middle is above the stage and the holder is bolted to
@@ -734,6 +744,12 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
   off its cut and the asparagus fixture off its drop tanks (#467); their lift
   is still not in the ascent model, which is an open question rather than a
   rule.
+
+- **An engine with no bottom node stays on the bottom stage.** `bottomless`
+  in `core/nodes.ts`: the Twin-Boar's bottom is its bells, and a stage
+  below has nothing to hang its decoupler from, unless a coupler makes the
+  joint. The Duna 3.5 t parts fixture put one on an upper stage and
+  `checkCraft` refused the craft (#483).
 
 - **A tank nothing can stand on is not in the pool.** `poolsFor` drops any
   tank `topless` (`core/nodes.ts`) names — no top stack node in `nodes.json`:

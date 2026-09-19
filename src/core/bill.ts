@@ -98,7 +98,8 @@ function billOfPlan(stages: ReadonlyArray<PlanStage>): Bill {
         (sol.joiner ? (S - 1) * (sol.joiner.brace ? 1 : 2) : 0),
       braces:
         (sol.joiner?.brace ? (S - 1) * sol.joiner.brace.count : 0) +
-        (b?.brace ? b.n * b.brace.count : 0),
+        (b?.brace ? b.n * b.brace.count : 0) +
+        (sol.interstage?.count ?? 0),
       /* `prop` is the tanks' and the adapters'; a solid stage's is its
          engine's own charge (n × fuelM), and a fuelled engine under tanks
          carries fuelM the stage does not count in `prop` but does in mass. */

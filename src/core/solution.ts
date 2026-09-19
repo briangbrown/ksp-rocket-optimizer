@@ -164,6 +164,12 @@ type Solution = {
   /* The coupler gathering a ring of columns back onto one node below. */
   rejoin?: Coupler | null;
   joiner?: Joiner | null;
+  /* Four EAS-4s from this stage's lowest tank across the joint to the stage
+     below — the interstage, where a tall stack of short parts flexes. Null
+     on the bottom stage and where none is researched. Brian's strutted
+     probe 6 reached orbit with four across every joint; unstrutted it was
+     "too flexy" (#483). */
+  interstage?: Brace | null;
   packed?: Pack | null;
   asparagus?: boolean;
   dropTank?: boolean;

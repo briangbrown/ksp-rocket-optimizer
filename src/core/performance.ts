@@ -271,6 +271,7 @@ function stageCost(c: Solution) {
           ? c.joiner.cost + c.joiner.brace.count * c.joiner.brace.cost
           : 2 * c.joiner.cost)
       : 0);
+  if (c.interstage) f += c.interstage.count * c.interstage.cost;
   if (c.tanks) f += c.tanks.list.reduce((a, x) => a + x.c * est(x.t), 0);
   if (c.adapters)
     f += (c.stacks || 1) * c.adapters.parts.reduce((a, t) => a + est(t), 0);
@@ -307,6 +308,7 @@ const stageParts = (c: Solution) =>
   /* Zero where the plate above makes the joint. The `&&` here read that as
      "no decoupler recorded" and charged one anyway. #107 */
   (c.decoupler ? c.decoupler.qty : 1) +
+  (c.interstage?.count ?? 0) +
   /* What a ring is made of, which is not the same for all three kinds. The
      decoupler is always one. Then a solid booster is itself an engine, a liquid
      column is an engine with its tanks hanging under it, and a drop tank is

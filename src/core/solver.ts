@@ -44,7 +44,7 @@ import {
   stageParts,
 } from "./performance.js";
 import { fitStructure, pickTanksMemo, poolsFor } from "./tanks.js";
-import { attachHalf } from "./nodes.js";
+import { attachHalf, bottomless } from "./nodes.js";
 import type { Excluded, Expansions, Regime, Roster } from "./constants.js";
 import type { Engine, Tank } from "./catalogue.js";
 import type { Objective } from "./performance.js";
@@ -766,6 +766,11 @@ function solveStage({
             ? couplerFor(e, n, unlocked, excluded, noPlate, expansions)
             : null;
         if (n > 1 && !isRadial(e) && !selfCoup) continue;
+        /* A stage below hangs from this engine's bottom node, and the
+           Twin-Boar has none: the Duna 3.5 t parts fixture put one on an
+           upper stage and the craft had nowhere to hang the decoupler (#483). */
+        if (hasStageBelow && !isRadial(e) && !selfCoup && bottomless(e.n))
+          continue;
         const selfShroud =
           selfCoup && selfCoup.plate
             ? shroudFor(selfCoup.n, heightOf(e, 1))
@@ -789,6 +794,9 @@ function solveStage({
         scratch.adapters = null;
         scratch.rejoin = null;
         scratch.joiner = null;
+        /* No tank to bolt an interstage brace to. Left over from a tanked
+           candidate, the manifest counted 0.2 t the stage never paid (#483). */
+        scratch.interstage = null;
         scratch.perStack = null;
         scratch.total = m0;
         scratch.wet = m0;
@@ -866,7 +874,7 @@ function solveStage({
             hasStageBelow,
           });
           if (!fit) continue;
-          const { coup, shroud, adapt, rejoin, dec, joiner } = fit;
+          const { coup, shroud, adapt, rejoin, dec, joiner, interstage } = fit;
           let fixed = dryBase + fit.dry;
 
           let mp0 = propellantFor(dv, fixed, ispE, k);
@@ -997,6 +1005,7 @@ function solveStage({
           scratch.perStack = one;
           scratch.shroud = shroud;
           scratch.joiner = joiner;
+          scratch.interstage = interstage;
           scratch.boosters = null;
           scratch.total = m0;
           scratch.wet = m0;
@@ -1681,6 +1690,7 @@ function boostedAscent({
               decoupler: dec,
               coupler: fit.coup,
               shroud,
+              interstage: fit.interstage,
               asparagus: aspHere,
               dropTank: drop,
               total: m0,

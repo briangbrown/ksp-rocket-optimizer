@@ -68,7 +68,17 @@ const topless = (title: string): boolean => {
   return e !== undefined && !e.nodes.top;
 };
 
-export { commandParts, nodesOf, titleOf, topless };
+/* An engine with no bottom stack node — the Twin-Boar's is its bells — can
+   end a stack but not carry a stage below it: the game has nothing to hang
+   the next stage's decoupler from. The solver keeps such an engine to the
+   bottom stage unless a coupler makes the joint (#483). A title the table
+   has not met is taken as having one. */
+const bottomless = (title: string): boolean => {
+  const e = nodesOf(title);
+  return e !== undefined && !e.nodes.bottom;
+};
+
+export { bottomless, commandParts, nodesOf, titleOf, topless };
 export type { Node, PartNodes };
 
 /* How far a booster's axis stands from the face it is bolted by: its

@@ -853,7 +853,7 @@ function craftOf(
 
   /* Bottom up along the axis: each stage's top is the next one's floor. */
   let y = 0;
-  let belowTop: { part: Built; node: string } | null = null;
+  let belowTop: { part: Built; node: string; r: number } | null = null;
   for (const { i, sol } of solved) {
     const g = stageGeom(sol);
     const stage = { ignite: null, drop: st.drop(i) };
@@ -881,6 +881,31 @@ function craftOf(
     /* The stage below hangs from this stage's bottom node. */
     if (belowTop)
       b.stack(core.bottom, core.bottomNode, belowTop.part, belowTop.node);
+    /* Four EAS-4s across the joint: from this stage's lowest tank, just
+       above its bottom rim, down to the wall of what the stage below ends in
+       — its decoupler, or its top tank where a plate makes the joint — at
+       the quarter azimuths, off the boosters' planes. Brian's strutted probe
+       6 had four across every joint and reached orbit; bare, it was too
+       flexy to fly (#483). They break at separation, as the game's do. */
+    if (belowTop && sol.interstage && core.tanks.length) {
+      const low = core.tanks[0];
+      const y0 = core.tankBaseY + 0.3;
+      const y1 = belowTop.part.part.pos[1];
+      for (let q = 0; q < sol.interstage.count; q++) {
+        const a = ((q + 0.5) / sol.interstage.count) * 2 * Math.PI;
+        braceBetween(
+          b,
+          `s${i}/interstage${q}`,
+          low,
+          [Math.cos(a) * core.tankR, y0, Math.sin(a) * core.tankR],
+          0,
+          0,
+          belowTop.part,
+          [Math.cos(a) * belowTop.r, y1, Math.sin(a) * belowTop.r],
+          stage,
+        );
+      }
+    }
     /* Ring columns are struts on the core's tank run, two each, a quarter
        of the way in from either end of the column's run — the spread a
        builder gives them; 0.4 m apart at the middle they held nothing
@@ -1308,7 +1333,10 @@ function craftOf(
       b.stack(dec, "bottom", core.topTank, "top");
       top = { part: dec, node: "top" };
     }
-    belowTop = top;
+    belowTop = {
+      ...top,
+      r: (sol.decoupler?.n ? (sol.decoupler.d ?? g.td) : g.td) / 2,
+    };
     y = top.part.world[top.node].p[1];
   }
 
