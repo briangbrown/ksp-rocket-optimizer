@@ -1,7 +1,7 @@
 import { NONE, expBits, offered } from "./constants.js";
 import couplersData from "../data/couplers.json";
 import structureData from "../data/structure.json";
-import type { Hold } from "./solution.js";
+import type { Hold, Brace } from "./solution.js";
 import type { Excluded, Expansions, Roster } from "./constants.js";
 import type { Leg } from "./orbits.js";
 import type {
@@ -482,16 +482,17 @@ const HOLDERS = [
   "TT-14 Radial Decoupler",
   "TT-38K Radial Decoupler",
   "TT-70 Radial Decoupler",
-  "Hydraulic Detachment Manifold",
 ].map((n) => {
   const h = structureData.decoupler.find((x) => x.n === n);
   if (!h) throw new Error(`structure.json has lost the ${n}`);
   return h;
 });
 /* The widest booster each rung takes, by the diameter its decoupler meets:
-   the TT-14 (ReStock+) the 0.625 m class, the TT-38K 1.25, the TT-70 1.875
-   and 2.5, the manifold the rest. */
-const HOLD_DIA = [0.7, 1.3, 2.6, Infinity];
+   the TT-14 (ReStock+) the 0.625 m class, the TT-38K 1.25, the TT-70
+   everything wider. The Hydraulic Detachment Manifold is not a rung: eight
+   times the TT-70's mass for ejection force a drop tank does not need, and
+   a shorter reach — Brian asked why a 3.75 m drop tank was on one (#483). */
+const HOLD_DIA = [0.7, 1.3, Infinity];
 const LONG_BOOSTER = 6;
 /* The stock TT-38K is the floor: what every roster has from Stability, and
    what a booster gets when nothing on its rung is researched or offered. */
@@ -539,6 +540,21 @@ const RADIAL_JOIN_FALLBACK = {
   cost: TT38K.cost,
   t: TT38K.t,
 };
+/* The EAS-4 Strut Connector, two a column between a radial column and the
+   core, where General Construction is researched. Not a part the solver
+   chooses among — the game has one strut — so the tables do not list it;
+   the numbers are the install's config (mass 0.05, cost 42). #483 */
+const STRUT_BRACE = {
+  n: "EAS-4 Strut Connector",
+  m: 0.05,
+  cost: 42,
+  t: "General Construction",
+};
+const braceFor = (unlocked: Roster, excluded: Excluded): Brace | null =>
+  unlocked.has(STRUT_BRACE.t) && !(excluded && excluded.has(STRUT_BRACE.n))
+    ? { ...STRUT_BRACE, count: 2 }
+    : null;
+
 const radialJoin = (unlocked: Roster, excluded: Excluded) =>
   !!RADIAL_JOIN.t &&
   unlocked.has(RADIAL_JOIN.t) &&
@@ -562,6 +578,8 @@ export {
   holderFor,
   RADIAL_JOIN,
   RADIAL_JOIN_FALLBACK,
+  STRUT_BRACE,
+  braceFor,
   STRUCT,
   SZ_DIA,
   columnCoupler,

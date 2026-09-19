@@ -181,9 +181,29 @@ standoff, half, clear)` is the largest of three radii: the wall plus the
   holder's standoff plus the attach radius; the widest thing the booster runs
   alongside below the tanks (`clear`, an engine cluster wider than the tank)
   plus the attach radius, with no decoupler between; and the ring's room for
-  itself. `boostersFit` and `stageSize` read the same rule. Charging the
-  standoff from the bells too held probe 9's columns 0.24 m off the TT-70s
-  meant to hold them (#467).
+  itself. Charging the standoff from the bells too held probe 9's columns
+  0.24 m off the TT-70s meant to hold them (#467). A section too wide to
+  clear even at the holder's reach — an engine cluster wider than the tank
+  plus the decoupler — is not cleared by pushing the ring out: the foot stops
+  on top of it and the booster stands beside the tanks only, as a builder
+  mounts SRBs above a wide cluster. `boostersFit` judges a count at the
+  holder's reach, never at the ring's own self-clearing radius, which made
+  every count fit and gave Tylo 3.5 t eight boosters its TT-70s could not
+  reach (#483); `stageSize` is the ring or the bells, whichever is wider.
+
+- **The holder's reach is applied in node space.** `boosterLayout` hands
+  the craft `footFree` — the foot with nothing holding it, the base or the
+  cap — and the craft maps that to the core engines' nozzle plane, then
+  raises it until the booster's attach node (a solid's own, a column's
+  lowest tank's) is on the core's tanks, from the parts' nodes. The model
+  applies the same rule with drag-cube lengths, and a Vector's bell hangs
+  0.75 m past its node, so probe 11's columns came out 0.4 m under the
+  core's nozzles where Brian wanted them level (#483).
+
+- **Braces cross.** Each EAS-4 runs from a quarter of the core's run to the
+  column's other quarter: a strut the length of the gap between two walls
+  is 16 cm on a TT-70, cannot be seen and holds no shear — probe 11's were
+  written that way and Brian found none in the VAB.
 
 - **A booster's foot is at the stage base, and in the craft on the core
   engines' nozzle plane.** The lowest bottom node of the stage's engines
@@ -250,6 +270,25 @@ standoff, half, clear)` is the largest of three radii: the wall plus the
   writer stages them there (`holdStage`, and `{ignite: drop, drop}` for a
   plate) rather than leaving `sqor` at −1, or the round trip disagrees.
 
+- **A column is braced to the core with two EAS-4 Strut Connectors, written
+  as compound parts.** Probe 4's 21 t S3-3600 columns each hung from one
+  Cubic Octagonal Strut — a 1 kg part with a size-0 node — and let go under
+  thrust; Brian's hand-strutted copy reached orbit (#483). `braceBetween` in
+  `core/craft.ts` writes an EAS-4 bolted to the core wall reaching for the
+  column's tank at the quarter points of its run, for ring columns (the cubic
+  strut then hangs the column at its middle) and for liquid booster columns.
+  The game's compound-part format, from a two-tank sample: `partName =
+CompoundPart`; `PARTDATA { tgt, tpersID, pos, rot, dir, col }` with `tgt`
+  the target's id and `tpersID` its persistentId; `pos` and `dir` the far end
+  from the part's origin in the part's own frame (through its `rot`), which
+  the sample's end on the second tank's wall confirmed; PARTDATA's `rot` the
+  turn that lays `dir` along +x; `col` the target collider's name, left empty
+  — whether the game fills it in is round 11's question. The part's +x
+  points into the wall it stands on, as a decoupler's attach direction does.
+  `CraftPart.compound` carries it, the reader reads it back, and `checkCraft`
+  holds the target to exist. The plan charges what is written (solver.md), so
+  the bill's `braces` agrees on both sides.
+
 - **Struts stand at the quarter points of the column's run, all with one
   roll.** `join{k}a` on the core at a quarter up the column's tanks, `join{k}b`
   on the column at a quarter down, clamped to the core's tanks; 0.4 m apart
@@ -265,7 +304,10 @@ standoff, half, clear)` is the largest of three radii: the wall plus the
   0.15 m up the Terriers' bells. `boosterLayout(sol, g, tankBase, above)`
   lowers the foot until the top is level with the tank top, as far as the
   holder still meets the middle, and the model and the craft both pass the
-  next stage in. A stage narrow enough to stand inside the ring is passed
+  next stage in. the stage above's reach is its whole core width
+  (`stageSize(...).coreWidth / 2`), a ring of stacks included — `span` left
+  Mun 3.5 t's three-column upper stage out and the Kickbacks stood 9 cm into
+  it (#483). A stage narrow enough to stand inside the ring is passed
   by, as the game allows, and the foot stays where the walk put it; the
   model test holds both halves.
 

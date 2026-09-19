@@ -3,7 +3,7 @@ import { HOLDERS, LONG_BOOSTER, holderFor } from "../src/core/parts.js";
 
 /* What holds a booster on is chosen for the booster: the TT-14 on a 0.625 m
    one where ReStock+ is on, the TT-38K on 1.25, the TT-70 on 1.875 and 2.5,
-   the manifold wider than that, and two of them on a booster longer than
+   the TT-70 everything wider (the manifold is no rung, #483), and two of them on a booster longer than
    LONG_BOOSTER. Down the ladder where a size is not researched or ruled
    out, and never below the stock TT-38K without ReStock+. #467 */
 
@@ -24,9 +24,7 @@ describe("holderFor", () => {
     );
     expect(holderFor(1.875, 4, all, none).n).toBe("TT-70 Radial Decoupler");
     expect(holderFor(2.5, 4, all, none).n).toBe("TT-70 Radial Decoupler");
-    expect(holderFor(3.75, 4, all, none).n).toBe(
-      "Hydraulic Detachment Manifold",
-    );
+    expect(holderFor(3.75, 4, all, none).n).toBe("TT-70 Radial Decoupler");
   });
 
   it("takes two on a long booster and one on a short one", () => {
@@ -43,9 +41,9 @@ describe("holderFor", () => {
     expect(holderFor(2.5, 4, stability, none).n).toBe(
       "TT-38K Radial Decoupler",
     );
-    expect(
-      holderFor(3.75, 4, all, new Set(["Hydraulic Detachment Manifold"])).n,
-    ).toBe("TT-70 Radial Decoupler");
+    expect(holderFor(3.75, 4, all, new Set(["TT-70 Radial Decoupler"])).n).toBe(
+      "TT-38K Radial Decoupler",
+    );
     expect(holderFor(1.25, 4, none, none).n).toBe("TT-38K Radial Decoupler");
     expect(holderFor(0.625, 4, none, none, RS).n).toBe(
       "TT-38K Radial Decoupler",

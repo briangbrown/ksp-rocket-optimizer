@@ -112,17 +112,19 @@ const boosterRing = (
 
 /* Whether `n` boosters fit round a stage at all: at the ring's radius,
    neighbours `2 R sin(pi / n)` apart have to be a booster apart. */
+/* Whether `n` boosters fit round a stage at all: at the radius the holder
+   reaches — the wall, its standoff, the attach radius — neighbours
+   `2 R sin(pi / n)` apart have to be a booster apart. Judged at the ring's
+   own radius this was true of any count, since `boosterRing` stands the
+   ring out until it clears itself; Tylo 3.5 t got eight boosters its TT-70s
+   could not reach (#483). */
 const boostersFit = (
   n: number,
   bd: number,
   wall: number,
   standoff = standoffOf(BOOSTER_HOLD),
   half = bd / 2,
-  clear = 0,
-) =>
-  n < 3 ||
-  2 * boosterRing(n, bd, wall, standoff, half, clear) * Math.sin(Math.PI / n) >=
-    bd - 1e-9;
+) => n < 3 || 2 * (wall + standoff + half) * Math.sin(Math.PI / n) >= bd - 1e-9;
 
 /* How wide a booster is: the measured part, or for a synthesised column the
    widest of its tanks and its engine where it has one. A column carries its
@@ -644,17 +646,18 @@ function stageSize(sol: Solution) {
          engine cluster where it is wider, as boosterLayout stands them. */
       const wall =
         S > 1 ? core / 2 : Math.max(td, sol.packed ? sol.packed.width : 0) / 2;
-      return (
+      /* The ring at its holder's reach, or the bells where they are wider:
+         the booster stands above a cluster it cannot clear (boosterLayout). */
+      return Math.max(
         2 *
           boosterRing(
             sol.boosters.n,
             bd,
             wall,
             standoffOf(sol.boosters.hold.n),
-            bd / 2,
-            span / 2,
           ) +
-        bd
+          bd,
+        span,
       );
     })(),
     /* Width without the boosters. They are gone by about 18 km, so a stack that

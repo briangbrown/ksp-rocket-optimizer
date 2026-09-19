@@ -54,7 +54,23 @@ type DecouplerFit = {
 
 /* What holds a ring of parallel stacks on. Structure rather than a decoupler:
    radial stacks burn with the core and are never dropped alone. */
-type Joiner = { n: string; m: number; cost: number; t: string };
+/* What braces a column to the core: EAS-4 Strut Connectors, `count` a
+   column, or null where none is researched. A column hangs from one
+   structural part and the game gives that joint no more strength than the
+   part has — probe 4's S3-3600s on single cubic struts let go under thrust —
+   so a builder struts them, and the plan charges what it writes (#483). */
+type Brace = { n: string; m: number; cost: number; t: string; count: number };
+
+/* What joins a ring of stacks to the core: the cubic strut each column hangs
+   from, and the braces beside it where they are researched — one strut and
+   `brace.count` connectors a column then, two struts a column otherwise. */
+type Joiner = {
+  n: string;
+  m: number;
+  cost: number;
+  t: string;
+  brace: Brace | null;
+};
 
 /* What the boosters are bolted to.
 
@@ -98,6 +114,9 @@ type Boosters = {
   part: BoosterPart;
   n: number;
   hold: Hold;
+  /* Braces from the core to each liquid column; null for solids and where
+     none is researched. */
+  brace: Brace | null;
   burn: number;
   dv: number;
   sepMass: number;
@@ -190,6 +209,7 @@ type Solution = {
 };
 
 export type {
+  Brace,
   Hold,
   AdapterChain,
   BoosterPart,

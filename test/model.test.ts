@@ -577,6 +577,7 @@ const STRAPPED: Solution = {
       t: "Stability",
       count: 1,
     },
+    brace: null,
     sepMass: 100,
     twrSep: 1.2,
   },

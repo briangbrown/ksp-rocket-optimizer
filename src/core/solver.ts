@@ -9,13 +9,13 @@ import {
   packFor,
   stackGeometry,
   boostersFit,
-  clusterSpan,
   stageSize,
-  widthOf,
   useArt,
   boosterLength,
   boosterWidth,
   standoffOf,
+  engineLen,
+  tankStackLen,
 } from "./geometry.js";
 import {
   couplerFor,
@@ -26,6 +26,7 @@ import {
   shroudFor,
   holderFor,
   tanksInArt,
+  braceFor,
 } from "./parts.js";
 import {
   STAGE_PRESSURE,
@@ -1488,7 +1489,6 @@ function boostedAscent({
               grp.dia / 2,
               standoffOf(holder.n),
               attachHalf(b, bd),
-              clusterSpan(nc, widthOf(c, diaOf(c))) / 2,
             )
           )
             continue;
@@ -1523,8 +1523,16 @@ function boostedAscent({
           });
           if (!fit) continue;
           const { adapt, dec, shroud } = fit;
+          /* A liquid column is braced to the core with two EAS-4s where they
+             are researched; a solid on its decouplers is not (#483). */
+          const brace = b.column ? braceFor(unlocked, excluded) : null;
           const fixed =
-            payload + extra + nc * c.m + nb * holder.m * holder.count + fit.dry;
+            payload +
+            extra +
+            nc * c.m +
+            nb *
+              (holder.m * holder.count + (brace ? brace.m * brace.count : 0)) +
+            fit.dry;
 
           const coreBurnA = mdotC * tB; // core propellant spent under boost
 
@@ -1618,6 +1626,17 @@ function boostedAscent({
             if (hi > 10 * biggest) continue;
             const tk = pickTanksMemo(usable, hi, 12, objective);
             if (!tk) continue;
+            /* The booster hangs from its middle — its attach node — and the
+               decoupler there has to be on this stage's tanks: a booster more
+               than twice the stage's length has its middle above the stage.
+               Eeloo's 22 m Clydesdales on a 10 m Mainsail stage had theirs a
+               metre above the decoupler, bolted to nothing (#483). The
+               length is not costed; it is refused where it cannot be held. */
+            if (
+              boosterLength(b, bd) / 2 >
+              engineLen(c) + tankStackLen(tk) + 1e-9
+            )
+              continue;
 
             const mp = tk.prop;
             if (mp <= burnA * 1.02) continue;
@@ -1671,6 +1690,7 @@ function boostedAscent({
                 part: b,
                 n: nb,
                 hold: holder,
+                brace,
                 burn: tB,
                 dv: dvA,
                 sepMass: mA,
