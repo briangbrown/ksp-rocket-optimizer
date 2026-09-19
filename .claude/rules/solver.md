@@ -663,6 +663,26 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
   so a ring belongs to the bottom live stage until its own boosters-away
   step, not to the pad. #463
 
+- **A column is charged its braces.** `braceFor` in `parts.ts` is two EAS-4
+  Strut Connectors a column (0.05 t, 42 funds each) where General
+  Construction is researched, null otherwise. A ring of stacks then hangs
+  each column from one cubic strut and braces it with two (`Joiner.brace`;
+  two cubic struts a column where none), and a liquid booster column carries
+  `Boosters.brace` beside its holders; `fitStructure`, `stageCost`,
+  `stageParts`, the manifest and the bill all read the same record, so the
+  craft writes exactly what the plan paid for (#483). Solids on their
+  decouplers are not braced. The signature gained the field, which is why
+  every boostered design in the grid "moved" when it arrived.
+
+- **A booster more than twice its stage's length is refused.** Its attach
+  node is at its middle, and the decoupler there has to be on this stage's
+  tanks; longer, the middle is above the stage and the holder is bolted to
+  nothing — Eeloo's cut mission put 22 m Clydesdales on a 10 m Mainsail
+  stage (#483). `boostedAscent` checks `boosterLength / 2` against the
+  engine plus the tank run once the tanks are picked. The length is not
+  costed, only refused; the model test that measures a ring's clearance at
+  its middle is what found it.
+
 - **What holds a booster on is chosen for the booster.** `holderFor` in
   `parts.ts`: the TT-14 (ReStock+, gated on `expansions.rs` through
   `offered`) on the 0.625 m class, the TT-38K on 1.25, the TT-70 on 1.875

@@ -8,6 +8,7 @@ import {
   payloadDiaOf,
   ringPositions,
   stageGeom,
+  stageSize,
   standoffOf,
   tankRun,
   widthOf,
@@ -268,7 +269,10 @@ export function boosterLayout(
      the solver's to refuse. A stage above narrow enough to stand inside the
      ring is passed by, as the game allows, and the foot stays where the
      walk put it. */
-  const reach = above ? stageGeom(above).span / 2 : 0;
+  /* Its whole width without boosters — a ring of stacks included, which
+     `span` is not: Mun 3.5 t's three-column upper stage reached 2.1 m over a
+     ring whose inner face was at 1.4 (#483). */
+  const reach = above ? stageSize(above).coreWidth / 2 : 0;
   if (reach > br - half) {
     foot = Math.min(foot, tankBase + g.tank - bh);
     foot = Math.max(foot, tankBase - bh / 2);

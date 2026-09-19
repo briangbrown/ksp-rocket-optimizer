@@ -250,6 +250,25 @@ standoff, half, clear)` is the largest of three radii: the wall plus the
   writer stages them there (`holdStage`, and `{ignite: drop, drop}` for a
   plate) rather than leaving `sqor` at −1, or the round trip disagrees.
 
+- **A column is braced to the core with two EAS-4 Strut Connectors, written
+  as compound parts.** Probe 4's 21 t S3-3600 columns each hung from one
+  Cubic Octagonal Strut — a 1 kg part with a size-0 node — and let go under
+  thrust; Brian's hand-strutted copy reached orbit (#483). `braceBetween` in
+  `core/craft.ts` writes an EAS-4 bolted to the core wall reaching for the
+  column's tank at the quarter points of its run, for ring columns (the cubic
+  strut then hangs the column at its middle) and for liquid booster columns.
+  The game's compound-part format, from a two-tank sample: `partName =
+CompoundPart`; `PARTDATA { tgt, tpersID, pos, rot, dir, col }` with `tgt`
+  the target's id and `tpersID` its persistentId; `pos` and `dir` the far end
+  from the part's origin in the part's own frame (through its `rot`), which
+  the sample's end on the second tank's wall confirmed; PARTDATA's `rot` the
+  turn that lays `dir` along +x; `col` the target collider's name, left empty
+  — whether the game fills it in is round 11's question. The part's +x
+  points into the wall it stands on, as a decoupler's attach direction does.
+  `CraftPart.compound` carries it, the reader reads it back, and `checkCraft`
+  holds the target to exist. The plan charges what is written (solver.md), so
+  the bill's `braces` agrees on both sides.
+
 - **Struts stand at the quarter points of the column's run, all with one
   roll.** `join{k}a` on the core at a quarter up the column's tanks, `join{k}b`
   on the column at a quarter down, clamped to the core's tanks; 0.4 m apart
@@ -265,7 +284,10 @@ standoff, half, clear)` is the largest of three radii: the wall plus the
   0.15 m up the Terriers' bells. `boosterLayout(sol, g, tankBase, above)`
   lowers the foot until the top is level with the tank top, as far as the
   holder still meets the middle, and the model and the craft both pass the
-  next stage in. A stage narrow enough to stand inside the ring is passed
+  next stage in. the stage above's reach is its whole core width
+  (`stageSize(...).coreWidth / 2`), a ring of stacks included — `span` left
+  Mun 3.5 t's three-column upper stage out and the Kickbacks stood 9 cm into
+  it (#483). A stage narrow enough to stand inside the ring is passed
   by, as the game allows, and the foot stays where the walk put it; the
   model test holds both halves.
 

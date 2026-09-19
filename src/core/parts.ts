@@ -1,7 +1,7 @@
 import { NONE, expBits, offered } from "./constants.js";
 import couplersData from "../data/couplers.json";
 import structureData from "../data/structure.json";
-import type { Hold } from "./solution.js";
+import type { Hold, Brace } from "./solution.js";
 import type { Excluded, Expansions, Roster } from "./constants.js";
 import type { Leg } from "./orbits.js";
 import type {
@@ -539,6 +539,21 @@ const RADIAL_JOIN_FALLBACK = {
   cost: TT38K.cost,
   t: TT38K.t,
 };
+/* The EAS-4 Strut Connector, two a column between a radial column and the
+   core, where General Construction is researched. Not a part the solver
+   chooses among — the game has one strut — so the tables do not list it;
+   the numbers are the install's config (mass 0.05, cost 42). #483 */
+const STRUT_BRACE = {
+  n: "EAS-4 Strut Connector",
+  m: 0.05,
+  cost: 42,
+  t: "General Construction",
+};
+const braceFor = (unlocked: Roster, excluded: Excluded): Brace | null =>
+  unlocked.has(STRUT_BRACE.t) && !(excluded && excluded.has(STRUT_BRACE.n))
+    ? { ...STRUT_BRACE, count: 2 }
+    : null;
+
 const radialJoin = (unlocked: Roster, excluded: Excluded) =>
   !!RADIAL_JOIN.t &&
   unlocked.has(RADIAL_JOIN.t) &&
@@ -562,6 +577,8 @@ export {
   holderFor,
   RADIAL_JOIN,
   RADIAL_JOIN_FALLBACK,
+  STRUT_BRACE,
+  braceFor,
   STRUCT,
   SZ_DIA,
   columnCoupler,

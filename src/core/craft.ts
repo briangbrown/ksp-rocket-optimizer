@@ -23,6 +23,7 @@ import type {
   Vec3,
 } from "../craft/index.js";
 import type { PartNodes } from "./nodes.js";
+import { STRUT_BRACE } from "./parts.js";
 
 /* The one place the solver's rocket and the craft file's meet: a delivered
    plan in, a `Craft` out. This is the only module that imports `src/craft/`
@@ -100,6 +101,30 @@ const faceWith = (d: Vec3, target: Vec3): Quat => {
   return mul(aboutY(az - Math.PI / 2), [ax * s, ay * s, azz * s, Math.SQRT1_2]);
 };
 
+const conj = (q: Quat): Quat => [-q[0], -q[1], -q[2], q[3]];
+/* The turn that lays unit `a` along unit `b`: the shortest arc, a half turn
+   about any perpendicular where they oppose. */
+const arcTo = (a: Vec3, b: Vec3): Quat => {
+  const d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  if (d > 1 - 1e-9) return I;
+  if (d < -1 + 1e-9) {
+    const p: Vec3 = Math.abs(a[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0];
+    const ax = [
+      a[1] * p[2] - a[2] * p[1],
+      a[2] * p[0] - a[0] * p[2],
+      a[0] * p[1] - a[1] * p[0],
+    ];
+    const n = Math.hypot(ax[0], ax[1], ax[2]);
+    return [ax[0] / n, ax[1] / n, ax[2] / n, 0];
+  }
+  const ax = [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
+  const s = Math.sqrt(2 * (1 + d));
+  return [ax[0] / s, ax[1] / s, ax[2] / s, s / 2];
+};
 const mm = (x: number) => Math.round(x * 1000) / 1000 || 0;
 /* How high the lowest stack node stands above the VAB floor: room for the
    bell below it. The Mammoth's hangs 1.2 m past its bottom node. */
@@ -437,6 +462,53 @@ function holdOn(
 
 /* Something bolted on by its own surface-attach node to a point in the
    world, facing inward toward (cx, cz). */
+/* An EAS-4 Strut Connector from a point on `from`'s wall to a point on
+   `to`'s: a compound part, bolted to `from` with its +x into the wall (as a
+   decoupler's attach direction points at its parent), reaching for `to` with
+   the far end written in its own frame. What the game wrote for Brian's
+   two-tank sample and his strutted probe 4: `pos` and `dir` are the end from
+   the origin through `rot`, and PARTDATA's `rot` lays `dir` along +x. The
+   target collider's name is the game's to fill in. #483 */
+function braceBetween(
+  b: Builder,
+  path: string,
+  from: Built,
+  fromPoint: Vec,
+  cx: number,
+  cz: number,
+  to: Built,
+  toPoint: Vec,
+  stage: CraftPart["stage"],
+): Built {
+  const a = Math.atan2(fromPoint[2] - cz, fromPoint[0] - cx);
+  const inward: Vec3 = [-Math.cos(a), 0, -Math.sin(a)];
+  const rot = faceWith([1, 0, 0], inward);
+  const strut = b.place(path, STRUT_BRACE.n, fromPoint, rot, stage, {
+    entry: b.info(STRUT_BRACE.n),
+  });
+  const span: Vec3 = [
+    toPoint[0] - fromPoint[0],
+    toPoint[1] - fromPoint[1],
+    toPoint[2] - fromPoint[2],
+  ];
+  const local = rotate(conj(rot), span);
+  const len = Math.hypot(local[0], local[1], local[2]) || 1;
+  const dir: Vec3 = [local[0] / len, local[1] / len, local[2] / len];
+  strut.part = {
+    ...strut.part,
+    compound: {
+      target: to.part.id,
+      pos: [mm(local[0]), mm(local[1]), mm(local[2])],
+      dir: q7([dir[0], dir[1], dir[2], 0]).slice(0, 3) as unknown as Vec3,
+      rot: q7(arcTo(dir, [1, 0, 0])),
+      col: "",
+    },
+  };
+  b.byId.set(strut.part.id, strut);
+  b.surface(from, strut);
+  return strut;
+}
+
 function boltOn(
   b: Builder,
   path: string,
@@ -823,12 +895,18 @@ function craftOf(
         Math.min(core.tankTopY, Math.max(core.tankBaseY, y));
       const yLo = onCore(col.tankBaseY + quarter);
       const yHi = onCore(col.tankTopY - quarter);
+      const brace = sol.joiner?.brace ?? null;
+      /* The column hangs from one cubic strut — at its middle where braces
+         take the quarters, at the lower quarter where a second strut does.
+         Probe 4's 21 t columns each hung from one such strut and let go
+         under thrust (#483); the braces are what holds them. */
+      const yJoin = brace ? onCore((col.tankBaseY + col.tankTopY) / 2) : yLo;
       const s1 = boltOn(
         b,
         `s${i}/join${k}a`,
         STACK_JOIN,
-        tankAt(core.tanks, yLo),
-        [Math.cos(a) * core.tankR, yLo, Math.sin(a) * core.tankR],
+        tankAt(core.tanks, yJoin),
+        [Math.cos(a) * core.tankR, yJoin, Math.sin(a) * core.tankR],
         0,
         0,
         stage,
@@ -836,16 +914,31 @@ function craftOf(
       /* The column hangs from its top tank — the root of its own chain,
          since the chain was built with each part holding the one below. */
       b.surface(s1, col.topTank);
-      boltOn(
-        b,
-        `s${i}/join${k}b`,
-        STACK_JOIN,
-        tankAt(col.tanks, yHi),
-        [cx - Math.cos(a) * col.tankR, yHi, cz - Math.sin(a) * col.tankR],
-        cx,
-        cz,
-        stage,
-      );
+      if (brace)
+        [yLo, yHi].forEach((y, q) =>
+          braceBetween(
+            b,
+            `s${i}/join${k}/brace${q}`,
+            tankAt(core.tanks, y),
+            [Math.cos(a) * core.tankR, y, Math.sin(a) * core.tankR],
+            0,
+            0,
+            tankAt(col.tanks, y),
+            [cx - Math.cos(a) * col.tankR, y, cz - Math.sin(a) * col.tankR],
+            stage,
+          ),
+        );
+      else
+        boltOn(
+          b,
+          `s${i}/join${k}b`,
+          STACK_JOIN,
+          tankAt(col.tanks, yHi),
+          [cx - Math.cos(a) * col.tankR, yHi, cz - Math.sin(a) * col.tankR],
+          cx,
+          cz,
+          stage,
+        );
     }
     /* A packed ring: `r` tanks a level, `levels` deep, about the core's tank
        run — each tank its own part on a TT-38K from the core tank beside it,
@@ -1130,6 +1223,29 @@ function craftOf(
               bs.hold.n,
             ),
           );
+        }
+        /* Two EAS-4s from the core to the column's tank at the quarters of
+           its run, where the plan charged them (#483). */
+        if (bs.brace) {
+          const runBase = first.world.bottom?.p[1] ?? yy;
+          const runTop = top.world.top?.p[1] ?? runBase;
+          [0.25, 0.75].forEach((f, q) => {
+            const yb = Math.min(
+              core.tankTopY,
+              Math.max(core.tankBaseY, runBase + (runTop - runBase) * f),
+            );
+            braceBetween(
+              b,
+              `s${i}/boost${k}/brace${q}`,
+              tankAt(core.tanks, yb),
+              [Math.cos(a) * (lay.hold / 2), yb, Math.sin(a) * (lay.hold / 2)],
+              0,
+              0,
+              tankAt([first, ...above], yb),
+              [x - Math.cos(a) * lay.half, yb, z - Math.sin(a) * lay.half],
+              stage,
+            );
+          });
         }
       }
       if (holds.length > 1) {

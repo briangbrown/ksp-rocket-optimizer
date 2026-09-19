@@ -99,6 +99,19 @@ type CraftPart = {
      bolted on by one. */
   attach: { p: Vec3; d: Vec3 } | null;
   resources: ReadonlyArray<Resource>;
+  /* A compound part — an EAS-4 Strut Connector — reaches from where it is
+     bolted to a second part, its target. `pos` and `dir` are the target end
+     from the part's origin in the part's own frame (through `rot`), `rot`
+     here the turn that lays `dir` along +x, `col` the target collider the
+     game recorded, or empty. Read off Brian's two-tank sample and his
+     strutted probe 4 (#483). Undefined on an ordinary part. */
+  compound?: {
+    target: string;
+    pos: Vec3;
+    dir: Vec3;
+    rot: Quat;
+    col: string;
+  };
 };
 
 type Craft = {
@@ -179,7 +192,7 @@ function writeCraft(craft: Craft): string {
     }
     const v: Array<[string, string]> = [
       ["part", token(p)],
-      ["partName", "Part"],
+      ["partName", p.compound ? "CompoundPart" : "Part"],
       ["persistentId", String(fnv(token(p)))],
       ["pos", list(p.pos)],
       ["attPos", "0,0,0"],
@@ -226,8 +239,25 @@ function writeCraft(craft: Craft): string {
       ]);
     for (const s of p.symmetry) v.push(["sym", token(byId.get(s)!)]);
     const part: ConfigNode = { name: "PART", values: v, nodes: [] };
-    for (const n of ["EVENTS", "ACTIONS", "PARTDATA"])
+    for (const n of ["EVENTS", "ACTIONS"])
       part.nodes.push({ name: n, values: [], nodes: [] });
+    /* The strut's far end, as the game writes it: the target by id and by
+       persistentId, then the end in the part's frame. */
+    const c = p.compound;
+    part.nodes.push({
+      name: "PARTDATA",
+      values: c
+        ? [
+            ["tgt", c.target],
+            ["tpersID", String(fnv(token(byId.get(c.target)!)))],
+            ["pos", list(c.pos)],
+            ["rot", list(c.rot)],
+            ["dir", list(c.dir)],
+            ["col", c.col],
+          ]
+        : [],
+      nodes: [],
+    });
     for (const m of p.modules)
       part.nodes.push({
         name: "MODULE",
@@ -369,6 +399,26 @@ function readCraft(text: string): Craft {
         return [{ name: rn, amount, max }];
       },
     );
+    /* A compound part's far end. */
+    const pd = childrenOf(b, "PARTDATA")[0];
+    const tgtV = pd ? valueOf(pd, "tgt") : undefined;
+    let compound: CraftPart["compound"];
+    if (pd && tgtV !== undefined) {
+      if (!/^\d+$/.test(tgtV))
+        throw new CraftError(`${tok}: PARTDATA tgt "${tgtV}" is not an id`);
+      const cpos = valueOf(pd, "pos"),
+        cdir = valueOf(pd, "dir"),
+        crot = valueOf(pd, "rot");
+      if (cpos === undefined || cdir === undefined || crot === undefined)
+        throw new CraftError(`${tok}: PARTDATA without pos, dir and rot`);
+      compound = {
+        target: tgtV,
+        pos: vec3(nums(cpos, 3, `${tok} PARTDATA pos`)),
+        dir: vec3(nums(cdir, 3, `${tok} PARTDATA dir`)),
+        rot: nums(crot, 4, `${tok} PARTDATA rot`) as unknown as Quat,
+        col: valueOf(pd, "col") ?? "",
+      };
+    }
     raws.push({
       part: {
         id,
@@ -393,6 +443,7 @@ function readCraft(text: string): Craft {
             .find((v) => v !== undefined) ?? null,
         attach,
         resources,
+        ...(compound ? { compound } : {}),
       },
       links: valuesOf(b, "link").map((l) => split(l, "link").id),
       srf,

@@ -1,5 +1,5 @@
 import { DATA } from "./catalogue.js";
-import { COUPLERS, HOLDERS, STRUCT } from "./parts.js";
+import { COUPLERS, HOLDERS, STRUCT, STRUT_BRACE } from "./parts.js";
 import { BOOSTER_HOLD, STACK_JOIN, tankRun } from "./geometry.js";
 import { titleOf } from "./nodes.js";
 import type { Craft, CraftPart } from "../craft/index.js";
@@ -23,6 +23,9 @@ type StageBill = {
      a ring of columns' — not the boosters'. */
   holders: number;
   struts: number;
+  /* EAS-4 Strut Connectors the stage carries: a ring of columns' and a ring
+     of liquid boosters', both bolted to the core. #483 */
+  braces: number;
   /* Tonnes of propellant the stage's own tanks hold, to a kilogram. */
   propellant: number;
   /* The ring of boosters, where there is one: how many, and which parts
@@ -90,7 +93,12 @@ function billOfPlan(stages: ReadonlyArray<PlanStage>): Bill {
       couplers: counts(couplers),
       decoupler: sol.decoupler?.n ?? null,
       holders: sol.packed?.cols ?? 0,
-      struts: (sol.packed?.cols ?? 0) + (sol.joiner ? (S - 1) * 2 : 0),
+      struts:
+        (sol.packed?.cols ?? 0) +
+        (sol.joiner ? (S - 1) * (sol.joiner.brace ? 1 : 2) : 0),
+      braces:
+        (sol.joiner?.brace ? (S - 1) * sol.joiner.brace.count : 0) +
+        (b?.brace ? b.n * b.brace.count : 0),
       /* `prop` is the tanks' and the adapters'; a solid stage's is its
          engine's own charge (n × fuelM), and a fuelled engine under tanks
          carries fuelM the stage does not count in `prop` but does in mass. */
@@ -157,6 +165,7 @@ function billOfCraft(craft: Craft): Bill {
       decoupler: titles.find((t) => DECOUPLERS.has(t)) ?? null,
       holders: titles.filter((t) => t === BOOSTER_HOLD).length,
       struts: titles.filter((t) => t === STACK_JOIN).length,
+      braces: titles.filter((t) => t === STRUT_BRACE.n).length,
       propellant: kg(
         ps.reduce(
           (a, p) =>

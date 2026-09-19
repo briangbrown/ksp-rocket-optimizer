@@ -48,6 +48,15 @@ function checkCraft(craft: Craft): Array<Problem> {
       if (Math.abs(n - 1) > 1e-5)
         bad(p.id, `rot is not a unit quaternion (|q| = ${n})`);
     }
+    if (p.compound) {
+      const c = p.compound;
+      if (!byId.has(c.target))
+        bad(p.id, `reaches for "${c.target}", which is no part`);
+      else if (c.target === p.id) bad(p.id, "reaches for itself");
+      if (!finite(c.pos) || !finite(c.dir) || !finite(c.rot))
+        bad(p.id, "the strut's far end is not finite");
+      if (!p.parent) bad(p.id, "a strut with nothing to stand on");
+    }
     const seen = new Set<string>();
     for (const n of p.nodes) {
       if (seen.has(n.id)) bad(p.id, `node "${n.id}" appears twice`);

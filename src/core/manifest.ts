@@ -16,6 +16,7 @@ type Role =
   | "decoupler"
   | "rejoin"
   | "joiner"
+  | "brace"
   | "pack-join"
   | "pack-brace"
   | "tank"
@@ -112,8 +113,18 @@ export function eachRow(sol: Solution | null | undefined, add: AddRow) {
   if (sol.rejoin) add("rejoin", sol.rejoin, 1, sol.rejoin.m, sol.rejoin.cost);
 
   /* Two per extra column, top and bottom. */
-  if (sol.joiner && S > 1)
-    add("joiner", sol.joiner, (S - 1) * 2, sol.joiner.m, sol.joiner.cost);
+  if (sol.joiner && S > 1) {
+    const braced = sol.joiner.brace;
+    add(
+      "joiner",
+      sol.joiner,
+      (S - 1) * (braced ? 1 : 2),
+      sol.joiner.m,
+      sol.joiner.cost,
+    );
+    if (braced)
+      add("brace", braced, (S - 1) * braced.count, braced.m, braced.cost);
+  }
 
   /* One ring per column since #56, so its brackets are per column too. */
   if (sol.packed) {
@@ -207,6 +218,14 @@ export function eachRow(sol: Solution | null | undefined, add: AddRow) {
       b.hold.m,
       b.hold.cost,
     );
+    if (b.brace)
+      add(
+        "brace",
+        { n: b.brace.n, m: b.brace.m, cost: b.brace.cost },
+        b.n * b.brace.count,
+        b.brace.m,
+        b.brace.cost,
+      );
     if (b.part.column)
       for (const x of b.part.column.list)
         add("booster-tank", x.t, b.n * x.c, x.t.dry, x.t.cost, x.t.prop);
