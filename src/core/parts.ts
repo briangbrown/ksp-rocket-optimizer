@@ -555,6 +555,28 @@ const braceFor = (unlocked: Roster, excluded: Excluded): Brace | null =>
     ? { ...STRUT_BRACE, count: 2 }
     : null;
 
+/* EAS-4s across the joint to the stage below: four on a 2.5 m joint and
+   wider, two on a 1.25 or 1.875 m joint that carries ten tonnes or more
+   above it, none otherwise — thresholds from one flight (probe 6) and one
+   non-flight (the low-orbit probe), to move as more fly. A tall stack of short parts bends at its
+   decouplers — Brian's probe 6 flew only strutted, four across every joint
+   — but bending is mass above a lever, and two struts on a probe-sized upper
+   stage cost the low-orbit mission a quarter of its liftoff mass through
+   the rocket equation. `carried` is what the stage lifts. #483 */
+const interstageFor = (
+  stackD: number,
+  carried: number,
+  hasStageBelow: boolean,
+  unlocked: Roster,
+  excluded: Excluded,
+): Brace | null => {
+  if (!hasStageBelow) return null;
+  const count = stackD >= 2.5 ? 4 : stackD >= 1.25 && carried >= 10 ? 2 : 0;
+  if (!count) return null;
+  const brace = braceFor(unlocked, excluded);
+  return brace ? { ...brace, count } : null;
+};
+
 const radialJoin = (unlocked: Roster, excluded: Excluded) =>
   !!RADIAL_JOIN.t &&
   unlocked.has(RADIAL_JOIN.t) &&
@@ -580,6 +602,7 @@ export {
   RADIAL_JOIN_FALLBACK,
   STRUT_BRACE,
   braceFor,
+  interstageFor,
   STRUCT,
   SZ_DIA,
   columnCoupler,

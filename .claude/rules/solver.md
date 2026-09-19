@@ -677,15 +677,22 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
   braced; a ring of stacks always is, its joint being a cubic strut. The signature gained the field, which is why
   every boostered design in the grid "moved" when it arrived.
 
-- **Every stage with a stage below pays for four interstage braces.**
-  `fitStructure` puts EAS-4s (`Solution.interstage`) on every stage that
-  has one below it, where General Construction is researched — four on a
-  2.5 m joint and wider, two on 1.25 and 1.875, none on smaller stacks,
-  whose joints are stiff for their mass (four everywhere put 15% on the Mun
-  mission's liftoff): a tall stack of short parts flexes at its decouplers, and
-  Brian's probe 6 flew only strutted that way (#483). `stageCost`,
-  `stageParts`, the manifest and the bill read the record; the craft writes
-  them across the joint.
+- **Every stage with a stage below pays for its interstage braces.**
+  `interstageFor` in `parts.ts` puts EAS-4s (`Solution.interstage`) on a
+  stage with one below it, where General Construction is researched — four
+  on a 2.5 m joint and wider, two on a 1.25 or 1.875 m joint carrying ten
+  tonnes or more, none otherwise (thresholds from one flight and one
+  non-flight, to move as more fly): bending is mass above a lever, and two
+  struts on a probe-sized upper stage put a quarter on the low-orbit
+  mission's liftoff, the rocket equation compounding 0.1 t at the top.
+  Decided in `solveStage`, not in `fitStructure`, because the fit is
+  memoised without the mass carried. `hasStageBelow` is the mission's, not
+  the group's: `planMission` tells each group whether it is the lowest
+  (`GroupInput.lowest`), and a non-lowest group's bottom stage has a stage
+  below it — probe 6 is a cut mission and its flex was at the group
+  boundaries, which the within-group flag had left unbraced.
+  `stageCost`, `stageParts`, the manifest and the bill read the record; the
+  craft writes them across the joint (#483).
 
 - **A booster more than twice its stage's length is refused.** Its attach
   node is at its middle, and the decoupler there has to be on this stage's

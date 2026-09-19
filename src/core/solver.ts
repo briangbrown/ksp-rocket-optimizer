@@ -27,6 +27,7 @@ import {
   holderFor,
   tanksInArt,
   braceFor,
+  interstageFor,
 } from "./parts.js";
 import {
   STAGE_PRESSURE,
@@ -100,6 +101,9 @@ type StageOpt = {
 };
 
 type BoostOpt = {
+  /* Whether a stage hangs below this one — the mission's, not the group's;
+     its interstage braces and its engine's bottom node hang on it (#483). */
+  hasStageBelow?: boolean;
   /* Whether the stage above ends in an engine plate, whose own decoupler
      makes the joint — the same flag solveStage takes; hard-wired false here,
      a boosted stage under a plate bought a TD-37 it did not need (#467). */
@@ -157,6 +161,10 @@ type GroupResult = ChainCandidate & {
    unit runs on; `minK` and `maxK` are read by `solveGroup` alone. */
 type GroupInput = {
   dv: number;
+  /* Whether this group is the mission's lowest — its bottom stage then has
+     nothing below it. planMission says; a group solved alone is taken as
+     lowest, as the design snapshot does (#483). */
+  lowest?: boolean;
   payload: number;
   /* Absent where the caller has a payload mass and nothing else, which is what
      `payloadDiaOf` falls back for — the design grid is one such caller. */
@@ -874,8 +882,20 @@ function solveStage({
             hasStageBelow,
           });
           if (!fit) continue;
-          const { coup, shroud, adapt, rejoin, dec, joiner, interstage } = fit;
-          let fixed = dryBase + fit.dry;
+          const { coup, shroud, adapt, rejoin, dec, joiner } = fit;
+          /* The braces across the joint below, by the joint's size and what
+             the stage carries (#483). */
+          const interstage = interstageFor(
+            stackD,
+            payload,
+            hasStageBelow,
+            unlocked,
+            excluded,
+          );
+          let fixed =
+            dryBase +
+            fit.dry +
+            (interstage ? interstage.count * interstage.m : 0);
 
           let mp0 = propellantFor(dv, fixed, ispE, k);
           if (mp0 === null) continue;
@@ -1269,6 +1289,7 @@ function boostedAscent({
   expansions = null,
   asparagus = false,
   plateAbove = false,
+  hasStageBelow = false,
 }: BoostOpt): Solution | null {
   let best: Solution | null = null;
 
@@ -1528,10 +1549,19 @@ function boostedAscent({
             noPlate,
             expansions,
             plateAbove,
-            hasStageBelow: false,
+            hasStageBelow,
           });
           if (!fit) continue;
           const { adapt, dec, shroud } = fit;
+          /* The braces across the joint below, where the group is not the
+             mission's lowest (#483). */
+          const interstage = interstageFor(
+            stackD,
+            payload,
+            hasStageBelow,
+            unlocked,
+            excluded,
+          );
           /* A liquid column is braced to the core with two EAS-4s where they
              are researched and the column is a lever — its tank run more than
              twice its diameter on a single radial joint. A short column on a
@@ -1547,7 +1577,8 @@ function boostedAscent({
             nc * c.m +
             nb *
               (holder.m * holder.count + (brace ? brace.m * brace.count : 0)) +
-            fit.dry;
+            fit.dry +
+            (interstage ? interstage.count * interstage.m : 0);
 
           const coreBurnA = mdotC * tB; // core propellant spent under boost
 
@@ -1690,7 +1721,7 @@ function boostedAscent({
               decoupler: dec,
               coupler: fit.coup,
               shroud,
-              interstage: fit.interstage,
+              interstage,
               asparagus: aspHere,
               dropTank: drop,
               total: m0,
@@ -1946,6 +1977,7 @@ function refineUnits(
    is a structured clone, which can. */
 function prepare({
   dv,
+  lowest = true,
   payload,
   payloadDia,
   engines,
@@ -1995,6 +2027,7 @@ function prepare({
   return {
     legs,
     dv,
+    lowest,
     payload,
     payloadDia,
     engines,
@@ -2109,6 +2142,7 @@ function solveUnit(
 ): Array<ChainCandidate> {
   const {
     dv,
+    lowest,
     payload,
     payloadDia,
     engines,
@@ -2273,7 +2307,7 @@ function solveUnit(
               needGimbal,
               twrMin,
               g: gS,
-              hasStageBelow: !bottom,
+              hasStageBelow: !bottom || !lowest,
               noPlate: variant === 2,
               expansions,
               plateAbove,
@@ -2332,6 +2366,7 @@ function solveUnit(
                 noPlate: variant === 2,
                 expansions,
                 plateAbove,
+                hasStageBelow: !bottom || !lowest,
                 asparagus,
               });
               if (bs && (!s || bs.score < s.score)) s = bs;

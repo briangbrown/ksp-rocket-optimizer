@@ -25,7 +25,6 @@ import type {
   DecouplerFit,
   Joiner,
   TankSet,
-  Brace,
 } from "./solution.js";
 
 /* A tank pool with its memo hung off it.
@@ -78,7 +77,6 @@ type Fit = {
   dec: DecouplerFit;
   joiner: Joiner | null;
   joins: number;
-  interstage: Brace | null;
   perEng: number;
   dry: number;
 };
@@ -304,16 +302,6 @@ function _fitStructure(opt: FitOpt): Fit | null {
         : 2 * joiner.m)
     : 0;
 
-  /* EAS-4s across the joint to the stage below, on every stage that has
-     one: the interstage is where a stack of short parts flexes, and Brian's
-     strutted probe 6 flew where the bare one did not. Four on a 2.5 m joint
-     and wider, none below: a 1.25 m stack is stiff for its mass, and even
-     two struts on a probe-sized upper stage put a quarter on the low-orbit
-     mission's liftoff (#483). */
-  const brace =
-    hasStageBelow && stackD >= 2.5 ? braceFor(unlocked, excluded) : null;
-  const interstage = brace ? { ...brace, count: 4 } : null;
-  const interM = interstage ? interstage.count * interstage.m : 0;
   return {
     coup,
     plated,
@@ -324,19 +312,13 @@ function _fitStructure(opt: FitOpt): Fit | null {
     dec,
     joiner,
     joins,
-    interstage,
     perEng,
     /* The coupler gathers one column's engines onto that column's tank, and
        the adapters bridge that column's diameters — so a stage with parallel
        stacks needs one set per column, not one for the stage. Charging one made
        a multi-stack stage lighter and cheaper on paper than the rocket you
        would have to build. #60 */
-    dry:
-      stacks * (adapt.dry + coupM) +
-      dec.m +
-      (rejoin ? rejoin.m : 0) +
-      joins +
-      interM,
+    dry: stacks * (adapt.dry + coupM) + dec.m + (rejoin ? rejoin.m : 0) + joins,
   };
 }
 
