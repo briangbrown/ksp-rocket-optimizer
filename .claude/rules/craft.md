@@ -276,7 +276,10 @@ standoff, half, clear)` is the largest of three radii: the wall plus the
   thrust; Brian's hand-strutted copy reached orbit (#483). `braceBetween` in
   `core/craft.ts` writes an EAS-4 bolted to the core wall reaching for the
   column's tank at the quarter points of its run, for ring columns (the cubic
-  strut then hangs the column at its middle) and for liquid booster columns.
+  strut then hangs the column at its middle) and for liquid booster columns
+  that are levers — tank run over twice the diameter — where the plan
+  charged them (`Boosters.brace`). An empty collider name renders and
+  connects: probe 12's crossed braces showed in the VAB.
   The game's compound-part format, from a two-tank sample: `partName =
 CompoundPart`; `PARTDATA { tgt, tpersID, pos, rot, dir, col }` with `tgt`
   the target's id and `tpersID` its persistentId; `pos` and `dir` the far end

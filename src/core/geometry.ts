@@ -647,7 +647,12 @@ function stageSize(sol: Solution) {
       const wall =
         S > 1 ? core / 2 : Math.max(td, sol.packed ? sol.packed.width : 0) / 2;
       /* The ring at its holder's reach, or the bells where they are wider:
-         the booster stands above a cluster it cannot clear (boosterLayout). */
+         the booster stands above a stack cluster it cannot clear
+         (boosterLayout). Radial engines are on the wall itself, and where no
+         phase of their ring clears the boosters the ring stands outboard of
+         them — charged here whatever the phase, since the phase is the
+         layout's to find and the stage may not be drawn narrower than it is
+         sized. */
       return Math.max(
         2 *
           boosterRing(
@@ -655,6 +660,8 @@ function stageSize(sol: Solution) {
             bd,
             wall,
             standoffOf(sol.boosters.hold.n),
+            bd / 2,
+            g.radial ? span / 2 : 0,
           ) +
           bd,
         span,

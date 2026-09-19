@@ -1524,8 +1524,14 @@ function boostedAscent({
           if (!fit) continue;
           const { adapt, dec, shroud } = fit;
           /* A liquid column is braced to the core with two EAS-4s where they
-             are researched; a solid on its decouplers is not (#483). */
-          const brace = b.column ? braceFor(unlocked, excluded) : null;
+             are researched and the column is a lever — its tank run more than
+             twice its diameter on a single radial joint. A short column on a
+             TT-70 needs none (Brian, probe 12), nor does a solid on its
+             decouplers (#483). */
+          const brace =
+            b.column && tankStackLen(b.column) > 2 * bd
+              ? braceFor(unlocked, excluded)
+              : null;
           const fixed =
             payload +
             extra +

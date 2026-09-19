@@ -670,8 +670,11 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
   two cubic struts a column where none), and a liquid booster column carries
   `Boosters.brace` beside its holders; `fitStructure`, `stageCost`,
   `stageParts`, the manifest and the bill all read the same record, so the
-  craft writes exactly what the plan paid for (#483). Solids on their
-  decouplers are not braced. The signature gained the field, which is why
+  craft writes exactly what the plan paid for (#483). A booster column is
+  braced only where it is a lever — its tank run more than twice its
+  diameter on one radial joint; probe 12's short S3-3600s on TT-70s needed
+  none, Brian said, and the game agreed. Solids on their decouplers are not
+  braced; a ring of stacks always is, its joint being a cubic strut. The signature gained the field, which is why
   every boostered design in the grid "moved" when it arrived.
 
 - **A booster more than twice its stage's length is refused.** Its attach
