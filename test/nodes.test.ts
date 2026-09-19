@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import nodes from "../src/data/nodes.json";
 import geometry from "../src/data/geometry.json";
 import parts from "../src/data/parts.json";
+import type { Tank } from "../src/core/catalogue.js";
 import structure from "../src/data/structure.json";
 import couplers from "../src/data/couplers.json";
 import power from "../src/data/power.json";
@@ -119,46 +120,36 @@ describe("the nodes table", () => {
     ).toBeGreaterThanOrEqual(2);
   });
 
-  it("agrees with the part tables on what a full tank holds", () => {
-    /* parts.json carries lf/ox/mono/xe per tank; nodes.json carries the
-       config's RESOURCE maxAmounts. Two extractions of the same number. */
+  it("agrees with the part tables on what a full tank holds, in each art", async () => {
+    /* parts.json carries lf/ox/mono/xe per tank, stock's numbers with a
+       `restock` block where ReStock rebalances the part; nodes.json carries
+       each art's config RESOURCE maxAmounts. `tanksInArt` is what the solver
+       reads, so it is what is compared. The Oscar-B was the one known
+       disagreement until #468 gave it its ReStock row. */
+    const { tanksInArt } = await import("../src/core/parts.js");
+    const raw = (parts as { tanks: Array<Tank> }).tanks;
     const bad: Array<string> = [];
-    for (const t of (
-      parts as {
-        tanks: Array<{
-          n: string;
-          lf: number;
-          ox: number;
-          mono: number;
-          xe: number;
-        }>;
+    for (const [art, e] of [
+      ["stock", { mh: false, rs: false }],
+      ["restock", { mh: false, rs: true }],
+    ] as const) {
+      for (const t of tanksInArt(raw, e)) {
+        const entry = table(art)[t.n];
+        if (!entry) continue;
+        const want: Record<string, number> = {
+          LiquidFuel: t.lf,
+          Oxidizer: t.ox,
+          MonoPropellant: t.mono,
+          XenonGas: t.xe,
+        };
+        for (const [k, v] of Object.entries(want))
+          if ((entry.resources[k] ?? 0) !== v)
+            bad.push(
+              `${art} ${t.n} ${k}: tables ${v}, config ${entry.resources[k] ?? 0}`,
+            );
       }
-    ).tanks) {
-      const e = table("restock")[t.n];
-      if (!e) continue;
-      const want: Record<string, number> = {
-        LiquidFuel: t.lf,
-        Oxidizer: t.ox,
-        MonoPropellant: t.mono,
-        XenonGas: t.xe,
-      };
-      for (const [k, v] of Object.entries(want))
-        if ((e.resources[k] ?? 0) !== v)
-          bad.push(`${t.n} ${k}: tables ${v}, config ${e.resources[k] ?? 0}`);
     }
-    /* ReStock+ rebalances the Oscar-B into its Oscar family — 8.1/9.9 where
-       stock holds 18/22 — and parts.json carries stock's. A per-art resource
-       is #468; until then the one known disagreement is named here so a
-       second one still fails. */
-    const known = new Set([
-      "Oscar-B Fuel Tank LiquidFuel: tables 18, config 8.1",
-      "Oscar-B Fuel Tank Oxidizer: tables 22, config 9.9",
-    ]);
-    expect(bad.filter((b) => !known.has(b))).toEqual([]);
-    expect(
-      bad.filter((b) => known.has(b)).length,
-      "the Oscar-B agrees now; drop the exception",
-    ).toBe(2);
+    expect(bad).toEqual([]);
   });
 });
 

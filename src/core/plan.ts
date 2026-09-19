@@ -2,7 +2,7 @@ import { TALLY, resetTally } from "./tally.js";
 import { BODY, orbitAlt } from "./atmosphere.js";
 import { buildVehicleFor, simCached } from "./ascent.js";
 import { stackOf, useArt } from "./geometry.js";
-import { missionHardware } from "./parts.js";
+import { missionHardware, tanksInArt } from "./parts.js";
 import { solveGroup, solveGroupWith } from "./solver.js";
 import { REGIME_DEFAULT } from "./constants.js";
 import type { Expansions, Regime } from "./constants.js";
@@ -237,7 +237,7 @@ async function planFor(
     margin,
     extraDv,
     engines,
-    tanks,
+    tanks: tanksAsGiven,
     needGimbal,
     maxAspect,
     expansions,
@@ -249,8 +249,10 @@ async function planFor(
 
   /* Before anything else: the geometry tables the whole solve and the drawing
      after it will read. `prepare` sets it too, but a mission can measure a
-     payload or size a fairing before the first group is prepared. #118 */
+     payload or size a fairing before the first group is prepared. #118 And
+     the tanks as that art has them (#468). */
   useArt(expansions);
+  const tanks = tanksInArt(tanksAsGiven, expansions);
 
   /* The boundary takes plain arrays and rebuilds the Set and Map the solver
      wants. Neither survives JSON, so accepting them here would make the seam

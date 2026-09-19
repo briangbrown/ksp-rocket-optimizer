@@ -94,6 +94,34 @@ const isAdapter = (p: PartBase) => stackDias(p).length > 1;
    available as a stage's tankage. */
 const isRadialOnly = (p: PartBase) => stackDias(p).length === 0;
 
+/* The roster's tanks as the live art has them. ReStock rebalances a few
+   parts — the Oscar-B to less than half its stock capacity — and one row in
+   parts.json cannot hold both, so a tank carries its ReStock numbers under
+   `restock` and this applies them by the rule `useArt` picks the geometry
+   tables with: ReStock's unless the expansions say stock. Memoised on the
+   roster array, which is what every solver cache is keyed on, and the given
+   array is handed back untouched where no tank changes, so a stock roster
+   keeps its identity. Every way into the solver — planMission and
+   prepare — maps here first. #468 */
+const _artTanks = new WeakMap<
+  ReadonlyArray<Tank>,
+  { stock?: ReadonlyArray<Tank>; restock?: ReadonlyArray<Tank> }
+>();
+const tanksInArt = (
+  tanks: ReadonlyArray<Tank>,
+  e: Expansions | null | undefined,
+): ReadonlyArray<Tank> => {
+  const art = e && !e.rs ? "stock" : "restock";
+  if (art === "stock") return tanks;
+  let memo = _artTanks.get(tanks);
+  if (!memo) _artTanks.set(tanks, (memo = {}));
+  if (!memo.restock)
+    memo.restock = tanks.some((t) => t.restock)
+      ? tanks.map((t) => (t.restock ? { ...t, ...t.restock } : t))
+      : tanks;
+  return memo.restock;
+};
+
 /* A lifting body: the Mk2 and Mk3 fuselages, spaceplane parts whose
    cross-section is an oval — a Mk2 is 2.5 m across and 1.5 tall — and whose
    lift the ascent model does not have. Every radial rule here treats a tank
@@ -547,6 +575,7 @@ export {
   isRadial,
   isRadialOnly,
   isLifting,
+  tanksInArt,
   maxCluster,
   missionHardware,
   pickStruct,

@@ -80,6 +80,18 @@ type Tank = PartBase & {
   prop: number;
   k: number;
   cost?: number;
+  /* What the tank is in the ReStock art where ReStock rebalances it — the
+     Oscar-B, 8.1 + 9.9 units and 11 kg dry against stock's 18 + 22 and 25.
+     The row is stock's; `tanksInArt` (parts.ts) applies this by the same
+     rule `useArt` picks the geometry tables with. #468 */
+  restock?: Readonly<
+    Partial<
+      Pick<
+        Tank,
+        "wet" | "dry" | "lf" | "ox" | "mono" | "xe" | "prop" | "k" | "cost"
+      >
+    >
+  >;
 };
 
 /* A coupler fans one stack node out to `out` columns of diameter `dia`, and

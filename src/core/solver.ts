@@ -25,6 +25,7 @@ import {
   maxCluster,
   shroudFor,
   holderFor,
+  tanksInArt,
 } from "./parts.js";
 import {
   STAGE_PRESSURE,
@@ -1912,7 +1913,7 @@ function prepare({
   payload,
   payloadDia,
   engines,
-  tanks,
+  tanks: tanksAsGiven,
   unlocked,
   excluded,
   needGimbal,
@@ -1932,8 +1933,9 @@ function prepare({
   /* Which art the geometry tables are read from, set before anything asks for a
      height or a frontal area. Every way into the search comes through here —
      solveGroup, solveGroupWith, and the design snapshot, which drives
-     solveGroup directly. #118 */
+     solveGroup directly. #118 And the tanks as that art has them (#468). */
   useArt(expansions);
+  const tanks = tanksInArt(tanksAsGiven, expansions);
   /* Bottom stage carries the full TWR requirement. Upper stages are already
      moving and climbing, so they get a lower floor — but not on a coast burn,
      where thrust barely matters. */
