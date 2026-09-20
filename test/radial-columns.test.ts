@@ -33,13 +33,30 @@ describe("a roster with no solid boosters", () => {
   if (!base) throw new Error("the Duna 3.5 t mission has left the grid");
 
   it("still gets a liquid radial column when boosters are allowed", async () => {
-    const res = await planMission(solidFree(base.input), {
-      onYield: () => Promise.resolve(),
-    });
-    const ring = res?.stages[0]?.sol?.boosters;
-    expect(ring, "no ring on the launch stage").toBeTruthy();
-    expect(ring?.part.column, "the ring is not a liquid column").toBeTruthy();
-  }, 300_000);
+    /* Which mission takes the columns moves with what they cost: Duna 3.5 t
+       did until the braces of #483 priced a lever column's struts. The gate
+       is what is under test, so the first of a few missions to deliver a
+       liquid column ring is enough. */
+    let ring = null;
+    for (const name of [
+      "Duna-pay3.5",
+      "Duna-pay12",
+      "Mun-pay12",
+      "Tylo-pay0.8",
+    ]) {
+      const c = missionCases().find((x) => x.name === name);
+      if (!c) continue;
+      const res = await planMission(solidFree(c.input), {
+        onYield: () => Promise.resolve(),
+      });
+      const r = res?.stages[0]?.sol?.boosters ?? null;
+      if (r?.part.column) {
+        ring = r;
+        break;
+      }
+    }
+    expect(ring, "no liquid column ring on any launch stage").toBeTruthy();
+  }, 900_000);
 
   it("gets no ring at all when they are not", async () => {
     const res = await planMission(

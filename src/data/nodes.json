@@ -214,6 +214,29 @@
       "command": false,
       "modules": ["ModuleCargoPart", "ShipEffectsCollisions"]
     },
+    "EAS-4 Strut Connector": {
+      "name": "strutConnector",
+      "nodes": {},
+      "attach": {
+        "p": [0, 0, 0],
+        "d": [1, 0, 0],
+        "s": 1
+      },
+      "rules": [0, 1, 0, 0, 1],
+      "variant": "Gray",
+      "variants": ["Gray", "White"],
+      "resources": {},
+      "mass": 0.05,
+      "tech": "generalConstruction",
+      "command": false,
+      "modules": [
+        "CModuleLinkedMesh",
+        "CModuleStrut",
+        "ModulePartVariants",
+        "ModuleCargoPart",
+        "ShipEffectsCollisions"
+      ]
+    },
     "EP-12 Engine Plate": {
       "name": "EnginePlate5",
       "nodes": {
@@ -8050,6 +8073,29 @@
       "tech": "precisionEngineering",
       "command": false,
       "modules": ["ModuleCargoPart", "ShipEffectsCollisions"]
+    },
+    "EAS-4 Strut Connector": {
+      "name": "strutConnector",
+      "nodes": {},
+      "attach": {
+        "p": [0, 0, 0],
+        "d": [1, 0, 0],
+        "s": 1
+      },
+      "rules": [0, 1, 0, 0, 1],
+      "variant": "Gray",
+      "variants": ["Gray", "Compact", "White", "White_Compact"],
+      "resources": {},
+      "mass": 0.05,
+      "tech": "generalConstruction",
+      "command": false,
+      "modules": [
+        "CModuleStrut",
+        "ModuleCargoPart",
+        "ModuleRestockLinkedMesh",
+        "ModulePartVariants",
+        "ShipEffectsCollisions"
+      ]
     },
     "EP-12 Engine Plate": {
       "name": "EnginePlate5",

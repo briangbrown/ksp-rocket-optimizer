@@ -371,6 +371,11 @@ async function planFor(
     };
     const solved = await solve({
       dv,
+      /* Whether this group is the mission's lowest: its bottom stage has
+         nothing below it only then. A group solved alone knows only its own
+         chain, and a cut mission's boundary joints went unbraced for it —
+         probe 6's flex was at those (#483). */
+      lowest: i === 0,
       legs: legsFor(dv, share),
       payload: carried,
       payloadDia,
@@ -522,6 +527,7 @@ async function planFor(
         share += need - carries;
         const grown = await solve({
           dv: groupDv,
+          lowest: i === 0,
           legs: legsFor(groupDv, share),
           payload: carried,
           payloadDia,

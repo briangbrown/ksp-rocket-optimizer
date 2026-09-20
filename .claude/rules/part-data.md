@@ -180,6 +180,17 @@ size_z)`. A cylinder fills its own bounding box, so honest cubes read 0.29
   High-Performance Fuel Systems); `tools/README.md` says what was packed,
   for the next row that arrives the same way.
 
+- **`tech.json` carries each node's config id beside its title.** The part
+  tables name a tech by the tree's title and `nodes.json` by the config's
+  `TechRequired` id, and the two are not a transformation of each other
+  ("Adv. Fuel Systems" is the tree's own abbreviation; the tables spell it
+  out). The ids are the install's `RDNode` list, in `ModuleManager.ConfigCache`.
+  `commandParts(unlocked)` in `nodes.ts` reads them to offer a craft only a
+  root the roster has researched: Brian's tier-6 career warned of a missing
+  part when the root was an RC-001S, Advanced Unmanned Tech (#467).
+  `test/nodes.test.ts` holds every `tech` in `nodes.json` to an id the tree
+  has.
+
 - **ReStock+ hides its Making History stand-ins, and so must the roster.**
   Six engines and fifteen tanks in ReStock+ — the Caravel, Galleon,
   Schnauzer, Ursa, Castor, Trash Panda, the FL-X 1.875 m tanks, the Kerbodyne

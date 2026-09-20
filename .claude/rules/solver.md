@@ -663,12 +663,56 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
   so a ring belongs to the bottom live stage until its own boosters-away
   step, not to the pad. #463
 
+- **A column is charged its braces.** `braceFor` in `parts.ts` is two EAS-4
+  Strut Connectors a column (0.05 t, 42 funds each) where General
+  Construction is researched, null otherwise. A ring of stacks then hangs
+  each column from one cubic strut and braces it with two (`Joiner.brace`;
+  two cubic struts a column where none), and a liquid booster column carries
+  `Boosters.brace` beside its holders; `fitStructure`, `stageCost`,
+  `stageParts`, the manifest and the bill all read the same record, so the
+  craft writes exactly what the plan paid for (#483). A booster column is
+  braced only where it is a lever — its tank run more than twice its
+  diameter on one radial joint; probe 12's short S3-3600s on TT-70s needed
+  none, Brian said, and the game agreed. Solids on their decouplers are not
+  braced; a ring of stacks always is, its joint being a cubic strut. The signature gained the field, which is why
+  every boostered design in the grid "moved" when it arrived.
+
+- **Every stage with a stage below pays for its interstage braces.**
+  `interstageFor` in `parts.ts` puts EAS-4s (`Solution.interstage`) on a
+  stage with one below it, where General Construction is researched — four
+  on a 2.5 m joint and wider, four on a 1.25 or 1.875 m joint carrying ten
+  tonnes or more, none otherwise (thresholds from two flights and one
+  non-flight, to move as more fly): bending is mass above a lever, and two
+  struts on a probe-sized upper stage put a quarter on the low-orbit
+  mission's liftoff, the rocket equation compounding 0.1 t at the top. Never
+  two — a pair in one plane braces one bending axis; probe 6's Nerv joint
+  still flexed with two.
+  Decided in `solveStage`, not in `fitStructure`, because the fit is
+  memoised without the mass carried. `hasStageBelow` is the mission's, not
+  the group's: `planMission` tells each group whether it is the lowest
+  (`GroupInput.lowest`), and a non-lowest group's bottom stage has a stage
+  below it — probe 6 is a cut mission and its flex was at the group
+  boundaries, which the within-group flag had left unbraced.
+  `stageCost`, `stageParts`, the manifest and the bill read the record; the
+  craft writes them across the joint (#483).
+
+- **A booster more than twice its stage's length is refused.** Its attach
+  node is at its middle, and the decoupler there has to be on this stage's
+  tanks; longer, the middle is above the stage and the holder is bolted to
+  nothing — Eeloo's cut mission put 22 m Clydesdales on a 10 m Mainsail
+  stage (#483). `boostedAscent` checks `boosterLength / 2` against the
+  engine plus the tank run once the tanks are picked. The length is not
+  costed, only refused; the model test that measures a ring's clearance at
+  its middle is what found it.
+
 - **What holds a booster on is chosen for the booster.** `holderFor` in
   `parts.ts`: the TT-14 (ReStock+, gated on `expansions.rs` through
-  `offered`) on the 0.625 m class, the TT-38K on 1.25, the TT-70 on 1.875
-  and 2.5, the Hydraulic Detachment Manifold wider than that, down the
-  ladder to what is researched and offered, and never below the stock TT-38K
-  (`HOLD_FLOOR`); and two of them on a booster longer than `LONG_BOOSTER`
+  `offered`) on the 0.625 m class, the TT-38K on 1.25, the TT-70 on
+  everything wider, down the ladder to what is researched and offered, and
+  never below the stock TT-38K (`HOLD_FLOOR`). The Hydraulic Detachment
+  Manifold is no rung since #483: eight times the TT-70's mass for ejection
+  force a drop tank does not need, and a shorter reach — Brian asked why a
+  3.75 m drop tank was on one; and two of them on a booster longer than `LONG_BOOSTER`
   (6 m), the second never firing, so both stay with the core as the plan
   charges them. The `Boosters` record carries the `hold`, and mass, funds,
   part count, the ring's standoff (`boostersFit`, `boosterRing`, `stageSize`)
@@ -709,6 +753,12 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
   off its cut and the asparagus fixture off its drop tanks (#467); their lift
   is still not in the ascent model, which is an open question rather than a
   rule.
+
+- **An engine with no bottom node stays on the bottom stage.** `bottomless`
+  in `core/nodes.ts`: the Twin-Boar's bottom is its bells, and a stage
+  below has nothing to hang its decoupler from, unless a coupler makes the
+  joint. The Duna 3.5 t parts fixture put one on an upper stage and
+  `checkCraft` refused the craft (#483).
 
 - **A tank nothing can stand on is not in the pool.** `poolsFor` drops any
   tank `topless` (`core/nodes.ts`) names — no top stack node in `nodes.json`:

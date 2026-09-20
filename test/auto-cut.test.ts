@@ -65,16 +65,27 @@ describe("the solver's cut", () => {
     /* The comparison is what makes the fallback safe: the same Tylo brief on
        each objective, and whatever is delivered is no worse than the uncut
        plan on that objective. */
-    for (const objective of ["mass", "cost", "parts"] as const) {
-      const input = { ...tylo(3.5), objective };
-      const plan = (await planMission(input))!;
-      const uncut = (await planMission({ ...input, splitBy: [[0, MAX_K]] }))!;
-      /* A forced count is keyed on the caller's groups, so it also turns
+    /* Tylo 3.5 t is at the edge — since the interstage braces of #483 its
+       uncut plan solves under no objective, which is what the cut is for —
+       so 2.5 t is compared as well, where an uncut plan still exists. */
+    let compared = 0;
+    for (const payload of [3.5, 2.5])
+      for (const objective of ["mass", "cost", "parts"] as const) {
+        const input = { ...tylo(payload), objective };
+        const plan = (await planMission(input))!;
+        const uncut = (await planMission({ ...input, splitBy: [[0, MAX_K]] }))!;
+        /* A forced count is keyed on the caller's groups, so it also turns
          the fallback off — which is how the uncut plan is asked for here. */
-      expect(uncut.autoCuts).toEqual([]);
-      expect(on(plan, objective)).toBeLessThanOrEqual(
-        on(uncut, objective) + 1e-6,
-      );
-    }
+        expect(uncut.autoCuts).toEqual([]);
+        /* Where the uncut plan does not solve at all there is nothing to be
+         worse than; Tylo 3.5 t is at the edge, and the interstage braces
+         (#483) pushed one objective's uncut plan over it. */
+        if (!uncut.stages.every((s) => s.sol)) continue;
+        compared++;
+        expect(on(plan, objective)).toBeLessThanOrEqual(
+          on(uncut, objective) + 1e-6,
+        );
+      }
+    expect(compared, "no objective's uncut plan solved").toBeGreaterThan(0);
   }, 1_200_000);
 });

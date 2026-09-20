@@ -8,6 +8,7 @@ import {
   payloadDiaOf,
   ringPositions,
   stageGeom,
+  stageSize,
   standoffOf,
   tankRun,
   widthOf,
@@ -205,7 +206,32 @@ export function boosterLayout(
     ...g.adapters.map((a2) => ({ h: a2.h, draw: a2.w / 2 })),
   ];
   const base = tankBase - sections.reduce((t, x) => t + Math.max(0, x.h), 0);
-  let foot = base;
+  /* How far down it goes: to the stage's base, unless a section on the way
+     — an engine cluster wider than the tank — is too wide for the booster to
+     stand beside at the reach of its decoupler. Then the foot stops on top of
+     that section: the booster stands beside the tanks only, as a builder
+     mounts SRBs above a wide cluster, and the ring is never pushed out past
+     what holds it. Pushed out instead, probe 9's columns floated off their
+     TT-70s and Tylo's eight-booster ring stood 29% clear of anything (#483).
+     `clear` is the widest section it does run alongside. */
+  const half = attachHalf(b.part, bd);
+  const wall = g.S > 1 ? g.ringR : hold / 2;
+  const reachR = wall + standoffOf(b.hold.n) + half;
+  let foot = tankBase;
+  let clear = 0;
+  for (let k = sections.length - 1; k >= 0; k--) {
+    if (sections[k].h <= 0) continue;
+    if (sections[k].draw + half > reachR + 1e-9) break;
+    clear = Math.max(clear, sections[k].draw);
+    foot -= sections[k].h;
+  }
+  /* Where the stage's engines are radial and no phase of their ring clears
+     the boosters (`radialPhase`), the bells on the wall itself are what to
+     clear, and the ring does stand outboard of them — the one case it may.
+     The boosters keep the 0° and 180° planes a pilot turns in. Pushed out
+     regardless, probe 2's Shrimps hung half a metre off the tank (#467). */
+  if (g.radial && g.engineH > 0 && !radialPhase(sol, g).clear)
+    clear = hold / 2 + g.ed;
   /* Its real length, uncapped. It was truncated to the run it is bolted to,
      which is a part drawn at a size it is not — and it never needed to be:
      every booster the mission grid picks is shorter than the tanks it hangs
@@ -226,37 +252,11 @@ export function boosterLayout(
      level with the tank base. #86 and #109 are about how far down the foot
      may go; this is the other half of the same joint. #438 */
   foot = Math.max(foot, tankBase - bh / 2);
-  /* What the booster runs alongside below the tanks, and has to clear with
-     no decoupler between: the widest section between its foot and the tank
-     base — a cluster of bells wider than the tank — and, where the stage's
-     engines are radial and no phase of their ring clears the boosters
-     (`radialPhase`), the bells on the wall itself. The boosters keep the 0°
-     and 180° planes a pilot turns in; only where no phase clears them does
-     the ring stand outboard of the engines. Pushed out regardless, probe 2's
-     Shrimps hung half a metre off the tank on a TT-38K a quarter of that
-     thick, and collided with the Twitches in the VAB (#467). */
-  let clear = 0;
-  if (g.radial && g.engineH > 0 && !radialPhase(sol, g).clear)
-    clear = hold / 2 + g.ed;
-  let top = tankBase;
-  for (let k = sections.length - 1; k >= 0 && top > foot + 1e-9; k--) {
-    if (sections[k].h <= 0) continue;
-    if (sections[k].draw > clear) clear = sections[k].draw;
-    top -= sections[k].h;
-  }
   /* Its decoupler's thickness off the wall it is bolted to, its bare face
      against whatever it clears, and far enough out that the ring clears
      itself — `boosterRing` keeps all three, and `stageSize` charges the
      stage for the same radius. #420 */
-  const half = attachHalf(b.part, bd);
-  const br = boosterRing(
-    b.n,
-    bd,
-    g.S > 1 ? g.ringR : hold / 2,
-    standoffOf(b.hold.n),
-    half,
-    clear,
-  );
+  const br = boosterRing(b.n, bd, wall, standoffOf(b.hold.n), half, clear);
   /* And no higher than the tanks it hangs beside, where the stage above
      would meet it: that stage stands on the top tank, and where it reaches
      out past the ring's inner face — a cluster wider than this stage's core —
@@ -268,18 +268,24 @@ export function boosterLayout(
      the solver's to refuse. A stage above narrow enough to stand inside the
      ring is passed by, as the game allows, and the foot stays where the
      walk put it. */
-  const reach = above ? stageGeom(above).span / 2 : 0;
-  if (reach > br - half) {
-    foot = Math.min(foot, tankBase + g.tank - bh);
-    foot = Math.max(foot, tankBase - bh / 2);
-  }
+  /* Its whole width without boosters — a ring of stacks included, which
+     `span` is not: Mun 3.5 t's three-column upper stage reached 2.1 m over a
+     ring whose inner face was at 1.4 (#483). */
+  const reach = above ? stageSize(above).coreWidth / 2 : 0;
+  if (reach > br - half) foot = Math.min(foot, tankBase + g.tank - bh);
+  /* Where the foot would go with nothing to hold it — the base, or the cap —
+     for the craft, which applies the holder's reach in node space, where an
+     engine's bell is not its length (#483). */
+  const footFree =
+    reach > br - half ? Math.min(base, tankBase + g.tank - bh) : base;
+  foot = Math.max(foot, tankBase - bh / 2);
   const col = b.part.column;
   /* Numbered across the model, so two stages carrying boosters at the same
      angle are still two rings. */
   /* A column's engine, where it has one. `nEng` is what the pools write to
      say so: a drop tank is tankage with nothing under it. */
   const eh = col && (b.part.nEng ?? 1) ? engineLen(b.part) : 0;
-  return { bd, bh, half, base, foot, br, eh, hold };
+  return { bd, bh, half, base, foot, footFree, br, eh, hold };
 }
 
 /* One stage's worth of shapes, standing on `base`, and how tall it came out. */

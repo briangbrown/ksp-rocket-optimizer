@@ -652,7 +652,7 @@ export default function RocketWorks() {
     try {
       const text = craftFile(
         stages,
-        { payload, payloadDia, expansions },
+        { payload, payloadDia, expansions, unlocked: [...unlocked] },
         craft.name,
         bodyLabel(to.body),
       );

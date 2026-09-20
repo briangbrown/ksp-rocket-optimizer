@@ -44,6 +44,7 @@ const EXTRA = [
   "probeStackSmall", // RC-001S, 1.25
   "probeStackLarge", // RC-L01, 2.5
   "strutCube", // Cubic Octagonal Strut
+  "strutConnector", // EAS-4 Strut Connector, the brace between a column and the core (#483)
 ];
 
 /* ------------------------------------------------------- ConfigNode text */

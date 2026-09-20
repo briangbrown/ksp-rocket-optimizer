@@ -137,7 +137,11 @@ type StructPart = {
 type StructKind = "decoupler" | "parachute" | "heatshield" | "leg";
 
 /* A tech tree node: which tier it sits at, and what has to be researched first. */
-type TechNode = { lvl: number; deps: ReadonlyArray<string> };
+/* `id` is the config's spelling of the node (`TechRequired = advUnmanned`),
+   `lvl` and `deps` the tree's; the title is the key. The part tables name
+   techs by title, the node tables by id, and the two are not a
+   transformation of each other (#191). */
+type TechNode = { id: string; lvl: number; deps: ReadonlyArray<string> };
 
 const engines: ReadonlyArray<Engine> = partsData.engines;
 const tanks: ReadonlyArray<Tank> = partsData.tanks;

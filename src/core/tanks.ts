@@ -14,6 +14,7 @@ import {
   shroudFor,
   sizeMatch,
   stackDias,
+  braceFor,
 } from "./parts.js";
 import { TANK_FUNDS_DRY, TANK_FUNDS_PROP } from "./performance.js";
 import type { Excluded, Expansions, Roster } from "./constants.js";
@@ -283,8 +284,23 @@ function _fitStructure(opt: FitOpt): Fit | null {
       : { m: dd.m * nDec, n: dd.n, cost: dd.cost * nDec, d: stackD, qty: nDec };
 
   // radial stacks never separate alone, so structure holds them, not decouplers
-  const joiner = stacks > 1 ? radialJoin(unlocked, excluded) : null;
-  const joins = joiner ? (stacks - 1) * 2 * joiner.m : 0;
+  /* One cubic strut a column to hang it from, and two EAS-4s beside it to
+     hold it — or two cubic struts where the connector is not researched,
+     the second of which the craft can only bolt to the column and point at
+     the core. #483 */
+  const joiner =
+    stacks > 1
+      ? {
+          ...radialJoin(unlocked, excluded),
+          brace: braceFor(unlocked, excluded),
+        }
+      : null;
+  const joins = joiner
+    ? (stacks - 1) *
+      (joiner.brace
+        ? joiner.m + joiner.brace.count * joiner.brace.m
+        : 2 * joiner.m)
+    : 0;
 
   return {
     coup,

@@ -265,7 +265,13 @@ function stageCost(c: Solution) {
     (c.coupler ? c.coupler.cost * (c.stacks || 1) : 0) +
     (c.rejoin ? c.rejoin.cost : 0) +
     (c.packed ? c.packed.cost * (c.stacks || 1) : 0) +
-    (c.joiner ? ((c.stacks || 1) - 1) * 2 * c.joiner.cost : 0);
+    (c.joiner
+      ? ((c.stacks || 1) - 1) *
+        (c.joiner.brace
+          ? c.joiner.cost + c.joiner.brace.count * c.joiner.brace.cost
+          : 2 * c.joiner.cost)
+      : 0);
+  if (c.interstage) f += c.interstage.count * c.interstage.cost;
   if (c.tanks) f += c.tanks.list.reduce((a, x) => a + x.c * est(x.t), 0);
   if (c.adapters)
     f += (c.stacks || 1) * c.adapters.parts.reduce((a, t) => a + est(t), 0);
@@ -280,7 +286,10 @@ function stageCost(c: Solution) {
       c.boosters.n *
       (c.boosters.part.cost +
         (c.boosters.part.column ? c.boosters.part.column.funds || 0 : 0) +
-        c.boosters.hold.cost * c.boosters.hold.count);
+        c.boosters.hold.cost * c.boosters.hold.count +
+        (c.boosters.brace
+          ? c.boosters.brace.cost * c.boosters.brace.count
+          : 0));
   /* The power plant, priced in `sizePlant` with the fuel a cell burns and
      the tank it rides in. #415 */
   if (c.plant) f += c.plant.cost;
@@ -293,10 +302,13 @@ const stageParts = (c: Solution) =>
   (c.coupler ? c.stacks || 1 : 0) +
   (c.rejoin ? 1 : 0) +
   (c.packed ? c.packed.cols * 2 * (c.stacks || 1) : 0) +
-  ((c.stacks || 1) - 1) * 2 +
+  /* A column hangs from one cubic strut and two EAS-4s brace it, or from two
+     cubic struts where the connector is not researched. #483 */
+  ((c.stacks || 1) - 1) * (c.joiner?.brace ? 1 + c.joiner.brace.count : 2) +
   /* Zero where the plate above makes the joint. The `&&` here read that as
      "no decoupler recorded" and charged one anyway. #107 */
   (c.decoupler ? c.decoupler.qty : 1) +
+  (c.interstage?.count ?? 0) +
   /* What a ring is made of, which is not the same for all three kinds. The
      decoupler is always one. Then a solid booster is itself an engine, a liquid
      column is an engine with its tanks hanging under it, and a drop tank is
@@ -308,6 +320,7 @@ const stageParts = (c: Solution) =>
   (c.boosters
     ? c.boosters.n *
       (c.boosters.hold.count +
+        (c.boosters.brace?.count ?? 0) +
         (c.boosters.part.nEng ?? 1) +
         (c.boosters.part.column ? c.boosters.part.column.count : 0))
     : 0) +
