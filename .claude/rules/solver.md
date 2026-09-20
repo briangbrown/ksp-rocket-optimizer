@@ -680,11 +680,13 @@ origin, out.arrive + stay)` — and the moon windows attached in `routeFor`
 - **Every stage with a stage below pays for its interstage braces.**
   `interstageFor` in `parts.ts` puts EAS-4s (`Solution.interstage`) on a
   stage with one below it, where General Construction is researched — four
-  on a 2.5 m joint and wider, two on a 1.25 or 1.875 m joint carrying ten
-  tonnes or more, none otherwise (thresholds from one flight and one
+  on a 2.5 m joint and wider, four on a 1.25 or 1.875 m joint carrying ten
+  tonnes or more, none otherwise (thresholds from two flights and one
   non-flight, to move as more fly): bending is mass above a lever, and two
   struts on a probe-sized upper stage put a quarter on the low-orbit
-  mission's liftoff, the rocket equation compounding 0.1 t at the top.
+  mission's liftoff, the rocket equation compounding 0.1 t at the top. Never
+  two — a pair in one plane braces one bending axis; probe 6's Nerv joint
+  still flexed with two.
   Decided in `solveStage`, not in `fitStructure`, because the fit is
   memoised without the mass carried. `hasStageBelow` is the mission's, not
   the group's: `planMission` tells each group whether it is the lowest

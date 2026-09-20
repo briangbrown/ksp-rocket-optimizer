@@ -20,6 +20,7 @@ type Entry = {
   rules: number[] | null;
   resources: Record<string, number>;
   mass: number;
+  tech: string | null;
   command: boolean;
   via?: string;
 };
@@ -118,6 +119,31 @@ describe("the nodes table", () => {
     expect(
       [...sizes].filter((s) => s !== undefined).length,
     ).toBeGreaterThanOrEqual(2);
+  });
+
+  it("names every part's tech by an id the tree has, and offers a command part only where it is researched", async () => {
+    const { DATA } = await import("../src/core/catalogue.js");
+    const ids = new Map(
+      Object.entries(DATA.nodes).map(([title, n]) => [n.id, title]),
+    );
+    /* tech.json carries the config's id beside the tree's title, one each. */
+    expect(ids.size).toBe(Object.keys(DATA.nodes).length);
+    for (const art of ["stock", "restock"] as const)
+      for (const [title, e] of Object.entries(table(art)))
+        if (e.tech !== null)
+          expect(ids.has(e.tech), `${title} needs ${e.tech}`).toBe(true);
+    /* Brian's tier-6 career warned of a missing part: the root was an
+       RC-001S, which is Advanced Unmanned Tech (#467). With that roster the
+       Stayputnik (Basic Science) is offered and the RC-001S is not; with no
+       roster, every command part is. */
+    const { commandParts } = await import("../src/core/nodes.js");
+    const titles = (r: ReturnType<typeof commandParts>) => r.map(([t]) => t);
+    const roster = new Set(["Start", "Basic Science", "Unmanned Tech"]);
+    const offered = titles(commandParts(roster));
+    expect(offered).toContain("Probodobodyne Stayputnik");
+    expect(offered).not.toContain("RC-001S Remote Guidance Unit");
+    expect(titles(commandParts()).length).toBeGreaterThan(offered.length);
+    expect(titles(commandParts(new Set()))).toEqual([]);
   });
 
   it("agrees with the part tables on what a full tank holds, in each art", async () => {

@@ -17,6 +17,7 @@ const part = (
   modules: [],
   variant: null,
   attach: null,
+  rigid: false,
   resources: [],
   ...over,
 });

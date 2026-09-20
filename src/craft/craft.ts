@@ -98,6 +98,11 @@ type CraftPart = {
      writes: position and direction in the part's frame. Null where not
      bolted on by one. */
   attach: { p: Vec3; d: Vec3 } | null;
+  /* `rigidAttachment`: the joint to the parent locked rather than sprung.
+     A builder turns it on for the tanks and the parts that join stages of
+     a tall rocket; Brian's probe 6 bent with braces at every joint and
+     rigid attachment off (#483). */
+  rigid: boolean;
   resources: ReadonlyArray<Resource>;
   /* A compound part — an EAS-4 Strut Connector — reaches from where it is
      bolted to a second part, its target. `pos` and `dir` are the target end
@@ -206,10 +211,10 @@ function writeCraft(craft: Craft): string {
          a tall stack: the game applies the field on load whether or not
          Advanced Tweakables is on (it saved it back untouched on probes 1–6),
          Grandparent holds a stack of many short tanks without the joint
-         changes Heaviest makes at staging, and rigid attachment is left off
-         because it makes a joint brittle rather than stiff. #467 */
+         changes Heaviest makes at staging. Rigid attachment is the part's
+         own call (#467, #483). */
       ["autostrutMode", p.parent ? "Grandparent" : "Off"],
-      ["rigidAttachment", bool(false)],
+      ["rigidAttachment", bool(p.rigid)],
       ["istg", String(ign ?? (p.parent ? p.stage.drop : -1))],
       ["resPri", "0"],
       ["dstg", String(p.stage.drop)],
@@ -442,6 +447,7 @@ function readCraft(text: string): Craft {
             .map((m) => valueOf(m, "selectedVariant"))
             .find((v) => v !== undefined) ?? null,
         attach,
+        rigid: valueOf(b, "rigidAttachment") === "True",
         resources,
         ...(compound ? { compound } : {}),
       },

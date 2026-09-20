@@ -20,6 +20,7 @@ const part = (
   modules: [],
   variant: null,
   attach: null,
+  rigid: false,
   resources: [],
   ...over,
 });
@@ -216,6 +217,7 @@ function gen(seed: number, maxParts = 60): Craft {
     modules: Array<string>;
     variant: string | null;
     attach: { p: Vec3; d: Vec3 } | null;
+    rigid: boolean;
     resources: Array<{ name: string; amount: number; max: number }>;
   }> = [];
   const quat = (): Quat => {
@@ -241,6 +243,7 @@ function gen(seed: number, maxParts = 60): Craft {
       modules: [] as Array<string>,
       variant: null as string | null,
       attach: null as { p: Vec3; d: Vec3 } | null,
+      rigid: r() < 0.5,
       resources: [] as Array<{ name: string; amount: number; max: number }>,
     };
     if (i > 0) {

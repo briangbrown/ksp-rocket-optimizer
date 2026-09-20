@@ -5,13 +5,13 @@ Eve                liftoff=—         stages=—
 Gilly              liftoff=51.8      stages=3
 Mun                liftoff=68.7      stages=3
 Minmus             liftoff=45.8      stages=3
-Duna               liftoff=116.5     stages=3
-Ike                liftoff=69.8      stages=4
-Dres               liftoff=196.0     stages=5
+Duna               liftoff=117.7     stages=3
+Ike                liftoff=69.9      stages=4
+Dres               liftoff=221.2     stages=4
 Jool               liftoff=—         stages=—
 Laythe             liftoff=—         stages=—
-Vall               liftoff=270.6     stages=6
+Vall               liftoff=271.0     stages=7
 Tylo               liftoff=—         stages=—
-Pol                liftoff=169.1     stages=5
-Eeloo              liftoff=267.2     stages=5
+Pol                liftoff=223.2     stages=3
+Eeloo              liftoff=261.9     stages=5
 Kerbol orbit       liftoff=—         stages=—

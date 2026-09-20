@@ -1,4 +1,5 @@
 import nodesData from "../data/nodes.json";
+import { DATA } from "./catalogue.js";
 import { artName, tankRun } from "./geometry.js";
 import type { BoosterPart } from "./solution.js";
 
@@ -47,8 +48,22 @@ const nodesOf = (title: string): PartNodes | undefined =>
 
 /* Every command part the table knows, for the root that stands in for the
    payload: by the size of its stack node. */
-const commandParts = (): Array<[string, PartNodes]> =>
-  Object.entries(TABLES[artName()]).filter(([, e]) => e.command);
+/* The command parts, and with a roster only those it has researched: the
+   configs name a tech by id and the roster by title, and `tech.json` carries
+   both. Brian's tier-6 game refused a probe whose root was an RC-001S,
+   which is Advanced Unmanned Tech (#467). */
+const TECH_TITLE = new Map(
+  Object.entries(DATA.nodes).map(([title, n]) => [n.id, title]),
+);
+const commandParts = (
+  unlocked?: ReadonlySet<string>,
+): Array<[string, PartNodes]> =>
+  Object.entries(TABLES[artName()]).filter(
+    ([, e]) =>
+      e.command &&
+      (!unlocked ||
+        (e.tech !== null && unlocked.has(TECH_TITLE.get(e.tech) ?? ""))),
+  );
 
 /* The title a config name belongs to, in the live art — the way back from
    a craft's `part =` to the part tables. */

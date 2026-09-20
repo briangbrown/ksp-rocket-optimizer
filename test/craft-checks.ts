@@ -312,6 +312,55 @@ export function craftChecks(
     }
   });
 
+  /* The interstage braces land where the plan meant them: as many as the
+     stage was charged, and on the ring columns of the stage below where it
+     has them — one per column, on its top cap — else on the axis, on what
+     that stage ends in. A strut from a core tank to a part that leaves in
+     another stage, ending below the tank, is an interstage brace; a column
+     brace stays within its stage's tank run (#483). */
+  const strutName = nodesOf("EAS-4 Strut Connector")?.name;
+  const byId = new Map(craft.parts.map((p) => [p.id, p]));
+  const stageOfDrop = new Map(cores.map((d, i) => [d, i]));
+  const crossing = new Map<number, Array<CraftPart>>();
+  for (const p of craft.parts) {
+    if (p.name !== strutName || !p.compound || !p.parent) continue;
+    const from = byId.get(p.parent.id);
+    const to = byId.get(p.compound.target);
+    if (!from || !to || !onAxis(from) || from.stage.drop === to.stage.drop)
+      continue;
+    const end = p.pos[1] + rotate(p.rot, p.compound.pos)[1];
+    const base =
+      from.pos[1] +
+      Math.min(
+        ...Object.values(entry(from)?.nodes ?? {}).map((v) => v.p[1]),
+        0,
+      );
+    if (end > base) continue;
+    const i = stageOfDrop.get(from.stage.drop);
+    if (i === undefined) continue;
+    if (!crossing.has(i)) crossing.set(i, []);
+    crossing.get(i)!.push(to);
+  }
+  solved.forEach((st, i) => {
+    const want = st.sol!.interstage?.count ?? 0;
+    const targets = crossing.get(i) ?? [];
+    if (targets.length !== want)
+      problems.push(
+        `braces: stage ${i} has ${targets.length} interstage braces in the craft, ${want} in the plan`,
+      );
+    if (!i || !want) return;
+    const ring = (solved[i - 1].sol!.stacks ?? 1) > 1;
+    const offAxis = targets.filter((t) => !onAxis(t)).length;
+    if (ring && offAxis < Math.min(want, solved[i - 1].sol!.stacks! - 1))
+      problems.push(
+        `braces: stage ${i} stands on a ring of ${solved[i - 1].sol!.stacks} and only ${offAxis} of its ${want} interstage braces reach a column`,
+      );
+    if (!ring && offAxis)
+      problems.push(
+        `braces: stage ${i} has ${offAxis} interstage braces reaching off the axis with no ring below`,
+      );
+  });
+
   /* The signature: one line a part, in file order. */
   const lines = [`## ${name}`, `  parts=${craft.parts.length}`];
   for (const p of craft.parts)

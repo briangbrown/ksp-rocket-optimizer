@@ -222,7 +222,15 @@ class Builder {
     pos: Vec,
     rot: Quat,
     stage: { ignite: number | null; drop: number },
-    over: { full?: boolean; entry?: PartNodes; variant?: string } = {},
+    over: {
+      full?: boolean;
+      entry?: PartNodes;
+      variant?: string;
+      /* Rigid attachment to the parent: on for the stack's own joints —
+         tanks, decouplers, couplers, adapters — off for what hangs off it.
+         Probe 6 bent with braces at every joint and it off (#483). */
+      rigid?: boolean;
+    } = {},
   ): Built {
     const info = over.entry ?? this.info(title);
     const id = this.id(path);
@@ -250,6 +258,7 @@ class Builder {
         ? (over.variant ?? info.variant ?? null)
         : null,
       attach: null,
+      rigid: !!over.rigid,
       resources,
     };
     const b: Built = { part, world, info };
@@ -387,6 +396,7 @@ function stackTanks(
     const y = Builder.yFor(info, "bottom", on.p[1], I);
     const t = b.place(`${path}/tank${k + 1}`, tk.t.n, [x, y, z], I, stage, {
       entry: info,
+      rigid: true,
     });
     if (up) b.stack(below, belowNode, t, "bottom");
     else b.stack(t, "bottom", below, belowNode);
@@ -640,7 +650,7 @@ function buildColumn(
           [cx, ry, cz],
           FLIP,
           stage,
-          { entry: rInfo },
+          { entry: rInfo, rigid: true },
         );
         bottom = rejoin;
         bottomNode = "top";
@@ -667,7 +677,7 @@ function buildColumn(
         [cx, cy, cz],
         I,
         plate ? { ignite: engineStage.ignite, drop: stage.drop } : stage,
-        { entry: cInfo, variant: variant ?? undefined },
+        { entry: cInfo, variant: variant ?? undefined, rigid: true },
       );
       if (plate) {
         const spread = (clusterSpan(g.perEng, g.ed) - g.ed) / 2;
@@ -736,6 +746,7 @@ function buildColumn(
       const ay = Builder.yFor(aInfo, "bottom", below!.world[belowNode].p[1], I);
       const ad = b.place(`${path}/adapter${k}`, a.n, [cx, ay, cz], I, stage, {
         entry: aInfo,
+        rigid: true,
       });
       b.stack(ad, "bottom", below!, belowNode);
       below = ad;
@@ -774,7 +785,7 @@ function buildColumn(
       [cx, ty, cz],
       I,
       stage,
-      { entry: info },
+      { entry: info, rigid: true },
     );
     bottom = tankBase;
     bottomNode = "bottom";
@@ -838,10 +849,76 @@ function buildColumn(
   };
 }
 
+/* Where a stage's interstage braces land on the stage below: one on the
+   top cap of each ring column, half a radius outboard of its centre — clear
+   of anything on its top node, and where Brian put his — and where the
+   columns are more than the braces, the ones nearest the quarter azimuths;
+   any braces left over go to the wall of what the stage ends in, spaced
+   evenly through the gaps between the columns (two columns on the 0°
+   plane put the other two braces on the 90° plane). With no ring, all of
+   them to the wall at the quarter azimuths. */
+function interstageAnchors(
+  below: {
+    part: Built;
+    r: number;
+    columns: Array<{ col: Column; cx: number; cz: number }>;
+  },
+  count: number,
+): Array<{ to: Built; point: Vec; a: number }> {
+  const out: Array<{ to: Built; point: Vec; a: number }> = [];
+  const wall = (a: number) => ({
+    to: below.part,
+    point: [
+      Math.cos(a) * below.r,
+      below.part.part.pos[1],
+      Math.sin(a) * below.r,
+    ] as Vec,
+    a,
+  });
+  if (!below.columns.length) {
+    for (let q = 0; q < count; q++)
+      out.push(wall(((q + 0.5) / count) * 2 * Math.PI));
+    return out;
+  }
+  const withAz = below.columns.map((c) => ({
+    ...c,
+    a: Math.atan2(c.cz, c.cx),
+  }));
+  let picked = withAz;
+  if (withAz.length > count) {
+    const left = [...withAz];
+    picked = [];
+    for (let q = 0; q < count; q++) {
+      const want = ((q + 0.5) / count) * 2 * Math.PI;
+      const gap = (a: number) => {
+        const d =
+          Math.abs(((a - want) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        return Math.min(d, 2 * Math.PI - d);
+      };
+      left.sort((p, r) => gap(p.a) - gap(r.a));
+      picked.push(left.shift()!);
+    }
+  }
+  for (const { col, cx, cz, a } of picked)
+    out.push({
+      to: col.topTank,
+      point: [
+        cx + (Math.cos(a) * col.tankR) / 2,
+        col.tankTopY,
+        cz + (Math.sin(a) * col.tankR) / 2,
+      ],
+      a,
+    });
+  const rest = count - out.length;
+  for (let j = 0; j < rest; j++)
+    out.push(wall(picked[0].a + ((j + 0.5) / rest) * 2 * Math.PI));
+  return out;
+}
+
 /* ------------------------------------------------------------ the craft */
 function craftOf(
   stages: ReadonlyArray<PlanStage>,
-  input: Pick<PlanInput, "payload" | "payloadDia" | "expansions">,
+  input: Pick<PlanInput, "payload" | "payloadDia" | "expansions" | "unlocked">,
   name: string,
   destination: string,
 ): Craft {
@@ -853,7 +930,15 @@ function craftOf(
 
   /* Bottom up along the axis: each stage's top is the next one's floor. */
   let y = 0;
-  let belowTop: { part: Built; node: string; r: number } | null = null;
+  /* What the stage below ends in, and its ring columns where it has them —
+     the interstage braces reach for those. */
+  type Below = {
+    part: Built;
+    node: string;
+    r: number;
+    columns: Array<{ col: Column; cx: number; cz: number }>;
+  };
+  let belowTop: Below | null = null;
   for (const { i, sol } of solved) {
     const g = stageGeom(sol);
     const stage = { ignite: null, drop: st.drop(i) };
@@ -881,30 +966,34 @@ function craftOf(
     /* The stage below hangs from this stage's bottom node. */
     if (belowTop)
       b.stack(core.bottom, core.bottomNode, belowTop.part, belowTop.node);
-    /* Four EAS-4s across the joint: from this stage's lowest tank, just
-       above its bottom rim, down to the wall of what the stage below ends in
-       — its decoupler, or its top tank where a plate makes the joint — at
-       the quarter azimuths, off the boosters' planes. Brian's strutted probe
-       6 had four across every joint and reached orbit; bare, it was too
-       flexy to fly (#483). They break at separation, as the game's do. */
+    /* Four EAS-4s across the joint, from this stage's lowest tank just above
+       its bottom rim. Where the stage below is a ring of columns they reach
+       the columns' top caps, one each — the columns hang from cubic struts
+       at their middles and their tops swing under the stage above, a lever
+       the length of a tank; tied to it, they cannot. Brian's probe 6 flexed
+       with four struts to the core's decoupler and flew with the same four
+       moved to the columns' tops, "the key to fight the big moment arm of
+       those tanks". Otherwise to the wall of what the stage below ends in —
+       its decoupler, or its top tank where a plate makes the joint — at the
+       quarter azimuths, off the boosters' planes. They break at separation,
+       as the game's do (#483). */
     if (belowTop && sol.interstage && core.tanks.length) {
       const low = core.tanks[0];
       const y0 = core.tankBaseY + 0.3;
-      const y1 = belowTop.part.part.pos[1];
-      for (let q = 0; q < sol.interstage.count; q++) {
-        const a = ((q + 0.5) / sol.interstage.count) * 2 * Math.PI;
-        braceBetween(
-          b,
-          `s${i}/interstage${q}`,
-          low,
-          [Math.cos(a) * core.tankR, y0, Math.sin(a) * core.tankR],
-          0,
-          0,
-          belowTop.part,
-          [Math.cos(a) * belowTop.r, y1, Math.sin(a) * belowTop.r],
-          stage,
-        );
-      }
+      interstageAnchors(belowTop, sol.interstage.count).forEach(
+        ({ to, point, a }, q) =>
+          braceBetween(
+            b,
+            `s${i}/interstage${q}`,
+            low,
+            [Math.cos(a) * core.tankR, y0, Math.sin(a) * core.tankR],
+            0,
+            0,
+            to,
+            point,
+            stage,
+          ),
+      );
     }
     /* Ring columns are struts on the core's tank run, two each, a quarter
        of the way in from either end of the column's run — the spread a
@@ -1006,9 +1095,7 @@ function craftOf(
             [x, ty, z],
             rot,
             stage,
-            {
-              entry: tInfo,
-            },
+            { entry: tInfo, rigid: true },
           );
           const holdY = ty + (tInfo.attach?.p[1] ?? 0);
           const hold = holdOn(
@@ -1197,7 +1284,7 @@ function craftOf(
           [x, ty, z],
           I,
           bStage,
-          { entry: tInfo },
+          { entry: tInfo, rigid: true },
         );
         if (under) b.stack(first, "bottom", under, underNode);
         const above = stackTanks(
@@ -1328,7 +1415,7 @@ function craftOf(
         [0, dy, 0],
         I,
         { ignite: st.drop(i), drop: st.drop(i) },
-        { entry: dInfo },
+        { entry: dInfo, rigid: true },
       );
       b.stack(dec, "bottom", core.topTank, "top");
       top = { part: dec, node: "top" };
@@ -1336,6 +1423,11 @@ function craftOf(
     belowTop = {
       ...top,
       r: (sol.decoupler?.n ? (sol.decoupler.d ?? g.td) : g.td) / 2,
+      columns: built.slice(1).map((col, k) => ({
+        col,
+        cx: columns[k + 1][0],
+        cz: columns[k + 1][1],
+      })),
     };
     y = top.part.world[top.node].p[1];
   }
@@ -1343,7 +1435,14 @@ function craftOf(
   /* The root: a command part standing in for the payload, at the top. */
   const dia = input.payloadDia || 1.25;
   const want = sizeOf(dia);
-  const cands = commandParts()
+  /* One the roster has researched — a part the save has not unlocked is a
+     "missing part" warning in the game (Brian's tier-6 career, #467) — and
+     failing that any, since a rocket needs a root and the tree's first probe
+     core is four tiers in. */
+  const researched = commandParts(new Set(input.unlocked)).filter(
+    ([, e]) => e.nodes.bottom,
+  );
+  const cands = (researched.length ? researched : commandParts())
     .filter(([, e]) => e.nodes.bottom)
     .sort(
       ([, a], [, c]) =>
@@ -1412,7 +1511,7 @@ function craftOf(
    would not load. */
 const craftFile = (
   stages: ReadonlyArray<PlanStage>,
-  input: Pick<PlanInput, "payload" | "payloadDia" | "expansions">,
+  input: Pick<PlanInput, "payload" | "payloadDia" | "expansions" | "unlocked">,
   name: string,
   destination: string,
 ): string => writeCraft(craftOf(stages, input, name, destination));

@@ -1,254 +1,317 @@
 {
   "nodes": {
     "Start": {
+      "id": "start",
       "lvl": 1,
       "deps": []
     },
     "Basic Rocketry": {
+      "id": "basicRocketry",
       "lvl": 2,
       "deps": ["Start"]
     },
     "Engineering 101": {
+      "id": "engineering101",
       "lvl": 2,
       "deps": ["Start"]
     },
     "General Rocketry": {
+      "id": "generalRocketry",
       "lvl": 3,
       "deps": ["Basic Rocketry"]
     },
     "Stability": {
+      "id": "stability",
       "lvl": 3,
       "deps": ["Engineering 101", "Basic Rocketry"]
     },
     "Survivability": {
+      "id": "survivability",
       "lvl": 3,
       "deps": ["Engineering 101"]
     },
     "Advanced Rocketry": {
+      "id": "advRocketry",
       "lvl": 4,
       "deps": ["General Rocketry"]
     },
     "General Construction": {
+      "id": "generalConstruction",
       "lvl": 4,
       "deps": ["Stability", "General Rocketry"]
     },
     "Aviation": {
+      "id": "aviation",
       "lvl": 4,
       "deps": ["Stability"]
     },
     "Flight Control": {
+      "id": "flightControl",
       "lvl": 4,
       "deps": ["Survivability", "Stability"]
     },
     "Basic Science": {
+      "id": "basicScience",
       "lvl": 4,
       "deps": ["Survivability"]
     },
     "Heavy Rocketry": {
+      "id": "heavyRocketry",
       "lvl": 5,
       "deps": ["Advanced Rocketry"]
     },
     "Propulsion Systems": {
+      "id": "propulsionSystems",
       "lvl": 5,
       "deps": ["Advanced Rocketry"]
     },
     "Fuel Systems": {
+      "id": "fuelSystems",
       "lvl": 5,
       "deps": ["Advanced Rocketry", "General Construction"]
     },
     "Advanced Construction": {
+      "id": "advConstruction",
       "lvl": 5,
       "deps": ["General Construction"]
     },
     "Aerodynamics": {
+      "id": "aerodynamicSystems",
       "lvl": 5,
       "deps": ["Aviation", "General Construction"]
     },
     "Landing": {
+      "id": "landing",
       "lvl": 5,
       "deps": ["Flight Control", "Aviation"]
     },
     "Advanced Flight Control": {
+      "id": "advFlightControl",
       "lvl": 5,
       "deps": ["Flight Control"]
     },
     "Space Exploration": {
+      "id": "spaceExploration",
       "lvl": 5,
       "deps": ["Basic Science"]
     },
     "Miniaturization": {
+      "id": "miniaturization",
       "lvl": 5,
       "deps": ["Basic Science"]
     },
     "Electrics": {
+      "id": "electrics",
       "lvl": 5,
       "deps": ["Basic Science"]
     },
     "Heavier Rocketry": {
+      "id": "heavierRocketry",
       "lvl": 6,
       "deps": ["Heavy Rocketry"]
     },
     "Precision Propulsion": {
+      "id": "precisionPropulsion",
       "lvl": 6,
       "deps": ["Propulsion Systems"]
     },
     "Advanced Fuel Systems": {
+      "id": "advFuelSystems",
       "lvl": 6,
       "deps": ["Propulsion Systems", "Fuel Systems"]
     },
     "Specialized Construction": {
+      "id": "specializedConstruction",
       "lvl": 6,
       "deps": ["Advanced Construction"]
     },
     "Actuators": {
+      "id": "actuators",
       "lvl": 6,
       "deps": ["Advanced Construction"]
     },
     "Supersonic Flight": {
+      "id": "supersonicFlight",
       "lvl": 6,
       "deps": ["Aerodynamics"]
     },
     "Advanced Aerodynamics": {
+      "id": "advAerodynamics",
       "lvl": 6,
       "deps": ["Aerodynamics"]
     },
     "Advanced Landing": {
+      "id": "advLanding",
       "lvl": 6,
       "deps": ["Landing"]
     },
     "Specialized Control": {
+      "id": "specializedControl",
       "lvl": 6,
       "deps": ["Advanced Flight Control"]
     },
     "Command Modules": {
+      "id": "commandModules",
       "lvl": 6,
       "deps": ["Space Exploration", "Advanced Flight Control"]
     },
     "Advanced Exploration": {
+      "id": "advExploration",
       "lvl": 6,
       "deps": ["Space Exploration"]
     },
     "Precision Engineering": {
+      "id": "precisionEngineering",
       "lvl": 6,
       "deps": ["Miniaturization", "Electrics"]
     },
     "Advanced Electrics": {
+      "id": "advElectrics",
       "lvl": 6,
       "deps": ["Electrics"]
     },
     "Nuclear Propulsion": {
+      "id": "nuclearPropulsion",
       "lvl": 7,
       "deps": ["Advanced Fuel Systems", "Heavier Rocketry"]
     },
     "Large Volume Containment": {
+      "id": "largeVolumeContainment",
       "lvl": 7,
       "deps": ["Advanced Fuel Systems", "Specialized Construction"]
     },
     "Advanced MetalWorks": {
+      "id": "advMetalworks",
       "lvl": 7,
       "deps": ["Specialized Construction"]
     },
     "Composites": {
+      "id": "composites",
       "lvl": 7,
       "deps": ["Specialized Construction"]
     },
     "High Altitude Flight": {
+      "id": "highAltitudeFlight",
       "lvl": 7,
       "deps": ["Supersonic Flight"]
     },
     "Heavy Aerodynamics": {
+      "id": "heavyAerodynamics",
       "lvl": 7,
       "deps": ["Advanced Aerodynamics"]
     },
     "Heavy Landing": {
+      "id": "heavyLanding",
       "lvl": 7,
       "deps": ["Advanced Landing"]
     },
     "Field Science": {
+      "id": "fieldScience",
       "lvl": 7,
       "deps": ["Advanced Landing", "Advanced Exploration"]
     },
     "Scanning Tech": {
+      "id": "scienceTech",
       "lvl": 7,
       "deps": ["Advanced Exploration", "Precision Engineering"]
     },
     "Unmanned Tech": {
+      "id": "unmannedTech",
       "lvl": 7,
       "deps": ["Precision Engineering"]
     },
     "Electronics": {
+      "id": "electronics",
       "lvl": 7,
       "deps": ["Precision Engineering", "Advanced Electrics"]
     },
     "High-Power Electrics": {
+      "id": "largeElectrics",
       "lvl": 7,
       "deps": ["Advanced Electrics"]
     },
     "Very Heavy Rocketry": {
+      "id": "veryHeavyRocketry",
       "lvl": 8,
       "deps": ["Large Volume Containment", "Heavier Rocketry"]
     },
     "High-Performance Fuel Systems": {
+      "id": "highPerformanceFuelSystems",
       "lvl": 8,
       "deps": ["Large Volume Containment"]
     },
     "Meta-Materials": {
+      "id": "metaMaterials",
       "lvl": 8,
       "deps": ["Composites"]
     },
     "Hypersonic Flight": {
+      "id": "hypersonicFlight",
       "lvl": 8,
       "deps": ["High Altitude Flight"]
     },
     "Experimental Aerodynamics": {
+      "id": "experimentalAerodynamics",
       "lvl": 8,
       "deps": ["Heavy Aerodynamics"]
     },
     "Advanced Motors": {
+      "id": "advancedMotors",
       "lvl": 8,
       "deps": ["Field Science"]
     },
     "Advanced Science Tech": {
+      "id": "advScienceTech",
       "lvl": 8,
       "deps": ["Scanning Tech", "Field Science"]
     },
     "Ion Propulsion": {
+      "id": "ionPropulsion",
       "lvl": 8,
       "deps": ["Scanning Tech", "Unmanned Tech"]
     },
     "Advanced Unmanned Tech": {
+      "id": "advUnmanned",
       "lvl": 8,
       "deps": ["Unmanned Tech"]
     },
     "Automation": {
+      "id": "automation",
       "lvl": 8,
       "deps": ["Unmanned Tech", "Electronics"]
     },
     "Specialized Electrics": {
+      "id": "specializedElectrics",
       "lvl": 8,
       "deps": ["High-Power Electrics"]
     },
     "Nanolathing": {
+      "id": "nanolathing",
       "lvl": 8,
       "deps": ["Advanced MetalWorks"]
     },
     "Aerospace Tech": {
+      "id": "aerospaceTech",
       "lvl": 9,
       "deps": ["Hypersonic Flight"]
     },
     "Experimental Science": {
+      "id": "experimentalScience",
       "lvl": 9,
       "deps": ["Advanced Science Tech"]
     },
     "Large Probes": {
+      "id": "largeUnmanned",
       "lvl": 9,
       "deps": ["Advanced Unmanned Tech", "Automation"]
     },
     "Experimental Electrics": {
+      "id": "experimentalElectrics",
       "lvl": 9,
       "deps": ["Specialized Electrics"]
     },
     "Experimental Motors": {
+      "id": "experimentalMotors",
       "lvl": 9,
       "deps": ["Advanced Motors"]
     }

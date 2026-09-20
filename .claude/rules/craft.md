@@ -200,16 +200,31 @@ standoff, half, clear)` is the largest of three radii: the wall plus the
   0.75 m past its node, so probe 11's columns came out 0.4 m under the
   core's nozzles where Brian wanted them level (#483).
 
-- **EAS-4s cross every stage joint the plan braced — four from 2.5 m, two
-  on a 1.25 or 1.875 m joint under ten tonnes or more.** From a stage's lowest tank, just
-  above its bottom rim, to the wall of what the stage below ends in — its
+- **EAS-4s cross every stage joint the plan braced — four, from a 2.5 m
+  stage and from a 1.25 or 1.875 m one carrying ten tonnes or more.** From a
+  stage's lowest tank, just above its bottom rim, to the stage below. Where
+  that stage is a ring of columns, to the columns' top caps, one each, half
+  a radius outboard of the centre (`interstageAnchors`): the columns hang
+  from cubic struts at their middles and their tops swing under the stage
+  above, and Brian's probe 6 flexed with four struts to the core's decoupler
+  and flew with the same four moved to the columns' tops — "the key to fight
+  the big moment arm of those tanks". More columns than braces, the ones
+  nearest the quarter azimuths; fewer, the rest go to the wall through the
+  gaps. No ring, all four to the wall of what the stage below ends in — its
   decoupler, or its top tank where a plate makes the joint — at the quarter
-  azimuths, off the boosters' planes. Brian's strutted probe 6 had four
-  across every joint and made an 80 km orbit with 9.8 km/s to spare; bare,
-  the same rocket was too flexy to fly (#483). They break at separation, as
-  the game's do. `Solution.interstage` is what the plan charged for them
-  (`fitStructure`, on every stage with a stage below), and the bill counts
-  them on both sides.
+  azimuths, off the boosters' planes. Never two: a pair in one plane braces
+  one axis, and probe 6's Nerv joint flexed with two until it had four. They
+  break at separation, as the game's do (#483). `Solution.interstage` is
+  what the plan charged for them (`fitStructure`, on every stage with a
+  stage below), the bill counts them on both sides, and `craftChecks` holds
+  the count and the anchors on every sweep mission.
+
+- **The root is a command part the roster has researched.** `craftOf` takes
+  `unlocked` and asks `commandParts` for one the tree has reached, then the
+  nearest stack size and the lightest; any command part only where none is
+  researched, since a craft needs a root and the first probe core is four
+  tiers in. A part the save has not unlocked loads with a "missing part"
+  warning in a career game (Brian's tier-6 save, #467).
 
 - **Braces cross.** Each EAS-4 runs from a quarter of the core's run to the
   column's other quarter: a strut the length of the gap between two walls
@@ -243,15 +258,19 @@ standoff, half, clear)` is the largest of three radii: the wall plus the
   its own attach node, its middle, where the game snaps it, so its second is
   a quarter-length away and no more — the most spread the game allows.
 
-- **Every part but the root autostruts to its grandparent; rigid attachment
-  stays off.** The game reads `autostrutMode` and `rigidAttachment` off the
-  craft on load whether or not Advanced Tweakables is on (it saved probes
-  1–6 back with them untouched), so the writer sets what a builder would:
-  Grandparent holds a stack of many short tanks against the bending and the
-  pad wobble Brian saw on tall thin rockets, without the joint changes
-  Heaviest makes at staging; rigid attachment makes a joint brittle rather
-  than stiff. Launch clamps are the other half of the pad problem and are
-  not written yet (#467).
+- **Every part but the root autostruts to its grandparent; the tanks and
+  the parts that join stages are rigidly attached.** The game reads
+  `autostrutMode` and `rigidAttachment` off the craft on load whether or not
+  Advanced Tweakables is on (it saved probes 1–6 back with them untouched),
+  so the writer sets what a builder would: Grandparent holds a stack of many
+  short tanks against the bending and the pad wobble Brian saw on tall thin
+  rockets, without the joint changes Heaviest makes at staging. Rigid
+  attachment (`CraftPart.rigid`, set by `Builder.place`) is on for every
+  tank, stack decoupler, coupler, engine plate, rejoin and adapter — the
+  stack's own joints — and off for engines, holders, boosters, struts and
+  the root: probe 6 still bent with braces at every joint and it off, and
+  Brian asked for it on the stack (#483). Launch clamps are the other half
+  of the pad problem and are not written yet (#484).
 
 - **An engine plate is written in the plan's shroud variant, hangs the
   stage below from that variant's bottom node, and fires with its
